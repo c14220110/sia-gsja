@@ -166,7 +166,7 @@ export default function LoginPage() {
               </div>
               <div className="mt-6 text-center">
                 <p className="text-xs text-gray-400 dark:text-gray-500">
-                  © 2023 GSJA. Internal Use Only. <br />
+                  © 2026 GSJA. Internal Use Only. <br />
                   Protected by reCAPTCHA and subject to the Privacy Policy and Terms of Service.
                 </p>
               </div>
