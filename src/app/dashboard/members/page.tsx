@@ -40,6 +40,7 @@ export default function MembersPage() {
   // Fetch Options and User Data on Mount
   useEffect(() => {
     const fetchOptionsAndUser = async () => {
+      showLoader();
       try {
         const [resSatelit, resKomisi, resUser] = await Promise.all([
           fetch('/api/options?type=satelit'),
@@ -60,6 +61,8 @@ export default function MembersPage() {
         }
       } catch (error) {
         console.error('Failed to fetch initial data', error);
+      } finally {
+        hideLoader();
       }
     };
     fetchOptionsAndUser();

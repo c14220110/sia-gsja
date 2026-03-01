@@ -25,18 +25,15 @@ export const useLoader = () => {
 };
 
 export const LoaderProvider = ({ children }: { children: ReactNode }) => {
-  const [isLoading, setIsLoading] = useState(false);
+  const [activeRequests, setActiveRequests] = useState(0);
 
   const router = useRouter();
   const pathname = usePathname();
 
-  useEffect(() => {
-    // Whenever the route completes a transition to a new pathname, force hide the loader
-    setIsLoading(false);
-  }, [pathname]);
+  const showLoader = () => setActiveRequests(prev => prev + 1);
+  const hideLoader = () => setActiveRequests(prev => Math.max(0, prev - 1));
 
-  const showLoader = () => setIsLoading(true);
-  const hideLoader = () => setIsLoading(false);
+  const isLoading = activeRequests > 0;
 
   return (
     <LoaderContext.Provider value={{ isLoading, showLoader, hideLoader }}>
