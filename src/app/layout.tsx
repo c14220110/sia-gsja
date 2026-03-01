@@ -6,8 +6,18 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 const playfair = Playfair_Display({ subsets: ['latin'], variable: '--font-display' });
 
 export const metadata: Metadata = {
-  title: 'SIA GSJA Login - Accounting Information System',
+  title: 'SIA GSJA - Accounting Information System',
   description: 'Gereja Sidang Jemaat Allah - Sistem Informasi Akuntansi',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'SIA GSJA',
+  },
+  icons: {
+    icon: '/icon-192.jpg',
+    apple: '/icon-192.jpg',
+  },
 };
 
 import { LoaderProvider } from '@/components/ui/GlobalLoader';
