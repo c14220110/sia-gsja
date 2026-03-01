@@ -17,6 +17,12 @@ export default function DashboardLayout({
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
   const [submenuTop, setSubmenuTop] = useState<number>(0);
   const submenuTimeout = useRef<NodeJS.Timeout | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [mobileExpandedMenus, setMobileExpandedMenus] = useState<Record<string, boolean>>({});
+
+  const toggleMobileMenu = (menuId: string) => {
+    setMobileExpandedMenus(prev => ({ ...prev, [menuId]: !prev[menuId] }));
+  };
 
   const handleMouseEnterMenu = (menuId: string, e: React.MouseEvent) => {
     if (submenuTimeout.current) clearTimeout(submenuTimeout.current);
@@ -87,13 +93,22 @@ export default function DashboardLayout({
       <div className="w-full h-screen inline-flex justify-start items-start overflow-hidden">
         
         {/* Sidebar */}
-        <div className="group h-full relative bg-slate-700 flex-shrink-0 w-20 hover:w-80 transition-all duration-300 ease-in-out z-40 flex flex-col shadow-2xl">
+        {/* Mobile Backdrop */}
+        {isMobileMenuOpen && (
+          <div 
+            className="md:hidden fixed inset-0 bg-slate-900/50 z-[100] backdrop-blur-sm transition-opacity"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+        )}
+
+        {/* Sidebar */}
+        <div className={`fixed inset-y-0 left-0 z-[110] transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 group h-full bg-slate-700 flex-shrink-0 w-[80%] md:w-20 md:hover:w-80 transition-all duration-300 ease-in-out z-40 flex flex-col shadow-2xl`}>
           {/* Header */}
           <div className="w-full p-6 border-b border-white/10 flex justify-start items-center gap-3 h-[89px] flex-shrink-0">
             <div className="w-10 h-10 flex justify-center items-center overflow-hidden flex-shrink-0">
               <img className="flex-1 self-stretch relative object-contain" src="/assets/logo_gsja.png" alt="logo" />
             </div>
-            <div className="flex flex-col justify-start items-start opacity-0 group-hover:opacity-100 transition-all duration-300 w-0 group-hover:w-auto overflow-hidden">
+            <div className="flex flex-col justify-start items-start opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 w-auto md:w-0 md:group-hover:w-auto overflow-hidden">
                 <div className="self-stretch flex flex-col justify-start items-start">
                 <div className="h-4 flex items-center text-white text-sm font-bold font-['Inter'] leading-4 whitespace-nowrap truncate">SIA GSJA Eben Haezer</div>
               </div>
@@ -104,12 +119,12 @@ export default function DashboardLayout({
           </div>
           {/* Normal Admin Menus */}
           {userData?.role_name?.toLowerCase() !== 'jemaat' && (
-            <nav className="flex-1 w-full overflow-y-auto overflow-x-visible p-4 flex flex-col justify-start items-start gap-2 scrollbar-hide">
+            <nav className="flex-1 w-full overflow-y-auto overflow-x-visible p-4 pb-20 flex flex-col justify-start items-start gap-2 scrollbar-hide">
               <div className="w-full px-4 py-3 rounded-lg flex justify-start items-center gap-4 hover:bg-white/5 cursor-pointer">
                 <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
                   <span className="material-icons-round text-slate-200 text-[20px]">dashboard</span>
                 </div>
-                <div className="flex flex-col justify-start items-start opacity-0 group-hover:opacity-100 transition-all duration-300 w-0 group-hover:w-auto overflow-hidden whitespace-nowrap">
+                <div className="flex flex-col justify-start items-start opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 w-auto md:w-0 md:group-hover:w-auto overflow-hidden whitespace-nowrap">
                   <div className="justify-center text-slate-200 text-sm font-normal font-['Inter'] leading-5 pr-4">Dashboard Utama</div>
                 </div>
               </div>
@@ -120,7 +135,7 @@ export default function DashboardLayout({
                     <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
                       <span className="material-icons-round text-slate-300 text-[20px]">settings</span>
                     </div>
-                    <div className="flex flex-col justify-start items-start opacity-0 group-hover:opacity-100 transition-all duration-300 w-0 group-hover:w-auto overflow-hidden whitespace-nowrap">
+                    <div className="flex flex-col justify-start items-start opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 w-auto md:w-0 md:group-hover:w-auto overflow-hidden whitespace-nowrap">
                       <div className="h-5 justify-center text-slate-200 text-sm font-medium font-['Inter'] leading-5 pr-4">Pengaturan Software</div>
                     </div>
                   </div>
@@ -133,17 +148,26 @@ export default function DashboardLayout({
                     className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer"
                     onMouseEnter={(e) => handleMouseEnterMenu('manajemen_user', e)}
                     onMouseLeave={handleMouseLeaveMenu}
+                    onClick={() => toggleMobileMenu('manajemen_user')}
                   >
                     <div className="flex justify-start items-center gap-4">
                       <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
                         <span className="material-icons-round text-slate-300 text-[20px]">manage_accounts</span>
                       </div>
-                      <div className="flex flex-col justify-start items-start opacity-0 group-hover:opacity-100 transition-all duration-300 w-0 group-hover:w-auto overflow-hidden whitespace-nowrap">
+                      <div className="flex flex-col justify-start items-start opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 w-auto md:w-0 md:group-hover:w-auto overflow-hidden whitespace-nowrap">
                         <div className="h-5 justify-center text-slate-200 text-sm font-medium font-['Inter'] leading-5 pr-4">Manajemen User</div>
                       </div>
                     </div>
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">
                       <span className="material-icons-round text-slate-400 text-[16px]">chevron_right</span>
+                    </div>
+                  </div>
+                  {/* Mobile Accordion */}
+                  <div className={`md:hidden overflow-hidden transition-all duration-300 ${mobileExpandedMenus['manajemen_user'] ? 'max-h-96 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
+                    <div className="pl-14 pr-4 py-2 flex flex-col gap-4">
+                      <Link href="/dashboard/members" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Data Jemaat</Link>
+                      <span className="text-slate-300 text-sm font-medium hover:text-white transition-colors cursor-pointer block">Data Pelayan</span>
+                      <span className="text-slate-300 text-sm font-medium hover:text-white transition-colors cursor-pointer block">Data Pengurus</span>
                     </div>
                   </div>
                 </div>
@@ -154,7 +178,7 @@ export default function DashboardLayout({
                   <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
                     <span className="material-icons-round text-slate-300 text-[20px]">menu_book</span>
                   </div>
-                  <div className="flex flex-col justify-start items-start opacity-0 group-hover:opacity-100 transition-all duration-300 w-0 group-hover:w-auto overflow-hidden whitespace-nowrap">
+                  <div className="flex flex-col justify-start items-start opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 w-auto md:w-0 md:group-hover:w-auto overflow-hidden whitespace-nowrap">
                     <div className="h-5 justify-center text-slate-200 text-sm font-medium font-['Inter'] leading-5 pr-4">Buku Besar</div>
                   </div>
                 </div>
@@ -166,7 +190,7 @@ export default function DashboardLayout({
                     <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
                       <span className="material-icons-round text-slate-300 text-[20px]">badge</span>
                     </div>
-                    <div className="flex flex-col justify-start items-start opacity-0 group-hover:opacity-100 transition-all duration-300 w-0 group-hover:w-auto overflow-hidden whitespace-nowrap">
+                    <div className="flex flex-col justify-start items-start opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 w-auto md:w-0 md:group-hover:w-auto overflow-hidden whitespace-nowrap">
                       <div className="h-5 justify-center text-slate-200 text-sm font-medium font-['Inter'] leading-5 pr-4">Pegawai</div>
                     </div>
                   </div>
@@ -178,7 +202,7 @@ export default function DashboardLayout({
                   <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
                     <span className="material-icons-round text-slate-300 text-[20px]">request_quote</span>
                   </div>
-                  <div className="flex flex-col justify-start items-start opacity-0 group-hover:opacity-100 transition-all duration-300 w-0 group-hover:w-auto overflow-hidden whitespace-nowrap">
+                  <div className="flex flex-col justify-start items-start opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 w-auto md:w-0 md:group-hover:w-auto overflow-hidden whitespace-nowrap">
                     <div className="h-5 justify-center text-slate-200 text-sm font-medium font-['Inter'] leading-5 pr-4">Anggaran & Proposal</div>
                   </div>
                 </div>
@@ -189,7 +213,7 @@ export default function DashboardLayout({
                   <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
                     <span className="material-icons-round text-slate-300 text-[20px]">event</span>
                   </div>
-                  <div className="flex flex-col justify-start items-start opacity-0 group-hover:opacity-100 transition-all duration-300 w-0 group-hover:w-auto overflow-hidden whitespace-nowrap">
+                  <div className="flex flex-col justify-start items-start opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 w-auto md:w-0 md:group-hover:w-auto overflow-hidden whitespace-nowrap">
                     <div className="h-5 justify-center text-slate-200 text-sm font-medium font-['Inter'] leading-5 pr-4">Kegiatan</div>
                   </div>
                 </div>
@@ -200,7 +224,7 @@ export default function DashboardLayout({
                   <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
                     <span className="material-icons-round text-slate-300 text-[20px]">account_balance_wallet</span>
                   </div>
-                  <div className="flex flex-col justify-start items-start opacity-0 group-hover:opacity-100 transition-all duration-300 w-0 group-hover:w-auto overflow-hidden whitespace-nowrap">
+                  <div className="flex flex-col justify-start items-start opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 w-auto md:w-0 md:group-hover:w-auto overflow-hidden whitespace-nowrap">
                     <div className="h-5 justify-center text-slate-200 text-sm font-medium font-['Inter'] leading-5 pr-4">Kas &amp; Bank</div>
                   </div>
                 </div>
@@ -211,7 +235,7 @@ export default function DashboardLayout({
                   <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
                     <span className="material-icons-round text-slate-300 text-[20px]">shopping_cart</span>
                   </div>
-                  <div className="flex flex-col justify-start items-start opacity-0 group-hover:opacity-100 transition-all duration-300 w-0 group-hover:w-auto overflow-hidden whitespace-nowrap">
+                  <div className="flex flex-col justify-start items-start opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 w-auto md:w-0 md:group-hover:w-auto overflow-hidden whitespace-nowrap">
                     <div className="h-5 justify-center text-slate-200 text-sm font-medium font-['Inter'] leading-5 pr-4">Pembelian</div>
                   </div>
                 </div>
@@ -222,7 +246,7 @@ export default function DashboardLayout({
                   <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
                     <span className="material-icons-round text-slate-300 text-[20px]">inventory_2</span>
                   </div>
-                  <div className="flex flex-col justify-start items-start opacity-0 group-hover:opacity-100 transition-all duration-300 w-0 group-hover:w-auto overflow-hidden whitespace-nowrap">
+                  <div className="flex flex-col justify-start items-start opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 w-auto md:w-0 md:group-hover:w-auto overflow-hidden whitespace-nowrap">
                     <div className="h-5 justify-center text-slate-200 text-sm font-medium font-['Inter'] leading-5 pr-4">Perlengkapan / Aset Tetap</div>
                   </div>
                 </div>
@@ -233,7 +257,7 @@ export default function DashboardLayout({
                   <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
                     <span className="material-icons-round text-slate-300 text-[20px]">assessment</span>
                   </div>
-                  <div className="flex flex-col justify-start items-start opacity-0 group-hover:opacity-100 transition-all duration-300 w-0 group-hover:w-auto overflow-hidden whitespace-nowrap">
+                  <div className="flex flex-col justify-start items-start opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 w-auto md:w-0 md:group-hover:w-auto overflow-hidden whitespace-nowrap">
                     <div className="h-5 justify-center text-slate-200 text-sm font-medium font-['Inter'] leading-5 pr-4">Laporan</div>
                   </div>
                 </div>
@@ -244,13 +268,13 @@ export default function DashboardLayout({
 
           {/* Jemaat Menus */}
           {userData?.role_name?.toLowerCase() === 'jemaat' && (
-            <nav className="flex-1 w-full overflow-y-auto overflow-x-visible p-4 flex flex-col justify-start items-start gap-2 scrollbar-hide">
-              <Link href="/dashboard" className="w-full block text-inherit no-underline">
+            <nav className="flex-1 w-full overflow-y-auto overflow-x-visible p-4 pb-20 flex flex-col justify-start items-start gap-2 scrollbar-hide">
+              <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)} className="w-full block text-inherit no-underline">
                 <div className="w-full px-4 py-3 rounded-lg flex justify-start items-center gap-4 hover:bg-white/5 cursor-pointer">
                   <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
                     <span className="material-icons-round text-slate-200 text-[20px]">dashboard</span>
                   </div>
-                  <div className="flex flex-col justify-start items-start opacity-0 group-hover:opacity-100 transition-all duration-300 w-0 group-hover:w-auto overflow-hidden whitespace-nowrap">
+                  <div className="flex flex-col justify-start items-start opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 w-auto md:w-0 md:group-hover:w-auto overflow-hidden whitespace-nowrap">
                     <div className="justify-center text-slate-200 text-sm font-normal font-['Inter'] leading-5 pr-4">Dashboard Jemaat</div>
                   </div>
                 </div>
@@ -262,19 +286,28 @@ export default function DashboardLayout({
                   className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer"
                   onMouseEnter={(e) => handleMouseEnterMenu('kegiatan', e)}
                   onMouseLeave={handleMouseLeaveMenu}
+                    onClick={() => toggleMobileMenu('kegiatan')}
                 >
                   <div className="flex justify-start items-center gap-4">
                     <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
                       <span className="material-icons-round text-slate-300 text-[20px]">event</span>
                     </div>
-                    <div className="flex flex-col justify-start items-start opacity-0 group-hover:opacity-100 transition-all duration-300 w-0 group-hover:w-auto overflow-hidden whitespace-nowrap">
+                    <div className="flex flex-col justify-start items-start opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 w-auto md:w-0 md:group-hover:w-auto overflow-hidden whitespace-nowrap">
                       <div className="h-5 justify-center text-slate-200 text-sm font-medium font-['Inter'] leading-5 pr-4">Kegiatan</div>
                     </div>
                   </div>
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <div className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">
                     <span className="material-icons-round text-slate-400 text-[16px]">chevron_right</span>
                   </div>
                 </div>
+                  {/* Mobile Accordion */}
+                  <div className={`md:hidden overflow-hidden transition-all duration-300 ${mobileExpandedMenus['kegiatan'] ? 'max-h-96 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
+                    <div className="pl-14 pr-4 py-2 flex flex-col gap-4">
+                      <span className="text-slate-300 text-sm font-medium hover:text-white transition-colors cursor-pointer block">Jadwal Kegiatan</span>
+                      <span className="text-slate-300 text-sm font-medium hover:text-white transition-colors cursor-pointer block">Daftar / Registrasi Event</span>
+                      <span className="text-slate-300 text-sm font-medium hover:text-white transition-colors cursor-pointer block">Riwayat Kehadiran</span>
+                    </div>
+                  </div>
               </div>
 
               {/* Profil Saya */}
@@ -283,19 +316,27 @@ export default function DashboardLayout({
                   className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer"
                   onMouseEnter={(e) => handleMouseEnterMenu('profil_saya', e)}
                   onMouseLeave={handleMouseLeaveMenu}
+                    onClick={() => toggleMobileMenu('profil_saya')}
                 >
                   <div className="flex justify-start items-center gap-4">
                     <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
                       <span className="material-icons-round text-slate-300 text-[20px]">person</span>
                     </div>
-                    <div className="flex flex-col justify-start items-start opacity-0 group-hover:opacity-100 transition-all duration-300 w-0 group-hover:w-auto overflow-hidden whitespace-nowrap">
+                    <div className="flex flex-col justify-start items-start opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 w-auto md:w-0 md:group-hover:w-auto overflow-hidden whitespace-nowrap">
                       <div className="h-5 justify-center text-slate-200 text-sm font-medium font-['Inter'] leading-5 pr-4">Profil Saya</div>
                     </div>
                   </div>
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <div className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">
                     <span className="material-icons-round text-slate-400 text-[16px]">chevron_right</span>
                   </div>
                 </div>
+                  {/* Mobile Accordion */}
+                  <div className={`md:hidden overflow-hidden transition-all duration-300 ${mobileExpandedMenus['profil_saya'] ? 'max-h-96 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
+                    <div className="pl-14 pr-4 py-2 flex flex-col gap-4">
+                      <Link href={`/dashboard/members/${userData?.jemaat_id || 'not-found'}?mode=view`} onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Data Diri</Link>
+                      <span className="text-slate-300 text-sm font-medium hover:text-white transition-colors cursor-pointer block">Family Tree</span>
+                    </div>
+                  </div>
               </div>
             </nav>
           )}
@@ -306,14 +347,14 @@ export default function DashboardLayout({
               <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
                 <span className="material-icons-round text-white text-[20px]">logout</span>
               </div>
-              <div className="flex flex-col justify-start items-start opacity-0 group-hover:opacity-100 transition-all duration-300 w-0 group-hover:w-auto overflow-hidden whitespace-nowrap">
+              <div className="flex flex-col justify-start items-start opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 w-auto md:w-0 md:group-hover:w-auto overflow-hidden whitespace-nowrap">
                 <div className="h-5 justify-center text-white text-sm font-normal font-['Inter'] leading-5 pr-4">Keluar</div>
               </div>
             </button>
           </div>
 
           {/* React Portaled Submenus (Always Relative to Sidebar Top) */}
-          <div className="absolute top-0 left-full w-0 h-0 z-[100]">
+          <div className="hidden md:block absolute top-0 left-full w-0 h-0 z-[100]">
             {activeSubmenu === 'manajemen_user' && (
               <div 
                 className="absolute pl-2 animate-in fade-in zoom-in-95 duration-200"
@@ -450,8 +491,14 @@ export default function DashboardLayout({
         {/* Main Content Area */}
         <div className="flex-1 self-stretch relative overflow-hidden flex flex-col bg-neutral-100">
           {/* Topbar */}
-          <div className="w-full h-16 px-8 bg-white border-b border-slate-200 inline-flex justify-between items-center flex-shrink-0 z-10 box-border">
-            <div className="flex justify-start items-center gap-6">
+          <div className="w-full h-16 px-4 md:px-8 bg-white border-b border-slate-200 inline-flex justify-between items-center flex-shrink-0 z-10 box-border">
+            <div className="flex justify-start items-center gap-4 md:gap-6">
+              <button 
+                className="md:hidden p-2 rounded-lg hover:bg-slate-100 text-slate-600 flex items-center justify-center outline-none -ml-2"
+                onClick={() => setIsMobileMenuOpen(true)}
+              >
+                <span className="material-icons-round text-2xl">menu</span>
+              </button>
               <div className="flex justify-start items-center gap-2">
                 <div className="inline-flex flex-col justify-center items-center pr-2">
                    <span className="material-icons-round text-slate-700 text-[28px]">{topbarIcon}</span>
@@ -474,12 +521,12 @@ export default function DashboardLayout({
               <div className="flex justify-start items-center gap-3 cursor-pointer p-1 rounded-lg hover:bg-gray-50 transition-colors group relative">
                 <div className="inline-flex flex-col justify-start items-start">
                   <div className="self-stretch flex flex-col justify-start items-end">
-                    <div className="w-28 h-5 text-right justify-center text-slate-900 text-sm font-semibold font-['Inter'] leading-5 truncate">
+                    <div className="hidden sm:block w-28 h-5 text-right justify-center text-slate-900 text-sm font-semibold font-['Inter'] leading-5 truncate">
                       {userData ? userData.email : 'Loading...'}
                     </div>
                   </div>
                   <div className="self-stretch flex flex-col justify-start items-end">
-                    <div className="w-32 h-4 text-right justify-center text-slate-500 text-xs font-normal font-['Inter'] leading-4 truncate">
+                    <div className="hidden sm:block w-32 h-4 text-right justify-center text-slate-500 text-xs font-normal font-['Inter'] leading-4 truncate">
                        {userData ? `${userData.role_name} - ${userData.satelit_name}`  : 'Role placeholder'}
                     </div>
                   </div>
@@ -506,7 +553,7 @@ export default function DashboardLayout({
           </div>
           
           {/* Outlet */}
-          <div className="flex-1 w-full bg-neutral-100 p-8 overflow-y-auto relative">
+          <div className="flex-1 w-full bg-neutral-100 p-4 md:p-8 overflow-y-auto overflow-x-hidden relative">
              {children}
           </div>
         </div>
