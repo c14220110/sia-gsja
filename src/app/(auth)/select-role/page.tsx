@@ -96,9 +96,10 @@ export default function SelectRolePage() {
       </div>
 
       {/* Modal Overlay */}
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex justify-center items-center p-4">
-        <div className="w-full max-w-4xl bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in duration-300">
-          <div className="p-10 md:p-16 flex flex-col items-center text-center">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] overflow-y-auto w-full h-full">
+        <div className="min-h-full flex items-center justify-center p-4 py-12">
+          <div className="w-full max-w-4xl bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in duration-300">
+            <div className="p-6 md:p-16 flex flex-col items-center text-center">
             
             <div className="mb-10 max-w-lg">
               <h2 className="text-slate-800 text-3xl font-bold tracking-tight mb-3">
@@ -168,6 +169,7 @@ export default function SelectRolePage() {
 
 
 
+            </div>
           </div>
         </div>
       </div>
