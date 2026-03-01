@@ -40,6 +40,7 @@ export default function DashboardLayout({
     showLoader();
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
+      hideLoader();
       router.push('/login');
     } catch (err) {
       console.error('Logout failed', err);
@@ -87,7 +88,7 @@ export default function DashboardLayout({
           </div>
           {/* Normal Admin Menus */}
           {userData?.role_name?.toLowerCase() !== 'jemaat' && (
-            <div className="flex-1 w-full p-4 flex flex-col justify-start items-start gap-2">
+            <nav className="flex-1 w-full overflow-y-auto overflow-x-visible p-4 flex flex-col justify-start items-start gap-2 scrollbar-hide">
               <div className="w-full px-4 py-3 rounded-lg flex justify-start items-center gap-4 hover:bg-white/5 cursor-pointer">
                 <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
                   <span className="material-icons-round text-slate-200 text-[20px]">dashboard</span>
@@ -264,12 +265,12 @@ export default function DashboardLayout({
                 </div>
               </div>
 
-            </div>
+            </nav>
           )}
 
           {/* Jemaat Menus */}
           {userData?.role_name?.toLowerCase() === 'jemaat' && (
-            <div className="flex-1 w-full p-4 flex flex-col justify-start items-start gap-2">
+            <nav className="flex-1 w-full overflow-y-auto overflow-x-visible p-4 flex flex-col justify-start items-start gap-2 scrollbar-hide">
               <Link href="/dashboard" className="w-full block text-inherit no-underline">
                 <div className="w-full px-4 py-3 rounded-lg flex justify-start items-center gap-4 hover:bg-white/5 cursor-pointer">
                   <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
@@ -394,7 +395,7 @@ export default function DashboardLayout({
                   </div>
                 </div>
               </div>
-            </div>
+            </nav>
           )}
 
           {/* Logout button at bottom */}

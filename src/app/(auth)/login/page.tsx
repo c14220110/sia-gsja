@@ -35,17 +35,18 @@ export default function LoginPage() {
         throw new Error(data.message || 'Login failed');
       }
 
-      // Check if multi-role selection is required
       if (data.requires_role_selection) {
         sessionStorage.setItem('temp_auth_data', JSON.stringify(data.data));
+        hideLoader();
         router.push('/select-role');
       } else {
+        hideLoader();
         router.push('/dashboard');
       }
       
     } catch (err: any) {
       setError(err.message);
-      hideLoader(); // Only hide on error so the overlay persists during page transition
+      hideLoader(); 
     } finally {
       setLoading(false);
     }
