@@ -115,7 +115,7 @@ export default function SelectRolePage() {
               </div>
             )}
 
-            <div className={`w-full flex ${roles.length > 3 ? 'overflow-x-auto pb-6 snap-x snap-mandatory justify-start px-2' : 'flex-col md:flex-row justify-center'} gap-6 mb-12 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent`}>
+            <div className={`w-full flex ${roles.length > 3 ? 'overflow-x-auto pb-6 snap-x snap-mandatory justify-start px-2' : 'flex-col md:flex-row flex-wrap justify-center items-center'} gap-6 mb-12 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent`}>
               {roles.map((role, index) => {
                 const isSelected = selectedRoleIndex === index;
                 return (
@@ -128,7 +128,7 @@ export default function SelectRolePage() {
                         ? 'bg-blue-50/50 outline outline-2 outline-slate-400 shadow-md transform -translate-y-1' 
                         : 'bg-white outline outline-2 outline-gray-100 hover:outline-gray-200 hover:bg-gray-50'
                       }
-                      ${roles.length > 3 ? 'w-[280px] shrink-0 snap-center' : 'w-full md:flex-1 max-w-[300px]'}
+                      ${roles.length > 3 ? 'w-[280px] shrink-0 snap-center' : 'w-full md:w-[300px] shrink-0'}
                     `}
                   >
                     <div className="w-16 h-16 bg-gray-100 rounded-full flex justify-center items-center mb-4 transition-colors">
