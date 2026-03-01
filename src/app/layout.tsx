@@ -10,6 +10,8 @@ export const metadata: Metadata = {
   description: 'Gereja Sidang Jemaat Allah - Sistem Informasi Akuntansi',
 };
 
+import { LoaderProvider } from '@/components/ui/GlobalLoader';
+
 export default function RootLayout({
   children,
 }: {
@@ -21,7 +23,9 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
       </head>
       <body className={`${inter.variable} ${playfair.variable} antialiased font-sans`}>
-        {children}
+        <LoaderProvider>
+          {children}
+        </LoaderProvider>
       </body>
     </html>
   );

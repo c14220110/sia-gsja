@@ -2,9 +2,11 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useLoader } from '@/components/ui/GlobalLoader';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { showLoader, hideLoader } = useLoader();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -18,6 +20,7 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
     setLoading(true);
+    showLoader();
 
     try {
       const res = await fetch('/api/auth/login', {
@@ -32,9 +35,17 @@ export default function LoginPage() {
         throw new Error(data.message || 'Login failed');
       }
 
-      router.push('/dashboard');
+      // Check if multi-role selection is required
+      if (data.requires_role_selection) {
+        sessionStorage.setItem('temp_auth_data', JSON.stringify(data.data));
+        router.push('/select-role');
+      } else {
+        router.push('/dashboard');
+      }
+      
     } catch (err: any) {
       setError(err.message);
+      hideLoader(); // Only hide on error so the overlay persists during page transition
     } finally {
       setLoading(false);
     }
@@ -102,7 +113,7 @@ export default function LoginPage() {
                     name="email"
                     placeholder="Enter your email"
                     required
-                    type="email"
+                    type="text"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                   />

@@ -1,8 +1,3 @@
-export default function Dashboard() {
-  return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold">Dashboard</h1>
-      <p className="mt-4">Selamat datang! Modul utama akan diletakkan di sini.</p>
-    </div>
-  );
+export default function EmptyDashboard() {
+  return null; // The background layout is handled by dashboard/layout.tsx
 }

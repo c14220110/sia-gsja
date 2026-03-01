@@ -21,15 +21,31 @@ export class AuthController {
       // Authentication Service
       const result = await authService.authenticateUser(parseResult.data);
 
+      if (result.requires_role_selection) {
+        // Return 200 but indicate that role selection is required. Do not set cookie yet.
+        return NextResponse.json(
+          { 
+            message: 'Pilih role untuk melanjutkan', 
+            requires_role_selection: true,
+            data: {
+              user_id: result.user_id,
+              available_roles: result.available_roles
+            }
+          },
+          { status: 200 }
+        );
+      }
+
+      // Single role - issue token and set cookie
       const response = NextResponse.json(
-        { message: 'Login berhasil', data: result.user },
+        { message: 'Login berhasil', data: result.user, requires_role_selection: false },
         { status: 200 }
       );
 
       // Set httpOnly cookie
       response.cookies.set({
         name: 'access_token',
-        value: result.token,
+        value: result.token!,
         httpOnly: true,
         path: '/',
         maxAge: 60 * 60 * 2, // 2 hours
@@ -39,7 +55,6 @@ export class AuthController {
 
       return response;
     } catch (error: any) {
-      // Menangkap throw Error dari Service
       return NextResponse.json(
         { message: error.message || 'Terjadi kesalahan pada server' },
         { status: 401 }
@@ -47,3 +62,4 @@ export class AuthController {
     }
   }
 }
+

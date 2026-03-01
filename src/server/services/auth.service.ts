@@ -23,17 +23,29 @@ export class AuthService {
       throw new Error('Email atau password salah');
     }
 
-    // Role minimal, kita ambil lokasi pertama jika ada
-    const userRolesData = await userRepository.getUserRolesAndLocation(user.id);
-    const roles = userRolesData?.roles || [];
-    const active_location_id = userRolesData?.location_id || 0;
-    const is_super_admin = roles.includes('Super Admin');
+    const roles = await userRepository.getUserRoles(user.id);
 
-    // 1. JWT payload wajib: user_id, active_location_id, roles array, is_super_admin
+    if (roles.length === 0) {
+      throw new Error('Akun Anda tidak memiliki hak akses (role) sama sekali.');
+    }
+
+    // If more than 1 role, return a temporary token or tell the client to select a role
+    if (roles.length > 1) {
+      return {
+        requires_role_selection: true,
+        user_id: user.id,
+        available_roles: roles,
+      };
+    }
+
+    // If exactly 1 role, issue the final token immediately
+    const singleRole = roles[0];
+    const is_super_admin = singleRole.nama_role === 'SUPER_ADMIN';
+
     const tokenPayload = {
       user_id: user.id,
-      active_location_id,
-      roles,
+      role_id: singleRole.role_id,
+      satelit_id: singleRole.satelit_id,
       is_super_admin,
     };
 
@@ -42,6 +54,35 @@ export class AuthService {
     // Update login timestamp
     await userRepository.updateLastLogin(user.id);
 
+    return { 
+      requires_role_selection: false,
+      token, 
+      user: tokenPayload 
+    };
+  }
+
+  // Generate final token after role selection
+  async generateFinalToken(userId: number, roleId: number, satelitId: number) {
+    const roles = await userRepository.getUserRoles(userId);
+    const selectedRole = roles.find(r => r.role_id === roleId && r.satelit_id === satelitId);
+
+    if (!selectedRole) {
+      throw new Error('Role tidak valid atau Anda tidak memiliki akses ke role tersebut');
+    }
+
+    const is_super_admin = selectedRole.nama_role === 'SUPER_ADMIN';
+
+    const tokenPayload = {
+      user_id: userId,
+      role_id: selectedRole.role_id,
+      satelit_id: selectedRole.satelit_id,
+      is_super_admin,
+    };
+
+    const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '2h' });
+    await userRepository.updateLastLogin(userId);
+
     return { token, user: tokenPayload };
   }
 }
+
