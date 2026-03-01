@@ -509,15 +509,6 @@ export default function DashboardLayout({
               </div>
             </div>
             <div className="flex justify-start items-center gap-4">
-              <div className="w-10 h-10 relative bg-slate-100 rounded-lg flex justify-center items-center cursor-pointer hover:bg-slate-200 transition-colors">
-                <div className="inline-flex flex-col justify-center items-center">
-                   <span className="material-icons-round text-slate-600 text-[20px]">notifications</span>
-                </div>
-                <div className="w-2.5 h-2.5 absolute bg-red-500 rounded-full border-2 border-white top-[8px] right-[8px]" />
-              </div>
-              <div className="w-4 h-8 px-2 inline-flex flex-col justify-start items-start">
-                <div className="w-px h-8 bg-slate-200" />
-              </div>
               <div className="flex justify-start items-center gap-3 cursor-pointer p-1 rounded-lg hover:bg-gray-50 transition-colors group relative">
                 <div className="inline-flex flex-col justify-start items-start">
                   <div className="self-stretch flex flex-col justify-start items-end">
