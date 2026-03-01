@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useLoader } from '@/components/ui/GlobalLoader';
@@ -14,6 +14,22 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const { showLoader, hideLoader } = useLoader();
   const [userData, setUserData] = useState<any>(null);
+  const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
+  const [submenuTop, setSubmenuTop] = useState<number>(0);
+  const submenuTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  const handleMouseEnterMenu = (menuId: string, e: React.MouseEvent) => {
+    if (submenuTimeout.current) clearTimeout(submenuTimeout.current);
+    const rect = e.currentTarget.getBoundingClientRect();
+    setSubmenuTop(rect.top);
+    setActiveSubmenu(menuId);
+  };
+
+  const handleMouseLeaveMenu = () => {
+    submenuTimeout.current = setTimeout(() => {
+      setActiveSubmenu(null);
+    }, 150);
+  };
 
   useEffect(() => {
     // Fetch currently active user from JWT
@@ -112,8 +128,12 @@ export default function DashboardLayout({
               )}
 
               {userData?.role_name?.toUpperCase() !== 'BENDAHARA SATELIT' && (
-                <div className="w-full group/submenu">
-                  <div className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer">
+                <div className="w-full">
+                  <div 
+                    className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer"
+                    onMouseEnter={(e) => handleMouseEnterMenu('manajemen_user', e)}
+                    onMouseLeave={handleMouseLeaveMenu}
+                  >
                     <div className="flex justify-start items-center gap-4">
                       <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
                         <span className="material-icons-round text-slate-300 text-[20px]">manage_accounts</span>
@@ -124,52 +144,6 @@ export default function DashboardLayout({
                     </div>
                     <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                       <span className="material-icons-round text-slate-400 text-[16px]">chevron_right</span>
-                    </div>
-                  </div>
-                  
-                  {/* Flyout Submenu */}
-                  <div className="absolute left-full pl-4 hidden group-hover/submenu:flex z-50">
-                    <div className="w-[500px] p-6 bg-white rounded-xl outline outline-1 outline-offset-[-1px] outline-slate-200 shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col justify-start items-start gap-4">
-                      <div className="self-stretch pb-2 border-b border-slate-100 flex flex-col justify-start items-start">
-                        <div className="justify-center text-slate-800 text-lg font-bold font-['Inter'] leading-7">Manajemen User</div>
-                      </div>
-                      <div className="self-stretch flex justify-between items-start gap-4">
-                        {/* Data Jemaat */}
-                        <Link href="/dashboard/members" className="flex-1 h-32 p-4 bg-pink-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-pink-200 flex flex-col justify-center items-center cursor-pointer hover:bg-pink-100 transition-colors block text-inherit no-underline">
-                          <div className="pb-2 flex flex-col justify-start items-start">
-                            <div className="flex flex-col justify-start items-center">
-                               <span className="material-icons-round text-pink-600 text-[32px]">group</span>
-                            </div>
-                          </div>
-                          <div className="flex flex-col justify-start items-center">
-                            <div className="text-center justify-center text-pink-900 text-sm font-bold font-['Inter'] leading-5">Data Jemaat</div>
-                          </div>
-                        </Link>
-                        
-                        {/* Data Pelayan */}
-                        <div className="flex-1 h-32 p-4 bg-pink-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-pink-200 flex flex-col justify-center items-center cursor-pointer hover:bg-pink-100 transition-colors">
-                          <div className="pb-2 flex flex-col justify-start items-start">
-                            <div className="flex flex-col justify-start items-center">
-                              <span className="material-icons-round text-pink-600 text-[32px]">volunteer_activism</span>
-                            </div>
-                          </div>
-                          <div className="flex flex-col justify-start items-center">
-                            <div className="text-center justify-center text-pink-900 text-sm font-bold font-['Inter'] leading-5">Data Pelayan</div>
-                          </div>
-                        </div>
-                        
-                        {/* Data Pengurus */}
-                        <div className="flex-1 h-32 p-4 bg-pink-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-pink-200 flex flex-col justify-center items-center cursor-pointer hover:bg-pink-100 transition-colors">
-                          <div className="pb-2 flex flex-col justify-start items-start">
-                            <div className="flex flex-col justify-start items-center">
-                              <span className="material-icons-round text-pink-600 text-[32px]">admin_panel_settings</span>
-                            </div>
-                          </div>
-                          <div className="flex flex-col justify-start items-center">
-                            <div className="text-center justify-center text-pink-900 text-sm font-bold font-['Inter'] leading-5">Data Pengurus</div>
-                          </div>
-                        </div>
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -283,8 +257,12 @@ export default function DashboardLayout({
               </Link>
 
               {/* Kegiatan */}
-              <div className="w-full group/submenu">
-                <div className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer">
+              <div className="w-full">
+                <div 
+                  className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer"
+                  onMouseEnter={(e) => handleMouseEnterMenu('kegiatan', e)}
+                  onMouseLeave={handleMouseLeaveMenu}
+                >
                   <div className="flex justify-start items-center gap-4">
                     <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
                       <span className="material-icons-round text-slate-300 text-[20px]">event</span>
@@ -297,57 +275,15 @@ export default function DashboardLayout({
                     <span className="material-icons-round text-slate-400 text-[16px]">chevron_right</span>
                   </div>
                 </div>
-                
-                {/* Flyout Submenu: Kegiatan */}
-                <div className="absolute left-full pl-4 hidden group-hover/submenu:flex z-50">
-                  <div className="w-[500px] p-6 bg-white rounded-xl outline outline-1 outline-offset-[-1px] outline-slate-200 shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col justify-start items-start gap-4">
-                    <div className="self-stretch pb-2 border-b border-slate-100 flex flex-col justify-start items-start">
-                      <div className="justify-center text-slate-800 text-lg font-bold font-['Inter'] leading-7">Kegiatan</div>
-                    </div>
-                    <div className="self-stretch flex justify-between items-start gap-4">
-                      {/* Jadwal Kegiatan */}
-                      <div className="flex-1 h-32 p-4 bg-blue-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-blue-200 flex flex-col justify-center items-center cursor-pointer hover:bg-blue-100 transition-colors">
-                        <div className="pb-2 flex flex-col justify-start items-start">
-                          <div className="flex flex-col justify-start items-center">
-                            <span className="material-icons-round text-blue-600 text-[32px]">calendar_month</span>
-                          </div>
-                        </div>
-                        <div className="flex flex-col justify-start items-center text-center">
-                          <div className="justify-center text-blue-900 text-sm font-bold font-['Inter'] leading-5">Jadwal Kegiatan</div>
-                        </div>
-                      </div>
-                      
-                      {/* Daftar Event */}
-                      <div className="flex-1 h-32 p-4 bg-blue-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-blue-200 flex flex-col justify-center items-center cursor-pointer hover:bg-blue-100 transition-colors">
-                        <div className="pb-2 flex flex-col justify-start items-start">
-                          <div className="flex flex-col justify-start items-center">
-                            <span className="material-icons-round text-blue-600 text-[32px]">how_to_reg</span>
-                          </div>
-                        </div>
-                        <div className="flex flex-col justify-start items-center text-center">
-                          <div className="justify-center text-blue-900 text-sm font-bold font-['Inter'] leading-5">Daftar / Registrasi Event</div>
-                        </div>
-                      </div>
-                      
-                      {/* Riwayat Kehadiran */}
-                      <div className="flex-1 h-32 p-4 bg-blue-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-blue-200 flex flex-col justify-center items-center cursor-pointer hover:bg-blue-100 transition-colors">
-                        <div className="pb-2 flex flex-col justify-start items-start">
-                          <div className="flex flex-col justify-start items-center">
-                            <span className="material-icons-round text-blue-600 text-[32px]">history</span>
-                          </div>
-                        </div>
-                        <div className="flex flex-col justify-start items-center text-center">
-                          <div className="justify-center text-blue-900 text-sm font-bold font-['Inter'] leading-5">Riwayat Kehadiran</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
               </div>
 
               {/* Profil Saya */}
-              <div className="w-full group/submenu">
-                <div className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer">
+              <div className="w-full">
+                <div 
+                  className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer"
+                  onMouseEnter={(e) => handleMouseEnterMenu('profil_saya', e)}
+                  onMouseLeave={handleMouseLeaveMenu}
+                >
                   <div className="flex justify-start items-center gap-4">
                     <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
                       <span className="material-icons-round text-slate-300 text-[20px]">person</span>
@@ -358,40 +294,6 @@ export default function DashboardLayout({
                   </div>
                   <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <span className="material-icons-round text-slate-400 text-[16px]">chevron_right</span>
-                  </div>
-                </div>
-                
-                {/* Flyout Submenu: Profil Saya */}
-                <div className="absolute left-full pl-4 hidden group-hover/submenu:flex z-50">
-                  <div className="w-[330px] p-6 bg-white rounded-xl outline outline-1 outline-offset-[-1px] outline-slate-200 shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col justify-start items-start gap-4">
-                    <div className="self-stretch pb-2 border-b border-slate-100 flex flex-col justify-start items-start">
-                      <div className="justify-center text-slate-800 text-lg font-bold font-['Inter'] leading-7">Profil Saya</div>
-                    </div>
-                    <div className="self-stretch flex justify-between items-start gap-4">
-                      {/* Data Diri */}
-                      <Link href={`/dashboard/members/${userData?.jemaat_id || 'not-found'}?mode=view`} className="flex-1 h-32 p-4 bg-teal-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-teal-200 flex flex-col justify-center items-center cursor-pointer hover:bg-teal-100 transition-colors block text-inherit no-underline">
-                        <div className="pb-2 flex flex-col justify-start items-start">
-                          <div className="flex flex-col justify-start items-center">
-                            <span className="material-icons-round text-teal-600 text-[32px]">badge</span>
-                          </div>
-                        </div>
-                        <div className="flex flex-col justify-start items-center text-center">
-                          <div className="justify-center text-teal-900 text-sm font-bold font-['Inter'] leading-5">Data Diri</div>
-                        </div>
-                      </Link>
-                      
-                      {/* Family Tree */}
-                      <div className="flex-1 h-32 p-4 bg-teal-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-teal-200 flex flex-col justify-center items-center cursor-pointer hover:bg-teal-100 transition-colors">
-                        <div className="pb-2 flex flex-col justify-start items-start">
-                          <div className="flex flex-col justify-start items-center">
-                            <span className="material-icons-round text-teal-600 text-[32px]">family_restroom</span>
-                          </div>
-                        </div>
-                        <div className="flex flex-col justify-start items-center text-center">
-                          <div className="justify-center text-teal-900 text-sm font-bold font-['Inter'] leading-5">Family Tree</div>
-                        </div>
-                      </div>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -408,6 +310,140 @@ export default function DashboardLayout({
                 <div className="h-5 justify-center text-white text-sm font-normal font-['Inter'] leading-5 pr-4">Keluar</div>
               </div>
             </button>
+          </div>
+
+          {/* React Portaled Submenus (Always Relative to Sidebar Top) */}
+          <div className="absolute top-0 left-full w-0 h-0 z-[100]">
+            {activeSubmenu === 'manajemen_user' && (
+              <div 
+                className="absolute pl-2 animate-in fade-in zoom-in-95 duration-200"
+                style={{ top: submenuTop }}
+                onMouseEnter={() => { if (submenuTimeout.current) clearTimeout(submenuTimeout.current) }}
+                onMouseLeave={handleMouseLeaveMenu}
+              >
+                <div className="w-[500px] p-6 bg-white rounded-xl outline outline-1 outline-offset-[-1px] outline-slate-200 shadow-2xl flex flex-col justify-start items-start gap-4">
+                  <div className="self-stretch pb-2 border-b border-slate-100 flex flex-col justify-start items-start">
+                    <div className="justify-center text-slate-800 text-lg font-bold font-['Inter'] leading-7">Manajemen User</div>
+                  </div>
+                  <div className="self-stretch flex justify-between items-start gap-4">
+                    <Link href="/dashboard/members" onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-pink-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-pink-200 flex flex-col justify-center items-center cursor-pointer hover:bg-pink-100 transition-colors block text-inherit no-underline">
+                      <div className="pb-2 flex flex-col justify-start items-start">
+                        <div className="flex flex-col justify-start items-center">
+                           <span className="material-icons-round text-pink-600 text-[32px]">group</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col justify-start items-center">
+                        <div className="text-center justify-center text-pink-900 text-sm font-bold font-['Inter'] leading-5">Data Jemaat</div>
+                      </div>
+                    </Link>
+                    <div className="flex-1 h-32 p-4 bg-pink-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-pink-200 flex flex-col justify-center items-center cursor-pointer hover:bg-pink-100 transition-colors">
+                      <div className="pb-2 flex flex-col justify-start items-start">
+                        <div className="flex flex-col justify-start items-center">
+                          <span className="material-icons-round text-pink-600 text-[32px]">volunteer_activism</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col justify-start items-center">
+                        <div className="text-center justify-center text-pink-900 text-sm font-bold font-['Inter'] leading-5">Data Pelayan</div>
+                      </div>
+                    </div>
+                    <div className="flex-1 h-32 p-4 bg-pink-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-pink-200 flex flex-col justify-center items-center cursor-pointer hover:bg-pink-100 transition-colors">
+                      <div className="pb-2 flex flex-col justify-start items-start">
+                        <div className="flex flex-col justify-start items-center">
+                          <span className="material-icons-round text-pink-600 text-[32px]">admin_panel_settings</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col justify-start items-center">
+                        <div className="text-center justify-center text-pink-900 text-sm font-bold font-['Inter'] leading-5">Data Pengurus</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeSubmenu === 'kegiatan' && (
+              <div 
+                className="absolute pl-2 animate-in fade-in zoom-in-95 duration-200"
+                style={{ top: submenuTop }}
+                onMouseEnter={() => { if (submenuTimeout.current) clearTimeout(submenuTimeout.current) }}
+                onMouseLeave={handleMouseLeaveMenu}
+              >
+                <div className="w-[500px] p-6 bg-white rounded-xl outline outline-1 outline-offset-[-1px] outline-slate-200 shadow-2xl flex flex-col justify-start items-start gap-4">
+                  <div className="self-stretch pb-2 border-b border-slate-100 flex flex-col justify-start items-start">
+                    <div className="justify-center text-slate-800 text-lg font-bold font-['Inter'] leading-7">Kegiatan</div>
+                  </div>
+                  <div className="self-stretch flex justify-between items-start gap-4">
+                    <div className="flex-1 h-32 p-4 bg-blue-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-blue-200 flex flex-col justify-center items-center cursor-pointer hover:bg-blue-100 transition-colors">
+                      <div className="pb-2 flex flex-col justify-start items-start">
+                        <div className="flex flex-col justify-start items-center">
+                          <span className="material-icons-round text-blue-600 text-[32px]">calendar_month</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col justify-start items-center text-center">
+                        <div className="justify-center text-blue-900 text-sm font-bold font-['Inter'] leading-5">Jadwal Kegiatan</div>
+                      </div>
+                    </div>
+                    <div className="flex-1 h-32 p-4 bg-blue-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-blue-200 flex flex-col justify-center items-center cursor-pointer hover:bg-blue-100 transition-colors">
+                      <div className="pb-2 flex flex-col justify-start items-start">
+                        <div className="flex flex-col justify-start items-center">
+                          <span className="material-icons-round text-blue-600 text-[32px]">how_to_reg</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col justify-start items-center text-center">
+                        <div className="justify-center text-blue-900 text-sm font-bold font-['Inter'] leading-5">Daftar / Registrasi Event</div>
+                      </div>
+                    </div>
+                    <div className="flex-1 h-32 p-4 bg-blue-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-blue-200 flex flex-col justify-center items-center cursor-pointer hover:bg-blue-100 transition-colors">
+                      <div className="pb-2 flex flex-col justify-start items-start">
+                        <div className="flex flex-col justify-start items-center">
+                          <span className="material-icons-round text-blue-600 text-[32px]">history</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col justify-start items-center text-center">
+                        <div className="justify-center text-blue-900 text-sm font-bold font-['Inter'] leading-5">Riwayat Kehadiran</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeSubmenu === 'profil_saya' && (
+              <div 
+                className="absolute pl-2 animate-in fade-in zoom-in-95 duration-200"
+                style={{ top: submenuTop }}
+                onMouseEnter={() => { if (submenuTimeout.current) clearTimeout(submenuTimeout.current) }}
+                onMouseLeave={handleMouseLeaveMenu}
+              >
+                <div className="w-[330px] p-6 bg-white rounded-xl outline outline-1 outline-offset-[-1px] outline-slate-200 shadow-2xl flex flex-col justify-start items-start gap-4">
+                  <div className="self-stretch pb-2 border-b border-slate-100 flex flex-col justify-start items-start">
+                    <div className="justify-center text-slate-800 text-lg font-bold font-['Inter'] leading-7">Profil Saya</div>
+                  </div>
+                  <div className="self-stretch flex justify-between items-start gap-4">
+                    <Link href={`/dashboard/members/${userData?.jemaat_id || 'not-found'}?mode=view`} onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-teal-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-teal-200 flex flex-col justify-center items-center cursor-pointer hover:bg-teal-100 transition-colors block text-inherit no-underline">
+                      <div className="pb-2 flex flex-col justify-start items-start">
+                        <div className="flex flex-col justify-start items-center">
+                          <span className="material-icons-round text-teal-600 text-[32px]">badge</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col justify-start items-center text-center">
+                        <div className="justify-center text-teal-900 text-sm font-bold font-['Inter'] leading-5">Data Diri</div>
+                      </div>
+                    </Link>
+                    <div className="flex-1 h-32 p-4 bg-teal-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-teal-200 flex flex-col justify-center items-center cursor-pointer hover:bg-teal-100 transition-colors">
+                      <div className="pb-2 flex flex-col justify-start items-start">
+                        <div className="flex flex-col justify-start items-center">
+                          <span className="material-icons-round text-teal-600 text-[32px]">family_restroom</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col justify-start items-center text-center">
+                        <div className="justify-center text-teal-900 text-sm font-bold font-['Inter'] leading-5">Family Tree</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
