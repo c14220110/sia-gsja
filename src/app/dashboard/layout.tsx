@@ -112,7 +112,7 @@ export default function DashboardLayout({
               )}
 
               {userData?.role_name?.toUpperCase() !== 'BENDAHARA SATELIT' && (
-                <div className="w-full relative group/submenu">
+                <div className="w-full group/submenu">
                   <div className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer">
                     <div className="flex justify-start items-center gap-4">
                       <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
@@ -128,7 +128,7 @@ export default function DashboardLayout({
                   </div>
                   
                   {/* Flyout Submenu */}
-                  <div className="absolute left-full top-[-24px] pl-4 hidden group-hover/submenu:flex z-50">
+                  <div className="absolute left-full pl-4 hidden group-hover/submenu:flex z-50">
                     <div className="w-[500px] p-6 bg-white rounded-xl outline outline-1 outline-offset-[-1px] outline-slate-200 shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col justify-start items-start gap-4">
                       <div className="self-stretch pb-2 border-b border-slate-100 flex flex-col justify-start items-start">
                         <div className="justify-center text-slate-800 text-lg font-bold font-['Inter'] leading-7">Manajemen User</div>
@@ -283,7 +283,7 @@ export default function DashboardLayout({
               </Link>
 
               {/* Kegiatan */}
-              <div className="w-full relative group/submenu">
+              <div className="w-full group/submenu">
                 <div className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer">
                   <div className="flex justify-start items-center gap-4">
                     <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
@@ -299,7 +299,7 @@ export default function DashboardLayout({
                 </div>
                 
                 {/* Flyout Submenu: Kegiatan */}
-                <div className="absolute left-full top-[-24px] pl-4 hidden group-hover/submenu:flex z-50">
+                <div className="absolute left-full pl-4 hidden group-hover/submenu:flex z-50">
                   <div className="w-[500px] p-6 bg-white rounded-xl outline outline-1 outline-offset-[-1px] outline-slate-200 shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col justify-start items-start gap-4">
                     <div className="self-stretch pb-2 border-b border-slate-100 flex flex-col justify-start items-start">
                       <div className="justify-center text-slate-800 text-lg font-bold font-['Inter'] leading-7">Kegiatan</div>
@@ -346,7 +346,7 @@ export default function DashboardLayout({
               </div>
 
               {/* Profil Saya */}
-              <div className="w-full relative group/submenu">
+              <div className="w-full group/submenu">
                 <div className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer">
                   <div className="flex justify-start items-center gap-4">
                     <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
@@ -362,7 +362,7 @@ export default function DashboardLayout({
                 </div>
                 
                 {/* Flyout Submenu: Profil Saya */}
-                <div className="absolute left-full top-[-24px] pl-4 hidden group-hover/submenu:flex z-50">
+                <div className="absolute left-full pl-4 hidden group-hover/submenu:flex z-50">
                   <div className="w-[330px] p-6 bg-white rounded-xl outline outline-1 outline-offset-[-1px] outline-slate-200 shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col justify-start items-start gap-4">
                     <div className="self-stretch pb-2 border-b border-slate-100 flex flex-col justify-start items-start">
                       <div className="justify-center text-slate-800 text-lg font-bold font-['Inter'] leading-7">Profil Saya</div>
