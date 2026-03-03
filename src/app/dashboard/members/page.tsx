@@ -120,7 +120,7 @@ export default function MembersPage() {
     
     try {
       showLoader();
-      const res = await fetch(`/api/members/${id}/status`, {
+      const res = await fetch(`/api/members/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status_jemaat: newStatus })

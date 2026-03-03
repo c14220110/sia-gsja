@@ -46,3 +46,13 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+// POST /api/auth/me → Logout (merged from auth/logout)
+export async function POST(request: NextRequest) {
+  const response = NextResponse.json(
+    { message: 'Logged out successfully' },
+    { status: 200 }
+  );
+  response.cookies.delete('access_token');
+  return response;
+}

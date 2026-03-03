@@ -61,7 +61,7 @@ export default function DashboardLayout({
   const handleLogout = async () => {
     showLoader();
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      await fetch('/api/auth/me', { method: 'POST' });
       hideLoader();
       router.push('/login');
     } catch (err) {
