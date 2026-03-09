@@ -149,6 +149,7 @@ export default function NewJemaatPage() {
     pasangan_nama: '',
     gereja_asal_pasangan: '',
     anak: [] as { anak_jemaat_id: string, nama_anak: string, gereja_asal_anak: string }[],
+    saudara: [] as { saudara_jemaat_id: string, nama_saudara: string, gereja_asal_saudara: string }[],
   });
 
   useEffect(() => {
@@ -213,6 +214,28 @@ export default function NewJemaatPage() {
       const newAnak = [...prev.anak];
       newAnak[index] = { ...newAnak[index], [field]: value };
       return { ...prev, anak: newAnak };
+    });
+  };
+
+  const handleAddSaudara = () => {
+    setFormData(prev => ({
+      ...prev,
+      saudara: [...prev.saudara, { saudara_jemaat_id: '', nama_saudara: '', gereja_asal_saudara: '' }]
+    }));
+  };
+
+  const handleRemoveSaudara = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      saudara: prev.saudara.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleSaudaraChange = (index: number, field: string, value: string) => {
+    setFormData(prev => {
+      const newSaudara = [...prev.saudara];
+      newSaudara[index] = { ...newSaudara[index], [field]: value };
+      return { ...prev, saudara: newSaudara };
     });
   };
 
@@ -397,7 +420,8 @@ export default function NewJemaatPage() {
                   </div>
                 </div>
 
-                {/* Data Pasangan */}
+                {/* Data Pasangan — hanya tampil jika Menikah */}
+                {formData.status_pernikahan === 'Menikah' && (
                 <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-start items-start gap-6 h-fit">
                   <div className="w-full inline-flex justify-start items-center gap-2">
                     <span className="material-icons-round text-slate-700 text-[20px]">favorite</span>
@@ -405,7 +429,7 @@ export default function NewJemaatPage() {
                   </div>
                   <div className="w-full flex-col gap-4 flex">
                     <JemaatAutocomplete 
-                      label="Nama Pasangan (Bila Menikah)"
+                      label="Nama Pasangan"
                       valueName={formData.pasangan_nama}
                       valueId={formData.pasangan_id}
                       placeholder="Cari jemaat..."
@@ -419,6 +443,7 @@ export default function NewJemaatPage() {
                     )}
                   </div>
                 </div>
+                )}
                 {/* Data Anak */}
                 <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-start items-start gap-6 h-fit">
                   <div className="w-full inline-flex justify-between items-center gap-2">
@@ -432,14 +457,17 @@ export default function NewJemaatPage() {
                   </div>
                   
                   {formData.anak.map((ank, idx) => (
-                    <div key={idx} className="w-full flex-col gap-4 flex border-b border-slate-100 pb-4 mb-2 last:border-0 last:pb-0 relative">
-                      <div className="absolute right-0 top-0 z-10">
-                        <button type="button" onClick={() => handleRemoveAnak(idx)} className="text-slate-400 hover:text-red-500 transition-colors p-1 rounded-full hover:bg-red-50">
-                          <span className="material-icons-round text-[18px]">close</span>
+                    <div key={idx} className="w-full bg-slate-50 rounded-xl border border-slate-100 p-4 flex flex-col gap-3">
+                      {/* Item header */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">Anak ke-{idx + 1}</span>
+                        <button type="button" onClick={() => handleRemoveAnak(idx)}
+                          className="w-6 h-6 rounded-full bg-red-50 hover:bg-red-100 flex items-center justify-center text-red-400 hover:text-red-600 transition-colors">
+                          <span className="material-icons-round" style={{fontSize: 14}}>close</span>
                         </button>
                       </div>
                       <JemaatAutocomplete 
-                        label={`Nama Anak Ke-${idx + 1}`}
+                        label=""
                         valueName={ank.nama_anak}
                         valueId={ank.anak_jemaat_id}
                         placeholder="Cari Database / Ketik Nama..."
@@ -449,8 +477,8 @@ export default function NewJemaatPage() {
                         }}
                       />
                       {!ank.anak_jemaat_id && ank.nama_anak.length > 2 && (
-                        <div className="w-full flex-col gap-1 flex animate-in fade-in slide-in-from-top-1">
-                          <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Gereja Asal Anak Ke-{idx + 1}</label>
+                        <div className="w-full flex-col gap-1 flex">
+                          <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Gereja Asal</label>
                           <input type="text" value={ank.gereja_asal_anak} onChange={(e) => handleAnakChange(idx, 'gereja_asal_anak', e.target.value)} placeholder="Isi jika dari gereja luar" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
                         </div>
                       )}
@@ -464,6 +492,63 @@ export default function NewJemaatPage() {
                     </div>
                   )}
                 </div>
+
+                {/* Data Saudara */}
+                <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-start items-start gap-6 h-fit">
+                  <div className="w-full inline-flex justify-between items-center gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="material-icons-round text-slate-700 text-[20px]">people</span>
+                      <span className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Data Saudara Kandung</span>
+                    </div>
+                    <button type="button" onClick={handleAddSaudara} className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-600 rounded-lg flex items-center gap-1 transition-colors text-xs font-bold">
+                      <span className="material-icons-round text-[16px]">add</span> Tambah Saudara
+                    </button>
+                  </div>
+
+                  {formData.saudara.map((sd, idx) => (
+                    <div key={idx} className="w-full bg-amber-50/50 rounded-xl border border-amber-100 p-4 flex flex-col gap-3">
+                      {/* Item header */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-amber-500 uppercase tracking-wide">Saudara ke-{idx + 1}</span>
+                        <button type="button" onClick={() => handleRemoveSaudara(idx)}
+                          className="w-6 h-6 rounded-full bg-red-50 hover:bg-red-100 flex items-center justify-center text-red-400 hover:text-red-600 transition-colors">
+                          <span className="material-icons-round" style={{fontSize: 14}}>close</span>
+                        </button>
+                      </div>
+                      <JemaatAutocomplete
+                        label=""
+                        valueName={sd.nama_saudara}
+                        valueId={sd.saudara_jemaat_id}
+                        placeholder="Cari Database Jemaat..."
+                        onSelect={(id, name) => {
+                          handleSaudaraChange(idx, 'saudara_jemaat_id', id);
+                          handleSaudaraChange(idx, 'nama_saudara', name);
+                          if (id) handleSaudaraChange(idx, 'gereja_asal_saudara', '');
+                        }}
+                      />
+                      {!sd.saudara_jemaat_id && sd.nama_saudara.length > 2 && (
+                        <div className="w-full flex-col gap-1 flex">
+                          <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Gereja Asal</label>
+                          <input
+                            type="text"
+                            value={(sd as any).gereja_asal_saudara || ''}
+                            onChange={(e) => handleSaudaraChange(idx, 'gereja_asal_saudara', e.target.value)}
+                            placeholder="Isi jika dari gereja luar"
+                            className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-300/30 focus:border-amber-400 text-slate-900 text-sm font-['Inter'] w-full transition-all"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+
+                  {formData.saudara.length === 0 && (
+                    <div className="w-full py-4 text-center text-slate-400 flex flex-col items-center gap-2 bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                      <span className="material-icons-round text-3xl opacity-50">people_outline</span>
+                      <span className="text-xs font-['Inter']">Belum ada data saudara. Klik "+ Tambah Saudara".</span>
+                    </div>
+                  )}
+                </div>
+
               </div>
 
               {/* KOLOM KANAN */}

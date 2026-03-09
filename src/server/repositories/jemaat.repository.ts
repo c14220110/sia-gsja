@@ -318,6 +318,30 @@ export class JemaatRepository {
         }
       }
 
+      // Insert Saudara records (bidirectional) if provided
+      if (data.saudara && Array.isArray(data.saudara) && data.saudara.length > 0) {
+        // Get jenis_relasi_id for 'Saudara Kandung'
+        const jrRes = await client.query(`SELECT id FROM jenis_relasi WHERE nama_relasi = 'Saudara Kandung' LIMIT 1`);
+        if (jrRes.rows.length > 0) {
+          const jenisRelasiId = jrRes.rows[0].id;
+          for (const s of data.saudara) {
+            const saudaraId = s.saudara_jemaat_id ? parseInt(s.saudara_jemaat_id, 10) : null;
+            if (saudaraId) {
+              // A -> B
+              await client.query(
+                `INSERT INTO relasi_jemaat (jemaat_id, jemaat_terkait_id, jenis_relasi_id) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
+                [newJemaatId, saudaraId, jenisRelasiId]
+              );
+              // B -> A (bidirectional)
+              await client.query(
+                `INSERT INTO relasi_jemaat (jemaat_id, jemaat_terkait_id, jenis_relasi_id) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
+                [saudaraId, newJemaatId, jenisRelasiId]
+              );
+            }
+          }
+        }
+      }
+
       await client.query('COMMIT');
       return newJemaatId;
     } catch (e) {
@@ -370,7 +394,29 @@ export class JemaatRepository {
       nama_anak: a.nama_anak || '',
       gereja_asal_anak: a.gereja_asal_anak || ''
     }));
-    
+
+    // Fetch saudara kandung from relasi_jemaat
+    const saudaraQuery = `
+      SELECT
+        rj.id,
+        rj.jemaat_terkait_id AS saudara_jemaat_id,
+        s.jemaat_id           AS saudara_jemaat_kode,
+        s.nama_lengkap        AS nama_saudara
+      FROM relasi_jemaat rj
+      JOIN jenis_relasi jr ON rj.jenis_relasi_id = jr.id
+      JOIN jemaat s        ON rj.jemaat_terkait_id = s.id AND s.is_deleted = false
+      WHERE rj.jemaat_id = $1
+        AND jr.nama_relasi = 'Saudara Kandung'
+      ORDER BY rj.id ASC
+    `;
+    const saudaraRes = await pool.query(saudaraQuery, [row.id]);
+    row.saudara = saudaraRes.rows.map(s => ({
+      id: s.id,
+      saudara_jemaat_id:    s.saudara_jemaat_id ? s.saudara_jemaat_id.toString() : '',
+      saudara_jemaat_kode:  s.saudara_jemaat_kode || '',
+      nama_saudara:         s.nama_saudara || '',
+    }));
+
     return row;
   }
 
@@ -462,6 +508,39 @@ export class JemaatRepository {
           const gerejaAnk = ank.gereja_asal_anak || null;
           if (anakId || namaAnk) {
             await client.query(insertAnakQuery, [primaryId, anakId, namaAnk, gerejaAnk]);
+          }
+        }
+      }
+
+      // Re-insert Saudara (relasi_jemaat) — delete old bidirectional, then re-insert
+      const jrRes = await client.query(`SELECT id FROM jenis_relasi WHERE nama_relasi = 'Saudara Kandung' LIMIT 1`);
+      if (jrRes.rows.length > 0) {
+        const jenisRelasiId = jrRes.rows[0].id;
+        // Delete outgoing relations from this person
+        await client.query(
+          `DELETE FROM relasi_jemaat WHERE jemaat_id = $1 AND jenis_relasi_id = $2`,
+          [primaryId, jenisRelasiId]
+        );
+        // Delete incoming relations that point TO this person (bidirectional cleanup)
+        await client.query(
+          `DELETE FROM relasi_jemaat WHERE jemaat_terkait_id = $1 AND jenis_relasi_id = $2`,
+          [primaryId, jenisRelasiId]
+        );
+        if (data.saudara && Array.isArray(data.saudara) && data.saudara.length > 0) {
+          for (const s of data.saudara) {
+            const saudaraId = s.saudara_jemaat_id ? parseInt(s.saudara_jemaat_id, 10) : null;
+            if (saudaraId) {
+              // A -> B
+              await client.query(
+                `INSERT INTO relasi_jemaat (jemaat_id, jemaat_terkait_id, jenis_relasi_id) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
+                [primaryId, saudaraId, jenisRelasiId]
+              );
+              // B -> A
+              await client.query(
+                `INSERT INTO relasi_jemaat (jemaat_id, jemaat_terkait_id, jenis_relasi_id) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
+                [saudaraId, primaryId, jenisRelasiId]
+              );
+            }
           }
         }
       }

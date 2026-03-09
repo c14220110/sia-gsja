@@ -1,8 +1,19 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
+import { buildGraph } from '@/app/dashboard/family-tree/FlowCanvas';
+
+const FlowCanvas = dynamic(() => import('@/app/dashboard/family-tree/FlowCanvas'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center h-full">
+      <div className="animate-spin h-8 w-8 border-4 border-teal-500 border-t-transparent rounded-full" />
+    </div>
+  ),
+});
 
 // Helper component for Jemaat Autocomplete
 const JemaatAutocomplete = ({ 
@@ -115,7 +126,16 @@ export default function EditJemaatPage() {
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
-  const [activeTab, setActiveTab] = useState<'data_jemaat' | 'family_tree'>('data_jemaat');
+  const [activeTab, setActiveTab] = useState<'data_jemaat' | 'family_tree'>(
+    searchParams.get('tab') === 'family_tree' ? 'family_tree' : 'data_jemaat'
+  );
+
+  // Family tree state
+  const [treeNodes, setTreeNodes] = useState<any[]>([]);
+  const [treeEdges, setTreeEdges] = useState<any[]>([]);
+  const [treeLoading, setTreeLoading] = useState(false);
+  const [treeError, setTreeError] = useState('');
+  const [treeKey, setTreeKey] = useState(0);
   
   // Options State
   const [satelitOptions, setSatelitOptions] = useState<any[]>([]);
@@ -158,6 +178,8 @@ export default function EditJemaatPage() {
     ibu_jemaat_id: '',
     pasangan_jemaat_id: '',
     jemaat_id: '',
+    // Saudara
+    saudara: [] as { saudara_jemaat_id: string, saudara_jemaat_kode?: string, nama_saudara: string, gereja_asal_saudara: string }[],
   });
 
   useEffect(() => {
@@ -217,6 +239,12 @@ export default function EditJemaatPage() {
                 gereja_asal_pasangan: d.gereja_asal_pasangan || '',
                 anak: d.anak || [],
                 jemaat_id: d.jemaat_id || '',
+                saudara: (d.saudara || []).map((s: any) => ({
+                  saudara_jemaat_id:    s.saudara_jemaat_id || '',
+                  saudara_jemaat_kode:  s.saudara_jemaat_kode || '',
+                  nama_saudara:         s.nama_saudara || '',
+                  gereja_asal_saudara:  '',
+                })),
               });
             }
           }
@@ -229,6 +257,29 @@ export default function EditJemaatPage() {
     };
     fetchInitData();
   }, [jemaatId]);
+
+  // Load family tree when switching to family_tree tab
+  useEffect(() => {
+    if (activeTab !== 'family_tree' || !jemaatId || treeNodes.length > 0) return;
+    const loadTree = async () => {
+      setTreeLoading(true);
+      setTreeError('');
+      try {
+        const res = await fetch(`/api/family-tree/${jemaatId}`);
+        const json = await res.json();
+        if (!json.success) throw new Error(json.message);
+        const { nodes, edges } = buildGraph(json.data);
+        setTreeNodes(nodes);
+        setTreeEdges(edges);
+        setTreeKey(k => k + 1);
+      } catch (e: any) {
+        setTreeError(e.message || 'Gagal memuat pohon keluarga');
+      } finally {
+        setTreeLoading(false);
+      }
+    };
+    loadTree();
+  }, [activeTab, jemaatId]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -265,6 +316,28 @@ export default function EditJemaatPage() {
       const newAnak = [...prev.anak];
       newAnak[index] = { ...newAnak[index], [field]: value };
       return { ...prev, anak: newAnak };
+    });
+  };
+
+  const handleAddSaudara = () => {
+    setFormData(prev => ({
+      ...prev,
+      saudara: [...prev.saudara, { saudara_jemaat_id: '', nama_saudara: '', gereja_asal_saudara: '' }]
+    }));
+  };
+
+  const handleRemoveSaudara = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      saudara: prev.saudara.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleSaudaraChange = (index: number, field: string, value: string) => {
+    setFormData(prev => {
+      const newSaudara = [...prev.saudara];
+      newSaudara[index] = { ...newSaudara[index], [field]: value };
+      return { ...prev, saudara: newSaudara };
     });
   };
 
@@ -368,100 +441,71 @@ export default function EditJemaatPage() {
 
             {/* Family Tree Tab Content */}
             {activeTab === 'family_tree' && (
-              <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-                
-                {/* Detail Orang Tua */}
-                <div className="flex-1 w-full p-6 bg-white rounded-xl shadow-sm border border-slate-200 inline-flex flex-col justify-start items-start gap-6">
-                    <div className="w-full inline-flex justify-start items-center gap-2">
-                        <div className="inline-flex flex-col justify-start items-start">
-                            <span className="material-icons-round text-slate-700 text-[20px]">group</span>
-                        </div>
-                        <div className="inline-flex flex-col justify-start items-start">
-                            <div className="justify-center text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Detail Orang Tua</div>
-                        </div>
-                    </div>
-                    <div className="w-full flex flex-col justify-start items-start gap-6">
-                        {/* Ayah */}
-                        <div className="w-full pb-4 border-b border-slate-50 flex justify-between items-center">
-                            <div className="flex flex-col justify-start items-start gap-1">
-                                <div className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Ayah</div>
-                                <div className="text-slate-900 text-sm font-bold font-['Inter'] leading-5">{formData.ayah_nama || '-'}</div>
-                                {formData.ayah_jemaat_id ? (
-                                    <div className="text-slate-700 text-[10px] font-bold font-['Inter'] leading-4">ID Jemaat: {formData.ayah_jemaat_id}</div>
-                                ) : (
-                                    <div className="text-slate-500 text-[10px] font-medium font-['Inter'] leading-4">{formData.gereja_asal_ayah ? `Gereja Saat Ini: ${formData.gereja_asal_ayah}` : ''}</div>
-                                )}
-                            </div>
-                        </div>
-                        {/* Ibu */}
-                        <div className="w-full flex justify-between items-center">
-                            <div className="flex flex-col justify-start items-start gap-1">
-                                <div className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Ibu</div>
-                                <div className="text-slate-900 text-sm font-bold font-['Inter'] leading-5">{formData.ibu_nama || '-'}</div>
-                                {formData.ibu_jemaat_id ? (
-                                    <div className="text-slate-700 text-[10px] font-bold font-['Inter'] leading-4">ID Jemaat: {formData.ibu_jemaat_id}</div>
-                                ) : (
-                                    <div className="text-slate-500 text-[10px] font-medium font-['Inter'] leading-4">{formData.gereja_asal_ibu ? `Gereja Saat Ini: ${formData.gereja_asal_ibu}` : ''}</div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
+              <div className="w-full flex flex-col gap-3">
+                {/* Legend */}
+                <div className="flex flex-wrap gap-2 text-xs">
+                  {[
+                    { color: '#14b8a6', label: 'Pusat' },
+                    { color: '#f43f8e', label: 'Pasangan' },
+                    { color: '#3b82f6', label: 'Ayah / Kakek' },
+                    { color: '#ec4899', label: 'Ibu / Nenek' },
+                    { color: '#8b5cf6', label: 'Anak' },
+                    { color: '#f59e0b', label: 'Saudara' },
+                  ].map(l => (
+                    <span key={l.label} className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-full border border-slate-200 shadow-sm">
+                      <span style={{ background: l.color }} className="w-2 h-2 rounded-full inline-block" />
+                      {l.label}
+                    </span>
+                  ))}
                 </div>
 
-                {/* Detail Keluarga Kecil */}
-                <div className="flex-1 w-full p-6 bg-white rounded-xl shadow-sm border border-slate-200 inline-flex flex-col justify-start items-start gap-6">
-                    <div className="w-full inline-flex justify-start items-center gap-2">
-                        <div className="inline-flex flex-col justify-start items-start">
-                            <span className="material-icons-round text-slate-700 text-[20px]">home</span>
-                        </div>
-                        <div className="inline-flex flex-col justify-start items-start">
-                            <div className="justify-center text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Detail Keluarga Kecil</div>
-                        </div>
+                {/* Canvas */}
+                <div className="w-full bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden" style={{ height: 520 }}>
+                  {treeLoading && (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="animate-spin h-10 w-10 border-4 border-teal-500 border-t-transparent rounded-full" />
+                        <span className="text-slate-400 text-sm">Memuat pohon keluarga...</span>
+                      </div>
                     </div>
-                    <div className="w-full flex flex-col justify-start items-start gap-6">
-                        <div className="w-full flex flex-col justify-start items-start gap-1">
-                            <div className="justify-center text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Jemaat</div>
-                            <div className="justify-center text-slate-900 text-sm font-bold font-['Inter'] leading-5">{formData.nama_lengkap || '-'}</div>
-                            {formData.jemaat_id && <div className="text-slate-700 text-[10px] font-bold font-['Inter'] leading-4">ID Jemaat: {formData.jemaat_id}</div>}
-                        </div>
-                        
-                        <div className="w-full flex flex-col justify-start items-start gap-1 border-t border-slate-50 pt-4">
-                            <div className="justify-center text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Pasangan</div>
-                            <div className="justify-center text-slate-900 text-sm font-bold font-['Inter'] leading-5">{formData.pasangan_nama || '-'}</div>
-                            {formData.pasangan_nama ? (
-                                formData.pasangan_jemaat_id ? (
-                                    <div className="text-slate-700 text-[10px] font-bold font-['Inter'] leading-4">ID Jemaat: {formData.pasangan_jemaat_id}</div>
-                                ) : (
-                                    <div className="text-slate-500 text-[10px] font-medium font-['Inter'] leading-4">{formData.gereja_asal_pasangan ? `Gereja Saat Ini: ${formData.gereja_asal_pasangan}` : ''}</div>
-                                )
-                            ) : null}
-                        </div>
+                  )}
+                  {treeError && !treeLoading && (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center p-8">
+                        <span className="material-icons-round text-red-400 text-4xl">error_outline</span>
+                        <p className="text-red-600 text-sm font-semibold mt-2">{treeError}</p>
+                      </div>
+                    </div>
+                  )}
+                  {!treeLoading && !treeError && treeNodes.length > 0 && (
+                    <FlowCanvas
+                      key={treeKey}
+                      nodes={treeNodes}
+                      edges={treeEdges}
+                      onNodeClick={(id) => router.push(`/dashboard/members/${id}?mode=view&tab=family_tree`)}
+                    />
+                  )}
+                  {!treeLoading && !treeError && treeNodes.length === 0 && (
+                    <div className="flex flex-col items-center justify-center h-full gap-3 text-center">
+                      <span className="material-icons-round text-slate-300 text-5xl">account_tree</span>
+                      <p className="text-slate-400 text-sm">Data keluarga belum tersedia</p>
+                    </div>
+                  )}
+                </div>
 
-                        {formData.anak && formData.anak.length > 0 && (
-                            <div className="w-full flex flex-col justify-start items-start gap-1 border-t border-slate-50 pt-4">
-                                <div className="justify-center text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4 mb-2">Anak</div>
-                                {formData.anak.map((a, idx) => (
-                                    <div key={idx} className="w-full flex flex-col mb-3">
-                                        <div className="justify-center text-slate-900 text-sm font-bold font-['Inter'] leading-5">{a.nama_anak || '-'}</div>
-                                        {a.anak_jemaat_id_text ? (
-                                            <div className="text-slate-700 text-[10px] font-bold font-['Inter'] leading-4">ID Jemaat: {a.anak_jemaat_id_text}</div>
-                                        ) : (
-                                            <div className="text-slate-500 text-[10px] font-medium font-['Inter'] leading-4">{a.gereja_asal_anak ? `Gereja Saat Ini: ${a.gereja_asal_anak}` : ''}</div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                        {(!formData.anak || formData.anak.length === 0) && (
-                             <div className="w-full flex flex-col justify-start items-start gap-1 border-t border-slate-50 pt-4">
-                                 <div className="justify-center text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Anak</div>
-                                 <div className="justify-center text-slate-400 text-sm font-normal font-['Inter'] leading-5">-</div>
-                             </div>
-                        )}
-                    </div>
+                {/* Open full page link */}
+                <div className="flex justify-end">
+                  <a
+                    href={`/dashboard/family-tree?id=${jemaatId}`}
+                    target="_blank"
+                    className="inline-flex items-center gap-1.5 text-teal-600 hover:text-teal-700 text-xs font-semibold"
+                  >
+                    <span className="material-icons-round text-base">open_in_new</span>
+                    Buka di halaman penuh
+                  </a>
                 </div>
               </div>
-      )}
+            )}
 
       {/* Grid Form Sections (Data Jemaat Tab) */}
       <div className={activeTab === 'data_jemaat' ? 'block w-full' : 'hidden'}>
@@ -561,7 +605,8 @@ export default function EditJemaatPage() {
                   </div>
                 </div>
 
-                {/* Data Pasangan */}
+                {/* Data Pasangan — hanya tampil jika Menikah */}
+                {formData.status_pernikahan === 'Menikah' && (
                 <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-start items-start gap-6 h-fit">
                   <div className="w-full inline-flex justify-start items-center gap-2">
                     <span className="material-icons-round text-slate-700 text-[20px]">favorite</span>
@@ -569,7 +614,7 @@ export default function EditJemaatPage() {
                   </div>
                   <div className="w-full flex-col gap-4 flex">
                     <JemaatAutocomplete 
-                      label="Nama Pasangan (Bila Menikah)"
+                      label="Nama Pasangan"
                       valueName={formData.pasangan_nama}
                       valueId={formData.pasangan_id}
                       placeholder="Cari jemaat..."
@@ -583,6 +628,7 @@ export default function EditJemaatPage() {
                     )}
                   </div>
                 </div>
+                )}
 
                 {/* Data Anak */}
                 <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-start items-start gap-6 h-fit">
@@ -599,31 +645,31 @@ export default function EditJemaatPage() {
                   </div>
                   
                   {formData.anak.map((ank, idx) => (
-                    <div key={idx} className="w-full flex-col gap-4 flex border-b border-slate-100 pb-4 mb-2 last:border-0 last:pb-0 relative">
-                      {!isReadOnly && (
-                        <div className="absolute right-0 top-0 z-10">
-                          <button type="button" onClick={() => handleRemoveAnak(idx)} className="text-slate-400 hover:text-red-500 transition-colors p-1 rounded-full hover:bg-red-50">
-                            <span className="material-icons-round text-[18px]">close</span>
+                    <div key={idx} className={`w-full rounded-xl border p-4 flex flex-col gap-3 ${isReadOnly ? 'bg-slate-50 border-slate-100' : 'bg-slate-50 border-slate-100'}`}>
+                      {/* Header row */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">Anak ke-{idx + 1}</span>
+                        {!isReadOnly && (
+                          <button type="button" onClick={() => handleRemoveAnak(idx)}
+                            className="w-6 h-6 rounded-full bg-red-50 hover:bg-red-100 flex items-center justify-center text-red-400 hover:text-red-600 transition-colors">
+                            <span className="material-icons-round" style={{fontSize: 14}}>close</span>
                           </button>
-                        </div>
-                      )}
-                      
+                        )}
+                      </div>
                       {isReadOnly ? (
-                        <div className="w-full flex flex-col gap-1 pr-6">
-                            <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Nama Anak Ke-{idx + 1}</label>
-                            <input type="text" disabled value={ank.nama_anak || '-'} className="px-3 py-2 bg-transparent rounded-lg border-b border-transparent text-slate-900 text-sm font-['Inter'] font-semibold w-full" />
-                            
-                            {!ank.anak_jemaat_id && ank.gereja_asal_anak && (
-                              <>
-                                <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4 mt-2">Gereja Asal Anak Ke-{idx + 1}</label>
-                                <input type="text" disabled value={ank.gereja_asal_anak} className="px-3 py-2 bg-transparent rounded-lg border-b border-transparent text-slate-900 text-sm font-['Inter'] font-semibold w-full" />
-                              </>
-                            )}
+                        <div className="w-full flex flex-col gap-1">
+                          <div className="text-slate-900 text-sm font-semibold">{ank.nama_anak || '-'}</div>
+                          {!ank.anak_jemaat_id && ank.gereja_asal_anak && (
+                            <div className="text-slate-500 text-xs">Gereja: {ank.gereja_asal_anak}</div>
+                          )}
+                          {ank.anak_jemaat_id_text && (
+                            <div className="text-slate-400 text-xs">ID: {ank.anak_jemaat_id_text}</div>
+                          )}
                         </div>
                       ) : (
                         <>
-                          <JemaatAutocomplete 
-                            label={`Nama Anak Ke-${idx + 1}`}
+                          <JemaatAutocomplete
+                            label=""
                             valueName={ank.nama_anak}
                             valueId={ank.anak_jemaat_id}
                             placeholder="Cari Database / Ketik Nama..."
@@ -633,8 +679,8 @@ export default function EditJemaatPage() {
                             }}
                           />
                           {!ank.anak_jemaat_id && ank.nama_anak.length > 2 && (
-                            <div className="w-full flex-col gap-1 flex animate-in fade-in slide-in-from-top-1">
-                              <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Gereja Asal Anak Ke-{idx + 1}</label>
+                            <div className="w-full flex-col gap-1 flex">
+                              <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Gereja Asal</label>
                               <input type="text" value={ank.gereja_asal_anak} onChange={(e) => handleAnakChange(idx, 'gereja_asal_anak', e.target.value)} placeholder="Isi jika dari gereja luar" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
                             </div>
                           )}
@@ -650,6 +696,78 @@ export default function EditJemaatPage() {
                     </div>
                   )}
                 </div>
+
+                {/* Data Saudara */}
+                <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-start items-start gap-6 h-fit">
+                  <div className="w-full inline-flex justify-between items-center gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="material-icons-round text-slate-700 text-[20px]">people</span>
+                      <span className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Data Saudara Kandung</span>
+                    </div>
+                    {!isReadOnly && (
+                      <button type="button" onClick={handleAddSaudara} className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-600 rounded-lg flex items-center gap-1 transition-colors text-xs font-bold">
+                        <span className="material-icons-round text-[16px]">add</span> Tambah Saudara
+                      </button>
+                    )}
+                  </div>
+
+                  {formData.saudara.map((sd, idx) => (
+                    <div key={idx} className="w-full bg-amber-50/50 rounded-xl border border-amber-100 p-4 flex flex-col gap-3">
+                      {/* Header row */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-amber-500 uppercase tracking-wide">Saudara ke-{idx + 1}</span>
+                        {!isReadOnly && (
+                          <button type="button" onClick={() => handleRemoveSaudara(idx)}
+                            className="w-6 h-6 rounded-full bg-red-50 hover:bg-red-100 flex items-center justify-center text-red-400 hover:text-red-600 transition-colors">
+                            <span className="material-icons-round" style={{fontSize: 14}}>close</span>
+                          </button>
+                        )}
+                      </div>
+                      {isReadOnly ? (
+                        <div className="w-full flex flex-col gap-1">
+                          <div className="text-slate-900 text-sm font-semibold">{sd.nama_saudara || '-'}</div>
+                          {sd.saudara_jemaat_kode && (
+                            <div className="text-slate-500 text-xs">ID Jemaat: {sd.saudara_jemaat_kode}</div>
+                          )}
+                        </div>
+                      ) : (
+                        <>
+                          <JemaatAutocomplete
+                            label=""
+                            valueName={sd.nama_saudara}
+                            valueId={sd.saudara_jemaat_id}
+                            placeholder="Cari Database Jemaat..."
+                            onSelect={(id, name) => {
+                              handleSaudaraChange(idx, 'saudara_jemaat_id', id);
+                              handleSaudaraChange(idx, 'nama_saudara', name);
+                              if (id) handleSaudaraChange(idx, 'gereja_asal_saudara', '');
+                            }}
+                          />
+                          {!sd.saudara_jemaat_id && sd.nama_saudara.length > 2 && (
+                            <div className="w-full flex-col gap-1 flex">
+                              <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Gereja Asal</label>
+                              <input
+                                type="text"
+                                value={sd.gereja_asal_saudara || ''}
+                                onChange={(e) => handleSaudaraChange(idx, 'gereja_asal_saudara', e.target.value)}
+                                placeholder="Isi jika dari gereja luar"
+                                className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-300/30 focus:border-amber-400 text-slate-900 text-sm font-['Inter'] w-full transition-all"
+                              />
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  ))}
+
+                  {formData.saudara.length === 0 && (
+                    <div className="w-full py-4 text-center text-slate-400 flex flex-col items-center gap-2 bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                      <span className="material-icons-round text-3xl opacity-50">people_outline</span>
+                      <span className="text-xs font-['Inter']">{isReadOnly ? "Belum merekam data saudara." : "Belum ada data saudara. Klik '+ Tambah Saudara'."}</span>
+                    </div>
+                  )}
+                </div>
+
               </div> {/* END KOLOM KIRI */}
 
               {/* KOLOM KANAN */}
