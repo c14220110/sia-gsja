@@ -153,16 +153,26 @@ export class JemaatRepository {
       ORDER BY f.created_at DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1};
     `;
-    
+    // Filtered "jemaat baru bulan ini" — must run BEFORE pushing limit/offset into queryParams
+    let newThisMonthQuery = `
+      SELECT count(DISTINCT j.id) as total_baru
+      FROM jemaat j
+      LEFT JOIN jemaat_komisi jk ON j.id = jk.jemaat_id AND jk.is_active = true
+      WHERE j.is_deleted = false
+        AND j.created_at >= date_trunc('month', current_date)
+    `;
+    if (whereClauses.length > 0) {
+      newThisMonthQuery += ` AND ` + whereClauses.join(' AND ');
+    }
+    const newThisMonthResult = await pool.query(newThisMonthQuery, queryParams);
+    const jemaat_baru = parseInt(newThisMonthResult.rows[0].total_baru, 10) || 0;
+
+    // Now push limit/offset for the main paginated query
     queryParams.push(limit, offset);
 
     const result = await pool.query(finalQuery, queryParams);
     
-    // Quick separate query for global active new jemaat this month
-    const newThisMonthQuery = `SELECT count(*) as total_baru FROM jemaat WHERE is_deleted = false AND created_at >= date_trunc('month', current_date)`;
-    const newThisMonthResult = await pool.query(newThisMonthQuery);
-    const jemaat_baru = parseInt(newThisMonthResult.rows[0].total_baru, 10) || 0;
-    
+
     if (result.rows.length === 0) {
       return { data: [], total: 0, jemaat_baru };
     }
