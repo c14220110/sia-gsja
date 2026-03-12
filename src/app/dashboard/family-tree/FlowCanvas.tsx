@@ -162,8 +162,8 @@ export function buildGraph(data: any): { nodes: NodeItem[]; edges: EdgeItem[]; b
     branches.push({
       id: 'parent-children',
       trunkX,
-      topY: -VG + H,
-      branchY: (-VG + H + personY) / 2,
+      topY: -VG + H / 2,
+      branchY: (-VG + H / 2 + personY) / 2,
       childXs,
       bottomY: personY,
       dashed: !data.ayah && !data.ibu, // dashed if both parents unregistered
@@ -216,8 +216,8 @@ export function buildGraph(data: any): { nodes: NodeItem[]; edges: EdgeItem[]; b
     branches.push({
       id: 'person-anak',
       trunkX: anakTrunkX,
-      topY:    personY + H,
-      branchY: personY + H + (VG - H) / 2,
+      topY:    personY + H / 2,
+      branchY: personY + H / 2 + (VG - H / 2) / 2,
       childXs: anakIds.map(id => posMap[id].x + W / 2),
       bottomY: personY + VG,
       dashed: false,
