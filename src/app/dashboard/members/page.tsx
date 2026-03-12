@@ -150,16 +150,10 @@ export default function MembersPage() {
             <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Database Jemaat</h1>
             <div className="text-slate-500 text-base font-medium font-['Inter'] leading-6">Sistem Informasi Manajemen Data Jemaat</div>
           </div>
-          <div className="flex items-center gap-2">
-            <Link href="/dashboard/members/import" className="px-5 py-2.5 bg-emerald-600 rounded-lg flex justify-start items-center gap-2 hover:bg-emerald-700 transition-colors shadow-sm">
-              <span className="material-icons-round text-white text-[20px]">upload_file</span>
-              <span className="text-white text-sm font-bold font-['Inter'] leading-5">Import CSV</span>
-            </Link>
-            <Link href="/dashboard/members/new" className="px-5 py-2.5 bg-slate-700 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none">
-              <span className="material-icons-round text-white text-[20px]">add</span>
-              <span className="text-white text-sm font-bold font-['Inter'] leading-5">Tambah Jemaat Baru</span>
-            </Link>
-          </div>
+          <Link href="/dashboard/members/new" className="px-5 py-2.5 bg-slate-700 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none">
+            <span className="material-icons-round text-white text-[20px]">add</span>
+            <span className="text-white text-sm font-bold font-['Inter'] leading-5">Tambah Jemaat Baru</span>
+          </Link>
         </div>
 
       {/* Statistic Cards */}
