@@ -64,7 +64,7 @@ export class FamilyTreeRepository {
        JOIN jenis_relasi  jr ON rj.jenis_relasi_id = jr.id AND jr.nama_relasi = 'Anak'
        LEFT JOIN jemaat   j  ON rj.jemaat_terkait_id = j.id AND j.is_deleted = false
        WHERE rj.jemaat_id = $1
-       ORDER BY rj.id ASC`,
+       ORDER BY j.tanggal_lahir ASC NULLS LAST, rj.id ASC`,
       [orang_tua_id]
     );
     return res.rows;
