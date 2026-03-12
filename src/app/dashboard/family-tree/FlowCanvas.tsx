@@ -142,10 +142,7 @@ export function buildGraph(data: any): { nodes: NodeItem[], edges: EdgeItem[] } 
     addHorizontalEdge(ayahId, ibuId, '#f43f8e', '');
   }
 
-  // Saudara edge from ayah/ibu
-  saudaraIds.forEach(sid => {
-    if (ayahId) addEdge(ayahId, sid, '#3b82f6', '', true);
-  });
+
 
   // ── ROW -2: Kakek & Nenek ────────────────────────────────────────────────────
   const ayahX = data.ayah ? (posMap[ayahId!]?.x ?? midCenter - HG * 0.5) : midCenter - HG * 0.5;
