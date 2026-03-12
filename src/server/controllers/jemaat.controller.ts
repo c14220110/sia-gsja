@@ -3,8 +3,9 @@ import { JemaatFilterParams } from '@/server/repositories/jemaat.repository';
 import { getJemaatPaginationService, createJemaatService } from '@/server/services/jemaat.service';
 import jwt from 'jsonwebtoken';
 import { UserRepository } from '@/server/repositories/user.repository';
+import { getJwtSecret } from '@/server/utils/jwt';
+import { createJemaatSchema } from '@/server/validations/jemaat.validation';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret';
 const userRepository = new UserRepository();
 
 export async function getJemaatController(request: Request) {
@@ -30,7 +31,7 @@ export async function getJemaatController(request: Request) {
 
     if (token) {
       try {
-        const decoded = jwt.verify(token, JWT_SECRET) as any;
+        const decoded = jwt.verify(token, getJwtSecret()) as any;
         const roles = await userRepository.getUserRoles(decoded.user_id);
         const activeRole = roles.find(r => r.role_id === decoded.role_id && r.satelit_id === decoded.satelit_id);
         
@@ -71,7 +72,19 @@ export async function getJemaatController(request: Request) {
 export async function createJemaatController(request: Request) {
   try {
     const body = await request.json();
-    const newId = await createJemaatService(body);
+
+    // Validate input with Zod
+    const parsed = createJemaatSchema.safeParse(body);
+    if (!parsed.success) {
+      const errors = parsed.error.flatten().fieldErrors;
+      return NextResponse.json({
+        success: false,
+        message: 'Data tidak valid',
+        errors,
+      }, { status: 400 });
+    }
+
+    const newId = await createJemaatService(parsed.data);
     
     return NextResponse.json({
       success: true,

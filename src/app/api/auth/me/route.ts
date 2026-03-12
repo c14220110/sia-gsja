@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import { UserRepository } from '@/server/repositories/user.repository';
+import { getJwtSecret } from '@/server/utils/jwt';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret';
 const userRepository = new UserRepository();
 
 export async function GET(request: NextRequest) {
@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Verify token
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    const decoded = jwt.verify(token, getJwtSecret()) as any;
     
     // As per previous payload, we have user_id and role_id
     // Fetch actual names from DB

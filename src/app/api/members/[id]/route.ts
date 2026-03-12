@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { JemaatRepository } from '@/server/repositories/jemaat.repository';
+import { updateJemaatSchema } from '@/server/validations/jemaat.validation';
 
 const jemaatRepository = new JemaatRepository();
 
@@ -27,12 +28,15 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     if (!id) return NextResponse.json({ success: false, message: 'ID required' }, { status: 400 });
 
     const body = await request.json();
-    
-    if (!body.nama_lengkap) {
-      return NextResponse.json({ success: false, message: 'Nama lengkap wajib diisi' }, { status: 400 });
+
+    // Validate input with Zod
+    const parsed = updateJemaatSchema.safeParse(body);
+    if (!parsed.success) {
+      const errors = parsed.error.flatten().fieldErrors;
+      return NextResponse.json({ success: false, message: 'Data tidak valid', errors }, { status: 400 });
     }
 
-    const updated = await jemaatRepository.updateJemaat(id, body);
+    const updated = await jemaatRepository.updateJemaat(id, parsed.data);
     
     if (!updated) {
       return NextResponse.json({ success: false, message: 'Jemaat tidak ditemukan atau gagal diupdate' }, { status: 404 });
