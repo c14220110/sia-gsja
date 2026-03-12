@@ -382,7 +382,7 @@ export class JemaatRepository {
       LEFT JOIN jemaat i ON j.ibu_id = i.id
       LEFT JOIN jemaat p ON j.pasangan_id = p.id
       LEFT JOIN jemaat_komisi jk ON j.id = jk.jemaat_id
-      WHERE (j.id::text = $1 OR j.jemaat_id = $1) AND j.is_deleted = false
+      WHERE j.id::text = $1 AND j.is_deleted = false
       GROUP BY j.id, a.jemaat_id, i.jemaat_id, p.jemaat_id
     `;
     const res = await pool.query(query, [id]);
@@ -453,7 +453,7 @@ export class JemaatRepository {
 
       // ── Detect satellite change & regenerate jemaat_id if needed ──────────
       const currentRes = await client.query(
-        `SELECT satelit_id, tanggal_lahir, jemaat_id FROM jemaat WHERE (id::text = $1 OR jemaat_id = $1) AND is_deleted = false LIMIT 1`,
+        `SELECT satelit_id, tanggal_lahir, jemaat_id FROM jemaat WHERE id::text = $1 AND is_deleted = false LIMIT 1`,
         [jemaatId]
       );
       if (currentRes.rows.length === 0) throw new Error('Jemaat not found');
@@ -508,7 +508,7 @@ export class JemaatRepository {
           ayah_id = $19, ayah_nama = $20, gereja_asal_ayah = $21,
           ibu_id = $22, ibu_nama = $23, gereja_asal_ibu = $24,
           pasangan_id = $25, pasangan_nama = $26, gereja_asal_pasangan = $27${jemaatIdSet}
-        WHERE (id::text = $28 OR jemaat_id = $28)
+        WHERE id::text = $28
         RETURNING id
       `;
 
