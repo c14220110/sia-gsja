@@ -196,16 +196,33 @@ export function buildGraph(data: any): { nodes: NodeItem[]; edges: EdgeItem[]; b
     if (ibuId) addEdge(id, ibuId, '#f9a8d4', 'Nenek', true);
   }
 
-  // ── ROW +1: Anak ─────────────────────────────────────────────────────────────
-  const childCenterX = pasanganId ? personX + HG / 2 : personX;
-  anak.forEach((a: any, i: number) => {
-    const isReg   = !!a.id;
-    const jemaat  = isReg ? a : { id: -(1000 + i), nama_lengkap: a.nama_anak || 'Anak' };
-    const ax      = childCenterX + (i - (anak.length - 1) / 2) * HG;
-    const aId     = addNode(jemaat, 'anak', ax, VG, !isReg);
-    addEdge(personId, aId, '#8b5cf6', 'Anak');
-    if (pasanganId && isReg) addEdge(pasanganId, aId, '#8b5cf6', '', true);
-  });
+  // ── ROW +1: Anak — use trunk+branch to avoid crossing arrows ─────────────────
+  if (anak.length > 0) {
+    const childCenterX = pasanganId ? personX + HG / 2 : personX;
+    const anakIds: string[] = [];
+
+    anak.forEach((a: any, i: number) => {
+      const isReg  = !!a.id;
+      const jemaat = isReg ? a : { id: -(1000 + i), nama_lengkap: a.nama_anak || 'Anak' };
+      const ax     = childCenterX + (i - (anak.length - 1) / 2) * HG;
+      anakIds.push(addNode(jemaat, 'anak', ax, VG, !isReg));
+    });
+
+    // Trunk X = midpoint between person center and pasangan center (or just person)
+    const anakTrunkX = pasanganId
+      ? (posMap[personId].x + W / 2 + posMap[pasanganId].x + W / 2) / 2
+      : posMap[personId].x + W / 2;
+
+    branches.push({
+      id: 'person-anak',
+      trunkX: anakTrunkX,
+      topY:    personY + H,
+      branchY: personY + H + (VG - H) / 2,
+      childXs: anakIds.map(id => posMap[id].x + W / 2),
+      bottomY: personY + VG,
+      dashed: false,
+    });
+  }
 
   return { nodes, edges, branches };
 }
