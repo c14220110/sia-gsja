@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const W  = 176;   // node card width
-const H  = 145;   // node card height (approximate)
-const HG = 210;   // horizontal gap between nodes
-const VG = 230;   // vertical gap between levels
+const H  = 145;   // node card height
+const HG = 220;   // horizontal gap between node centers (node + space)
+const VG = 240;   // vertical gap between levels
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface NodeItem {
@@ -18,24 +18,41 @@ interface NodeItem {
   y: number;
   unregistered?: boolean;
 }
+
+/** Simple point-to-point edge (marriage bar, anak arrows, etc.) */
 interface EdgeItem {
   id: string;
-  x1: number; y1: number; // source center-bottom
-  x2: number; y2: number; // target center-top
+  x1: number; y1: number;
+  x2: number; y2: number;
   color: string;
   label: string;
   dashed?: boolean;
   horizontal?: boolean;
+  noArrow?: boolean;
+}
+
+/**
+ * A proper family-tree "trunk + branch" connector.
+ * Draws: single trunk from parent midpoint → horizontal branch bar → stubs to each child.
+ */
+export interface FamilyBranch {
+  id: string;
+  trunkX: number;    // center X of the trunk (midpoint between parents)
+  topY: number;      // Y where trunk starts (bottom of parent row)
+  branchY: number;   // Y of the horizontal branch bar
+  childXs: number[]; // center X of each child node
+  bottomY: number;   // Y where stubs end (top of child row)
+  dashed?: boolean;  // dashed when parents are unregistered
 }
 
 // ─── Layout builder ───────────────────────────────────────────────────────────
-export function buildGraph(data: any): { nodes: NodeItem[], edges: EdgeItem[] } {
-  const nodes: NodeItem[] = [];
-  const edges: EdgeItem[] = [];
+export function buildGraph(data: any): { nodes: NodeItem[]; edges: EdgeItem[]; branches: FamilyBranch[] } {
+  const nodes: NodeItem[]       = [];
+  const edges: EdgeItem[]       = [];
+  const branches: FamilyBranch[]= [];
   let counter = 0;
 
-  // nodeId -> {x, y} for edge drawing
-  const posMap: Record<string, { x: number, y: number }> = {};
+  const posMap: Record<string, { x: number; y: number }> = {};
 
   function addNode(jemaat: any, role: string, x: number, y: number, unregistered = false): string {
     const id = `n${counter++}`;
@@ -44,49 +61,31 @@ export function buildGraph(data: any): { nodes: NodeItem[], edges: EdgeItem[] } 
     return id;
   }
 
-  function addEdge(from: string, to: string, color: string, label: string, dashed = false, horizontal = false) {
+  function addEdge(from: string, to: string, color: string, label: string, dashed = false, horizontal = false, noArrow = false) {
     const s = posMap[from];
     const t = posMap[to];
     if (!s || !t) return;
     edges.push({
       id: `e-${from}-${to}`,
-      x1: s.x + W / 2, y1: s.y + H,
-      x2: t.x + W / 2, y2: t.y,
-      color, label, dashed, horizontal,
-    });
-  }
-
-  function addHorizontalEdge(from: string, to: string, color: string, label: string) {
-    const s = posMap[from];
-    const t = posMap[to];
-    if (!s || !t) return;
-    // right side of from to left side of to
-    const sRight = s.x + W;
-    const sCy    = s.y + H / 2;
-    const tLeft  = t.x;
-    const tCy    = t.y + H / 2;
-    edges.push({
-      id: `e-${from}-${to}`,
-      x1: sRight, y1: sCy,
-      x2: tLeft,  y2: tCy,
-      color, label, horizontal: true,
+      x1: horizontal ? s.x + W     : s.x + W / 2,
+      y1: horizontal ? s.y + H / 2 : s.y + H,
+      x2: horizontal ? t.x         : t.x + W / 2,
+      y2: horizontal ? t.y + H / 2 : t.y,
+      color, label, dashed, horizontal, noArrow,
     });
   }
 
   const saudara = data.saudara || [];
   const anak    = data.anak    || [];
 
-  // ── ROW 0: saudara | PERSON | pasangan ──────────────────────────────────────
-  // Person at column saudara.length
+  // ── ROW 0: saudara ... PERSON ... pasangan ──────────────────────────────────
   const personCol = saudara.length;
   const personX   = personCol * HG;
   const personY   = 0;
 
-  // Saudara to the left
   const saudaraIds: string[] = [];
   saudara.forEach((s: any, i: number) => {
-    const id = addNode(s, 'saudara', i * HG, 0);
-    saudaraIds.push(id);
+    saudaraIds.push(addNode(s, 'saudara', i * HG, 0));
   });
 
   const personId = addNode(data.person, 'person', personX, personY);
@@ -94,14 +93,14 @@ export function buildGraph(data: any): { nodes: NodeItem[], edges: EdgeItem[] } 
   let pasanganId: string | null = null;
   if (data.pasangan) {
     pasanganId = addNode(data.pasangan, 'pasangan', (personCol + 1) * HG, 0);
-    addHorizontalEdge(personId, pasanganId, '#f43f8e', 'Pasangan');
+    // Horizontal marriage arrow: person ↔ pasangan
+    addEdge(personId, pasanganId, '#f43f8e', 'Pasangan', false, true);
   }
 
-  // Person ↔ saudara (dashed horizontal)
+  // Saudara ↔ person: horizontal dashed "sibling" connector
   saudaraIds.forEach(sid => {
     const s = posMap[sid];
     const p = posMap[personId];
-    // draw right side of saudara to left side of person
     edges.push({
       id: `e-${sid}-${personId}`,
       x1: s.x + W, y1: s.y + H / 2,
@@ -111,8 +110,7 @@ export function buildGraph(data: any): { nodes: NodeItem[], edges: EdgeItem[] } 
   });
 
   // ── ROW -1: Ayah & Ibu ──────────────────────────────────────────────────────
-  // Placed above and centered between person and (first saudara or just person)
-  const leftCenter  = (saudara.length > 0 ? 0 : personX);
+  const leftCenter  = saudara.length > 0 ? 0 : personX;
   const rightCenter = personX;
   const midCenter   = (leftCenter + rightCenter) / 2;
 
@@ -121,36 +119,60 @@ export function buildGraph(data: any): { nodes: NodeItem[], edges: EdgeItem[] } 
 
   if (data.ayah) {
     ayahId = addNode(data.ayah, 'ayah', midCenter - HG * 0.5, -VG);
-    addEdge(ayahId, personId, '#3b82f6', 'Ayah');
   } else if (data.person?.ayah_nama) {
     const fakeAyah = { id: -1, nama_lengkap: data.person.ayah_nama, jenis_kelamin: 'Laki-laki' };
     ayahId = addNode(fakeAyah, 'ayah', midCenter - HG * 0.5, -VG, true);
-    addEdge(ayahId, personId, '#3b82f6', 'Ayah', true);
   }
 
   if (data.ibu) {
     ibuId = addNode(data.ibu, 'ibu', midCenter + HG * 0.5, -VG);
-    addEdge(ibuId, personId, '#ec4899', 'Ibu');
   } else if (data.person?.ibu_nama) {
     const fakeIbu = { id: -2, nama_lengkap: data.person.ibu_nama, jenis_kelamin: 'Perempuan' };
     ibuId = addNode(fakeIbu, 'ibu', midCenter + HG * 0.5, -VG, true);
-    addEdge(ibuId, personId, '#ec4899', 'Ibu', true);
   }
 
-  // Ayah ↔ Ibu horizontal line (married)
+  // Marriage bar: horizontal line between Ayah and Ibu (no arrow, just a coupling line)
   if (ayahId && ibuId) {
-    addHorizontalEdge(ayahId, ibuId, '#f43f8e', '');
+    addEdge(ayahId, ibuId, '#f43f8e', '', false, true, true);
   }
-  // Saudara also shares same parents — draw dashed edges from both Ayah & Ibu to each sibling
-  saudaraIds.forEach(sid => {
-    if (ayahId) addEdge(ayahId, sid, '#3b82f6', '', true);
-    if (ibuId)  addEdge(ibuId,  sid, '#ec4899', '', true);
-  });
 
+  // ── Family branch: trunk → branch bar → stubs to all children ────────────────
+  if (ayahId || ibuId) {
+    // trunkX = midpoint between the two parent node centers
+    let trunkX: number;
+    if (ayahId && ibuId) {
+      trunkX = (posMap[ayahId].x + W / 2 + posMap[ibuId].x + W / 2) / 2;
+    } else if (ayahId) {
+      trunkX = posMap[ayahId].x + W / 2;
+    } else {
+      trunkX = posMap[ibuId!].x + W / 2;
+    }
+
+    const trunkTopY  = -VG + H;            // bottom of parent row
+    const branchY    = trunkTopY + (-VG + H - personY === 0 ? 0 : (personY - trunkTopY) * 0.5);
+    // Actually simpler:
+    // trunkTopY = -VG + H  (e.g. -240+145 = -95)
+    // personY   = 0
+    // branchY   = midpoint = (-95 + 0) / 2 = ~-47
+
+    // All children: saudara first, then person
+    const allChildIds = [...saudaraIds, personId];
+    const childXs     = allChildIds.map(id => posMap[id].x + W / 2);
+
+    branches.push({
+      id: 'parent-children',
+      trunkX,
+      topY: -VG + H,
+      branchY: (-VG + H + personY) / 2,
+      childXs,
+      bottomY: personY,
+      dashed: !data.ayah && !data.ibu, // dashed if both parents unregistered
+    });
+  }
 
   // ── ROW -2: Kakek & Nenek ────────────────────────────────────────────────────
-  const ayahX = data.ayah ? (posMap[ayahId!]?.x ?? midCenter - HG * 0.5) : midCenter - HG * 0.5;
-  const ibuX  = data.ibu  ? (posMap[ibuId!]?.x  ?? midCenter + HG * 0.5)  : midCenter + HG * 0.5;
+  const ayahX = ayahId ? (posMap[ayahId]?.x ?? midCenter - HG * 0.5) : midCenter - HG * 0.5;
+  const ibuX  = ibuId  ? (posMap[ibuId]?.x  ?? midCenter + HG * 0.5) : midCenter + HG * 0.5;
 
   const kkAyah = data.kakek_nenek?.ayah?.kakek;
   const nkAyah = data.kakek_nenek?.ayah?.nenek;
@@ -159,7 +181,7 @@ export function buildGraph(data: any): { nodes: NodeItem[], edges: EdgeItem[] } 
 
   if (kkAyah) {
     const id = addNode(kkAyah, 'kakek_ayah', ayahX - HG * 0.5, -VG * 2);
-    if (ayahId) { addEdge(id, ayahId, '#60a5fa', 'Kakek', true); addHorizontalEdge(id, `skip`, '#f9a8d4', ''); }
+    if (ayahId) addEdge(id, ayahId, '#60a5fa', 'Kakek', true);
   }
   if (nkAyah) {
     const id = addNode(nkAyah, 'nenek_ayah', ayahX + HG * 0.5, -VG * 2);
@@ -175,18 +197,17 @@ export function buildGraph(data: any): { nodes: NodeItem[], edges: EdgeItem[] } 
   }
 
   // ── ROW +1: Anak ─────────────────────────────────────────────────────────────
-  const childCenterX = data.pasangan ? personX + HG / 2 : personX;
-  const totalAnak = anak.length;
+  const childCenterX = pasanganId ? personX + HG / 2 : personX;
   anak.forEach((a: any, i: number) => {
-    const isReg = !!a.id;
-    const jemaat = isReg ? a : { id: -(1000 + i), nama_lengkap: a.nama_anak || 'Anak' };
-    const ax = childCenterX + (i - (totalAnak - 1) / 2) * HG;
-    const aId = addNode(jemaat, 'anak', ax, VG, !isReg);
+    const isReg   = !!a.id;
+    const jemaat  = isReg ? a : { id: -(1000 + i), nama_lengkap: a.nama_anak || 'Anak' };
+    const ax      = childCenterX + (i - (anak.length - 1) / 2) * HG;
+    const aId     = addNode(jemaat, 'anak', ax, VG, !isReg);
     addEdge(personId, aId, '#8b5cf6', 'Anak');
     if (pasanganId && isReg) addEdge(pasanganId, aId, '#8b5cf6', '', true);
   });
 
-  return { nodes, edges };
+  return { nodes, edges, branches };
 }
 
 // ─── Helper fns ──────────────────────────────────────────────────────────────
@@ -215,7 +236,7 @@ const ROLE_COLOR: Record<string, string> = {
   kakek_ibu: '#60a5fa', nenek_ibu: '#f9a8d4',
 };
 
-function PersonCard({ node, onClick }: { node: NodeItem, onClick: () => void }) {
+function PersonCard({ node, onClick }: { node: NodeItem; onClick: () => void }) {
   const { jemaat, role, unregistered } = node;
   const color  = ROLE_COLOR[role] || '#94a3b8';
   const isMale = jemaat?.jenis_kelamin === 'Laki-laki';
@@ -226,17 +247,13 @@ function PersonCard({ node, onClick }: { node: NodeItem, onClick: () => void }) 
       onClick={onClick}
       style={{ width: W, border: `2px solid ${color}`, borderRadius: 16, overflow: 'hidden', background: '#fff', boxShadow: role === 'person' ? `0 4px 20px ${color}40` : '0 2px 8px rgba(0,0,0,0.1)', cursor: unregistered ? 'default' : 'pointer', userSelect: 'none' }}
     >
-      {/* Badge */}
       <div style={{ background: color, color: '#fff', textAlign: 'center', fontSize: 10, fontWeight: 700, padding: '3px 6px', letterSpacing: 0.6 }}>
         {ROLE_BADGE[role] || role}
       </div>
-      {/* Body */}
       <div style={{ padding: '10px 10px 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-        {/* Avatar */}
         <div style={{ width: 44, height: 44, borderRadius: '50%', background: avBg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 16, opacity: unregistered ? 0.4 : 1, flexShrink: 0 }}>
           {initials(jemaat?.nama_lengkap || '?')}
         </div>
-        {/* Name */}
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: '#1e293b', lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
             {jemaat?.nama_lengkap || 'Tidak diketahui'}
@@ -247,7 +264,6 @@ function PersonCard({ node, onClick }: { node: NodeItem, onClick: () => void }) 
             </span>
           )}
         </div>
-        {/* Pills */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, justifyContent: 'center' }}>
           {jemaat?.jenis_kelamin && (
             <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 99, background: isMale ? '#eff6ff' : '#fdf2f8', color: isMale ? '#3b82f6' : '#ec4899', fontWeight: 600 }}>
@@ -271,19 +287,16 @@ function PersonCard({ node, onClick }: { node: NodeItem, onClick: () => void }) 
   );
 }
 
-// ─── Edge renderer (SVG path with label) ─────────────────────────────────────
+// ─── Regular edge (bezier or horizontal) ─────────────────────────────────────
 function EdgePath({ edge }: { edge: EdgeItem }) {
-  const { x1, y1, x2, y2, color, label, dashed, horizontal } = edge;
+  const { x1, y1, x2, y2, color, label, dashed, horizontal, noArrow } = edge;
 
   let d: string;
   if (horizontal) {
-    // straight horizontal connecting line
     d = `M ${x1} ${y1} L ${x2} ${y2}`;
   } else {
-    // bezier curve for vertical connections
-    const cp1y = y1 + (y2 - y1) * 0.5;
-    const cp2y = y1 + (y2 - y1) * 0.5;
-    d = `M ${x1} ${y1} C ${x1} ${cp1y}, ${x2} ${cp2y}, ${x2} ${y2}`;
+    const midy = y1 + (y2 - y1) * 0.5;
+    d = `M ${x1} ${y1} C ${x1} ${midy}, ${x2} ${midy}, ${x2} ${y2}`;
   }
 
   const mx = (x1 + x2) / 2;
@@ -297,7 +310,7 @@ function EdgePath({ edge }: { edge: EdgeItem }) {
         stroke={color}
         strokeWidth={2}
         strokeDasharray={dashed ? '6,4' : undefined}
-        markerEnd={`url(#arrow-${color.slice(1)})`}
+        markerEnd={noArrow ? undefined : `url(#arrow-${color.slice(1)})`}
         opacity={0.8}
       />
       {label && (
@@ -310,21 +323,59 @@ function EdgePath({ edge }: { edge: EdgeItem }) {
   );
 }
 
+// ─── Family branch: trunk → horizontal bar → stubs ───────────────────────────
+function FamilyBranchPath({ branch }: { branch: FamilyBranch }) {
+  const { trunkX, topY, branchY, childXs, bottomY, dashed } = branch;
+  if (childXs.length === 0) return null;
+
+  const color = '#94a3b8';
+  const da    = dashed ? '5,4' : undefined;
+  const minCX = Math.min(...childXs);
+  const maxCX = Math.max(...childXs);
+  const ARROW = 8;
+
+  return (
+    <g opacity={0.85}>
+      {/* Trunk: vertical from parent bottom to branch level */}
+      <line x1={trunkX} y1={topY} x2={trunkX} y2={branchY}
+        stroke={color} strokeWidth={2} strokeDasharray={da} />
+
+      {/* Horizontal branch bar spanning all children */}
+      {childXs.length > 1 && (
+        <line x1={minCX} y1={branchY} x2={maxCX} y2={branchY}
+          stroke={color} strokeWidth={2} strokeDasharray={da} />
+      )}
+
+      {/* Vertical stubs from branch bar down to each child with arrowhead */}
+      {childXs.map((cx, i) => (
+        <g key={i}>
+          <line x1={cx} y1={branchY} x2={cx} y2={bottomY}
+            stroke={color} strokeWidth={2} strokeDasharray={da} />
+          <polygon
+            points={`${cx - 5},${bottomY - ARROW} ${cx + 5},${bottomY - ARROW} ${cx},${bottomY}`}
+            fill={color}
+          />
+        </g>
+      ))}
+    </g>
+  );
+}
+
 // ─── Main canvas with pan + zoom ──────────────────────────────────────────────
 interface Props {
   nodes: NodeItem[];
   edges: EdgeItem[];
+  branches?: FamilyBranch[];
   onNodeClick?: (jemaatId: number) => void;
 }
 
-export default function FlowCanvas({ nodes, edges, onNodeClick }: Props) {
+export default function FlowCanvas({ nodes, edges, branches = [], onNodeClick }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [pan, setPan]   = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const dragging = useRef(false);
   const lastPos  = useRef({ x: 0, y: 0 });
 
-  // Center on mount
   useEffect(() => {
     if (!containerRef.current || nodes.length === 0) return;
     const rect = containerRef.current.getBoundingClientRect();
@@ -347,7 +398,7 @@ export default function FlowCanvas({ nodes, edges, onNodeClick }: Props) {
   }, [nodes]);
 
   const onMouseDown = useCallback((e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest('[data-node]')) return; // don't pan when clicking node
+    if ((e.target as HTMLElement).closest('[data-node]')) return;
     dragging.current = true;
     lastPos.current = { x: e.clientX, y: e.clientY };
     e.preventDefault();
@@ -361,20 +412,13 @@ export default function FlowCanvas({ nodes, edges, onNodeClick }: Props) {
     setPan(p => ({ x: p.x + dx, y: p.y + dy }));
   }, []);
 
-  const onMouseUp = useCallback(() => { dragging.current = false; }, []);
-
-  const onWheel = useCallback((e: React.WheelEvent) => {
+  const onMouseUp   = useCallback(() => { dragging.current = false; }, []);
+  const onWheel     = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
-    const delta = e.deltaY > 0 ? 0.9 : 1.1;
-    setZoom(z => Math.max(0.2, Math.min(2.5, z * delta)));
+    setZoom(z => Math.max(0.2, Math.min(2.5, z * (e.deltaY > 0 ? 0.9 : 1.1))));
   }, []);
 
-  // Compute SVG canvas bounds (large enough for the whole tree)
-  const SVG_W = 8000;
-  const SVG_H = 8000;
-  const SVG_OFFSET = 3000; // so negative coords work
-
-  const uniqueColors = [...new Set(edges.map(e => e.color.slice(1)))];
+  const uniqueColors = [...new Set(edges.filter(e => !e.noArrow).map(e => e.color.slice(1)))];
 
   return (
     <div
@@ -386,10 +430,8 @@ export default function FlowCanvas({ nodes, edges, onNodeClick }: Props) {
       onMouseLeave={onMouseUp}
       onWheel={onWheel}
     >
-      {/* SVG layer for edges */}
-      <svg
-        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
-      >
+      {/* SVG layer */}
+      <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
         <defs>
           {uniqueColors.map(c => (
             <marker key={c} id={`arrow-${c}`} markerWidth={8} markerHeight={8} refX={6} refY={3} orient="auto">
@@ -398,6 +440,9 @@ export default function FlowCanvas({ nodes, edges, onNodeClick }: Props) {
           ))}
         </defs>
         <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
+          {/* Family branch connectors (render below regular edges) */}
+          {branches.map(b => <FamilyBranchPath key={b.id} branch={b} />)}
+          {/* Regular edges */}
           {edges.map(e => <EdgePath key={e.id} edge={e} />)}
         </g>
       </svg>

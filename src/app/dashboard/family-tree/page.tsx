@@ -30,6 +30,7 @@ function FamilyTreeInner() {
   const [selectedId, setSelectedId]       = useState<number | null>(null);
   const [flowNodes, setFlowNodes]         = useState<any[]>([]);
   const [flowEdges, setFlowEdges]         = useState<any[]>([]);
+  const [flowBranches, setFlowBranches]   = useState<any[]>([]);
   const [treeData, setTreeData]           = useState<any>(null);
   const [loading, setLoading]             = useState(false);
   const [error, setError]                 = useState('');
@@ -53,9 +54,10 @@ function FamilyTreeInner() {
         const json = await res.json();
         if (!json.success) throw new Error(json.message);
         setTreeData(json.data);
-        const { nodes, edges } = buildGraph(json.data);
+        const { nodes, edges, branches } = buildGraph(json.data);
         setFlowNodes(nodes);
         setFlowEdges(edges);
+        setFlowBranches(branches);
         setCanvasKey(k => k + 1); // force FlowCanvas remount with fresh data
       } catch (e: any) {
         setError(e.message || 'Gagal memuat pohon keluarga');
@@ -198,6 +200,7 @@ function FamilyTreeInner() {
             key={canvasKey}
             nodes={flowNodes}
             edges={flowEdges}
+            branches={flowBranches}
             onNodeClick={(id) => {
               setSelectedId(id);
               router.push(`/dashboard/family-tree?id=${id}`);

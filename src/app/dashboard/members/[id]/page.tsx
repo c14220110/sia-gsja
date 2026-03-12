@@ -131,11 +131,12 @@ export default function EditJemaatPage() {
   );
 
   // Family tree state
-  const [treeNodes, setTreeNodes] = useState<any[]>([]);
-  const [treeEdges, setTreeEdges] = useState<any[]>([]);
+  const [treeNodes, setTreeNodes]     = useState<any[]>([]);
+  const [treeEdges, setTreeEdges]     = useState<any[]>([]);
+  const [treeBranches, setTreeBranches] = useState<any[]>([]);
   const [treeLoading, setTreeLoading] = useState(false);
-  const [treeError, setTreeError] = useState('');
-  const [treeKey, setTreeKey] = useState(0);
+  const [treeError, setTreeError]     = useState('');
+  const [treeKey, setTreeKey]         = useState(0);
   
   // Options State
   const [satelitOptions, setSatelitOptions] = useState<any[]>([]);
@@ -268,9 +269,10 @@ export default function EditJemaatPage() {
         const res = await fetch(`/api/family-tree/${jemaatId}`);
         const json = await res.json();
         if (!json.success) throw new Error(json.message);
-        const { nodes, edges } = buildGraph(json.data);
+        const { nodes, edges, branches } = buildGraph(json.data);
         setTreeNodes(nodes);
         setTreeEdges(edges);
+        setTreeBranches(branches);
         setTreeKey(k => k + 1);
       } catch (e: any) {
         setTreeError(e.message || 'Gagal memuat pohon keluarga');
@@ -482,6 +484,7 @@ export default function EditJemaatPage() {
                       key={treeKey}
                       nodes={treeNodes}
                       edges={treeEdges}
+                      branches={treeBranches}
                       onNodeClick={(id) => router.push(`/dashboard/members/${id}?mode=view&tab=family_tree`)}
                     />
                   )}
