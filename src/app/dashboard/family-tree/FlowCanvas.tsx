@@ -141,7 +141,11 @@ export function buildGraph(data: any): { nodes: NodeItem[], edges: EdgeItem[] } 
   if (ayahId && ibuId) {
     addHorizontalEdge(ayahId, ibuId, '#f43f8e', '');
   }
-
+  // Saudara also shares same parents — draw dashed edges from both Ayah & Ibu to each sibling
+  saudaraIds.forEach(sid => {
+    if (ayahId) addEdge(ayahId, sid, '#3b82f6', '', true);
+    if (ibuId)  addEdge(ibuId,  sid, '#ec4899', '', true);
+  });
 
 
   // ── ROW -2: Kakek & Nenek ────────────────────────────────────────────────────
