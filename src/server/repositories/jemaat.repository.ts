@@ -449,7 +449,57 @@ export class JemaatRepository {
       await client.query('BEGIN');
 
       const statusBaptisBool = data.status_baptis === 'Sudah';
+      const newSatelitId = data.satelit_id ? parseInt(data.satelit_id, 10) : null;
 
+      // ── Detect satellite change & regenerate jemaat_id if needed ──────────
+      const currentRes = await client.query(
+        `SELECT satelit_id, tanggal_lahir, jemaat_id FROM jemaat WHERE (id::text = $1 OR jemaat_id = $1) AND is_deleted = false LIMIT 1`,
+        [jemaatId]
+      );
+      if (currentRes.rows.length === 0) throw new Error('Jemaat not found');
+
+      const current = currentRes.rows[0];
+      let newJemaatId: string | null = null;
+
+      if (newSatelitId && newSatelitId !== current.satelit_id) {
+        // Fetch new satellite code
+        const satRes = await client.query(`SELECT kode_satelit FROM satelit WHERE id = $1`, [newSatelitId]);
+        const kode: string = satRes.rows[0]?.kode_satelit ?? '00';
+        const satelitCode = kode.substring(0, 2).padStart(2, '0');
+
+        // Build date code from tanggal_lahir (prefer incoming data, fallback to current)
+        let dateCode = '000000';
+        const tl = data.tanggal_lahir || current.tanggal_lahir;
+        if (tl) {
+          const d = new Date(tl);
+          if (!isNaN(d.getTime())) {
+            const dd = d.getDate().toString().padStart(2, '0');
+            const mm = (d.getMonth() + 1).toString().padStart(2, '0');
+            const yy = d.getFullYear().toString().slice(-2);
+            dateCode = `${dd}${mm}${yy}`;
+          }
+        }
+
+        const idPrefix = `${satelitCode}${dateCode}`;
+
+        // Find next available counter for this prefix
+        const lastRes = await client.query(
+          `SELECT jemaat_id FROM jemaat WHERE jemaat_id LIKE $1 ORDER BY jemaat_id DESC LIMIT 1`,
+          [`${idPrefix}%`]
+        );
+        let nextNum = 0;
+        if (lastRes.rows.length > 0) {
+          const lastId: string = lastRes.rows[0].jemaat_id;
+          if (lastId.length >= idPrefix.length + 2) {
+            const lastCounter = parseInt(lastId.slice(idPrefix.length), 10);
+            if (!isNaN(lastCounter)) nextNum = lastCounter + 1;
+          }
+        }
+        newJemaatId = `${idPrefix}${nextNum.toString().padStart(2, '0')}`;
+      }
+
+      // ── Build UPDATE query (include jemaat_id only if regenerated) ─────────
+      const jemaatIdSet = newJemaatId ? ', jemaat_id = $29' : '';
       const updateQuery = `
         UPDATE jemaat SET
           nik = $1, nama_lengkap = $2, jenis_kelamin = $3, tempat_lahir = $4, tanggal_lahir = $5,
@@ -457,41 +507,42 @@ export class JemaatRepository {
           status_pernikahan = $13, status_baptis = $14, tanggal_baptis = $15, status_jemaat = $16, pekerjaan = $17, satelit_id = $18,
           ayah_id = $19, ayah_nama = $20, gereja_asal_ayah = $21,
           ibu_id = $22, ibu_nama = $23, gereja_asal_ibu = $24,
-          pasangan_id = $25, pasangan_nama = $26, gereja_asal_pasangan = $27
+          pasangan_id = $25, pasangan_nama = $26, gereja_asal_pasangan = $27${jemaatIdSet}
         WHERE (id::text = $28 OR jemaat_id = $28)
         RETURNING id
       `;
 
-      const jemaatValues = [
-        data.nik || null, // $1
-        data.nama_lengkap, // $2
-        data.jenis_kelamin || null, // $3
-        data.tempat_lahir || null, // $4
-        data.tanggal_lahir ? new Date(data.tanggal_lahir) : null, // $5
-        data.alamat || null, // $6
-        data.kota || null, // $7
-        data.kecamatan || null, // $8
-        data.kelurahan || null, // $9
-        data.kode_pos || null, // $10
-        data.no_hp || null, // $11
-        data.email || null, // $12
-        data.status_pernikahan || null, // $13
-        statusBaptisBool, // $14
+      const jemaatValues: any[] = [
+        data.nik || null,                                                          // $1
+        data.nama_lengkap,                                                         // $2
+        data.jenis_kelamin || null,                                                // $3
+        data.tempat_lahir || null,                                                 // $4
+        data.tanggal_lahir ? new Date(data.tanggal_lahir) : null,                 // $5
+        data.alamat || null,                                                       // $6
+        data.kota || null,                                                         // $7
+        data.kecamatan || null,                                                    // $8
+        data.kelurahan || null,                                                    // $9
+        data.kode_pos || null,                                                     // $10
+        data.no_hp || null,                                                        // $11
+        data.email || null,                                                        // $12
+        data.status_pernikahan || null,                                            // $13
+        statusBaptisBool,                                                          // $14
         (statusBaptisBool && data.tanggal_baptis) ? new Date(data.tanggal_baptis) : null, // $15
-        data.status_jemaat || 'Aktif', // $16
-        data.pekerjaan || null, // $17
-        data.satelit_id ? parseInt(data.satelit_id, 10) : null, // $18
-        data.ayah_id ? parseInt(data.ayah_id, 10) : null, // $19
-        data.ayah_nama || null, // $20
-        data.gereja_asal_ayah || null, // $21
-        data.ibu_id ? parseInt(data.ibu_id, 10) : null, // $22
-        data.ibu_nama || null, // $23
-        data.gereja_asal_ibu || null, // $24
-        data.pasangan_id ? parseInt(data.pasangan_id, 10) : null, // $25
-        data.pasangan_nama || null, // $26
-        data.gereja_asal_pasangan || null, // $27
-        jemaatId // $28
+        data.status_jemaat || 'Aktif',                                             // $16
+        data.pekerjaan || null,                                                    // $17
+        newSatelitId,                                                              // $18
+        data.ayah_id ? parseInt(data.ayah_id, 10) : null,                         // $19
+        data.ayah_nama || null,                                                    // $20
+        data.gereja_asal_ayah || null,                                             // $21
+        data.ibu_id ? parseInt(data.ibu_id, 10) : null,                           // $22
+        data.ibu_nama || null,                                                     // $23
+        data.gereja_asal_ibu || null,                                              // $24
+        data.pasangan_id ? parseInt(data.pasangan_id, 10) : null,                 // $25
+        data.pasangan_nama || null,                                                // $26
+        data.gereja_asal_pasangan || null,                                         // $27
+        jemaatId,                                                                  // $28
       ];
+      if (newJemaatId) jemaatValues.push(newJemaatId);                            // $29 (optional)
 
       const res = await client.query(updateQuery, jemaatValues);
       
