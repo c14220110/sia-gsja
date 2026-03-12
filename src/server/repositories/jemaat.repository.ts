@@ -312,18 +312,22 @@ export class JemaatRepository {
         }
       }
 
-      // Insert Anak records if provided
+      // Insert Anak records into relasi_jemaat (replaces jemaat_anak)
       if (data.anak && Array.isArray(data.anak) && data.anak.length > 0) {
-        const insertAnakQuery = `
-          INSERT INTO jemaat_anak (orang_tua_id, anak_jemaat_id, nama_anak, gereja_asal_anak)
-          VALUES ($1, $2, $3, $4)
-        `;
-        for (const ank of data.anak) {
-          const anakId = ank.anak_jemaat_id ? parseInt(ank.anak_jemaat_id, 10) : null;
-          const namaAnk = ank.nama_anak || null;
-          const gerejaAnk = ank.gereja_asal_anak || null;
-          if (anakId || namaAnk) {
-            await client.query(insertAnakQuery, [newJemaatId, anakId, namaAnk, gerejaAnk]);
+        const jrAnakRes = await client.query(`SELECT id FROM jenis_relasi WHERE nama_relasi = 'Anak' LIMIT 1`);
+        if (jrAnakRes.rows.length > 0) {
+          const jenisAnakId = jrAnakRes.rows[0].id;
+          for (const ank of data.anak) {
+            const anakId = ank.anak_jemaat_id ? parseInt(ank.anak_jemaat_id, 10) : null;
+            const namaAnk = ank.nama_anak || null;
+            const gerejaAnk = ank.gereja_asal_anak || null;
+            if (anakId || namaAnk) {
+              await client.query(
+                `INSERT INTO relasi_jemaat (jemaat_id, jemaat_terkait_id, jenis_relasi_id, nama_terkait, gereja_asal)
+                 VALUES ($1, $2, $3, $4, $5)`,
+                [newJemaatId, anakId, jenisAnakId, namaAnk, gerejaAnk]
+              );
+            }
           }
         }
       }
@@ -388,13 +392,19 @@ export class JemaatRepository {
     const row = res.rows[0];
     row.komisi_ids = row.komisi_ids ? row.komisi_ids.map((k: number) => k.toString()) : [];
     
-    // Fetch children
+    // Fetch children from relasi_jemaat (replaces jemaat_anak)
     const anakQuery = `
-      SELECT ja.id, ja.anak_jemaat_id, ja.nama_anak, ja.gereja_asal_anak, c.jemaat_id AS anak_jemaat_id_text
-      FROM jemaat_anak ja
-      LEFT JOIN jemaat c ON ja.anak_jemaat_id = c.id
-      WHERE ja.orang_tua_id = $1 
-      ORDER BY ja.id ASC
+      SELECT
+        rj.id,
+        rj.jemaat_terkait_id  AS anak_jemaat_id,
+        rj.nama_terkait       AS nama_anak,
+        rj.gereja_asal        AS gereja_asal_anak,
+        c.jemaat_id           AS anak_jemaat_id_text
+      FROM relasi_jemaat rj
+      JOIN jenis_relasi  jr ON rj.jenis_relasi_id = jr.id AND jr.nama_relasi = 'Anak'
+      LEFT JOIN jemaat   c  ON rj.jemaat_terkait_id = c.id AND c.is_deleted = false
+      WHERE rj.jemaat_id = $1
+      ORDER BY rj.id ASC
     `;
     const anakRes = await pool.query(anakQuery, [row.id]);
     row.anak = anakRes.rows.map(a => ({
@@ -493,7 +503,15 @@ export class JemaatRepository {
 
       // Wipe current komisi & anak bindings
       await client.query(`DELETE FROM jemaat_komisi WHERE jemaat_id = $1`, [primaryId]);
-      await client.query(`DELETE FROM jemaat_anak WHERE orang_tua_id = $1`, [primaryId]);
+
+      // Delete anak relations from relasi_jemaat (replaces DELETE FROM jemaat_anak)
+      const jrAnakDel = await client.query(`SELECT id FROM jenis_relasi WHERE nama_relasi = 'Anak' LIMIT 1`);
+      if (jrAnakDel.rows.length > 0) {
+        await client.query(
+          `DELETE FROM relasi_jemaat WHERE jemaat_id = $1 AND jenis_relasi_id = $2`,
+          [primaryId, jrAnakDel.rows[0].id]
+        );
+      }
 
       // Re-insert komisi bindings if provided
       if (data.komisi_ids && Array.isArray(data.komisi_ids) && data.komisi_ids.length > 0) {
@@ -506,18 +524,22 @@ export class JemaatRepository {
         }
       }
 
-      // Re-insert Anak records if provided
+      // Re-insert Anak records into relasi_jemaat if provided
       if (data.anak && Array.isArray(data.anak) && data.anak.length > 0) {
-        const insertAnakQuery = `
-          INSERT INTO jemaat_anak (orang_tua_id, anak_jemaat_id, nama_anak, gereja_asal_anak)
-          VALUES ($1, $2, $3, $4)
-        `;
-        for (const ank of data.anak) {
-          const anakId = ank.anak_jemaat_id ? parseInt(ank.anak_jemaat_id, 10) : null;
-          const namaAnk = ank.nama_anak || null;
-          const gerejaAnk = ank.gereja_asal_anak || null;
-          if (anakId || namaAnk) {
-            await client.query(insertAnakQuery, [primaryId, anakId, namaAnk, gerejaAnk]);
+        const jrAnakRes = await client.query(`SELECT id FROM jenis_relasi WHERE nama_relasi = 'Anak' LIMIT 1`);
+        if (jrAnakRes.rows.length > 0) {
+          const jenisAnakId = jrAnakRes.rows[0].id;
+          for (const ank of data.anak) {
+            const anakId = ank.anak_jemaat_id ? parseInt(ank.anak_jemaat_id, 10) : null;
+            const namaAnk = ank.nama_anak || null;
+            const gerejaAnk = ank.gereja_asal_anak || null;
+            if (anakId || namaAnk) {
+              await client.query(
+                `INSERT INTO relasi_jemaat (jemaat_id, jemaat_terkait_id, jenis_relasi_id, nama_terkait, gereja_asal)
+                 VALUES ($1, $2, $3, $4, $5)`,
+                [primaryId, anakId, jenisAnakId, namaAnk, gerejaAnk]
+              );
+            }
           }
         }
       }
