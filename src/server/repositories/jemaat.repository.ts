@@ -388,7 +388,7 @@ export class JemaatRepository {
       SELECT
         rj.id,
         rj.jemaat_terkait_id  AS anak_jemaat_id,
-        rj.nama_terkait       AS nama_anak,
+        COALESCE(c.nama_lengkap, rj.nama_terkait) AS nama_anak,
         rj.gereja_asal        AS gereja_asal_anak,
         c.jemaat_id           AS anak_jemaat_id_text
       FROM relasi_jemaat rj
