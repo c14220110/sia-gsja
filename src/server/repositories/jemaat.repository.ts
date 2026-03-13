@@ -452,26 +452,21 @@ export class JemaatRepository {
       const current = currentRes.rows[0];
       let newJemaatId: string | null = null;
 
-      if (newSatelitId && newSatelitId !== current.satelit_id) {
-        // Fetch new satellite code
-        const satRes = await client.query(`SELECT kode_satelit FROM satelit WHERE id = $1`, [newSatelitId]);
-        const kode: string = satRes.rows[0]?.kode_satelit ?? '00';
-        const satelitCode = kode.substring(0, 2).padStart(2, '0');
+      // Convert dates to YYYY-MM-DD for comparison
+      const oldDate = current.tanggal_lahir ? new Date(current.tanggal_lahir).toISOString().split('T')[0] : null;
+      const newDate = data.tanggal_lahir ? new Date(data.tanggal_lahir).toISOString().split('T')[0] : null;
 
-        // Build date code from tanggal_lahir (prefer incoming data, fallback to current)
+      if (newDate && oldDate !== newDate) {
         let dateCode = '000000';
-        const tl = data.tanggal_lahir || current.tanggal_lahir;
-        if (tl) {
-          const d = new Date(tl);
-          if (!isNaN(d.getTime())) {
-            const dd = d.getDate().toString().padStart(2, '0');
-            const mm = (d.getMonth() + 1).toString().padStart(2, '0');
-            const yy = d.getFullYear().toString().slice(-2);
-            dateCode = `${dd}${mm}${yy}`;
-          }
+        const d = new Date(newDate);
+        if (!isNaN(d.getTime())) {
+          const dd = d.getDate().toString().padStart(2, '0');
+          const mm = (d.getMonth() + 1).toString().padStart(2, '0');
+          const yy = d.getFullYear().toString().slice(-2);
+          dateCode = `${dd}${mm}${yy}`;
         }
 
-        const idPrefix = `${satelitCode}${dateCode}`;
+        const idPrefix = `${dateCode}`;
 
         // Find next available counter for this prefix
         const lastRes = await client.query(
@@ -480,9 +475,9 @@ export class JemaatRepository {
         );
         let nextNum = 0;
         if (lastRes.rows.length > 0) {
-          const lastId: string = lastRes.rows[0].jemaat_id;
-          if (lastId.length >= idPrefix.length + 2) {
-            const lastCounter = parseInt(lastId.slice(idPrefix.length), 10);
+          const lastId: string = lastRes.rows[0].jemaat_id; // e.g. "12027800"
+          if (lastId.length >= 8) {
+            const lastCounter = parseInt(lastId.slice(-2), 10);
             if (!isNaN(lastCounter)) nextNum = lastCounter + 1;
           }
         }
