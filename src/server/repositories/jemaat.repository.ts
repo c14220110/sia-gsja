@@ -206,15 +206,6 @@ export class JemaatRepository {
     try {
       await client.query('BEGIN');
 
-      // Generate Custom 10-Digit Jemaat ID
-      let satelitCode = '00';
-      if (data.satelit_id) {
-        const satRes = await client.query('SELECT kode_satelit FROM satelit WHERE id = $1', [parseInt(data.satelit_id, 10)]);
-        if (satRes.rows.length > 0 && satRes.rows[0].kode_satelit) {
-          satelitCode = satRes.rows[0].kode_satelit.substring(0, 2).padStart(2, '0');
-        }
-      }
-
       let dateCode = '000000';
       if (data.tanggal_lahir) {
         const d = new Date(data.tanggal_lahir);
@@ -226,7 +217,7 @@ export class JemaatRepository {
         }
       }
 
-      const idPrefix = `${satelitCode}${dateCode}`;
+      const idPrefix = `${dateCode}`;
 
       // Hitung increment rebutan
       const countRes = await client.query(
@@ -236,8 +227,8 @@ export class JemaatRepository {
 
       let nextNum = 0;
       if (countRes.rows.length > 0) {
-        const lastId = countRes.rows[0].jemaat_id; // e.g. "0112109000"
-        if (lastId && lastId.length >= 10) {
+        const lastId = countRes.rows[0].jemaat_id; // e.g. "12027800"
+        if (lastId && lastId.length >= 8) {
            const lastCounter = parseInt(lastId.slice(-2), 10);
            if (!isNaN(lastCounter)) {
              nextNum = lastCounter + 1;
