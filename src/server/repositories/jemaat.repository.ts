@@ -383,6 +383,30 @@ export class JemaatRepository {
     const row = res.rows[0];
     row.komisi_ids = row.komisi_ids ? row.komisi_ids.map((k: number) => k.toString()) : [];
     
+    // Fetch fallback parents if not defined in main jemaat table
+    if (!row.ayah_id || !row.ibu_id) {
+      const parentQuery = `
+        SELECT
+           j.id, j.jemaat_id, j.nama_lengkap, j.jenis_kelamin
+         FROM relasi_jemaat rj
+         JOIN jenis_relasi  jr ON rj.jenis_relasi_id = jr.id AND jr.nama_relasi = 'Anak'
+         JOIN jemaat        j  ON rj.jemaat_id = j.id AND j.is_deleted = false
+         WHERE rj.jemaat_terkait_id = $1
+      `;
+      const pRes = await pool.query(parentQuery, [id]);
+      for (const pRow of pRes.rows) {
+        if (pRow.jenis_kelamin === 'Laki-laki' && !row.ayah_id) {
+          row.ayah_id = pRow.id;
+          row.ayah_jemaat_id = pRow.jemaat_id;
+          row.ayah_nama = pRow.nama_lengkap;
+        } else if (pRow.jenis_kelamin === 'Perempuan' && !row.ibu_id) {
+          row.ibu_id = pRow.id;
+          row.ibu_jemaat_id = pRow.jemaat_id;
+          row.ibu_nama = pRow.nama_lengkap;
+        }
+      }
+    }
+    
     // Fetch children from relasi_jemaat (replaces jemaat_anak)
     const anakQuery = `
       SELECT

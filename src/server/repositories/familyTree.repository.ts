@@ -70,18 +70,48 @@ export class FamilyTreeRepository {
     return res.rows;
   }
 
+  async getOrangTuaFromRelasi(anak_id: number): Promise<{ayah: FamilyTreePerson | null, ibu: FamilyTreePerson | null}> {
+    const res = await pool.query(
+      `SELECT
+         j.id, j.jemaat_id, j.nama_lengkap, j.jenis_kelamin, j.tanggal_lahir,
+         j.foto_url, j.status_jemaat, j.ayah_id, j.ibu_id, j.pasangan_id,
+         j.ayah_nama, j.ibu_nama, j.pasangan_nama, s.nama_satelit
+       FROM relasi_jemaat rj
+       JOIN jenis_relasi  jr ON rj.jenis_relasi_id = jr.id AND jr.nama_relasi = 'Anak'
+       JOIN jemaat        j  ON rj.jemaat_id = j.id AND j.is_deleted = false
+       LEFT JOIN satelit  s  ON j.satelit_id = s.id
+       WHERE rj.jemaat_terkait_id = $1`,
+      [anak_id]
+    );
+    
+    let ayah = null;
+    let ibu = null;
+    for (const row of res.rows) {
+      if (row.jenis_kelamin === 'Laki-laki' && !ayah) ayah = row;
+      else if (row.jenis_kelamin === 'Perempuan' && !ibu) ibu = row;
+    }
+    return { ayah, ibu };
+  }
+
   /** Fetch full family tree data for a person */
   async getFamilyTree(personId: number) {
     const person = await this.getPersonById(personId);
     if (!person) return null;
 
-    const [ayah, ibu, pasangan, saudara, anak] = await Promise.all([
+    let [ayah, ibu, pasangan, saudara, anak] = await Promise.all([
       person.ayah_id     ? this.getPersonById(person.ayah_id)     : Promise.resolve(null),
       person.ibu_id      ? this.getPersonById(person.ibu_id)      : Promise.resolve(null),
       person.pasangan_id ? this.getPersonById(person.pasangan_id) : Promise.resolve(null),
       this.getSaudara(personId),
       this.getAnak(personId),
     ]);
+
+    // Fallback: If DB didn't define ayah_id/ibu_id, look backward from 'Anak' relations
+    if (!ayah || !ibu) {
+      const parentFallback = await this.getOrangTuaFromRelasi(personId);
+      if (!ayah) ayah = parentFallback.ayah;
+      if (!ibu) ibu = parentFallback.ibu;
+    }
 
     const [kakekAyah, nenekAyah, kakekIbu, nenekIbu] = await Promise.all([
       ayah?.ayah_id ? this.getPersonById(ayah.ayah_id) : Promise.resolve(null),
