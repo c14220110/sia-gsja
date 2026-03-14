@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useLoader } from '@/components/ui/GlobalLoader';
 import Link from 'next/link';
+import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
 
 export default function MembersPage() {
   const { showLoader, hideLoader } = useLoader();
@@ -12,6 +13,7 @@ export default function MembersPage() {
   
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+  const [submitState, setSubmitState] = useState<{ status: 'idle'|'loading'|'success'|'error', message: string, errors?: any }>({ status: 'idle', message: '' });
 
   // Authentication State
   const [userData, setUserData] = useState<any>(null);
@@ -119,7 +121,7 @@ export default function MembersPage() {
     if (!confirm(`Apakah Anda yakin ingin mengubah status jemaat menjadi ${newStatus}?`)) return;
     
     try {
-      showLoader();
+      setSubmitState({ status: 'loading', message: '' });
       const res = await fetch(`/api/members/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -128,14 +130,13 @@ export default function MembersPage() {
       const result = await res.json();
       if (result.success) {
         setData(prev => prev.map(j => j.id === id ? { ...j, status_jemaat: newStatus } : j));
+        setSubmitState({ status: 'success', message: `Status berhasil diubah menjadi ${newStatus}` });
       } else {
-        alert('Gagal mengubah status: ' + result.message);
+        setSubmitState({ status: 'error', message: result.message || 'Gagal mengubah status' });
       }
     } catch (error) {
       console.error(error);
-      alert('Terjadi kesalahan koneksi saat mengubah status.');
-    } finally {
-      hideLoader();
+      setSubmitState({ status: 'error', message: 'Terjadi kesalahan koneksi saat mengubah status.' });
     }
   };
 
@@ -355,7 +356,7 @@ export default function MembersPage() {
               <div className="w-32 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">ID Jemaat</div>
               <div className="w-64 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Nama Lengkap</div>
               <div className="flex-1 min-w-[200px] text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Satelit/Cabang</div>
-              <div className="w-48 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Komisi/Pelayanan</div>
+              <div className="w-48 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Komisi</div>
               <div className="w-32 shrink-0 text-center text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Status</div>
               <div className="w-20 shrink-0 text-right text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Aksi</div>
             </div>
@@ -461,6 +462,12 @@ export default function MembersPage() {
         </div>
       </div>
 
+      <SubmitOverlay 
+        status={submitState.status} 
+        message={submitState.message} 
+        errors={submitState.errors} 
+        onClose={() => setSubmitState({ status: 'idle', message: '' })} 
+      />
     </div>
   );
 }

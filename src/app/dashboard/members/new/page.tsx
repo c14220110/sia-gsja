@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
 
 // Helper component for Jemaat Autocomplete
 const JemaatAutocomplete = ({ 
@@ -108,6 +109,7 @@ const JemaatAutocomplete = ({
 export default function NewJemaatPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitState, setSubmitState] = useState<{ status: 'idle'|'loading'|'success'|'error', message: string, errors?: any }>({ status: 'idle', message: '' });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
@@ -293,6 +295,7 @@ export default function NewJemaatPage() {
   const handleCreate = async () => {
     try {
       setIsSubmitting(true);
+      setSubmitState({ status: 'loading', message: '' });
       
       let finalFotoUrl = formData.foto_url;
       if (imageFile) {
@@ -306,7 +309,7 @@ export default function NewJemaatPage() {
         if (uploadJson.success) {
            finalFotoUrl = uploadJson.url;
         } else {
-           alert('Gagal mengupload foto: ' + uploadJson.message);
+           setSubmitState({ status: 'error', message: 'Gagal mengupload foto: ' + uploadJson.message });
            setIsSubmitting(false);
            return;
         }
@@ -323,14 +326,13 @@ export default function NewJemaatPage() {
       });
       const data = await res.json();
       if (data.success) {
-        alert('Data jemaat berhasil disimpan!');
-        router.push('/dashboard/members');
+        setSubmitState({ status: 'success', message: 'Data jemaat berhasil disimpan!' });
       } else {
-        alert('Gagal menyimpan data: ' + data.message);
+        setSubmitState({ status: 'error', message: data.message || 'Gagal menyimpan data', errors: data.errors });
       }
     } catch(err) {
       console.error(err);
-      alert('Terjadi kesalahan pada server saat menyimpan data.');
+      setSubmitState({ status: 'error', message: 'Terjadi kesalahan pada server saat menyimpan data.' });
     } finally {
       setIsSubmitting(false);
     }
@@ -830,6 +832,18 @@ export default function NewJemaatPage() {
             </div>
             
       </div>
+      <SubmitOverlay 
+        status={submitState.status} 
+        message={submitState.message} 
+        errors={submitState.errors} 
+        onClose={() => {
+          if (submitState.status === 'success') {
+            router.push('/dashboard/members');
+          } else {
+            setSubmitState({ status: 'idle', message: '' });
+          }
+        }} 
+      />
     </div>
   );
 }

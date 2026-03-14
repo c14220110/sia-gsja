@@ -5,6 +5,7 @@ import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { buildGraph } from '@/app/dashboard/family-tree/FlowCanvas';
+import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
 
 const FlowCanvas = dynamic(() => import('@/app/dashboard/family-tree/FlowCanvas'), {
   ssr: false,
@@ -125,6 +126,7 @@ export default function EditJemaatPage() {
   const isReadOnly = searchParams.get('mode') === 'view';
   
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitState, setSubmitState] = useState<{ status: 'idle'|'loading'|'success'|'error', message: string, errors?: any }>({ status: 'idle', message: '' });
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -407,6 +409,7 @@ export default function EditJemaatPage() {
   const handleCreate = async () => {
     try {
       setIsSubmitting(true);
+      setSubmitState({ status: 'loading', message: '' });
       
       let finalFotoUrl = formData.foto_url;
       if (imageFile) {
@@ -420,7 +423,7 @@ export default function EditJemaatPage() {
         if (uploadJson.success) {
            finalFotoUrl = uploadJson.url;
         } else {
-           alert('Gagal mengupload foto: ' + uploadJson.message);
+           setSubmitState({ status: 'error', message: 'Gagal mengupload foto: ' + uploadJson.message });
            setIsSubmitting(false);
            return;
         }
@@ -437,14 +440,13 @@ export default function EditJemaatPage() {
       });
       const data = await res.json();
       if (data.success) {
-        alert('Data jemaat berhasil disimpan!');
-        router.push('/dashboard/members');
+        setSubmitState({ status: 'success', message: 'Data jemaat berhasil diupdate!' });
       } else {
-        alert('Gagal menyimpan data: ' + data.message);
+        setSubmitState({ status: 'error', message: data.message || 'Gagal menyimpan data', errors: data.errors });
       }
     } catch(err) {
       console.error(err);
-      alert('Terjadi kesalahan pada server saat menyimpan data.');
+      setSubmitState({ status: 'error', message: 'Terjadi kesalahan pada server saat menyimpan data.' });
     } finally {
       setIsSubmitting(false);
     }
@@ -1105,6 +1107,19 @@ export default function EditJemaatPage() {
           </div>
         </div>
       </div>
+      <SubmitOverlay 
+        status={submitState.status} 
+        message={submitState.message} 
+        errors={submitState.errors} 
+        onClose={() => {
+          if (submitState.status === 'success') {
+            router.push(`/dashboard/members/${jemaatId}?mode=view`);
+            setSubmitState({ status: 'idle', message: '' });
+          } else {
+            setSubmitState({ status: 'idle', message: '' });
+          }
+        }} 
+      />
     </div>
   );
 }
