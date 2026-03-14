@@ -13,6 +13,10 @@ export async function getOptionsService(type: string, satelitId?: string, query?
   } else if (type === 'jemaat_search') {
     if (!query) return [];
     return await masterRepository.searchJemaat(query);
+  } else if (type === 'departemen') {
+    return await masterRepository.getAllDepartemen();
+  } else if (type === 'pekerjaan') {
+    return await masterRepository.getAllPekerjaan();
   }
   throw new Error('Invalid option type');
 }
@@ -31,4 +35,12 @@ export async function getKomisiOptions(satelitId?: string): Promise<any[]> {
 export async function searchJemaatOptions(query: string): Promise<any[]> {
   if (!query) return [];
   return await masterRepository.searchJemaat(query);
+}
+
+export async function getDepartemenOptions(): Promise<any[]> {
+  return await masterRepository.getAllDepartemen();
+}
+
+export async function getPekerjaanOptions(): Promise<any[]> {
+  return await masterRepository.getAllPekerjaan();
 }

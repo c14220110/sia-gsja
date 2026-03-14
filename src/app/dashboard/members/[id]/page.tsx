@@ -143,6 +143,8 @@ export default function EditJemaatPage() {
   // Options State
   const [satelitOptions, setSatelitOptions] = useState<any[]>([]);
   const [komisiOptions, setKomisiOptions] = useState<any[]>([]);
+  const [departemenOptions, setDepartemenOptions] = useState<any[]>([]);
+  const [pekerjaanOptions, setPekerjaanOptions] = useState<any[]>([]);
 
   // Form State mapped to exact Schema
   const [formData, setFormData] = useState({
@@ -166,6 +168,8 @@ export default function EditJemaatPage() {
     status_pernikahan: 'Lajang',
     status_jemaat: 'Aktif',
     foto_url: '',
+    pekerjaan_id: '',
+    departemen_ids: [] as string[],
     
     // Family
     ayah_id: '',
@@ -186,19 +190,27 @@ export default function EditJemaatPage() {
     saudara: [] as { saudara_jemaat_id: string, saudara_jemaat_kode?: string, nama_saudara: string, gereja_asal_saudara: string }[],
   });
 
+  const [inputPekerjaanManual, setInputPekerjaanManual] = useState(false);
+
   useEffect(() => {
     const fetchInitData = async () => {
       setIsLoadingData(true);
       try {
-        const [resSatelit, resKomisi] = await Promise.all([
+        const [resSatelit, resKomisi, resDepartemen, resPekerjaan] = await Promise.all([
           fetch('/api/options?type=satelit'),
-          fetch('/api/options?type=komisi')
+          fetch('/api/options?type=komisi'),
+          fetch('/api/options?type=departemen'),
+          fetch('/api/options?type=pekerjaan')
         ]);
         const satelitData = await resSatelit.json();
         const komisiData = await resKomisi.json();
+        const deptData = await resDepartemen.json();
+        const pekrData = await resPekerjaan.json();
 
         if (satelitData.success) setSatelitOptions(satelitData.data);
         if (komisiData.success) setKomisiOptions(komisiData.data);
+        if (deptData.success) setDepartemenOptions(deptData.data);
+        if (pekrData.success) setPekerjaanOptions(pekrData.data);
 
         // Fetch User Data
         if (jemaatId) {
@@ -221,8 +233,10 @@ export default function EditJemaatPage() {
                 no_hp: d.no_hp || '',
                 email: d.email || '',
                 pekerjaan: d.pekerjaan || '',
+                pekerjaan_id: d.pekerjaan_id ? d.pekerjaan_id.toString() : '',
                 satelit_id: d.satelit_id ? d.satelit_id.toString() : '',
                 komisi_ids: d.komisi_ids || [],
+                departemen_ids: d.departemen_ids || [],
                 status_baptis: d.status_baptis ? 'Sudah' : 'Belum',
                 tanggal_baptis: d.tanggal_baptis ? new Date(d.tanggal_baptis).toISOString().split('T')[0] : '',
                 status_pernikahan: d.status_pernikahan || 'Lajang',
@@ -252,6 +266,10 @@ export default function EditJemaatPage() {
                 })),
               });
               
+              if (d.pekerjaan && !d.pekerjaan_id) {
+                setInputPekerjaanManual(true);
+              }
+
               if (d.foto_url) {
                 setImagePreview(d.foto_url);
               }
@@ -318,6 +336,28 @@ export default function EditJemaatPage() {
         return { ...prev, komisi_ids: prev.komisi_ids.filter((id) => id !== value) };
       }
     });
+  };
+
+  const handleDeptCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { value, checked } = e.target;
+    setFormData((prev) => {
+      if (checked) {
+        return { ...prev, departemen_ids: [...prev.departemen_ids, value] };
+      } else {
+        return { ...prev, departemen_ids: prev.departemen_ids.filter((id) => id !== value) };
+      }
+    });
+  };
+
+  const handlePekerjaanChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    if (val === 'Other') {
+      setInputPekerjaanManual(true);
+      setFormData(prev => ({ ...prev, pekerjaan_id: '', pekerjaan: '' }));
+    } else {
+      setInputPekerjaanManual(false);
+      setFormData(prev => ({ ...prev, pekerjaan_id: val, pekerjaan: '' }));
+    }
   };
 
   const handleAddAnak = () => {
@@ -604,10 +644,25 @@ export default function EditJemaatPage() {
                         <input type="date" name="tanggal_lahir" value={formData.tanggal_lahir} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
                       </div>
                     </div>
-
+                    
                     <div className="w-full flex-col gap-1 flex">
                       <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Pekerjaan</label>
-                      <input type="text" name="pekerjaan" value={formData.pekerjaan} onChange={handleInputChange} placeholder="Ketik profesi/pekerjaan (Opsional)" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
+                      {isReadOnly ? (
+                        <div className="text-slate-900 text-sm font-semibold">{formData.pekerjaan || pekerjaanOptions.find(p => p.id.toString() === formData.pekerjaan_id)?.nama_pekerjaan || '-'}</div>
+                      ) : (
+                        <>
+                          <select name="pekerjaan_id" value={formData.pekerjaan_id || (inputPekerjaanManual ? 'Other' : '')} onChange={handlePekerjaanChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all">
+                            <option value="">-- Pilih Pekerjaan --</option>
+                            {pekerjaanOptions.map((p) => (
+                               <option key={p.id} value={p.id}>{p.nama_pekerjaan}</option>
+                            ))}
+                            <option value="Other">Lainnya (Ketik Manual)</option>
+                          </select>
+                          {inputPekerjaanManual && (
+                             <input type="text" name="pekerjaan" value={formData.pekerjaan || ''} onChange={handleInputChange} placeholder="Ketik profesi/pekerjaan (Opsional)" className="mt-2 px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
+                          )}
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -936,26 +991,78 @@ export default function EditJemaatPage() {
                     <div className="w-full flex-col gap-1 flex">
                       <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4 mb-2">Nama Komisi (Bisa Pilih Lebih dari 1)</label>
                       <div className="flex flex-col gap-2 p-3 bg-white rounded-lg border border-slate-200">
-                        {!formData.satelit_id ? (
-                          <span className="text-sm text-slate-400 italic">Pilih satelit utama terlebih dahulu</span>
-                        ) : (
+                        {isReadOnly ? (
                           komisiOptions
-                            .filter((k) => k.satelit_id.toString() === formData.satelit_id)
-                            .map((k) => (
-                              <label key={k.id} className="flex items-center gap-2 cursor-pointer pr-4 hover:bg-slate-50 p-1 rounded-md transition-colors">
+                            .filter((k) => formData.komisi_ids.includes(k.id.toString()))
+                            .map(k => (
+                              <div key={k.id} className="text-slate-900 text-sm font-semibold flex items-center gap-2">
+                                <span className="material-icons-round text-blue-500 text-[16px]">check_circle</span>
+                                {k.nama_komisi}
+                              </div>
+                            ))
+                        ) : (
+                          <>
+                            {!formData.satelit_id ? (
+                              <span className="text-sm text-slate-400 italic">Pilih satelit utama terlebih dahulu</span>
+                            ) : (
+                              komisiOptions
+                                .filter((k) => k.satelit_id.toString() === formData.satelit_id)
+                                .map((k) => (
+                                  <label key={k.id} className="flex items-center gap-2 cursor-pointer pr-4 hover:bg-slate-50 p-1 rounded-md transition-colors">
+                                    <input
+                                      type="checkbox"
+                                      value={k.id.toString()}
+                                      checked={formData.komisi_ids.includes(k.id.toString())}
+                                      onChange={handleCheckboxChange}
+                                      className="w-4 h-4 text-blue-600 bg-slate-100 border-slate-300 rounded focus:ring-blue-500"
+                                    />
+                                    <span className="text-slate-700 text-sm font-['Inter']">{k.nama_komisi}</span>
+                                  </label>
+                                ))
+                            )}
+                            {formData.satelit_id && komisiOptions.filter(k => k.satelit_id.toString() === formData.satelit_id).length === 0 && (
+                              <span className="text-sm text-slate-400 italic">Gereja ini belum memiliki struktur komisi</span>
+                            )}
+                          </>
+                        )}
+                        {isReadOnly && formData.komisi_ids.length === 0 && (
+                           <span className="text-sm text-slate-400 italic">- Tidak Mengikuti Komisi -</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="w-full flex-col gap-1 flex">
+                      <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4 mb-2">Nama Departemen (Bisa Pilih Lebih dari 1)</label>
+                      <div className="flex flex-col gap-2 p-3 bg-white rounded-lg border border-slate-200">
+                        {isReadOnly ? (
+                          departemenOptions
+                            .filter((d) => formData.departemen_ids.includes(d.id.toString()))
+                            .map(d => (
+                              <div key={d.id} className="text-slate-900 text-sm font-semibold flex items-center gap-2">
+                                <span className="material-icons-round text-purple-500 text-[16px]">check_circle</span>
+                                {d.nama_departemen}
+                              </div>
+                            ))
+                        ) : (
+                          departemenOptions.length === 0 ? (
+                            <span className="text-sm text-slate-400 italic">Belum ada data departemen</span>
+                          ) : (
+                            departemenOptions.map((d) => (
+                              <label key={d.id} className="flex items-center gap-2 cursor-pointer pr-4 hover:bg-slate-50 p-1 rounded-md transition-colors">
                                 <input
                                   type="checkbox"
-                                  value={k.id.toString()}
-                                  checked={formData.komisi_ids.includes(k.id.toString())}
-                                  onChange={handleCheckboxChange}
-                                  className="w-4 h-4 text-blue-600 bg-slate-100 border-slate-300 rounded focus:ring-blue-500"
+                                  value={d.id.toString()}
+                                  checked={formData.departemen_ids.includes(d.id.toString())}
+                                  onChange={handleDeptCheckboxChange}
+                                  className="w-4 h-4 text-purple-600 bg-slate-100 border-slate-300 rounded focus:ring-purple-500"
                                 />
-                                <span className="text-slate-700 text-sm font-['Inter']">{k.nama_komisi}</span>
+                                <span className="text-slate-700 text-sm font-['Inter']">{d.nama_departemen}</span>
                               </label>
                             ))
+                          )
                         )}
-                        {formData.satelit_id && komisiOptions.filter(k => k.satelit_id.toString() === formData.satelit_id).length === 0 && (
-                          <span className="text-sm text-slate-400 italic">Gereja ini belum memiliki struktur komisi</span>
+                        {isReadOnly && formData.departemen_ids.length === 0 && (
+                           <span className="text-sm text-slate-400 italic">- Tidak Mengikuti Departemen -</span>
                         )}
                       </div>
                     </div>

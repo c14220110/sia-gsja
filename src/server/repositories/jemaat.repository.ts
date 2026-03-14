@@ -242,17 +242,17 @@ export class JemaatRepository {
         INSERT INTO jemaat (
           jemaat_id, nik, nama_lengkap, jenis_kelamin, tempat_lahir, tanggal_lahir,
           alamat, kota, kecamatan, kelurahan, kode_pos, no_hp, email, 
-          status_pernikahan, status_baptis, tanggal_baptis, status_jemaat, pekerjaan, satelit_id,
+          status_pernikahan, status_baptis, tanggal_baptis, status_jemaat, pekerjaan, pekerjaan_id, satelit_id,
           ayah_id, ayah_nama, gereja_asal_ayah,
           ibu_id, ibu_nama, gereja_asal_ibu,
           pasangan_id, pasangan_nama, gereja_asal_pasangan, foto_url
         ) VALUES (
           $1, $2, $3, $4, $5, $6, 
           $7, $8, $9, $10, $11, $12, $13, 
-          $14, $15, $16, $17, $18, $19,
-          $20, $21, $22,
-          $23, $24, $25,
-          $26, $27, $28, $29
+          $14, $15, $16, $17, $18, $19, $20,
+          $21, $22, $23,
+          $24, $25, $26,
+          $27, $28, $29, $30
         ) RETURNING id
       `;
       
@@ -277,17 +277,18 @@ export class JemaatRepository {
         (statusBaptisBool && data.tanggal_baptis) ? new Date(data.tanggal_baptis) : null, // $16
         data.status_jemaat || 'Aktif', // $17
         data.pekerjaan || null, // $18
-        data.satelit_id ? parseInt(data.satelit_id, 10) : null, // $19
-        data.ayah_id ? parseInt(data.ayah_id, 10) : null, // $20
-        data.ayah_nama || null, // $21
-        data.gereja_asal_ayah || null, // $22
-        data.ibu_id ? parseInt(data.ibu_id, 10) : null, // $23
-        data.ibu_nama || null, // $24
-        data.gereja_asal_ibu || null, // $25
-        data.pasangan_id ? parseInt(data.pasangan_id, 10) : null, // $26
-        data.pasangan_nama || null, // $27
-        data.gereja_asal_pasangan || null, // $28
-        data.foto_url || null // $29
+        data.pekerjaan_id ? parseInt(data.pekerjaan_id, 10) : null, // $19
+        data.satelit_id ? parseInt(data.satelit_id, 10) : null, // $20
+        data.ayah_id ? parseInt(data.ayah_id, 10) : null, // $21
+        data.ayah_nama || null, // $22
+        data.gereja_asal_ayah || null, // $23
+        data.ibu_id ? parseInt(data.ibu_id, 10) : null, // $24
+        data.ibu_nama || null, // $25
+        data.gereja_asal_ibu || null, // $26
+        data.pasangan_id ? parseInt(data.pasangan_id, 10) : null, // $27
+        data.pasangan_nama || null, // $28
+        data.gereja_asal_pasangan || null, // $29
+        data.foto_url || null // $30
       ];
 
       const res = await client.query(insertJemaatQuery, jemaatValues);
@@ -301,6 +302,21 @@ export class JemaatRepository {
         `;
         for (const komisiId of data.komisi_ids) {
           await client.query(insertKomisiQuery, [newJemaatId, parseInt(komisiId, 10)]);
+        }
+      }
+
+      // Insert departemen map if provided
+      if (data.departemen_ids && Array.isArray(data.departemen_ids) && data.departemen_ids.length > 0) {
+        const insertDeptQuery = `
+          INSERT INTO jemaat_departemen (jemaat_id, departemen_id, satelit_id, tanggal_bergabung)
+          VALUES ($1, $2, $3, CURRENT_DATE)
+        `;
+        for (const deptId of data.departemen_ids) {
+          await client.query(insertDeptQuery, [
+            newJemaatId, 
+            parseInt(deptId, 10),
+            data.satelit_id ? parseInt(data.satelit_id, 10) : null
+          ]);
         }
       }
 
@@ -368,12 +384,14 @@ export class JemaatRepository {
         a.jemaat_id AS ayah_jemaat_id,
         i.jemaat_id AS ibu_jemaat_id,
         p.jemaat_id AS pasangan_jemaat_id,
-        ARRAY_REMOVE(ARRAY_AGG(jk.komisi_id), NULL) as komisi_ids
+        ARRAY_REMOVE(ARRAY_AGG(DISTINCT jk.komisi_id), NULL) as komisi_ids,
+        ARRAY_REMOVE(ARRAY_AGG(DISTINCT jd.departemen_id), NULL) as departemen_ids
       FROM jemaat j
       LEFT JOIN jemaat a ON j.ayah_id = a.id
       LEFT JOIN jemaat i ON j.ibu_id = i.id
       LEFT JOIN jemaat p ON j.pasangan_id = p.id
       LEFT JOIN jemaat_komisi jk ON j.id = jk.jemaat_id
+      LEFT JOIN jemaat_departemen jd ON j.id = jd.jemaat_id
       WHERE j.id::text = $1 AND j.is_deleted = false
       GROUP BY j.id, a.jemaat_id, i.jemaat_id, p.jemaat_id
     `;
@@ -383,6 +401,7 @@ export class JemaatRepository {
     // Map Array string items to string so it plays nice with frontend expecting string[]
     const row = res.rows[0];
     row.komisi_ids = row.komisi_ids ? row.komisi_ids.map((k: number) => k.toString()) : [];
+    row.departemen_ids = row.departemen_ids ? row.departemen_ids.map((k: number) => k.toString()) : [];
     
     // Fetch fallback parents if not defined in main jemaat table
     if (!row.ayah_id || !row.ibu_id) {
@@ -510,16 +529,16 @@ export class JemaatRepository {
       }
 
       // ── Build UPDATE query (include jemaat_id only if regenerated) ─────────
-      const jemaatIdSet = newJemaatId ? ', jemaat_id = $30' : '';
+      const jemaatIdSet = newJemaatId ? ', jemaat_id = $31' : '';
       const updateQuery = `
         UPDATE jemaat SET
           nik = $1, nama_lengkap = $2, jenis_kelamin = $3, tempat_lahir = $4, tanggal_lahir = $5,
           alamat = $6, kota = $7, kecamatan = $8, kelurahan = $9, kode_pos = $10, no_hp = $11, email = $12, 
-          status_pernikahan = $13, status_baptis = $14, tanggal_baptis = $15, status_jemaat = $16, pekerjaan = $17, satelit_id = $18,
-          ayah_id = $19, ayah_nama = $20, gereja_asal_ayah = $21,
-          ibu_id = $22, ibu_nama = $23, gereja_asal_ibu = $24,
-          pasangan_id = $25, pasangan_nama = $26, gereja_asal_pasangan = $27, foto_url = $28${jemaatIdSet}
-        WHERE id::text = $29
+          status_pernikahan = $13, status_baptis = $14, tanggal_baptis = $15, status_jemaat = $16, pekerjaan = $17, pekerjaan_id = $18, satelit_id = $19,
+          ayah_id = $20, ayah_nama = $21, gereja_asal_ayah = $22,
+          ibu_id = $23, ibu_nama = $24, gereja_asal_ibu = $25,
+          pasangan_id = $26, pasangan_nama = $27, gereja_asal_pasangan = $28, foto_url = $29${jemaatIdSet}
+        WHERE id::text = $30
         RETURNING id
       `;
 
@@ -541,20 +560,21 @@ export class JemaatRepository {
         (statusBaptisBool && data.tanggal_baptis) ? new Date(data.tanggal_baptis) : null, // $15
         data.status_jemaat || 'Aktif',                                             // $16
         data.pekerjaan || null,                                                    // $17
-        newSatelitId,                                                              // $18
-        data.ayah_id ? parseInt(data.ayah_id, 10) : null,                         // $19
-        data.ayah_nama || null,                                                    // $20
-        data.gereja_asal_ayah || null,                                             // $21
-        data.ibu_id ? parseInt(data.ibu_id, 10) : null,                           // $22
-        data.ibu_nama || null,                                                     // $23
-        data.gereja_asal_ibu || null,                                              // $24
-        data.pasangan_id ? parseInt(data.pasangan_id, 10) : null,                 // $25
-        data.pasangan_nama || null,                                                // $26
-        data.gereja_asal_pasangan || null,                                         // $27
-        data.foto_url || null,                                                     // $28
-        jemaatId,                                                                  // $29
+        data.pekerjaan_id ? parseInt(data.pekerjaan_id, 10) : null,               // $18
+        newSatelitId,                                                              // $19
+        data.ayah_id ? parseInt(data.ayah_id, 10) : null,                         // $20
+        data.ayah_nama || null,                                                    // $21
+        data.gereja_asal_ayah || null,                                             // $22
+        data.ibu_id ? parseInt(data.ibu_id, 10) : null,                           // $23
+        data.ibu_nama || null,                                                     // $24
+        data.gereja_asal_ibu || null,                                              // $25
+        data.pasangan_id ? parseInt(data.pasangan_id, 10) : null,                 // $26
+        data.pasangan_nama || null,                                                // $27
+        data.gereja_asal_pasangan || null,                                         // $28
+        data.foto_url || null,                                                     // $29
+        jemaatId,                                                                  // $30
       ];
-      if (newJemaatId) jemaatValues.push(newJemaatId);                            // $30 (optional)
+      if (newJemaatId) jemaatValues.push(newJemaatId);                            // $31 (optional)
 
       const res = await client.query(updateQuery, jemaatValues);
       
@@ -564,8 +584,9 @@ export class JemaatRepository {
       
       const primaryId = res.rows[0].id;
 
-      // Wipe current komisi & anak bindings
+      // Wipe current komisi, departemen & anak bindings
       await client.query(`DELETE FROM jemaat_komisi WHERE jemaat_id = $1`, [primaryId]);
+      await client.query(`DELETE FROM jemaat_departemen WHERE jemaat_id = $1`, [primaryId]);
 
       // Delete anak relations from relasi_jemaat (replaces DELETE FROM jemaat_anak)
       const jrAnakDel = await client.query(`SELECT id FROM jenis_relasi WHERE nama_relasi = 'Anak' LIMIT 1`);
@@ -584,6 +605,21 @@ export class JemaatRepository {
         `;
         for (const komisiId of data.komisi_ids) {
           await client.query(insertKomisiQuery, [primaryId, parseInt(komisiId, 10)]);
+        }
+      }
+
+      // Re-insert departemen bindings if provided
+      if (data.departemen_ids && Array.isArray(data.departemen_ids) && data.departemen_ids.length > 0) {
+        const insertDeptQuery = `
+          INSERT INTO jemaat_departemen (jemaat_id, departemen_id, satelit_id, tanggal_bergabung)
+          VALUES ($1, $2, $3, CURRENT_DATE)
+        `;
+        for (const deptId of data.departemen_ids) {
+          await client.query(insertDeptQuery, [
+            primaryId, 
+            parseInt(deptId, 10),
+            newSatelitId
+          ]);
         }
       }
 

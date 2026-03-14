@@ -45,4 +45,26 @@ export class MasterRepository {
     const result = await pool.query(query, [`%${searchQuery}%`]);
     return result.rows;
   }
+
+  async getAllDepartemen(): Promise<any[]> {
+    const query = `
+      SELECT id, nama_departemen
+      FROM departemen
+      WHERE is_active = true
+      ORDER BY nama_departemen ASC;
+    `;
+    const result = await pool.query(query);
+    return result.rows;
+  }
+
+  async getAllPekerjaan(): Promise<any[]> {
+    const query = `
+      SELECT id, nama_pekerjaan
+      FROM pekerjaan_master
+      WHERE is_active = true
+      ORDER BY id ASC;
+    `;
+    const result = await pool.query(query);
+    return result.rows;
+  }
 }
