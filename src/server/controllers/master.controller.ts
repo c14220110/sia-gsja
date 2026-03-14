@@ -19,6 +19,10 @@ export async function getOptionsController(request: Request) {
     } else if (type === 'jemaat_search') {
       const q = searchParams.get('q') || '';
       data = await masterService.searchJemaatOptions(q);
+    } else if (type === 'departemen') {
+      data = await masterService.getDepartemenOptions();
+    } else if (type === 'pekerjaan') {
+      data = await masterService.getPekerjaanOptions();
     } else {
       return NextResponse.json({ success: false, message: 'Invalid type parameter' }, { status: 400 });
     }
