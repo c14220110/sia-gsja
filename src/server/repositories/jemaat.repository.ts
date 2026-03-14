@@ -245,14 +245,14 @@ export class JemaatRepository {
           status_pernikahan, status_baptis, tanggal_baptis, status_jemaat, pekerjaan, satelit_id,
           ayah_id, ayah_nama, gereja_asal_ayah,
           ibu_id, ibu_nama, gereja_asal_ibu,
-          pasangan_id, pasangan_nama, gereja_asal_pasangan
+          pasangan_id, pasangan_nama, gereja_asal_pasangan, foto_url
         ) VALUES (
           $1, $2, $3, $4, $5, $6, 
           $7, $8, $9, $10, $11, $12, $13, 
           $14, $15, $16, $17, $18, $19,
           $20, $21, $22,
           $23, $24, $25,
-          $26, $27, $28
+          $26, $27, $28, $29
         ) RETURNING id
       `;
       
@@ -286,7 +286,8 @@ export class JemaatRepository {
         data.gereja_asal_ibu || null, // $25
         data.pasangan_id ? parseInt(data.pasangan_id, 10) : null, // $26
         data.pasangan_nama || null, // $27
-        data.gereja_asal_pasangan || null // $28
+        data.gereja_asal_pasangan || null, // $28
+        data.foto_url || null // $29
       ];
 
       const res = await client.query(insertJemaatQuery, jemaatValues);
@@ -509,7 +510,7 @@ export class JemaatRepository {
       }
 
       // ── Build UPDATE query (include jemaat_id only if regenerated) ─────────
-      const jemaatIdSet = newJemaatId ? ', jemaat_id = $29' : '';
+      const jemaatIdSet = newJemaatId ? ', jemaat_id = $30' : '';
       const updateQuery = `
         UPDATE jemaat SET
           nik = $1, nama_lengkap = $2, jenis_kelamin = $3, tempat_lahir = $4, tanggal_lahir = $5,
@@ -517,8 +518,8 @@ export class JemaatRepository {
           status_pernikahan = $13, status_baptis = $14, tanggal_baptis = $15, status_jemaat = $16, pekerjaan = $17, satelit_id = $18,
           ayah_id = $19, ayah_nama = $20, gereja_asal_ayah = $21,
           ibu_id = $22, ibu_nama = $23, gereja_asal_ibu = $24,
-          pasangan_id = $25, pasangan_nama = $26, gereja_asal_pasangan = $27${jemaatIdSet}
-        WHERE id::text = $28
+          pasangan_id = $25, pasangan_nama = $26, gereja_asal_pasangan = $27, foto_url = $28${jemaatIdSet}
+        WHERE id::text = $29
         RETURNING id
       `;
 
@@ -550,9 +551,10 @@ export class JemaatRepository {
         data.pasangan_id ? parseInt(data.pasangan_id, 10) : null,                 // $25
         data.pasangan_nama || null,                                                // $26
         data.gereja_asal_pasangan || null,                                         // $27
-        jemaatId,                                                                  // $28
+        data.foto_url || null,                                                     // $28
+        jemaatId,                                                                  // $29
       ];
-      if (newJemaatId) jemaatValues.push(newJemaatId);                            // $29 (optional)
+      if (newJemaatId) jemaatValues.push(newJemaatId);                            // $30 (optional)
 
       const res = await client.query(updateQuery, jemaatValues);
       

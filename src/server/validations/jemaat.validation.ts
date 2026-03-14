@@ -35,6 +35,7 @@ const jemaatBaseSchema = z.object({
   tanggal_baptis:     z.string().optional().nullable(),
   status_pernikahan:  z.enum(['Lajang', 'Menikah', 'Duda', 'Janda']).optional().nullable(),
   status_jemaat:      z.enum(['Aktif', 'Tidak Aktif', 'Keluar']).optional().default('Aktif'),
+  foto_url:           z.string().optional().nullable(),
   // Family relations
   ayah_id:            z.string().optional().nullable(),
   ayah_nama:          z.string().optional().nullable(),

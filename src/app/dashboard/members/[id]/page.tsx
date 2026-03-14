@@ -126,6 +126,8 @@ export default function EditJemaatPage() {
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'data_jemaat' | 'family_tree'>(
     searchParams.get('tab') === 'family_tree' ? 'family_tree' : 'data_jemaat'
   );
@@ -163,6 +165,7 @@ export default function EditJemaatPage() {
     tanggal_baptis: '',
     status_pernikahan: 'Lajang',
     status_jemaat: 'Aktif',
+    foto_url: '',
     
     // Family
     ayah_id: '',
@@ -224,6 +227,7 @@ export default function EditJemaatPage() {
                 tanggal_baptis: d.tanggal_baptis ? new Date(d.tanggal_baptis).toISOString().split('T')[0] : '',
                 status_pernikahan: d.status_pernikahan || 'Lajang',
                 status_jemaat: d.status_jemaat || 'Aktif',
+                foto_url: d.foto_url || '',
                 
                 // Family
                 ayah_id: d.ayah_id ? d.ayah_id.toString() : '',
@@ -247,6 +251,10 @@ export default function EditJemaatPage() {
                   gereja_asal_saudara:  '',
                 })),
               });
+              
+              if (d.foto_url) {
+                setImagePreview(d.foto_url);
+              }
             }
           }
         }
@@ -286,6 +294,19 @@ export default function EditJemaatPage() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      if (file.size > 10 * 1024 * 1024) {
+        alert('Ukuran maksimal foto 10MB');
+        return;
+      }
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+      setFormData(prev => ({ ...prev, foto_url: '' }));
+    }
   };
 
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -346,12 +367,33 @@ export default function EditJemaatPage() {
   const handleCreate = async () => {
     try {
       setIsSubmitting(true);
+      
+      let finalFotoUrl = formData.foto_url;
+      if (imageFile) {
+        const fileData = new FormData();
+        fileData.append('file', imageFile);
+        const uploadRes = await fetch('/api/upload', {
+           method: 'POST',
+           body: fileData
+        });
+        const uploadJson = await uploadRes.json();
+        if (uploadJson.success) {
+           finalFotoUrl = uploadJson.url;
+        } else {
+           alert('Gagal mengupload foto: ' + uploadJson.message);
+           setIsSubmitting(false);
+           return;
+        }
+      }
+
+      const payload = { ...formData, foto_url: finalFotoUrl || null };
+
       const res = await fetch(`/api/members/${jemaatId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
       if (data.success) {
@@ -412,13 +454,20 @@ export default function EditJemaatPage() {
             
             {/* Top Identity Card */}
             <div className="w-full p-6 bg-white rounded-xl shadow-sm border border-slate-200 inline-flex justify-start items-center gap-6">
-              <div className="relative inline-flex flex-col justify-start items-start">
+              <div className="relative inline-flex flex-col justify-start items-start group">
                 <div className="w-32 h-32 bg-slate-100 rounded-xl border-2 border-slate-200 inline-flex justify-center items-center overflow-hidden">
-                  <span className="material-icons-round text-slate-300 text-[64px]">person</span>
+                  {imagePreview ? (
+                    <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="material-icons-round text-slate-300 text-[64px]">person</span>
+                  )}
                 </div>
-                <button className="w-8 h-8 absolute -button right-[-10px] bottom-[-10px] bg-slate-700 rounded-full border-2 border-white inline-flex justify-center items-center hover:bg-slate-800 transition-colors shadow-lg">
+                {!isReadOnly && (
+                <label className="w-8 h-8 absolute right-[-10px] bottom-[-10px] bg-slate-700 rounded-full border-2 border-white cursor-pointer inline-flex justify-center items-center hover:bg-slate-800 transition-colors shadow-lg z-10">
                   <span className="material-icons-round text-white text-[16px]">add_a_photo</span>
-                </button>
+                  <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+                </label>
+                )}
               </div>
               <div className="inline-flex flex-col justify-start items-start w-full">
                 <input 
