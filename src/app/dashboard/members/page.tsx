@@ -32,7 +32,7 @@ export default function MembersPage() {
   const [filterKomisi, setFilterKomisi] = useState('');
   
   // Advanced Filters
-  const [filterStatusJemaat, setFilterStatusJemaat] = useState('');
+  const [filterStatusJemaat, setFilterStatusJemaat] = useState('Aktif');
   const [filterStatusBaptis, setFilterStatusBaptis] = useState('');
   const [filterGender, setFilterGender] = useState('');
   const [filterUmur, setFilterUmur] = useState('');
@@ -88,7 +88,7 @@ export default function MembersPage() {
         if (debouncedSearch) queryParams.append('search', debouncedSearch);
         if (filterSatelit) queryParams.append('satelit_id', filterSatelit);
         if (filterKomisi) queryParams.append('komisi_id', filterKomisi);
-        if (filterStatusJemaat) queryParams.append('status_jemaat', filterStatusJemaat);
+        if (filterStatusJemaat && filterStatusJemaat !== 'Semua') queryParams.append('status_jemaat', filterStatusJemaat);
         if (filterStatusBaptis) queryParams.append('status_baptis', filterStatusBaptis);
         if (filterGender) queryParams.append('jenis_kelamin', filterGender);
         if (filterUmur) queryParams.append('rentang_umur', filterUmur);
@@ -280,7 +280,7 @@ export default function MembersPage() {
                 onChange={(e) => setFilterStatusJemaat(e.target.value)}
                 className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
               >
-                <option value="">Semua</option>
+                <option value="Semua">Semua</option>
                 <option value="Aktif">Aktif</option>
                 <option value="Tidak Aktif">Tidak Aktif</option>
                 <option value="Keluar">Keluar</option>
