@@ -348,15 +348,17 @@ export default function MembersPage() {
 
       {/* Data Table */}
       <div className="w-full bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden">
-        {/* Table Header */}
-        <div className="w-full bg-slate-50 border-b border-slate-200 flex items-center px-6 py-4">
-          <div className="w-32 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">ID Jemaat</div>
-          <div className="w-64 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Nama Lengkap</div>
-          <div className="flex-1 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Satelit/Cabang</div>
-          <div className="w-48 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Komisi/Pelayanan</div>
-          <div className="w-32 text-center text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Status</div>
-          <div className="w-20 text-right text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Aksi</div>
-        </div>
+        <div className="w-full overflow-x-auto">
+          <div className="min-w-[1050px] flex flex-col">
+            {/* Table Header */}
+            <div className="w-full bg-slate-50 border-b border-slate-200 flex items-center px-6 py-4">
+              <div className="w-32 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">ID Jemaat</div>
+              <div className="w-64 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Nama Lengkap</div>
+              <div className="flex-1 min-w-[200px] text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Satelit/Cabang</div>
+              <div className="w-48 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Komisi/Pelayanan</div>
+              <div className="w-32 shrink-0 text-center text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Status</div>
+              <div className="w-20 shrink-0 text-right text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Aksi</div>
+            </div>
 
         {/* Table Body */}
         {data.length === 0 ? (
@@ -367,13 +369,13 @@ export default function MembersPage() {
         ) : (
           data.map((jemaat, idx) => (
             <div key={jemaat.id || idx} className="w-full flex items-center px-6 py-4 border-b border-slate-100 hover:bg-slate-50 transition-colors">
-              <div className="w-32 text-slate-500 text-sm font-['Liberation_Mono']">{jemaat.jemaat_id}</div>
-              <div className="w-64 flex items-center gap-3">
+              <div className="w-32 shrink-0 text-slate-500 text-sm font-['Liberation_Mono']">{jemaat.jemaat_id}</div>
+              <div className="w-64 shrink-0 flex items-center gap-3">
                 <img className="w-9 h-9 rounded-full object-cover border border-slate-200" src={jemaat.foto_url || `https://ui-avatars.com/api/?name=${jemaat.nama_lengkap}&background=random`} alt="avatar" />
                 <span className="text-slate-900 text-sm font-semibold font-['Public_Sans'] w-full truncate pr-2">{jemaat.nama_lengkap}</span>
               </div>
-              <div className="flex-1 text-slate-600 text-sm font-['Public_Sans'] truncate pr-2">{jemaat.nama_satelit || '-'}</div>
-              <div className="w-48 flex flex-wrap gap-1 items-center py-1">
+              <div className="flex-1 min-w-[200px] text-slate-600 text-sm font-['Public_Sans'] truncate pr-2">{jemaat.nama_satelit || '-'}</div>
+              <div className="w-48 shrink-0 flex flex-wrap gap-1 items-center py-1">
                 {jemaat.komisi ? 
                   jemaat.komisi.split(', ').map((k: string, i: number) => (
                     <span key={i} className="px-2 py-0.5 bg-slate-100 border border-slate-200 rounded text-slate-700 text-[10px] font-bold font-['Public_Sans'] uppercase whitespace-nowrap">
@@ -384,12 +386,12 @@ export default function MembersPage() {
                   <span className="text-slate-400 text-xs italic font-['Public_Sans']">Tanpa Komisi</span>
                 )}
               </div>
-              <div className="w-32 flex justify-center">
+              <div className="w-32 shrink-0 flex justify-center">
                 <span className={`px-3 py-1 rounded-full text-xs font-bold font-['Public_Sans'] uppercase ${jemaat.status_jemaat === 'Aktif' ? 'bg-emerald-100 text-emerald-700' : jemaat.status_jemaat === 'Keluar' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'}`}>
                   {jemaat.status_jemaat}
                 </span>
               </div>
-              <div className="w-20 flex justify-end gap-2 text-slate-400 relative">
+              <div className="w-20 shrink-0 flex justify-end gap-2 text-slate-400 relative">
                  <button 
                   onClick={() => setOpenMenuId(openMenuId === jemaat.id ? null : jemaat.id)}
                   className="hover:text-slate-700 hover:bg-slate-100 p-1.5 rounded transition-colors"
@@ -430,9 +432,11 @@ export default function MembersPage() {
             </div>
           ))
         )}
+          </div>
+        </div>
 
         {/* Pagination Footer */}
-        <div className="w-full px-6 py-4 bg-white flex justify-between items-center text-sm">
+        <div className="w-full px-6 py-4 bg-white border-t border-slate-200 flex flex-col md:flex-row justify-between items-center text-sm gap-4">
           <span className="text-slate-500 font-['Public_Sans']">
             Menampilkan {data.length > 0 ? ((currentPage - 1) * limit) + 1 : 0}-
             {Math.min(currentPage * limit, totalItems)} dari {totalItems} jemaat
