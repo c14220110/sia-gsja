@@ -77,15 +77,16 @@ export class PelayanRepository {
 
     const where = conditions.join(' AND ');
 
-    const baseFrom = `
+    // Pisahkan klausa FROM dan WHERE agar bisa diselipkan JOIN
+    const fromJoin = `
       FROM pelayan p
       JOIN jemaat  j  ON p.jemaat_id  = j.id
       JOIN satelit s  ON p.satelit_id = s.id
-      WHERE ${where}
     `;
+    const whereStr = `WHERE ${where}`;
 
     const [countRes, dataRes, newRes, roleRes] = await Promise.all([
-      pool.query(`SELECT COUNT(*) AS count ${baseFrom}`, values),
+      pool.query(`SELECT COUNT(DISTINCT p.id) AS count ${fromJoin} ${whereStr}`, values),
       pool.query(`
         SELECT
           p.id,
@@ -104,9 +105,10 @@ export class PelayanRepository {
             ''
           )                   AS roles,
           COUNT(pr.role_id)   AS jumlah_role
-        ${baseFrom}
+        ${fromJoin}
         LEFT JOIN pelayan_role pr ON pr.pelayan_id = p.id
         LEFT JOIN role_pelayan rp ON rp.id = pr.role_id
+        ${whereStr}
         GROUP BY p.id, j.jemaat_id, j.nama_lengkap, j.foto_url, s.nama_satelit
         ORDER BY p.created_at DESC
         LIMIT $${idx} OFFSET $${idx + 1}
