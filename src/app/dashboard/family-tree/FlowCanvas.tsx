@@ -95,6 +95,10 @@ export function buildGraph(data: any): { nodes: NodeItem[]; edges: EdgeItem[]; b
     pasanganId = addNode(data.pasangan, 'pasangan', (personCol + 1) * HG, 0);
     // Horizontal marriage arrow: person ↔ pasangan
     addEdge(personId, pasanganId, '#f43f8e', 'Pasangan', false, true);
+  } else if (data.person?.pasangan_nama) {
+    const fakePasangan = { id: -3, nama_lengkap: data.person.pasangan_nama, jenis_kelamin: data.person?.jenis_kelamin === 'Laki-laki' ? 'Perempuan' : 'Laki-laki' };
+    pasanganId = addNode(fakePasangan, 'pasangan', (personCol + 1) * HG, 0, true);
+    addEdge(personId, pasanganId, '#f43f8e', 'Pasangan', false, true);
   }
 
   // Saudara ↔ person: horizontal dashed "sibling" connector
