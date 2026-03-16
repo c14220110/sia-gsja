@@ -44,22 +44,35 @@ export class PelayanRepository {
       values.push(parseInt(satelit_id));
     }
     if (role_id) {
-      conditions.push(`EXISTS (
-        SELECT 1 FROM pelayan_role pr2 WHERE pr2.pelayan_id = p.id AND pr2.role_id = $${idx++}
-      )`);
+      let roleConditions = `pr2.pelayan_id = p.id AND pr2.role_id = $${idx++}`;
       values.push(parseInt(role_id));
+      
+      if (date_from) {
+        roleConditions += ` AND pr2.tanggal_mulai >= $${idx++}::date`;
+        values.push(date_from);
+      }
+      if (date_to) {
+        roleConditions += ` AND pr2.tanggal_mulai <= $${idx++}::date`;
+        values.push(date_to);
+      }
+      
+      conditions.push(`EXISTS (
+        SELECT 1 FROM pelayan_role pr2 WHERE ${roleConditions}
+      )`);
+    } else {
+      if (date_from) {
+        conditions.push(`p.tanggal_mulai >= $${idx++}::date`);
+        values.push(date_from);
+      }
+      if (date_to) {
+        conditions.push(`p.tanggal_mulai <= $${idx++}::date`);
+        values.push(date_to);
+      }
     }
+
     if (status) {
       conditions.push(`p.status_pelayan = $${idx++}`);
       values.push(status);
-    }
-    if (date_from) {
-      conditions.push(`p.tanggal_mulai >= $${idx++}::date`);
-      values.push(date_from);
-    }
-    if (date_to) {
-      conditions.push(`p.tanggal_mulai <= $${idx++}::date`);
-      values.push(date_to);
     }
 
     const where = conditions.join(' AND ');

@@ -39,6 +39,11 @@ export default function PelayanPage() {
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo,   setFilterDateTo]   = useState('');
 
+  // Local temp states for Advanced Filters (apply button logic)
+  const [tempStatus,     setTempStatus]     = useState('Aktif');
+  const [tempDateFrom,   setTempDateFrom]   = useState('');
+  const [tempDateTo,     setTempDateTo]     = useState('');
+
   // Fetch Options and User Data on Mount
   useEffect(() => {
     const fetchOptionsAndUser = async () => {
@@ -255,75 +260,99 @@ export default function PelayanPage() {
 
         {/* More Filters Toggle */}
         <button
-          onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-          className={`px-4 py-2.5 border rounded-lg flex items-center gap-2 transition-colors group ${showAdvancedFilters ? 'bg-slate-100 border-slate-300' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
+          onClick={() => {
+            if (!showAdvancedFilters) {
+              setTempStatus(filterStatus);
+              setTempDateFrom(filterDateFrom);
+              setTempDateTo(filterDateTo);
+            }
+            setShowAdvancedFilters(!showAdvancedFilters);
+          }}
+          className={`px-4 py-2.5 border rounded-lg flex items-center gap-2 transition-colors group ${showAdvancedFilters ? 'bg-slate-100 border-slate-300' : (filterStatus !== 'Aktif' || filterDateFrom || filterDateTo) ? 'bg-violet-50 border-violet-200 text-violet-700' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
         >
-          <span className={`material-icons-round text-[20px] transition-colors ${showAdvancedFilters ? 'text-slate-800' : 'text-slate-500 group-hover:text-slate-700'}`}>tune</span>
-          <span className={`text-sm font-medium font-['Public_Sans'] transition-colors ${showAdvancedFilters ? 'text-slate-900' : 'text-slate-600 group-hover:text-slate-800'}`}>More Filters</span>
+          <span className={`material-icons-round text-[20px] transition-colors ${showAdvancedFilters ? 'text-slate-800' : (filterStatus !== 'Aktif' || filterDateFrom || filterDateTo) ? 'text-violet-700' : 'text-slate-500 group-hover:text-slate-700'}`}>tune</span>
+          <span className={`text-sm font-medium font-['Public_Sans'] transition-colors ${showAdvancedFilters ? 'text-slate-900' : (filterStatus !== 'Aktif' || filterDateFrom || filterDateTo) ? 'text-violet-700 font-bold' : 'text-slate-600 group-hover:text-slate-800'}`}>More Filters</span>
+          {(filterStatus !== 'Aktif' || filterDateFrom || filterDateTo) && (
+            <span className="flex items-center justify-center w-5 h-5 ml-1 bg-violet-600 text-white text-[10px] font-bold rounded-full">
+              {(filterStatus !== 'Aktif' ? 1 : 0) + (filterDateFrom ? 1 : 0) + (filterDateTo ? 1 : 0)}
+            </span>
+          )}
         </button>
       </div>
 
       {/* Advanced Filter Collapse Layer */}
       {showAdvancedFilters && (
-        <div className="w-full p-6 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in slide-in-from-top-2 duration-200 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="w-full p-6 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in slide-in-from-top-2 duration-200 flex flex-col gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* 1. Status Pelayan */}
+            <div className="flex flex-col gap-2">
+              <label className="text-slate-700 text-sm font-bold font-['Public_Sans']">Status Pelayan</label>
+              <div className="relative">
+                <select
+                  value={tempStatus}
+                  onChange={(e) => setTempStatus(e.target.value)}
+                  className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
+                >
+                  <option value="Semua">Semua</option>
+                  <option value="Aktif">Aktif</option>
+                  <option value="Tidak Aktif">Tidak Aktif</option>
+                </select>
+                <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
+              </div>
+            </div>
 
-          {/* 1. Status Pelayan */}
-          <div className="flex flex-col gap-2">
-            <label className="text-slate-700 text-sm font-bold font-['Public_Sans']">Status Pelayan</label>
-            <div className="relative">
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
-              >
-                <option value="Semua">Semua</option>
-                <option value="Aktif">Aktif</option>
-                <option value="Tidak Aktif">Tidak Aktif</option>
-              </select>
-              <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
+            {/* 2. Tanggal Mulai (dari) */}
+            <div className="flex flex-col gap-2">
+              <label className="text-slate-700 text-sm font-bold font-['Public_Sans']">Tanggal Mulai (dari)</label>
+              <input
+                type="date"
+                value={tempDateFrom}
+                onChange={(e) => setTempDateFrom(e.target.value)}
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm"
+              />
+            </div>
+
+            {/* 3. Tanggal Mulai (sampai) */}
+            <div className="flex flex-col gap-2">
+              <label className="text-slate-700 text-sm font-bold font-['Public_Sans']">Tanggal Mulai (sampai)</label>
+              <input
+                type="date"
+                value={tempDateTo}
+                onChange={(e) => setTempDateTo(e.target.value)}
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm"
+              />
             </div>
           </div>
-
-          {/* 2. Role Pelayanan (advanced detail) */}
-          <div className="flex flex-col gap-2">
-            <label className="text-slate-700 text-sm font-bold font-['Public_Sans']">Role Pelayanan</label>
-            <div className="relative">
-              <select
-                value={filterRole}
-                onChange={(e) => setFilterRole(e.target.value)}
-                className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
-              >
-                <option value="">Semua</option>
-                {rolePelayanOptions.map((role) => (
-                  <option key={role.id} value={role.id}>{role.nama_role}</option>
-                ))}
-              </select>
-              <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
-            </div>
+          
+          <div className="flex justify-end items-center gap-3 pt-4 border-t border-slate-100">
+            <button
+              onClick={() => {
+                setTempStatus('Aktif');
+                setTempDateFrom('');
+                setTempDateTo('');
+                setFilterStatus('Aktif');
+                setFilterDateFrom('');
+                setFilterDateTo('');
+                setCurrentPage(1);
+                setShowAdvancedFilters(false);
+              }}
+              className="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+            >
+              Reset
+            </button>
+            <button
+              onClick={() => {
+                setFilterStatus(tempStatus);
+                setFilterDateFrom(tempDateFrom);
+                setFilterDateTo(tempDateTo);
+                setCurrentPage(1);
+                setShowAdvancedFilters(false);
+              }}
+              className="px-4 py-2 text-sm font-medium text-white bg-slate-800 rounded-lg hover:bg-slate-900 transition-colors shadow-sm"
+            >
+              Terapkan
+            </button>
           </div>
-
-          {/* 3. Tanggal Mulai (dari) */}
-          <div className="flex flex-col gap-2">
-            <label className="text-slate-700 text-sm font-bold font-['Public_Sans']">Tanggal Mulai (dari)</label>
-            <input
-              type="date"
-              value={filterDateFrom}
-              onChange={(e) => setFilterDateFrom(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm"
-            />
-          </div>
-
-          {/* 4. Tanggal Mulai (sampai) */}
-          <div className="flex flex-col gap-2">
-            <label className="text-slate-700 text-sm font-bold font-['Public_Sans']">Tanggal Mulai (sampai)</label>
-            <input
-              type="date"
-              value={filterDateTo}
-              onChange={(e) => setFilterDateTo(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm"
-            />
-          </div>
-
         </div>
       )}
 
