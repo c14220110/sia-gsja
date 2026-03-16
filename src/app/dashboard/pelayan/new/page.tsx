@@ -289,27 +289,51 @@ export default function NewPelayanPage() {
         </div>
 
         {/* Grid Form Sections */}
-        <div className="w-full grid grid-cols-1 gap-8 items-start">
+        <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
           
-          <div className="flex flex-col gap-8 w-full max-w-4xl mx-auto">
+          {/* KOLOM KIRI */}
+          <div className="flex flex-col gap-8">
             {/* Informasi Pelayanan Global */}
-            <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-start items-start gap-6">
+            <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-start items-start gap-6 h-fit">
               <div className="w-full inline-flex justify-start items-center gap-2">
                 <span className="material-icons-round text-slate-700 text-[18px]">volunteer_activism</span>
                 <span className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Informasi Kepelayanan</span>
               </div>
               
-              <div className="w-full flex-col gap-4 flex md:flex-row">
+              <div className="w-full flex-col gap-4 flex lg:flex-row">
                 <div className="flex-1 flex-col gap-1 flex">
                   <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">ID Pelayanan</label>
                   <input type="text" disabled value="Akan di-generate otomatis" className="px-3 py-2 bg-slate-50 rounded-lg border border-slate-200 text-slate-400 text-sm font-['Inter'] w-full italic cursor-not-allowed" />
                 </div>
                 <div className="flex-1 flex-col gap-1 flex">
-                  <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Tanggal Mulai Melayani (Global)</label>
+                  <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Tgl Mulai (Global)</label>
                   <input type="date" name="tanggal_mulai" value={formData.tanggal_mulai} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
                 </div>
               </div>
             </div>
+
+            {/* Catatan Pelayan */}
+            <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-start items-start gap-6 h-fit">
+              <div className="w-full inline-flex justify-start items-center gap-2">
+                <span className="material-icons-round text-slate-700 text-[18px]">edit_note</span>
+                <span className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Catatan Khusus</span>
+              </div>
+              
+              <div className="w-full flex-col gap-1 flex">
+                <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Catatan (Opsional)</label>
+                <textarea 
+                  name="catatan" 
+                  value={formData.catatan} 
+                  onChange={handleInputChange} 
+                  placeholder="Isi jika ada catatan riwayat / teguran / pujian khusus..." 
+                  className="px-3 py-3 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-['Inter'] w-full min-h-[140px] resize-y transition-all" 
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* KOLOM KANAN */}
+          <div className="flex flex-col gap-8">
 
             {/* Role Pelayanan */}
             <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-start items-start gap-6 h-fit">
@@ -362,30 +386,12 @@ export default function NewPelayanPage() {
               )}
             </div>
 
-            {/* Catatan Pelayan */}
-            <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-start items-start gap-6">
-              <div className="w-full inline-flex justify-start items-center gap-2">
-                <span className="material-icons-round text-slate-700 text-[18px]">edit_note</span>
-                <span className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Catatan Khusus</span>
-              </div>
-              
-              <div className="w-full flex-col gap-1 flex">
-                <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Catatan (Opsional)</label>
-                <textarea 
-                  name="catatan" 
-                  value={formData.catatan} 
-                  onChange={handleInputChange} 
-                  placeholder="Isi jika ada catatan riwayat / teguran / pujian khusus..." 
-                  className="px-3 py-3 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-['Inter'] w-full min-h-[100px] resize-y transition-all" 
-                />
-              </div>
-            </div>
-
+            {/* Role Pelayanan part is correctly positioned in HTML structure here */}
           </div>
         </div>
         
         {/* Actions */}
-        <div className="w-full max-w-4xl mx-auto inline-flex justify-end items-center gap-4 mt-4">
+        <div className="w-full inline-flex justify-end items-center gap-4 mt-8">
           <Link href="/dashboard/pelayan" className="px-8 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg inline-flex flex-col justify-center items-center transition-colors">
             <span className="text-slate-700 text-sm font-bold font-['Inter'] uppercase leading-5 tracking-wide">Batal</span>
           </Link>
