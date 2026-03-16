@@ -11,6 +11,21 @@ export interface PelayanFilterParams {
   offset?:       number;
 }
 
+export interface UpdatePelayanParams {
+  tanggal_mulai?: string;
+  status_pelayan?: string;
+  catatan?: string | null;
+  roles: {
+    role_id: number;
+    tanggal_mulai: string | null;
+    status_role: string;
+  }[];
+  user_id: number;
+  user_role_id: number;
+  jemaat_id: number;
+  satelit_id: number;
+}
+
 export class PelayanRepository {
 
   async getPelayanPagination(params: PelayanFilterParams): Promise<{
@@ -219,6 +234,132 @@ export class PelayanRepository {
       if (error.code === '23505') { // unique violation
         return { success: false, message: 'Jemaat ini mungkin sudah terdaftar sebagai pelayan (id_pelayanan duplikat) atau rolenya duplikat.' };
       }
+      return { success: false, message: error.message };
+    } finally {
+      client.release();
+    }
+  }
+
+  async getPelayanById(id: number) {
+    const query = `
+      SELECT 
+        p.id,
+        p.id_pelayanan,
+        p.jemaat_id,
+        p.satelit_id,
+        p.tanggal_mulai,
+        p.status_pelayan,
+        p.catatan,
+        p.created_at,
+        p.updated_at,
+        j.nama_lengkap,
+        j.foto_url,
+        j.jemaat_id as jemaat_nomor,
+        s.nama_satelit
+      FROM pelayan p
+      JOIN jemaat j ON p.jemaat_id = j.id
+      JOIN satelit s ON p.satelit_id = s.id
+      WHERE p.id = $1
+    `;
+    const res = await pool.query(query, [id]);
+    if (res.rowCount === 0) return null;
+    const pelayan = res.rows[0];
+
+    const rolesQuery = `
+      SELECT 
+        pr.id,
+        pr.role_id,
+        r.nama_role,
+        pr.tanggal_mulai,
+        pr.tanggal_selesai,
+        pr.status_role
+      FROM pelayan_role pr
+      JOIN role_pelayan r ON pr.role_id = r.id
+      WHERE pr.pelayan_id = $1
+    `;
+    const rolesRes = await pool.query(rolesQuery, [id]);
+    pelayan.roles = rolesRes.rows;
+
+    return pelayan;
+  }
+
+  async updatePelayan(id: number, params: UpdatePelayanParams): Promise<{ success: boolean; message?: string }> {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      const updates = [];
+      const values = [];
+      let idx = 1;
+
+      if (params.tanggal_mulai !== undefined) {
+        updates.push(`tanggal_mulai = $${idx++}`);
+        values.push(params.tanggal_mulai);
+      }
+      if (params.status_pelayan !== undefined) {
+        updates.push(`status_pelayan = $${idx++}`);
+        values.push(params.status_pelayan);
+      }
+      if (params.catatan !== undefined) {
+        updates.push(`catatan = $${idx++}`);
+        values.push(params.catatan);
+      }
+
+      if (updates.length > 0) {
+        updates.push(`updated_at = CURRENT_TIMESTAMP`);
+        values.push(id);
+        const updateQuery = `
+          UPDATE pelayan
+          SET ${updates.join(', ')}
+          WHERE id = $${idx}
+        `;
+        await client.query(updateQuery, values);
+      }
+
+      const existingRolesRes = await client.query(`SELECT role_id FROM pelayan_role WHERE pelayan_id = $1`, [id]);
+      const existingRoles = existingRolesRes.rows.map(r => r.role_id);
+      
+      const newRoleIds = params.roles.map(r => r.role_id);
+      
+      for (const existingRole of existingRoles) {
+        if (!newRoleIds.includes(existingRole)) {
+           await client.query(`DELETE FROM pelayan_role WHERE pelayan_id = $1 AND role_id = $2`, [id, existingRole]);
+        }
+      }
+
+      for (const role of params.roles) {
+        if (existingRoles.includes(role.role_id)) {
+           await client.query(`
+             UPDATE pelayan_role 
+             SET tanggal_mulai = $1, status_role = $2
+             WHERE pelayan_id = $3 AND role_id = $4
+           `, [role.tanggal_mulai, role.status_role, id, role.role_id]);
+        } else {
+           await client.query(`
+             INSERT INTO pelayan_role (pelayan_id, role_id, tanggal_mulai, status_role)
+             VALUES ($1, $2, $3, $4)
+           `, [id, role.role_id, role.tanggal_mulai, role.status_role]);
+        }
+      }
+
+      const aksiUpdate = params.status_pelayan === 'Tidak Aktif' ? 'DEACTIVATE' : 'UPDATE';
+      await client.query(`
+        INSERT INTO pelayan_audit_log (pelayan_id, aksi, user_id, role_id, satelit_id, keterangan)
+        VALUES ($1, $2, $3, $4, $5, $6)
+      `, [
+        id, 
+        aksiUpdate,
+        params.user_id, 
+        params.user_role_id, 
+        params.satelit_id, 
+        params.status_pelayan === 'Tidak Aktif' ? 'Pelayan dinonaktifkan' : 'Mengupdate data pelayan'
+      ]);
+
+      await client.query('COMMIT');
+      return { success: true };
+    } catch (error: any) {
+      await client.query('ROLLBACK');
+      console.error('Error updating pelayan:', error.message);
       return { success: false, message: error.message };
     } finally {
       client.release();
