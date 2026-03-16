@@ -130,13 +130,32 @@ export default function DashboardLayout({
               </div>
               
               {userData?.is_super_admin && (
-                <div className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer">
-                  <div className="flex justify-start items-center gap-4">
-                    <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
-                      <span className="material-icons-round text-slate-300 text-[20px]">settings</span>
+                <div className="w-full">
+                  <div
+                    className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer"
+                    onMouseEnter={(e) => handleMouseEnterMenu('pengaturan_software', e)}
+                    onMouseLeave={handleMouseLeaveMenu}
+                    onClick={() => toggleMobileMenu('pengaturan_software')}
+                  >
+                    <div className="flex justify-start items-center gap-4">
+                      <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
+                        <span className="material-icons-round text-slate-300 text-[20px]">settings</span>
+                      </div>
+                      <div className="flex flex-col justify-start items-start opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 w-auto md:w-0 md:group-hover:w-auto overflow-hidden whitespace-nowrap">
+                        <div className="h-5 justify-center text-slate-200 text-sm font-medium font-['Inter'] leading-5 pr-4">Pengaturan Software</div>
+                      </div>
                     </div>
-                    <div className="flex flex-col justify-start items-start opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 w-auto md:w-0 md:group-hover:w-auto overflow-hidden whitespace-nowrap">
-                      <div className="h-5 justify-center text-slate-200 text-sm font-medium font-['Inter'] leading-5 pr-4">Pengaturan Software</div>
+                    <div className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">
+                      <span className="material-icons-round text-slate-400 text-[16px]">chevron_right</span>
+                    </div>
+                  </div>
+                  {/* Mobile Accordion */}
+                  <div className={`md:hidden overflow-hidden transition-all duration-300 ${mobileExpandedMenus['pengaturan_software'] ? 'max-h-96 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
+                    <div className="pl-14 pr-4 py-2 flex flex-col gap-4">
+                      <span className="text-slate-300 text-sm font-medium hover:text-white transition-colors cursor-pointer block">Role &amp; Permission</span>
+                      <span className="text-slate-300 text-sm font-medium hover:text-white transition-colors cursor-pointer block">Satelit</span>
+                      <span className="text-slate-300 text-sm font-medium hover:text-white transition-colors cursor-pointer block">Master Data</span>
+                      <Link href="/dashboard/settings/audit-log" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Audit Log</Link>
                     </div>
                   </div>
                 </div>
@@ -355,6 +374,43 @@ export default function DashboardLayout({
 
           {/* React Portaled Submenus (Always Relative to Sidebar Top) */}
           <div className="hidden md:block absolute top-0 left-full w-0 h-0 z-[100]">
+            {activeSubmenu === 'pengaturan_software' && (
+              <div
+                className="absolute pl-2 animate-in fade-in zoom-in-95 duration-200"
+                style={{ top: submenuTop }}
+                onMouseEnter={() => { if (submenuTimeout.current) clearTimeout(submenuTimeout.current) }}
+                onMouseLeave={handleMouseLeaveMenu}
+              >
+                <div className="w-[500px] p-6 bg-white rounded-xl outline outline-1 outline-offset-[-1px] outline-slate-200 shadow-2xl flex flex-col justify-start items-start gap-4">
+                  <div className="self-stretch pb-2 border-b border-slate-100 flex flex-col justify-start items-start">
+                    <div className="justify-center text-slate-800 text-lg font-bold font-['Inter'] leading-7">Pengaturan Software</div>
+                  </div>
+                  <div className="self-stretch flex flex-wrap justify-start items-start gap-4">
+                    {/* Role & Permission */}
+                    <div className="w-[140px] h-32 p-4 bg-purple-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-purple-200 flex flex-col justify-center items-center cursor-pointer hover:bg-purple-100 transition-colors">
+                      <div className="pb-2"><span className="material-icons-round text-purple-600 text-[32px]">admin_panel_settings</span></div>
+                      <div className="text-center text-purple-900 text-sm font-bold font-['Inter'] leading-5">Role &amp; Permission</div>
+                    </div>
+                    {/* Satelit */}
+                    <div className="w-[140px] h-32 p-4 bg-sky-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-sky-200 flex flex-col justify-center items-center cursor-pointer hover:bg-sky-100 transition-colors">
+                      <div className="pb-2"><span className="material-icons-round text-sky-600 text-[32px]">church</span></div>
+                      <div className="text-center text-sky-900 text-sm font-bold font-['Inter'] leading-5">Satelit</div>
+                    </div>
+                    {/* Master Data */}
+                    <div className="w-[140px] h-32 p-4 bg-emerald-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-emerald-200 flex flex-col justify-center items-center cursor-pointer hover:bg-emerald-100 transition-colors">
+                      <div className="pb-2"><span className="material-icons-round text-emerald-600 text-[32px]">dataset</span></div>
+                      <div className="text-center text-emerald-900 text-sm font-bold font-['Inter'] leading-5">Master Data</div>
+                    </div>
+                    {/* Audit Log */}
+                    <Link href="/dashboard/settings/audit-log" onClick={() => setActiveSubmenu(null)} className="w-[140px] h-32 p-4 bg-amber-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-amber-200 flex flex-col justify-center items-center cursor-pointer hover:bg-amber-100 transition-colors block text-inherit no-underline">
+                      <div className="pb-2"><span className="material-icons-round text-amber-600 text-[32px]">history_edu</span></div>
+                      <div className="text-center text-amber-900 text-sm font-bold font-['Inter'] leading-5">Audit Log</div>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {activeSubmenu === 'manajemen_user' && (
               <div 
                 className="absolute pl-2 animate-in fade-in zoom-in-95 duration-200"
