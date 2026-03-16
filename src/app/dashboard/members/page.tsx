@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useLoader } from '@/components/ui/GlobalLoader';
 import Link from 'next/link';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
+import { AlertModal } from '@/components/ui/AlertModal';
 
 export default function MembersPage() {
   const { showLoader, hideLoader } = useLoader();
@@ -14,6 +15,13 @@ export default function MembersPage() {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [submitState, setSubmitState] = useState<{ status: 'idle'|'loading'|'success'|'error', message: string, errors?: any }>({ status: 'idle', message: '' });
+
+  // Alert Modal State
+  const [alertState, setAlertState] = useState<{ isOpen: boolean; id: number | null; newStatus: string }>({
+    isOpen: false,
+    id: null,
+    newStatus: ''
+  });
 
   // Authentication State
   const [userData, setUserData] = useState<any>(null);
@@ -116,9 +124,15 @@ export default function MembersPage() {
     fetchData();
   }, [debouncedSearch, filterSatelit, filterKomisi, filterStatusJemaat, filterStatusBaptis, filterGender, filterUmur, currentPage]);
 
-  const handleToggleStatus = async (id: number, currentStatus: string) => {
+  const handleToggleStatus = (id: number, currentStatus: string) => {
     const newStatus = currentStatus === 'Aktif' ? 'Tidak Aktif' : 'Aktif';
-    if (!confirm(`Apakah Anda yakin ingin mengubah status jemaat menjadi ${newStatus}?`)) return;
+    setAlertState({ isOpen: true, id, newStatus });
+  };
+
+  const confirmToggleStatus = async () => {
+    const { id, newStatus } = alertState;
+    if (!id) return;
+    setAlertState({ isOpen: false, id: null, newStatus: '' });
     
     try {
       setSubmitState({ status: 'loading', message: '' });
@@ -466,6 +480,14 @@ export default function MembersPage() {
           </div>
         </div>
       </div>
+
+      <AlertModal
+        isOpen={alertState.isOpen}
+        title="Konfirmasi Perubahan Status"
+        message={`Apakah Anda yakin ingin mengubah status jemaat menjadi ${alertState.newStatus}?`}
+        onConfirm={confirmToggleStatus}
+        onCancel={() => setAlertState({ isOpen: false, id: null, newStatus: '' })}
+      />
 
       <SubmitOverlay 
         status={submitState.status} 
