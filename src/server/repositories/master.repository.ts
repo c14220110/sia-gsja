@@ -36,10 +36,11 @@ export class MasterRepository {
 
   async searchJemaat(searchQuery: string): Promise<any[]> {
     const query = `
-      SELECT id, jemaat_id, nama_lengkap, jenis_kelamin
-      FROM jemaat
-      WHERE is_deleted = false AND nama_lengkap ILIKE $1
-      ORDER BY nama_lengkap ASC
+      SELECT j.id, j.jemaat_id, j.nama_lengkap, j.jenis_kelamin, j.foto_url, j.satelit_id, s.nama_satelit
+      FROM jemaat j
+      JOIN satelit s ON j.satelit_id = s.id
+      WHERE j.is_deleted = false AND j.nama_lengkap ILIKE $1
+      ORDER BY j.nama_lengkap ASC
       LIMIT 10;
     `;
     const result = await pool.query(query, [`%${searchQuery}%`]);

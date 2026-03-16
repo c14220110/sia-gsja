@@ -135,6 +135,93 @@ export class PelayanRepository {
     );
     return res.rowCount !== null && res.rowCount > 0;
   }
+
+  async createPelayan(params: {
+    jemaat_id:     number;
+    satelit_id:    number;
+    tanggal_mulai: string;
+    catatan?:      string;
+    roles:         { role_id: number; tanggal_mulai: string }[];
+    user_id:       number;
+    user_role_id:  number;
+  }): Promise<{ success: boolean; pelayan_id?: number; message?: string }> {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // 1. Get kode_satelit
+      const satelitRes = await client.query(`SELECT kode_satelit FROM satelit WHERE id = $1`, [params.satelit_id]);
+      if (satelitRes.rowCount === 0) {
+        throw new Error('Satelit tidak ditemukan');
+      }
+      const kode_satelit = satelitRes.rows[0].kode_satelit; // length up to 10? We need to extract digits or use it if it's 2 digits.
+      // Usually kode_satelit is something like '01' based on prompt: "2 digit dari kode_satelit di tabel satelit".
+      // We will assume kode_satelit is correct length or we substring it.
+      const kodeStr = String(kode_satelit).padStart(2, '0').substring(0, 2);
+
+      // 2. Generate ID Pelayan: P[kode_satelit][3 digit urut]
+      const prefix = `P${kodeStr}`;
+      const lastIdRes = await client.query(`
+        SELECT id_pelayanan FROM pelayan
+        WHERE id_pelayanan LIKE $1
+        ORDER BY id_pelayanan DESC
+        LIMIT 1
+      `, [`${prefix}%`]);
+
+      let urut = 0; // "start dari 000" means first is 000
+      if (lastIdRes.rowCount && lastIdRes.rowCount > 0) {
+        const lastId = lastIdRes.rows[0].id_pelayanan;
+        const lastUrutStr = lastId.substring(prefix.length);
+        const lastUrutNum = parseInt(lastUrutStr, 10);
+        if (!isNaN(lastUrutNum)) {
+          urut = lastUrutNum + 1;
+        }
+      }
+      const id_pelayanan = `${prefix}${String(urut).padStart(3, '0')}`;
+
+      // 3. Insert into pelayan
+      const insertPelayanRes = await client.query(`
+        INSERT INTO pelayan (id_pelayanan, jemaat_id, satelit_id, tanggal_mulai, catatan)
+        VALUES ($1, $2, $3, $4, $5)
+        RETURNING id
+      `, [id_pelayanan, params.jemaat_id, params.satelit_id, params.tanggal_mulai, params.catatan || null]);
+      
+      const pelayan_id = insertPelayanRes.rows[0].id;
+
+      // 4. Insert roles
+      for (const role of params.roles) {
+        await client.query(`
+          INSERT INTO pelayan_role (pelayan_id, role_id, tanggal_mulai)
+          VALUES ($1, $2, $3)
+        `, [pelayan_id, role.role_id, role.tanggal_mulai]);
+      }
+
+      // 5. Insert audit log
+      await client.query(`
+        INSERT INTO pelayan_audit_log (pelayan_id, aksi, user_id, role_id, satelit_id, keterangan)
+        VALUES ($1, 'CREATE', $2, $3, $4, $5)
+      `, [
+        pelayan_id,
+        params.user_id,
+        params.user_role_id,
+        params.satelit_id,
+        `Pelayan baru terdaftar dengan ID ${id_pelayanan}`
+      ]);
+
+      await client.query('COMMIT');
+      return { success: true, pelayan_id };
+
+    } catch (error: any) {
+      await client.query('ROLLBACK');
+      console.error('Error creating pelayan:', error.message);
+      if (error.code === '23505') { // unique violation
+        return { success: false, message: 'Jemaat ini mungkin sudah terdaftar sebagai pelayan (id_pelayanan duplikat) atau rolenya duplikat.' };
+      }
+      return { success: false, message: error.message };
+    } finally {
+      client.release();
+    }
+  }
 }
 
 export const pelayanRepository = new PelayanRepository();
