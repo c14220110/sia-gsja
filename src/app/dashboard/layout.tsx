@@ -119,7 +119,7 @@ export default function DashboardLayout({
           </div>
           {/* Normal Admin Menus */}
           {userData?.role_name?.toLowerCase() !== 'jemaat' && (
-            <nav className="flex-1 w-full overflow-y-auto overflow-x-visible p-4 pb-20 flex flex-col justify-start items-start gap-2 scrollbar-hide">
+            <nav className="flex-1 w-full overflow-y-auto overflow-x-hidden p-4 pb-20 flex flex-col justify-start items-start gap-2 scrollbar-hide">
               <div className="w-full px-4 py-3 rounded-lg flex justify-start items-center gap-4 hover:bg-white/5 cursor-pointer">
                 <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
                   <span className="material-icons-round text-slate-200 text-[20px]">dashboard</span>
@@ -268,7 +268,7 @@ export default function DashboardLayout({
 
           {/* Jemaat Menus */}
           {userData?.role_name?.toLowerCase() === 'jemaat' && (
-            <nav className="flex-1 w-full overflow-y-auto overflow-x-visible p-4 pb-20 flex flex-col justify-start items-start gap-2 scrollbar-hide">
+            <nav className="flex-1 w-full overflow-y-auto overflow-x-hidden p-4 pb-20 flex flex-col justify-start items-start gap-2 scrollbar-hide">
               <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)} className="w-full block text-inherit no-underline">
                 <div className="w-full px-4 py-3 rounded-lg flex justify-start items-center gap-4 hover:bg-white/5 cursor-pointer">
                   <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">

@@ -368,7 +368,9 @@ export default function MembersPage() {
             <span className="text-sm font-['Public_Sans']">Tidak ada data jemaat yang ditemukan.</span>
           </div>
         ) : (
-          data.map((jemaat, idx) => (
+          data.map((jemaat, idx) => {
+            const isLastRows = data.length > 2 && idx >= data.length - 2;
+            return (
             <div key={jemaat.id || idx} className={`w-full flex items-center px-6 py-4 border-b border-slate-100 hover:bg-slate-50 transition-colors relative ${openMenuId === jemaat.id ? 'z-50' : 'z-10'}`}>
               <div className="w-32 shrink-0 text-slate-500 text-sm font-['Liberation_Mono']">{jemaat.jemaat_id}</div>
               <div className="w-64 shrink-0 flex items-center gap-3">
@@ -403,7 +405,7 @@ export default function MembersPage() {
                  {openMenuId === jemaat.id && (
                    <>
                      <div className="fixed inset-0 z-40" onClick={() => setOpenMenuId(null)}></div>
-                     <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-[0_4px_20px_-4px_rgba(0,0,0,0.15)] border border-slate-200 z-50 py-1 overflow-visible">
+                     <div className={`absolute right-0 ${isLastRows ? 'bottom-full mb-1' : 'top-full mt-1'} w-48 bg-white rounded-lg shadow-[0_4px_20px_-4px_rgba(0,0,0,0.15)] border border-slate-200 z-50 py-1 overflow-visible`}>
                        <Link 
                          href={`/dashboard/members/${jemaat.id}?mode=view`}
                          className="w-full text-left px-4 py-2 hover:bg-slate-50 transition-colors flex items-center gap-3 text-sm text-slate-700 font-['Public_Sans']"
@@ -431,7 +433,8 @@ export default function MembersPage() {
                  )}
               </div>
             </div>
-          ))
+          );
+        })
         )}
           </div>
         </div>
