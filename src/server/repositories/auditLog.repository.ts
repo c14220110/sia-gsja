@@ -148,8 +148,12 @@ export class AuditLogRepository {
       JOIN satelit  s  ON al.satelit_id = s.id
     `;
 
-    // Without search complexity, use simpler query structure
-    const countQuery = `
+    const countQuery = search ? `
+      ${cte}
+      SELECT COUNT(*) AS count
+      ${baseFrom}
+      WHERE ${where.replace(/al\./g, 'al_wrapped.')}
+    ` : `
       SELECT COUNT(*) AS count
       FROM jemaat_audit_log al
       JOIN jemaat   j  ON al.jemaat_id  = j.id
@@ -160,7 +164,14 @@ export class AuditLogRepository {
       WHERE ${where}
     `;
 
-    const dataQuery = `
+    const dataQuery = search ? `
+      ${cte}
+      SELECT *
+      ${baseFrom}
+      WHERE ${where.replace(/al\./g, 'al_wrapped.')}
+      ORDER BY created_at DESC
+      LIMIT $${nextIdx} OFFSET $${nextIdx + 1}
+    ` : `
       SELECT
         al.id,
         al.jemaat_id               AS entity_id,
@@ -199,26 +210,69 @@ export class AuditLogRepository {
   // ── GET PELAYAN AUDIT LOG ─────────────────────────────────────────────────
 
   async getPelayanAuditLogs(params: GetAuditLogParams): Promise<{ data: AuditLogEntry[]; total: number }> {
-    const { limit = 15, offset = 0 } = params;
+    const { limit = 15, offset = 0, search } = params;
     const { conditions, values, nextIdx } = this.buildConditions(params, 'pelayan');
     const where = conditions.join(' AND ');
 
-    const countQuery = `
-      SELECT COUNT(*) AS count
+    const cte = search ? `
+      WITH log_data AS (
+        SELECT
+          al.id,
+          al.pelayan_id              AS entity_id,
+          j.nama_lengkap             AS nama_entity,
+          j.nama_lengkap             AS entity_name_search,
+          al.aksi,
+          al.user_id,
+          COALESCE(j2.nama_lengkap, p.email) AS nama_pelaksana,
+          al.role_id,
+          r.nama_role,
+          al.satelit_id,
+          s.nama_satelit,
+          al.keterangan,
+          al.created_at
+        FROM pelayan_audit_log al
+        JOIN pelayan  pl ON al.pelayan_id  = pl.id
+        JOIN jemaat   j  ON pl.jemaat_id   = j.id
+        JOIN pengguna p  ON al.user_id     = p.id
+        LEFT JOIN jemaat j2 ON p.jemaat_id = j2.id
+        JOIN role     r  ON al.role_id     = r.id
+        JOIN satelit  s  ON al.satelit_id  = s.id
+      )
+    ` : '';
+
+    const baseFrom = search ? `FROM log_data al_wrapped` : `
       FROM pelayan_audit_log al
       JOIN pelayan  pl ON al.pelayan_id  = pl.id
+      JOIN jemaat   j  ON pl.jemaat_id   = j.id
       JOIN pengguna p  ON al.user_id     = p.id
       LEFT JOIN jemaat j2 ON p.jemaat_id = j2.id
       JOIN role     r  ON al.role_id     = r.id
       JOIN satelit  s  ON al.satelit_id  = s.id
+    `;
+
+    const countQuery = search ? `
+      ${cte}
+      SELECT COUNT(*) AS count
+      ${baseFrom}
+      WHERE ${where.replace(/al\./g, 'al_wrapped.')}
+    ` : `
+      SELECT COUNT(*) AS count
+      ${baseFrom}
       WHERE ${where}
     `;
 
-    const dataQuery = `
+    const dataQuery = search ? `
+      ${cte}
+      SELECT *
+      ${baseFrom}
+      WHERE ${where.replace(/al\./g, 'al_wrapped.')}
+      ORDER BY created_at DESC
+      LIMIT $${nextIdx} OFFSET $${nextIdx + 1}
+    ` : `
       SELECT
         al.id,
         al.pelayan_id              AS entity_id,
-        COALESCE(j.nama_lengkap, pl.nama_pelayan) AS nama_entity,
+        j.nama_lengkap             AS nama_entity,
         al.aksi,
         al.user_id,
         COALESCE(j2.nama_lengkap, p.email) AS nama_pelaksana,
@@ -228,13 +282,7 @@ export class AuditLogRepository {
         s.nama_satelit,
         al.keterangan,
         al.created_at
-      FROM pelayan_audit_log al
-      JOIN pelayan  pl ON al.pelayan_id  = pl.id
-      LEFT JOIN jemaat j  ON pl.jemaat_id = j.id
-      JOIN pengguna p  ON al.user_id     = p.id
-      LEFT JOIN jemaat j2 ON p.jemaat_id  = j2.id
-      JOIN role     r  ON al.role_id     = r.id
-      JOIN satelit  s  ON al.satelit_id  = s.id
+      ${baseFrom}
       WHERE ${where}
       ORDER BY al.created_at DESC
       LIMIT $${nextIdx} OFFSET $${nextIdx + 1}
