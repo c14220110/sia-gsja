@@ -349,7 +349,7 @@ export default function MembersPage() {
 
       {/* Data Table */}
       <div className="w-full bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col relative z-0">
-        <div className="w-full overflow-x-auto pb-4">
+        <div className="w-full overflow-visible pb-16">
           <div className="min-w-[1050px] flex flex-col">
             {/* Table Header */}
             <div className="w-full bg-slate-50 border-b border-slate-200 flex items-center px-6 py-4">
@@ -362,15 +362,16 @@ export default function MembersPage() {
             </div>
 
         {/* Table Body */}
-        {data.length === 0 ? (
-          <div className="w-full py-12 flex flex-col items-center justify-center text-slate-500">
-            <span className="material-icons-round text-5xl mb-2 text-slate-300">search_off</span>
-            <span className="text-sm font-['Public_Sans']">Tidak ada data jemaat yang ditemukan.</span>
-          </div>
-        ) : (
-          data.map((jemaat, idx) => {
-            const isLastRows = data.length > 2 && idx >= data.length - 2;
-            return (
+        <div className="min-h-64">
+          {data.length === 0 ? (
+            <div className="w-full py-12 flex flex-col items-center justify-center text-slate-500">
+              <span className="material-icons-round text-5xl mb-2 text-slate-300">search_off</span>
+              <span className="text-sm font-['Public_Sans']">Tidak ada data jemaat yang ditemukan.</span>
+            </div>
+          ) : (
+            data.map((jemaat, idx) => {
+              const isLastRows = data.length > 2 && idx >= data.length - 2;
+              return (
             <div key={jemaat.id || idx} className={`w-full flex items-center px-6 py-4 border-b border-slate-100 hover:bg-slate-50 transition-colors relative ${openMenuId === jemaat.id ? 'z-50' : 'z-10'}`}>
               <div className="w-32 shrink-0 text-slate-500 text-sm font-['Liberation_Mono']">{jemaat.jemaat_id}</div>
               <div className="w-64 shrink-0 flex items-center gap-3">
@@ -431,16 +432,17 @@ export default function MembersPage() {
                      </div>
                    </>
                  )}
+                </div>
               </div>
-            </div>
-          );
-        })
+            );
+          })
         )}
-          </div>
         </div>
+      </div>
+    </div>
 
-        {/* Pagination Footer */}
-        <div className="w-full px-6 py-4 bg-white border-t border-slate-200 flex flex-col md:flex-row justify-between items-center text-sm gap-4">
+    {/* Pagination Footer */}
+    <div className="w-full px-6 py-4 bg-white border-t border-slate-200 flex flex-col md:flex-row justify-between items-center text-sm gap-4">
           <span className="text-slate-500 font-['Public_Sans']">
             Menampilkan {data.length > 0 ? ((currentPage - 1) * limit) + 1 : 0}-
             {Math.min(currentPage * limit, totalItems)} dari {totalItems} jemaat

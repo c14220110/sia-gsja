@@ -373,12 +373,13 @@ export default function PelayanPage() {
             </div>
 
             {/* Table Body */}
-            {data.length === 0 ? (
-              <div className="w-full py-12 flex flex-col items-center justify-center text-slate-500">
-                <span className="material-icons-round text-5xl mb-2 text-slate-300">search_off</span>
-                <span className="text-sm font-['Public_Sans']">Tidak ada data pelayan yang ditemukan.</span>
-              </div>
-            ) : (
+            <div className="min-h-64">
+              {data.length === 0 ? (
+                <div className="w-full py-12 flex flex-col items-center justify-center text-slate-500">
+                  <span className="material-icons-round text-5xl mb-2 text-slate-300">search_off</span>
+                  <span className="text-sm font-['Public_Sans']">Tidak ada data pelayan yang ditemukan.</span>
+                </div>
+              ) : (
               data.map((pelayan, idx) => {
                 const isLastRows = data.length > 2 && idx >= data.length - 2;
                 const roles: string[] = pelayan.roles ? pelayan.roles.split(' • ').filter(Boolean) : [];
@@ -470,6 +471,7 @@ export default function PelayanPage() {
                 );
               })
             )}
+            </div>
           </div>
         </div>
 
