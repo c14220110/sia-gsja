@@ -185,7 +185,7 @@ export default function DashboardLayout({
                   <div className={`md:hidden overflow-hidden transition-all duration-300 ${mobileExpandedMenus['manajemen_user'] ? 'max-h-96 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
                     <div className="pl-14 pr-4 py-2 flex flex-col gap-4">
                       <Link href="/dashboard/members" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Data Jemaat</Link>
-                      <span className="text-slate-300 text-sm font-medium hover:text-white transition-colors cursor-pointer block">Data Pelayan</span>
+                      <Link href="/dashboard/pelayan" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Data Pelayan</Link>
                       <span className="text-slate-300 text-sm font-medium hover:text-white transition-colors cursor-pointer block">Data Pengurus</span>
                     </div>
                   </div>
@@ -433,16 +433,16 @@ export default function DashboardLayout({
                         <div className="text-center justify-center text-pink-900 text-sm font-bold font-['Inter'] leading-5">Data Jemaat</div>
                       </div>
                     </Link>
-                    <div className="flex-1 h-32 p-4 bg-pink-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-pink-200 flex flex-col justify-center items-center cursor-pointer hover:bg-pink-100 transition-colors">
+                    <Link href="/dashboard/pelayan" onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-violet-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-violet-200 flex flex-col justify-center items-center cursor-pointer hover:bg-violet-100 transition-colors block text-inherit no-underline">
                       <div className="pb-2 flex flex-col justify-start items-start">
                         <div className="flex flex-col justify-start items-center">
-                          <span className="material-icons-round text-pink-600 text-[32px]">volunteer_activism</span>
+                          <span className="material-icons-round text-violet-600 text-[32px]">volunteer_activism</span>
                         </div>
                       </div>
                       <div className="flex flex-col justify-start items-center">
-                        <div className="text-center justify-center text-pink-900 text-sm font-bold font-['Inter'] leading-5">Data Pelayan</div>
+                        <div className="text-center justify-center text-violet-900 text-sm font-bold font-['Inter'] leading-5">Data Pelayan</div>
                       </div>
-                    </div>
+                    </Link>
                     <div className="flex-1 h-32 p-4 bg-pink-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-pink-200 flex flex-col justify-center items-center cursor-pointer hover:bg-pink-100 transition-colors">
                       <div className="pb-2 flex flex-col justify-start items-start">
                         <div className="flex flex-col justify-start items-center">

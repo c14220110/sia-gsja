@@ -23,6 +23,8 @@ export async function getOptionsController(request: Request) {
       data = await masterService.getDepartemenOptions();
     } else if (type === 'pekerjaan') {
       data = await masterService.getPekerjaanOptions();
+    } else if (type === 'role_pelayan') {
+      data = await masterService.getRolePelayanOptions();
     } else {
       return NextResponse.json({ success: false, message: 'Invalid type parameter' }, { status: 400 });
     }

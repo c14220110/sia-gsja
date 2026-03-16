@@ -44,3 +44,7 @@ export async function getDepartemenOptions(): Promise<any[]> {
 export async function getPekerjaanOptions(): Promise<any[]> {
   return await masterRepository.getAllPekerjaan();
 }
+
+export async function getRolePelayanOptions(): Promise<any[]> {
+  return await masterRepository.getAllRolePelayan();
+}

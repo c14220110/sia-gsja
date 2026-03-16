@@ -67,4 +67,14 @@ export class MasterRepository {
     const result = await pool.query(query);
     return result.rows;
   }
+
+  async getAllRolePelayan(): Promise<any[]> {
+    const query = `
+      SELECT id, nama_role
+      FROM role_pelayan
+      ORDER BY nama_role ASC;
+    `;
+    const result = await pool.query(query);
+    return result.rows;
+  }
 }
