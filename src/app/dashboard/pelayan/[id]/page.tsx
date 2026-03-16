@@ -163,7 +163,7 @@ export default function PelayanDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center p-12 gap-4">
         <span className="material-icons-round text-5xl text-slate-300">error_outline</span>
-        <p className="text-slate-500 font-['Public_Sans']">Data pelayan tidak ditemukan.</p>
+        <p className="text-slate-500 font-['Inter']">Data pelayan tidak ditemukan.</p>
         <Link href="/dashboard/pelayan" className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-semibold transition-colors">
           Kembali ke Daftar Pelayan
         </Link>
@@ -223,11 +223,11 @@ export default function PelayanDetailPage() {
               className="w-24 h-24 rounded-xl object-cover border border-slate-200 shrink-0" 
             />
           </div>
-          <div className="inline-flex flex-col justify-start items-start w-full relative">
+          <div className="inline-flex flex-col justify-start items-start relative w-fit mr-auto">
             <div className="text-slate-400 text-xs font-bold font-['Inter'] uppercase tracking-wider mb-1">Profile Jemaat Terhubung</div>
-            <div className="text-slate-900 text-xl font-bold font-['Public_Sans']">{pelayan.nama_lengkap}</div>
+            <div className="text-slate-900 text-2xl font-bold font-['Inter'] leading-8 mb-1">{pelayan.nama_lengkap}</div>
             
-            <div className="mt-3 flex items-center gap-4 text-sm font-medium text-slate-600 bg-slate-50 border border-slate-200 p-3 rounded-lg w-full relative overflow-hidden">
+            <div className="mt-3 inline-flex items-center gap-4 text-sm font-medium text-slate-600 bg-slate-50 border border-slate-200 p-3 rounded-lg w-fit relative overflow-hidden">
                <div className="flex flex-col">
                  <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider mb-0.5">ID Jemaat</span>
                  <span className="font-['Liberation_Mono'] text-slate-800">{pelayan.jemaat_nomor || '-'}</span>
@@ -235,12 +235,12 @@ export default function PelayanDetailPage() {
                <div className="w-px h-8 bg-slate-200"></div>
                <div className="flex flex-col">
                  <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider mb-0.5">Satelit</span>
-                 <span className="font-['Public_Sans'] font-semibold text-slate-800">{pelayan.nama_satelit || '-'}</span>
+                 <span className="font-['Inter'] font-semibold text-slate-800">{pelayan.nama_satelit || '-'}</span>
                </div>
                <div className="w-px h-8 bg-slate-200"></div>
                <div className="flex flex-col">
                  <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider mb-0.5">Status Pelayan</span>
-                 <span className={`font-['Public_Sans'] text-xs font-bold uppercase rounded-full px-2 py-0.5 block w-fit \${pelayan.status_pelayan === 'Aktif' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                 <span className={`font-['Inter'] text-xs font-bold uppercase rounded-full px-2 py-0.5 block w-fit \${pelayan.status_pelayan === 'Aktif' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
                    {pelayan.status_pelayan}
                  </span>
                </div>
