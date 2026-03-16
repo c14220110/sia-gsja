@@ -348,8 +348,8 @@ export default function MembersPage() {
       )}
 
       {/* Data Table */}
-      <div className="w-full bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden">
-        <div className="w-full overflow-x-auto">
+      <div className="w-full bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col relative z-0">
+        <div className="w-full overflow-x-auto pb-4">
           <div className="min-w-[1050px] flex flex-col">
             {/* Table Header */}
             <div className="w-full bg-slate-50 border-b border-slate-200 flex items-center px-6 py-4">
@@ -369,7 +369,7 @@ export default function MembersPage() {
           </div>
         ) : (
           data.map((jemaat, idx) => (
-            <div key={jemaat.id || idx} className="w-full flex items-center px-6 py-4 border-b border-slate-100 hover:bg-slate-50 transition-colors">
+            <div key={jemaat.id || idx} className={`w-full flex items-center px-6 py-4 border-b border-slate-100 hover:bg-slate-50 transition-colors relative ${openMenuId === jemaat.id ? 'z-50' : 'z-10'}`}>
               <div className="w-32 shrink-0 text-slate-500 text-sm font-['Liberation_Mono']">{jemaat.jemaat_id}</div>
               <div className="w-64 shrink-0 flex items-center gap-3">
                 <img className="w-9 h-9 rounded-full object-cover border border-slate-200" src={jemaat.foto_url || `https://ui-avatars.com/api/?name=${jemaat.nama_lengkap}&background=random`} alt="avatar" />
@@ -402,8 +402,8 @@ export default function MembersPage() {
 
                  {openMenuId === jemaat.id && (
                    <>
-                     <div className="fixed inset-0 z-10" onClick={() => setOpenMenuId(null)}></div>
-                     <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] border border-slate-200 z-20 py-1 overflow-hidden">
+                     <div className="fixed inset-0 z-40" onClick={() => setOpenMenuId(null)}></div>
+                     <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-[0_4px_20px_-4px_rgba(0,0,0,0.15)] border border-slate-200 z-50 py-1 overflow-visible">
                        <Link 
                          href={`/dashboard/members/${jemaat.id}?mode=view`}
                          className="w-full text-left px-4 py-2 hover:bg-slate-50 transition-colors flex items-center gap-3 text-sm text-slate-700 font-['Public_Sans']"
