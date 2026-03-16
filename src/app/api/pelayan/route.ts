@@ -24,11 +24,11 @@ export async function GET(request: NextRequest) {
       success: true,
       data:    result.data,
       meta: {
-        total:        result.total,
-        pelayan_baru: result.pelayan_baru,
-        total_role:   result.total_role,
-        limit:        params.limit,
-        offset:       params.offset,
+        total:            result.total,
+        pelayan_baru:     result.pelayan_baru,
+        pelayan_nonaktif: result.pelayan_nonaktif,
+        limit:            params.limit,
+        offset:           params.offset,
       },
     });
   } catch (error) {

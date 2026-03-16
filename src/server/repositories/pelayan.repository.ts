@@ -17,7 +17,7 @@ export class PelayanRepository {
     data: any[];
     total: number;
     pelayan_baru: number;
-    total_role: number;
+    pelayan_nonaktif: number;
   }> {
     const {
       search,
@@ -103,15 +103,15 @@ export class PelayanRepository {
         SELECT COUNT(*) AS count FROM pelayan p
         WHERE DATE_TRUNC('month', p.created_at) = DATE_TRUNC('month', NOW())
       `),
-      // Total role pelayanan aktif
-      pool.query(`SELECT COUNT(*) AS count FROM role_pelayan`),
+      // Total pelayan nonaktif
+      pool.query(`SELECT COUNT(*) AS count FROM pelayan WHERE status_pelayan != 'Aktif'`),
     ]);
 
     return {
-      data:         dataRes.rows,
-      total:        parseInt(countRes.rows[0].count, 10),
-      pelayan_baru: parseInt(newRes.rows[0].count, 10),
-      total_role:   parseInt(roleRes.rows[0].count, 10),
+      data:             dataRes.rows,
+      total:            parseInt(countRes.rows[0].count, 10),
+      pelayan_baru:     parseInt(newRes.rows[0].count, 10),
+      pelayan_nonaktif: parseInt(roleRes.rows[0].count, 10),
     };
   }
 
