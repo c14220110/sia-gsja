@@ -456,13 +456,6 @@ export default function PelayanPage() {
                                 <span className="material-icons-round text-[18px] text-emerald-400">person_add</span> Aktifkan
                               </button>
                             )}
-                            <div className="w-full h-px bg-slate-100 my-1"></div>
-                            <Link
-                              href={`/dashboard/settings/audit-log?log_type=pelayan&entity_id=${pelayan.id}`}
-                              className="w-full text-left px-4 py-2 hover:bg-slate-50 transition-colors flex items-center gap-3 text-sm text-slate-700 font-['Public_Sans']"
-                            >
-                              <span className="material-icons-round text-[18px] text-slate-400">history_edu</span> Lihat Audit Log
-                            </Link>
                           </div>
                         </>
                       )}

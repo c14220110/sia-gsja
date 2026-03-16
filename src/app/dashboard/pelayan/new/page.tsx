@@ -262,7 +262,7 @@ export default function NewPelayanPage() {
               )}
             </div>
           </div>
-          <div className="inline-flex flex-col justify-start items-start w-full relative">
+          <div className="inline-flex flex-col justify-start items-start relative w-full md:w-fit mr-auto">
             <JemaatAutocomplete
               label="Cari Jemaat (Nama)"
               valueName={jemaatSearchQuery}
@@ -273,7 +273,7 @@ export default function NewPelayanPage() {
               }}
             />
             {selectedJemaat && (
-              <div className="mt-3 flex items-center gap-4 text-sm font-medium text-slate-600 bg-slate-50 border border-slate-200 p-3 rounded-lg w-full relative overflow-hidden animate-in fade-in slide-in-from-top-2">
+              <div className="mt-3 inline-flex items-center gap-4 text-sm font-medium text-slate-600 bg-slate-50 border border-slate-200 p-3 rounded-lg w-fit relative overflow-hidden animate-in fade-in slide-in-from-top-2">
                  <div className="flex flex-col">
                    <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider mb-0.5">ID Jemaat</span>
                    <span className="font-['Liberation_Mono'] text-slate-800">{selectedJemaat.jemaat_id}</span>
@@ -281,7 +281,7 @@ export default function NewPelayanPage() {
                  <div className="w-px h-8 bg-slate-200"></div>
                  <div className="flex flex-col">
                    <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider mb-0.5">Satelit Terdaftar</span>
-                   <span className="font-['Public_Sans'] font-semibold text-slate-800">{selectedJemaat.nama_satelit || '-'}</span>
+                   <span className="font-['Inter'] font-semibold text-slate-800">{selectedJemaat.nama_satelit || '-'}</span>
                  </div>
               </div>
             )}
