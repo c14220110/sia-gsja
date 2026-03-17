@@ -127,6 +127,7 @@ export class PengurusRepository {
     komisi_id: number | null;
     departemen_id: number | null;
     periode_id: number;
+    tanggal_mulai: string;
     jalur_pengangkatan: string;
     catatan?: string;
     user_id: number;
@@ -173,9 +174,9 @@ export class PengurusRepository {
       }
 
       await client.query(`
-        INSERT INTO detail_kepengurusan (pengurus_id, jabatan_id, lingkup, komisi_id, departemen_id, periode_id, jalur_pengangkatan, catatan, status_jabatan)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'Aktif')
-      `, [pengurus_id, params.jabatan_id, params.lingkup, params.komisi_id, params.departemen_id, params.periode_id, params.jalur_pengangkatan, params.catatan || null]);
+        INSERT INTO detail_kepengurusan (pengurus_id, jabatan_id, lingkup, komisi_id, departemen_id, periode_id, tanggal_mulai, jalur_pengangkatan, catatan, status_jabatan)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'Aktif')
+      `, [pengurus_id, params.jabatan_id, params.lingkup, params.komisi_id, params.departemen_id, params.periode_id, params.tanggal_mulai, params.jalur_pengangkatan, params.catatan || null]);
 
       await client.query(`
         INSERT INTO pengurus_audit_log (pengurus_id, aksi, user_id, role_id, satelit_id, keterangan)

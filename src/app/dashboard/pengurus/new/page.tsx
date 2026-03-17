@@ -116,6 +116,7 @@ export default function NewPengurusPage() {
   const [periodeOptions, setPeriodeOptions] = useState<any[]>([]);
   const [komisiOptions, setKomisiOptions] = useState<any[]>([]);
   const [departemenOptions, setDepartemenOptions] = useState<any[]>([]);
+  const [satelitOptions, setSatelitOptions] = useState<any[]>([]);
 
   // Selected Jemaat state
   const [selectedJemaat, setSelectedJemaat] = useState<any>(null);
@@ -124,32 +125,44 @@ export default function NewPengurusPage() {
   // Form State
   const [formData, setFormData] = useState({
     jabatan_id: '',
-    lingkup: 'Satelit' as 'Satelit' | 'Komisi' | 'Departemen',
+    lingkup: 'Satelit' as 'Pusat' | 'Satelit' | 'Komisi' | 'Departemen',
+    lokasi_satelit_id: '', // for overriding jemaat's default satelit if needed
     komisi_id: '',
     departemen_id: '',
     periode_id: '',
+    tanggal_mulai: '',
     jalur_pengangkatan: 'Penunjukan' as 'Penunjukan' | 'Pemilihan',
     catatan: '',
   });
 
   useEffect(() => {
+    // When a Jemaat is selected, default lokasinya ke satelit di mana dia terdaftar (jika ada)
+    if (selectedJemaat && selectedJemaat.satelit_id) {
+      setFormData(prev => ({ ...prev, lokasi_satelit_id: selectedJemaat.satelit_id.toString() }));
+    }
+  }, [selectedJemaat]);
+
+  useEffect(() => {
     const fetchOptions = async () => {
       try {
-        const [resJab, resPer, resKom, resDep] = await Promise.all([
+        const [resJab, resPer, resKom, resDep, resSat] = await Promise.all([
           fetch('/api/options?type=jabatan'),
           fetch('/api/options?type=periode_kepengurusan'),
           fetch('/api/options?type=komisi'),
-          fetch('/api/options?type=departemen')
+          fetch('/api/options?type=departemen'),
+          fetch('/api/options?type=satelit')
         ]);
         const jabData = await resJab.json();
         const perData = await resPer.json();
         const komData = await resKom.json();
         const depData = await resDep.json();
+        const satData = await resSat.json();
 
         if (jabData.success) setJabatanOptions(jabData.data);
         if (perData.success) setPeriodeOptions(perData.data);
         if (komData.success) setKomisiOptions(komData.data);
         if (depData.success) setDepartemenOptions(depData.data);
+        if (satData.success) setSatelitOptions(satData.data);
       } catch (error) {
         console.error('Failed to fetch options', error);
       }
@@ -181,6 +194,16 @@ export default function NewPengurusPage() {
       alert('Periode kepengurusan harus dipilih');
       return;
     }
+    if (!formData.tanggal_mulai) {
+      alert('Tanggal Mulai Menjabat harus diisi');
+      return;
+    }
+
+    if (formData.lingkup !== 'Pusat' && !formData.lokasi_satelit_id) {
+      alert('Lokasi Satelit harus dipilih');
+      return;
+    }
+
     if (formData.lingkup === 'Komisi' && !formData.komisi_id) {
       alert('Komisi harus dipilih untuk lingkup komisi');
       return;
@@ -194,14 +217,21 @@ export default function NewPengurusPage() {
       setIsSubmitting(true);
       setSubmitState({ status: 'loading', message: '' });
 
+      // Identify pusat_id from options or fallback to 1 (usually Eben Haezer)
+      const pusatSatelit = satelitOptions.find(s => s.nama_satelit.toLowerCase().includes('pusat') || s.nama_satelit.toLowerCase().includes('eben'));
+      const finalSatelitId = formData.lingkup === 'Pusat' 
+        ? (pusatSatelit ? pusatSatelit.id : 1) 
+        : parseInt(formData.lokasi_satelit_id, 10);
+
       const payload = {
         jemaat_id: selectedJemaat.id,
-        satelit_id: selectedJemaat.satelit_id,
+        satelit_id: finalSatelitId, // The satelit where the jabatan is held
         jabatan_id: formData.jabatan_id,
         lingkup: formData.lingkup,
         komisi_id: formData.komisi_id || null,
         departemen_id: formData.departemen_id || null,
         periode_id: formData.periode_id,
+        tanggal_mulai: formData.tanggal_mulai,
         jalur_pengangkatan: formData.jalur_pengangkatan,
         catatan: formData.catatan,
       };
@@ -344,6 +374,19 @@ export default function NewPengurusPage() {
                   </select>
                 </div>
                 <div className="flex-1 flex-col gap-1 flex">
+                  <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Tanggal Mulai Menjabat</label>
+                  <input 
+                    type="date" 
+                    name="tanggal_mulai" 
+                    value={formData.tanggal_mulai} 
+                    onChange={handleInputChange} 
+                    className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" 
+                  />
+                </div>
+              </div>
+
+              <div className="w-full flex-col gap-4 flex lg:flex-row">
+                <div className="flex-1 flex-col gap-1 flex">
                   <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Jalur Pengangkatan</label>
                   <select 
                     name="jalur_pengangkatan" 
@@ -399,12 +442,37 @@ export default function NewPengurusPage() {
                     onChange={handleInputChange} 
                     className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-['Inter'] w-full transition-all cursor-pointer"
                   >
+                    <option value="Pusat">Pusat (Umum / Majelis)</option>
                     <option value="Satelit">Satelit (Umum)</option>
-                    <option value="Komisi">Satelit - Komisi</option>
-                    <option value="Departemen">Satelit - Departemen</option>
+                    <option value="Komisi">Komisi</option>
+                    <option value="Departemen">Departemen</option>
                   </select>
                 </div>
                 
+                {formData.lingkup === 'Pusat' && (
+                  <div className="w-full py-4 px-4 text-emerald-600 bg-emerald-50/50 rounded-lg border border-dashed border-emerald-200 flex items-start gap-3">
+                    <span className="material-icons-round text-[20px] opacity-70 mt-0.5">verified</span>
+                    <span className="text-sm font-['Inter'] leading-5 font-medium">Pengurus ini akan didaftarkan di tingkat Pusat/Majelis (Eben Haezer).</span>
+                  </div>
+                )}
+
+                {formData.lingkup !== 'Pusat' && (
+                  <div className="w-full flex-col gap-1 flex items-start animate-in fade-in slide-in-from-top-1">
+                    <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Pilih Lokasi Satelit</label>
+                    <select 
+                      name="lokasi_satelit_id" 
+                      value={formData.lokasi_satelit_id} 
+                      onChange={handleInputChange} 
+                      className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 text-slate-900 text-sm font-['Inter'] w-full transition-all cursor-pointer font-medium"
+                    >
+                      <option value="">-- Pilih Satelit Penugasan --</option>
+                      {satelitOptions.map(s => (
+                        <option key={s.id} value={s.id}>{s.nama_satelit}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 {formData.lingkup === 'Komisi' && (
                   <div className="w-full flex-col gap-1 flex items-start animate-in fade-in slide-in-from-top-1">
                     <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Pilih Komisi</label>
@@ -436,13 +504,6 @@ export default function NewPengurusPage() {
                         <option key={d.id} value={d.id}>{d.nama_departemen}</option>
                       ))}
                     </select>
-                  </div>
-                )}
-                
-                {formData.lingkup === 'Satelit' && (
-                  <div className="w-full py-4 px-4 text-slate-500 bg-slate-50/50 rounded-lg border border-dashed border-slate-300 flex items-start gap-3">
-                    <span className="material-icons-round text-[20px] opacity-70">info</span>
-                    <span className="text-sm font-['Inter'] leading-5">Pengurus ini akan didaftarkan sebagai Pengurus Umum di tingkat Satelit (tanpa spesifikasi Komisi atau Departemen).</span>
                   </div>
                 )}
               </div>

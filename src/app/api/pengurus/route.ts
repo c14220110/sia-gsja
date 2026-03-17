@@ -55,11 +55,12 @@ export async function POST(request: NextRequest) {
       komisi_id, 
       departemen_id, 
       periode_id, 
+      tanggal_mulai,
       jalur_pengangkatan, 
       catatan 
     } = body;
 
-    if (!jemaat_id || !satelit_id || !jabatan_id || !lingkup || !periode_id || !jalur_pengangkatan) {
+    if (!jemaat_id || !satelit_id || !jabatan_id || !lingkup || !periode_id || !tanggal_mulai || !jalur_pengangkatan) {
       return NextResponse.json({ success: false, message: 'Harap lengkapi semua field utama form pengurus' }, { status: 400 });
     }
 
@@ -71,6 +72,7 @@ export async function POST(request: NextRequest) {
       komisi_id: komisi_id ? parseInt(komisi_id, 10) : null,
       departemen_id: departemen_id ? parseInt(departemen_id, 10) : null,
       periode_id: parseInt(periode_id, 10),
+      tanggal_mulai,
       jalur_pengangkatan,
       catatan,
       user_id: caller.user_id,
