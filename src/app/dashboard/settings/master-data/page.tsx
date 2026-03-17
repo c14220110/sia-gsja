@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useLoader } from '@/components/ui/GlobalLoader';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
 import { AlertModal } from '@/components/ui/AlertModal';
@@ -284,18 +284,11 @@ function ActionMenu({
 }) {
   const [open, setOpen] = useState(false);
 
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => setOpen(false);
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [open]);
-
   const hasActions = tab.hasToggle || tab.hasDel;
   if (!hasActions) return null;
 
   return (
-    <div className="relative" onMouseDown={e => e.stopPropagation()}>
+    <div className="relative">
       <button
         onClick={() => setOpen(v => !v)}
         className="hover:text-slate-700 hover:bg-slate-100 p-1.5 rounded transition-colors text-slate-400"
@@ -306,11 +299,11 @@ function ActionMenu({
 
       {open && (
         <>
-          {/* Invisible overlay closes menu (same z as dropdown) */}
-          <div className="fixed inset-0 z-[150]" onClick={() => setOpen(false)} />
-          {/* Dropdown — flips UP for bottom rows, DOWN otherwise */}
+          {/* Backdrop — uses onClick (not mousedown) so button handlers fire first */}
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          {/* Dropdown — above backdrop, flips UP for last 2 rows */}
           <div
-            className={`absolute right-0 z-[160] w-48 bg-white rounded-lg shadow-[0_4px_20px_-4px_rgba(0,0,0,0.18)] border border-slate-200 py-1 overflow-visible
+            className={`absolute right-0 z-50 w-48 bg-white rounded-lg shadow-[0_4px_20px_-4px_rgba(0,0,0,0.18)] border border-slate-200 py-1
               ${isLastRows ? 'bottom-full mb-1' : 'top-full mt-1'}`}
           >
             {/* Edit */}
