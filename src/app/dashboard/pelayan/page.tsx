@@ -372,8 +372,8 @@ export default function PelayanPage() {
 
       {/* Data Table */}
       <div className="w-full bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col relative z-0">
-        <div className="w-full overflow-visible pb-16">
-          <div className="min-w-[1200px] flex flex-col">
+        <div className="w-full overflow-x-auto pb-4">
+          <div className="min-w-[1100px] flex flex-col">
             {/* Table Header */}
             <div className="w-full bg-slate-50 border-b border-slate-200 flex items-center px-6 py-4">
               <div className="w-32 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">ID Pelayanan</div>

@@ -363,7 +363,7 @@ export default function MembersPage() {
 
       {/* Data Table */}
       <div className="w-full bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col relative z-0">
-        <div className="w-full overflow-visible pb-16">
+        <div className="w-full overflow-x-auto pb-4">
           <div className="min-w-[1050px] flex flex-col">
             {/* Table Header */}
             <div className="w-full bg-slate-50 border-b border-slate-200 flex items-center px-6 py-4">
