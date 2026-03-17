@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useLoader } from '@/components/ui/GlobalLoader';
 
 type AuditAction = 'CREATE' | 'UPDATE' | 'DEACTIVATE';
 type LogType = 'jemaat' | 'pelayan' | 'pengurus';
@@ -34,6 +35,7 @@ const LOG_TYPE_CONFIG: Record<LogType, { label: string; icon: string; entityLabe
 };
 
 export default function AuditLogPage() {
+  const { showLoader, hideLoader } = useLoader();
   const [data,        setData]        = useState<AuditLogEntry[]>([]);
   const [total,       setTotal]       = useState(0);
   const [loading,     setLoading]     = useState(true);
@@ -50,6 +52,7 @@ export default function AuditLogPage() {
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
+    showLoader();
     try {
       const params = new URLSearchParams({
         log_type: logType,
@@ -74,6 +77,7 @@ export default function AuditLogPage() {
       console.error('[AuditLog] fetch error:', err);
     } finally {
       setLoading(false);
+      hideLoader();
     }
   }, [currentPage, logType, filterAksi, dateFrom, dateTo, search]);
 

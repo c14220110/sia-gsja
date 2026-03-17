@@ -1,6 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useLoader } from '@/components/ui/GlobalLoader';
+import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
+import { AlertModal } from '@/components/ui/AlertModal';
 
 /* ── Tab Config ─────────────────────────────────────────────────────────────── */
 type TabKey =
@@ -12,24 +15,18 @@ interface TabConfig {
   label:      string;
   icon:       string;
   group:      string;
-  groupColor: string; // Tailwind base color name
+  groupColor: string;
   columns:    { key: string; label: string; width?: string }[];
   formFields: { key: string; label: string; type?: string; optionsKey?: string; optional?: boolean }[];
-  hasToggle?: boolean;
-  hasDel?:    boolean;
+  hasToggle?: boolean; // data has is_active, can be toggled
+  hasDel?:    boolean; // data can be hard-deleted
 }
 
 const TABS: Record<TabKey, TabConfig> = {
   wilayah: {
     label: 'Wilayah', icon: 'map', group: 'Organisasi & Lokasi', groupColor: 'sky',
-    columns: [
-      { key: 'kode_wilayah', label: 'Kode', width: 'w-28' },
-      { key: 'nama_wilayah', label: 'Nama Wilayah' },
-    ],
-    formFields: [
-      { key: 'kode_wilayah', label: 'Kode Wilayah (mis: W01)' },
-      { key: 'nama_wilayah', label: 'Nama Wilayah' },
-    ],
+    columns: [{ key: 'kode_wilayah', label: 'Kode', width: 'w-28' }, { key: 'nama_wilayah', label: 'Nama Wilayah' }],
+    formFields: [{ key: 'kode_wilayah', label: 'Kode Wilayah (mis: W01)' }, { key: 'nama_wilayah', label: 'Nama Wilayah' }],
     hasDel: true,
   },
   satelit: {
@@ -53,10 +50,7 @@ const TABS: Record<TabKey, TabConfig> = {
   },
   departemen: {
     label: 'Departemen', icon: 'business', group: 'Struktur Gereja', groupColor: 'violet',
-    columns: [
-      { key: 'nama_departemen', label: 'Nama Departemen' },
-      { key: 'is_active', label: 'Status', width: 'w-28' },
-    ],
+    columns: [{ key: 'nama_departemen', label: 'Nama Departemen' }, { key: 'is_active', label: 'Status', width: 'w-28' }],
     formFields: [{ key: 'nama_departemen', label: 'Nama Departemen' }],
     hasToggle: true,
   },
@@ -90,31 +84,19 @@ const TABS: Record<TabKey, TabConfig> = {
   },
   jabatan: {
     label: 'Jabatan', icon: 'badge', group: 'Parameter SDM', groupColor: 'emerald',
-    columns: [
-      { key: 'id', label: 'ID', width: 'w-16' },
-      { key: 'nama_jabatan', label: 'Nama Jabatan' },
-    ],
+    columns: [{ key: 'id', label: 'ID', width: 'w-16' }, { key: 'nama_jabatan', label: 'Nama Jabatan' }],
     formFields: [{ key: 'nama_jabatan', label: 'Nama Jabatan' }],
     hasDel: true,
   },
   role_pelayan: {
     label: 'Role Pelayan', icon: 'volunteer_activism', group: 'Parameter SDM', groupColor: 'emerald',
-    columns: [
-      { key: 'nama_role', label: 'Nama Role' },
-      { key: 'deskripsi', label: 'Deskripsi' },
-    ],
-    formFields: [
-      { key: 'nama_role', label: 'Nama Role' },
-      { key: 'deskripsi', label: 'Deskripsi', optional: true },
-    ],
+    columns: [{ key: 'nama_role', label: 'Nama Role' }, { key: 'deskripsi', label: 'Deskripsi' }],
+    formFields: [{ key: 'nama_role', label: 'Nama Role' }, { key: 'deskripsi', label: 'Deskripsi', optional: true }],
     hasDel: true,
   },
   pekerjaan_master: {
     label: 'Pekerjaan', icon: 'work', group: 'Atribut Jemaat', groupColor: 'amber',
-    columns: [
-      { key: 'nama_pekerjaan', label: 'Nama Pekerjaan' },
-      { key: 'is_active', label: 'Status', width: 'w-28' },
-    ],
+    columns: [{ key: 'nama_pekerjaan', label: 'Nama Pekerjaan' }, { key: 'is_active', label: 'Status', width: 'w-28' }],
     formFields: [{ key: 'nama_pekerjaan', label: 'Nama Pekerjaan' }],
     hasToggle: true,
   },
@@ -133,52 +115,62 @@ const TABS: Record<TabKey, TabConfig> = {
 };
 
 const GROUPS: { name: string; color: string; icon: string }[] = [
-  { name: 'Organisasi & Lokasi', color: 'sky',     icon: 'location_city' },
-  { name: 'Struktur Gereja',     color: 'violet',  icon: 'account_tree'  },
+  { name: 'Organisasi & Lokasi', color: 'sky',     icon: 'location_city'  },
+  { name: 'Struktur Gereja',     color: 'violet',  icon: 'account_tree'   },
   { name: 'Parameter SDM',       color: 'emerald', icon: 'manage_accounts' },
-  { name: 'Atribut Jemaat',      color: 'amber',   icon: 'person_pin'    },
-  { name: 'Parameter Kegiatan',  color: 'rose',    icon: 'event_note'    },
+  { name: 'Atribut Jemaat',      color: 'amber',   icon: 'person_pin'     },
+  { name: 'Parameter Kegiatan',  color: 'rose',    icon: 'event_note'     },
 ];
 
-const GROUP_STYLES: Record<string, { bg: string; text: string; activeBg: string; activeText: string; dot: string }> = {
-  sky:     { bg: 'bg-sky-50    hover:bg-sky-100',     text: 'text-sky-700',     activeBg: 'bg-sky-600',     activeText: 'text-white', dot: 'bg-sky-400'     },
-  violet:  { bg: 'bg-violet-50 hover:bg-violet-100',  text: 'text-violet-700',  activeBg: 'bg-violet-600',  activeText: 'text-white', dot: 'bg-violet-400'  },
-  emerald: { bg: 'bg-emerald-50 hover:bg-emerald-100',text: 'text-emerald-700', activeBg: 'bg-emerald-600', activeText: 'text-white', dot: 'bg-emerald-400' },
-  amber:   { bg: 'bg-amber-50  hover:bg-amber-100',   text: 'text-amber-700',   activeBg: 'bg-amber-500',   activeText: 'text-white', dot: 'bg-amber-400'   },
-  rose:    { bg: 'bg-rose-50   hover:bg-rose-100',    text: 'text-rose-700',    activeBg: 'bg-rose-600',    activeText: 'text-white', dot: 'bg-rose-400'    },
+const GROUP_STYLES: Record<string, { text: string; activeBg: string; activeBgHover: string }> = {
+  sky:     { text: 'text-sky-600',     activeBg: 'bg-sky-600',     activeBgHover: 'hover:bg-sky-700'     },
+  violet:  { text: 'text-violet-600',  activeBg: 'bg-violet-600',  activeBgHover: 'hover:bg-violet-700'  },
+  emerald: { text: 'text-emerald-600', activeBg: 'bg-emerald-600', activeBgHover: 'hover:bg-emerald-700' },
+  amber:   { text: 'text-amber-500',   activeBg: 'bg-amber-500',   activeBgHover: 'hover:bg-amber-600'   },
+  rose:    { text: 'text-rose-600',    activeBg: 'bg-rose-600',    activeBgHover: 'hover:bg-rose-700'    },
 };
 
 /* ── Add Modal ───────────────────────────────────────────────────────────────── */
 function AddModal({
-  tab, tabKey, onClose, onSuccess, selectOptions,
+  tab, tabKey, onClose, onSaved, selectOptions,
 }: {
   tab: TabConfig; tabKey: TabKey;
-  onClose: () => void; onSuccess: () => void;
+  onClose: () => void;
+  onSaved: (msg: string) => void;
   selectOptions: Record<string, { id: number; label: string }[]>;
 }) {
   const [form, setForm]       = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSub]  = useState(false);
   const [error, setError]     = useState('');
   const gs = GROUP_STYLES[tab.groupColor];
 
   const handleSubmit = async () => {
-    setLoading(true); setError('');
+    // Validate required fields
+    const missing = tab.formFields.filter(f => !f.optional && !form[f.key]?.trim());
+    if (missing.length > 0) {
+      setError(`Field wajib belum diisi: ${missing.map(f => f.label).join(', ')}`);
+      return;
+    }
+    setSub(true); setError('');
     try {
       const res = await fetch('/api/master-data', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ table: tabKey, data: form }),
       });
       const json = await res.json();
-      if (json.success) { onSuccess(); onClose(); }
-      else setError(json.message || 'Gagal menyimpan data');
+      if (json.success) {
+        onSaved(`${tab.label} berhasil ditambahkan!`);
+        onClose();
+      } else {
+        setError(json.message || 'Gagal menyimpan data');
+      }
     } catch { setError('Terjadi kesalahan pada server'); }
-    finally { setLoading(false); }
+    finally { setSub(false); }
   };
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl flex flex-col animate-in zoom-in-95 duration-200 overflow-hidden">
-        {/* Colored header strip */}
         <div className={`${gs.activeBg} px-6 py-4 flex justify-between items-center`}>
           <div className="flex items-center gap-2.5">
             <span className="material-icons-round text-white/80 text-[22px]">{tab.icon}</span>
@@ -188,6 +180,7 @@ function AddModal({
             <span className="material-icons-round text-[20px]">close</span>
           </button>
         </div>
+
         <div className="px-6 py-5 flex flex-col gap-4">
           {tab.formFields.map(field => (
             <div key={field.key} className="flex flex-col gap-1.5">
@@ -216,19 +209,25 @@ function AddModal({
               )}
             </div>
           ))}
+
           {error && (
             <div className="px-3 py-2.5 bg-rose-50 border border-rose-200 rounded-lg flex items-center gap-2">
-              <span className="material-icons-round text-rose-500 text-[16px]">error</span>
+              <span className="material-icons-round text-rose-500 text-[16px]">error_outline</span>
               <p className="text-xs text-rose-600 font-['Public_Sans']">{error}</p>
             </div>
           )}
         </div>
+
         <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50">
           <button onClick={onClose} className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-white font-['Public_Sans'] transition-colors">
             Batal
           </button>
-          <button onClick={handleSubmit} disabled={loading} className={`${gs.activeBg} ${gs.activeText} px-5 py-2 rounded-lg text-sm font-semibold font-['Public_Sans'] transition-opacity disabled:opacity-60 flex items-center gap-2`}>
-            {loading && <span className="material-icons-round text-[16px] animate-spin">sync</span>}
+          <button
+            onClick={handleSubmit}
+            disabled={submitting}
+            className={`${gs.activeBg} ${gs.activeBgHover} text-white px-5 py-2 rounded-lg text-sm font-semibold font-['Public_Sans'] transition-colors disabled:opacity-60 flex items-center gap-2`}
+          >
+            {submitting && <span className="material-icons-round text-[16px] animate-spin">sync</span>}
             Simpan Data
           </button>
         </div>
@@ -237,23 +236,106 @@ function AddModal({
   );
 }
 
+/* ── Action Dropdown ─────────────────────────────────────────────────────────── */
+function ActionMenu({
+  row, tab, onToggle, onDelete,
+}: {
+  row: any; tab: TabConfig;
+  onToggle: (id: number, cur: boolean) => void;
+  onDelete: (id: number, label: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const hasActions = tab.hasToggle || tab.hasDel;
+  if (!hasActions) return null;
+
+  const displayLabel =
+    row.nama_wilayah ?? row.nama_satelit ?? row.nama_departemen ?? row.nama_komisi ??
+    row.nama_periode ?? row.nama_jabatan ?? row.nama_role ?? row.nama_pekerjaan ??
+    row.nama_relasi ?? row.nama_jenis_kegiatan ?? `ID ${row.id}`;
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-9 h-9 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 flex items-center justify-center text-slate-500 hover:text-slate-700 transition-colors"
+        title="Aksi"
+      >
+        <span className="material-icons-round text-[20px]">more_horiz</span>
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full mt-1.5 z-40 w-48 bg-white rounded-xl border border-slate-200 shadow-xl py-1.5 animate-in fade-in zoom-in-95 duration-150">
+          {tab.hasToggle && (
+            <button
+              onClick={() => { setOpen(false); onToggle(row.id, row.is_active); }}
+              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors font-['Public_Sans']"
+            >
+              <span className={`material-icons-round text-[18px] ${row.is_active ? 'text-rose-500' : 'text-emerald-500'}`}>
+                {row.is_active ? 'toggle_on' : 'toggle_off'}
+              </span>
+              <span>{row.is_active ? 'Nonaktifkan' : 'Aktifkan'}</span>
+            </button>
+          )}
+          {tab.hasDel && (
+            <>
+              {tab.hasToggle && <div className="border-t border-slate-100 my-1" />}
+              <button
+                onClick={() => { setOpen(false); onDelete(row.id, displayLabel); }}
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-rose-600 hover:bg-rose-50 transition-colors font-['Public_Sans']"
+              >
+                <span className="material-icons-round text-[18px] text-rose-500">delete</span>
+                <span>Hapus Data</span>
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── Main Page ───────────────────────────────────────────────────────────────── */
 export default function MasterDataPage() {
+  const { showLoader, hideLoader } = useLoader();
+
   const [activeTab, setActiveTab] = useState<TabKey>('wilayah');
   const [data, setData]           = useState<any[]>([]);
-  const [loading, setLoading]     = useState(true);
+  const [loadingTable, setLoadingTable] = useState(true);
   const [search, setSearch]       = useState('');
   const [showModal, setShowModal] = useState(false);
-  const [toast, setToast]         = useState('');
   const [selectOptions, setSelectOptions] = useState<Record<string, { id: number; label: string }[]>>({});
+
+  // SubmitOverlay
+  const [submitState, setSubmitState] = useState<{
+    status: 'idle' | 'loading' | 'success' | 'error'; message: string;
+  }>({ status: 'idle', message: '' });
+
+  // AlertModal — for toggle confirmation
+  const [alertState, setAlertState] = useState<{
+    isOpen: boolean; id: number | null; currentActive: boolean; label: string;
+  }>({ isOpen: false, id: null, currentActive: true, label: '' });
+
+  // AlertModal — for delete confirmation
+  const [deleteAlert, setDeleteAlert] = useState<{
+    isOpen: boolean; id: number | null; label: string;
+  }>({ isOpen: false, id: null, label: '' });
 
   const tab = TABS[activeTab];
   const gs  = GROUP_STYLES[tab.groupColor];
 
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3500); };
-
+  /* ── Fetch data ── */
   const fetchData = useCallback(async () => {
-    setLoading(true);
+    setLoadingTable(true);
     try {
       const params = new URLSearchParams({ table: activeTab });
       if (search) params.set('search', search);
@@ -261,11 +343,13 @@ export default function MasterDataPage() {
       const json = await res.json();
       setData(json.success ? json.data : []);
     } catch { setData([]); }
-    finally { setLoading(false); }
+    finally { setLoadingTable(false); }
   }, [activeTab, search]);
 
+  /* ── Fetch select options (wilayah & satelit for dropdowns) ── */
   useEffect(() => {
     const fetchSelects = async () => {
+      showLoader();
       try {
         const [rw, rs] = await Promise.all([
           fetch('/api/master-data?table=wilayah'),
@@ -278,32 +362,114 @@ export default function MasterDataPage() {
           satelit: (sd.data || []).map((r: any) => ({ id: r.id, label: r.nama_satelit })),
         });
       } catch {}
+      finally { hideLoader(); }
     };
     fetchSelects();
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
-  useEffect(() => { setSearch(''); setData([]); }, [activeTab]);
+  useEffect(() => { setSearch(''); }, [activeTab]);
 
-  const handleToggle = async (id: number, cur: boolean) => {
-    await fetch('/api/master-data', {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ table: activeTab, id, is_active: !cur }),
-    });
-    fetchData();
-    showToast(cur ? 'Data dinonaktifkan.' : 'Data diaktifkan.');
+  /* ── Toggle aktif/nonaktif ── */
+  const handleToggleRequest = (id: number, currentActive: boolean, label: string) => {
+    setAlertState({ isOpen: true, id, currentActive, label });
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Yakin ingin menghapus data ini?')) return;
-    const res  = await fetch(`/api/master-data?table=${activeTab}&id=${id}`, { method: 'DELETE' });
-    const json = await res.json();
-    if (json.success) { showToast('Data berhasil dihapus.'); fetchData(); }
-    else showToast(`Gagal: ${json.message}`);
+  const confirmToggle = async () => {
+    const { id, currentActive } = alertState;
+    if (!id) return;
+    setAlertState(s => ({ ...s, isOpen: false }));
+    setSubmitState({ status: 'loading', message: '' });
+    try {
+      const res  = await fetch('/api/master-data', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ table: activeTab, id, is_active: !currentActive }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        await fetchData();
+        setSubmitState({ status: 'success', message: `Status berhasil diubah menjadi ${!currentActive ? 'Aktif' : 'Tidak Aktif'}.` });
+      } else {
+        setSubmitState({ status: 'error', message: json.message || 'Gagal mengubah status' });
+      }
+    } catch {
+      setSubmitState({ status: 'error', message: 'Terjadi kesalahan koneksi.' });
+    }
   };
+
+  /* ── Delete ── */
+  const handleDeleteRequest = (id: number, label: string) => {
+    setDeleteAlert({ isOpen: true, id, label });
+  };
+
+  const confirmDelete = async () => {
+    const { id } = deleteAlert;
+    if (!id) return;
+    setDeleteAlert(s => ({ ...s, isOpen: false }));
+    setSubmitState({ status: 'loading', message: '' });
+    try {
+      const res  = await fetch(`/api/master-data?table=${activeTab}&id=${id}`, { method: 'DELETE' });
+      const json = await res.json();
+      if (json.success) {
+        await fetchData();
+        setSubmitState({ status: 'success', message: 'Data berhasil dihapus.' });
+      } else {
+        setSubmitState({ status: 'error', message: json.message || 'Gagal menghapus data' });
+      }
+    } catch {
+      setSubmitState({ status: 'error', message: 'Terjadi kesalahan koneksi.' });
+    }
+  };
+
+  const groups = GROUPS.map(g => ({
+    ...g,
+    tabs: (Object.entries(TABS) as [TabKey, TabConfig][]).filter(([, c]) => c.group === g.name),
+  }));
 
   return (
     <div className="flex flex-col gap-0 w-full min-h-0">
+
+      {/* SubmitOverlay for success/error/loading */}
+      <SubmitOverlay
+        status={submitState.status}
+        message={submitState.message}
+        onClose={() => setSubmitState({ status: 'idle', message: '' })}
+      />
+
+      {/* AlertModal — toggle warning */}
+      <AlertModal
+        isOpen={alertState.isOpen}
+        title={alertState.currentActive ? 'Nonaktifkan Data?' : 'Aktifkan Data?'}
+        message={
+          <span>
+            Apakah Anda yakin ingin{' '}
+            <strong>{alertState.currentActive ? 'menonaktifkan' : 'mengaktifkan'}</strong>{' '}
+            <em>{alertState.label}</em>?{' '}
+            {alertState.currentActive && 'Data ini tidak akan muncul dalam daftar pilihan di form.'}
+          </span>
+        }
+        confirmText={alertState.currentActive ? 'Ya, Nonaktifkan' : 'Ya, Aktifkan'}
+        cancelText="Batal"
+        onConfirm={confirmToggle}
+        onCancel={() => setAlertState(s => ({ ...s, isOpen: false }))}
+      />
+
+      {/* AlertModal — delete warning */}
+      <AlertModal
+        isOpen={deleteAlert.isOpen}
+        title="Hapus Data?"
+        message={
+          <span>
+            Apakah Anda yakin ingin menghapus <em>{deleteAlert.label}</em>?{' '}
+            <strong>Aksi ini tidak dapat dibatalkan</strong> dan akan gagal jika data masih digunakan oleh data lain.
+          </span>
+        }
+        confirmText="Ya, Hapus"
+        cancelText="Batal"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteAlert(s => ({ ...s, isOpen: false }))}
+      />
+
       {/* Header */}
       <div className="flex flex-col gap-1 pb-5">
         <h1 className="text-2xl font-bold text-slate-800 font-['Inter']">Master Data</h1>
@@ -313,37 +479,32 @@ export default function MasterDataPage() {
       {/* 2-column layout */}
       <div className="flex gap-5 items-start">
 
-        {/* ── Left Nav ── */}
+        {/* ── Left Nav Sidebar ── */}
         <div className="w-52 shrink-0 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden sticky top-4">
-          {GROUPS.map(g => {
-            const gTabs  = (Object.entries(TABS) as [TabKey, TabConfig][]).filter(([, c]) => c.group === g.name);
+          {groups.map(g => {
             const gStyle = GROUP_STYLES[g.color];
             return (
-              <div key={g.name} className="flex flex-col">
+              <div key={g.name}>
                 <div className="px-3 pt-3 pb-1 flex items-center gap-1.5">
                   <span className={`material-icons-round text-[14px] ${gStyle.text}`}>{g.icon}</span>
                   <span className={`text-[10px] font-bold uppercase tracking-widest font-['Inter'] ${gStyle.text}`}>{g.name}</span>
                 </div>
-                {gTabs.map(([key, cfg]) => {
+                {g.tabs.map(([key, cfg]) => {
                   const active = activeTab === key;
                   return (
                     <button
                       key={key}
                       onClick={() => setActiveTab(key)}
-                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium transition-all text-left mx-0 font-['Public_Sans'] ${
-                        active
-                          ? `${gStyle.activeBg} text-white`
-                          : `text-slate-600 hover:bg-slate-50`
+                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium transition-all text-left font-['Public_Sans'] ${
+                        active ? `${gStyle.activeBg} text-white` : 'text-slate-600 hover:bg-slate-50'
                       }`}
                     >
-                      <span className={`material-icons-round text-[18px] shrink-0 ${active ? 'text-white' : gStyle.text}`}>
-                        {cfg.icon}
-                      </span>
+                      <span className={`material-icons-round text-[18px] shrink-0 ${active ? 'text-white' : gStyle.text}`}>{cfg.icon}</span>
                       {cfg.label}
                     </button>
                   );
                 })}
-                <div className="border-b border-slate-100 mx-3 last:hidden" />
+                <div className="border-b border-slate-100 mx-3" />
               </div>
             );
           })}
@@ -352,7 +513,7 @@ export default function MasterDataPage() {
         {/* ── Right Content ── */}
         <div className="flex-1 min-w-0 flex flex-col gap-4">
 
-          {/* Content header band */}
+          {/* Colored header band */}
           <div className={`${gs.activeBg} rounded-xl px-5 py-4 flex items-center justify-between gap-4`}>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
@@ -360,7 +521,9 @@ export default function MasterDataPage() {
               </div>
               <div>
                 <div className="text-white font-bold font-['Inter'] text-base leading-tight">{tab.label}</div>
-                <div className="text-white/70 text-xs font-['Public_Sans'] leading-tight">{data.length} data tersimpan</div>
+                <div className="text-white/70 text-xs font-['Public_Sans'] leading-tight">
+                  {loadingTable ? 'Memuat...' : `${data.length} data tersimpan`}
+                </div>
               </div>
             </div>
             <button
@@ -372,7 +535,7 @@ export default function MasterDataPage() {
             </button>
           </div>
 
-          {/* Search */}
+          {/* Search bar */}
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 material-icons-round text-slate-400 text-[20px]">search</span>
             <input
@@ -380,7 +543,7 @@ export default function MasterDataPage() {
               placeholder={`Cari ${tab.label}...`}
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 bg-white font-['Public_Sans']"
+              className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 bg-white font-['Public_Sans']"
             />
             {search && (
               <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
@@ -396,19 +559,27 @@ export default function MasterDataPage() {
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200">
                     {tab.columns.map(col => (
-                      <th key={col.key} className={`${col.width ?? ''} px-5 py-3.5 text-left text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']`}>
+                      <th
+                        key={col.key}
+                        className={`${col.width ?? ''} px-5 py-3.5 text-left text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']`}
+                      >
                         {col.label}
                       </th>
                     ))}
-                    <th className="w-24 px-5 py-3.5 text-right text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">Aksi</th>
+                    {(tab.hasToggle || tab.hasDel) && (
+                      <th className="w-16 px-5 py-3.5 text-right text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">
+                        Aksi
+                      </th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
-                  {loading ? (
+                  {loadingTable ? (
                     <tr>
                       <td colSpan={tab.columns.length + 1} className="py-16 text-center">
-                        <div className="flex justify-center">
-                          <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-600 rounded-full animate-spin" />
+                        <div className="flex items-center justify-center gap-3">
+                          <div className="w-7 h-7 border-4 border-slate-200 border-t-slate-600 rounded-full animate-spin" />
+                          <span className="text-slate-500 text-sm font-['Public_Sans']">Memuat data {tab.label}...</span>
                         </div>
                       </td>
                     </tr>
@@ -416,8 +587,14 @@ export default function MasterDataPage() {
                     <tr>
                       <td colSpan={tab.columns.length + 1} className="py-16 text-center">
                         <div className="flex flex-col items-center gap-2">
-                          <span className={`material-icons-round text-5xl ${gs.text} opacity-30`}>{tab.icon}</span>
+                          <span className={`material-icons-round text-5xl ${gs.text} opacity-25`}>{tab.icon}</span>
                           <p className="text-sm text-slate-400 font-['Public_Sans']">Belum ada data {tab.label}</p>
+                          <button
+                            onClick={() => setShowModal(true)}
+                            className={`mt-2 text-xs font-semibold ${gs.text} hover:underline font-['Public_Sans']`}
+                          >
+                            + Tambah sekarang
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -438,32 +615,24 @@ export default function MasterDataPage() {
                             )}
                           </td>
                         ))}
-                        <td className="w-24 px-5 py-3.5">
-                          <div className="flex justify-end gap-1.5">
-                            {tab.hasToggle && (
-                              <button
-                                onClick={() => handleToggle(row.id, row.is_active)}
-                                title={row.is_active ? 'Nonaktifkan' : 'Aktifkan'}
-                                className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-colors ${
-                                  row.is_active
-                                    ? 'border-rose-200 text-rose-500 hover:bg-rose-50'
-                                    : 'border-emerald-200 text-emerald-600 hover:bg-emerald-50'
-                                }`}
-                              >
-                                <span className="material-icons-round text-[17px]">{row.is_active ? 'toggle_on' : 'toggle_off'}</span>
-                              </button>
-                            )}
-                            {tab.hasDel && (
-                              <button
-                                onClick={() => handleDelete(row.id)}
-                                title="Hapus"
-                                className="w-8 h-8 rounded-lg border border-rose-200 text-rose-500 hover:bg-rose-50 flex items-center justify-center transition-colors"
-                              >
-                                <span className="material-icons-round text-[17px]">delete</span>
-                              </button>
-                            )}
-                          </div>
-                        </td>
+                        {(tab.hasToggle || tab.hasDel) && (
+                          <td className="w-16 px-5 py-3.5">
+                            <div className="flex justify-end">
+                              <ActionMenu
+                                row={row}
+                                tab={tab}
+                                onToggle={(id, cur) => {
+                                  const lbl =
+                                    row.nama_wilayah ?? row.nama_satelit ?? row.nama_departemen ?? row.nama_komisi ??
+                                    row.nama_periode ?? row.nama_jabatan ?? row.nama_role ?? row.nama_pekerjaan ??
+                                    row.nama_relasi ?? row.nama_jenis_kegiatan ?? `ID ${id}`;
+                                  handleToggleRequest(id, cur, lbl);
+                                }}
+                                onDelete={handleDeleteRequest}
+                              />
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     ))
                   )}
@@ -472,29 +641,23 @@ export default function MasterDataPage() {
             </div>
             <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/50">
               <span className="text-slate-400 text-xs font-['Public_Sans']">
-                {loading ? '...' : `${data.length} entri`}
+                {loadingTable ? 'Memuat...' : `${data.length} entri`}
               </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Toast */}
-      {toast && (
-        <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-4 fade-in duration-300">
-          <div className="flex items-center gap-2.5 px-4 py-3 bg-slate-800 text-white text-sm rounded-xl shadow-xl font-['Public_Sans']">
-            <span className="material-icons-round text-emerald-400 text-[18px]">check_circle</span>
-            {toast}
-          </div>
-        </div>
-      )}
-
-      {/* Modal */}
+      {/* Add modal */}
       {showModal && (
         <AddModal
-          tab={tab} tabKey={activeTab}
+          tab={tab}
+          tabKey={activeTab}
           onClose={() => setShowModal(false)}
-          onSuccess={() => { fetchData(); showToast(`${tab.label} berhasil ditambahkan!`); }}
+          onSaved={(msg) => {
+            fetchData();
+            setSubmitState({ status: 'success', message: msg });
+          }}
           selectOptions={selectOptions}
         />
       )}

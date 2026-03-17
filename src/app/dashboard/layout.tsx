@@ -81,12 +81,23 @@ export default function DashboardLayout({
   };
 
   let topbarTitle = 'Dashboard Utama';
-  let topbarIcon = 'dashboard';
-  
-  if (pathname.includes('/dashboard/members')) {
+  let topbarIcon  = 'dashboard';
+
+  if (
+    pathname.includes('/dashboard/members') ||
+    pathname.includes('/dashboard/pelayan') ||
+    pathname.includes('/dashboard/pengurus')
+  ) {
     topbarTitle = 'Manajemen User';
-    topbarIcon = 'manage_accounts';
+    topbarIcon  = 'manage_accounts';
+  } else if (pathname.includes('/dashboard/settings')) {
+    topbarTitle = 'Pengaturan Software';
+    topbarIcon  = 'settings';
+  } else if (pathname.includes('/dashboard/family-tree')) {
+    topbarTitle = 'Family Tree';
+    topbarIcon  = 'account_tree';
   }
+
 
   return (
     <div className="w-full min-h-screen bg-neutral-100 inline-flex flex-col justify-start items-center overflow-auto font-sans">
