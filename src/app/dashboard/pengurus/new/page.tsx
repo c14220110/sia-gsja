@@ -170,12 +170,42 @@ export default function NewPengurusPage() {
     fetchOptions();
   }, []);
 
+// Mapping jabatan berdasarkan lingkup kepengurusan
+// Nama jabatan HARUS persis cocok dengan kolom nama_jabatan di tabel jabatan DB
+// Data DB saat ini: Gembala Sidang (1), Wakil Gembala (2), Sekretaris (3),
+//                   Bendahara (4), Koordinator Komisi (5), Koordinator Departemen (6), Majelis (7)
+const JABATAN_PER_LINGKUP: Record<string, string[]> = {
+  Pusat: [
+    'Gembala Sidang',       // id 1 — hanya di Pusat
+    'Wakil Gembala',        // id 2
+    'Majelis',              // id 7 — hanya di Pusat
+    'Sekretaris',           // id 3
+    'Bendahara',            // id 4
+  ],
+  Satelit: [
+    'Wakil Gembala',        // id 2 — buka Gembala Sidang & Majelis di Satelit
+    'Sekretaris',           // id 3
+    'Bendahara',            // id 4
+  ],
+  Komisi: [
+    'Koordinator Komisi',   // id 5
+    'Sekretaris',           // id 3
+    'Bendahara',            // id 4
+  ],
+  Departemen: [
+    'Koordinator Departemen', // id 6
+    'Sekretaris',             // id 3
+    'Bendahara',              // id 4
+  ],
+};
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => {
-      let overrides = {};
+      let overrides: Partial<typeof prev> = {};
       if (name === 'lingkup') {
-        overrides = { komisi_id: '', departemen_id: '' };
+        // Reset jabatan, komisi, departemen setiap kali lingkup berubah
+        overrides = { komisi_id: '', departemen_id: '', jabatan_id: '' };
       }
       return { ...prev, [name]: value, ...overrides };
     });
@@ -328,36 +358,147 @@ export default function NewPengurusPage() {
         {/* Grid Form Sections */}
         <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
           
-          {/* KOLOM KIRI */}
+          {/* KOLOM KIRI — Informasi Kepengurusan (Cascading Logic) */}
           <div className="flex flex-col gap-8">
-            {/* Informasi Kepengurusan */}
             <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-start items-start gap-6 h-fit">
               <div className="w-full inline-flex justify-start items-center gap-2">
                 <span className="material-icons-round text-slate-700 text-[18px]">admin_panel_settings</span>
                 <span className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Informasi Kepengurusan</span>
               </div>
-              
-              <div className="w-full flex-col gap-4 flex lg:flex-row">
-                <div className="flex-1 flex-col gap-1 flex">
-                  <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">ID Pengurus</label>
-                  <input type="text" disabled value="Akan di-generate otomatis" className="px-3 py-2 bg-slate-50 rounded-lg border border-slate-200 text-slate-400 text-sm font-['Inter'] w-full italic cursor-not-allowed" />
+
+              {/* ID Pengurus — auto generated */}
+              <div className="w-full flex-col gap-1 flex">
+                <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">ID Pengurus</label>
+                <input type="text" disabled value="Akan di-generate otomatis" className="px-3 py-2 bg-slate-50 rounded-lg border border-slate-200 text-slate-400 text-sm font-['Inter'] w-full italic cursor-not-allowed" />
+              </div>
+
+              {/* STEP 1: Lingkup */}
+              <div className="w-full flex-col gap-1 flex">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <span className="w-5 h-5 rounded-full bg-violet-600 text-white text-[10px] font-black flex items-center justify-center shrink-0">1</span>
+                  <label className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Pilih Lingkup Kepengurusan</label>
                 </div>
-                <div className="flex-1 flex-col gap-1 flex">
-                  <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Jabatan</label>
+                <select 
+                  name="lingkup" 
+                  value={formData.lingkup} 
+                  onChange={handleInputChange} 
+                  className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-['Inter'] w-full transition-all cursor-pointer font-semibold"
+                >
+                  <option value="Pusat">🏛️ Pusat (Umum / Majelis)</option>
+                  <option value="Satelit">⛪ Satelit (Umum)</option>
+                  <option value="Komisi">👥 Komisi</option>
+                  <option value="Departemen">📋 Departemen</option>
+                </select>
+              </div>
+
+              {/* STEP 2: Lokasi (kondisional, tidak muncul untuk Pusat) */}
+              {formData.lingkup === 'Pusat' ? (
+                <div className="w-full py-3 px-4 text-emerald-600 bg-emerald-50 rounded-lg border border-emerald-200 flex items-center gap-3">
+                  <span className="material-icons-round text-[18px]">verified</span>
+                  <span className="text-sm font-['Inter'] font-medium">Jabatan ini berada di tingkat <strong>Pusat / Majelis</strong> (Eben Haezer).</span>
+                </div>
+              ) : (
+                <div className="w-full flex-col gap-1 flex animate-in fade-in slide-in-from-top-1">
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <span className="w-5 h-5 rounded-full bg-violet-600 text-white text-[10px] font-black flex items-center justify-center shrink-0">2</span>
+                    <label className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Pilih Lokasi Satelit Penugasan</label>
+                  </div>
                   <select 
-                    name="jabatan_id" 
-                    value={formData.jabatan_id} 
+                    name="lokasi_satelit_id" 
+                    value={formData.lokasi_satelit_id} 
                     onChange={handleInputChange} 
-                    className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-['Inter'] w-full transition-all cursor-pointer"
+                    className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 text-slate-900 text-sm font-['Inter'] w-full transition-all cursor-pointer"
                   >
-                    <option value="">-- Pilih Jabatan --</option>
-                    {jabatanOptions.map(j => (
-                      <option key={j.id} value={j.id}>{j.nama_jabatan}</option>
+                    <option value="">-- Pilih Satelit --</option>
+                    {satelitOptions.map(s => (
+                      <option key={s.id} value={s.id}>{s.nama_satelit}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-slate-400 mt-1">Dapat diubah jika jemaat bertugas lintas satelit.</p>
+                </div>
+              )}
+
+              {/* STEP 2b / 3: Komisi atau Departemen spesifik (kondisional) */}
+              {formData.lingkup === 'Komisi' && (
+                <div className="w-full flex-col gap-1 flex animate-in fade-in slide-in-from-top-1">
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <span className="w-5 h-5 rounded-full bg-violet-500 text-white text-[10px] font-black flex items-center justify-center shrink-0">3</span>
+                    <label className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Pilih Komisi</label>
+                  </div>
+                  <select 
+                    name="komisi_id" 
+                    value={formData.komisi_id} 
+                    onChange={handleInputChange} 
+                    className="px-3 py-2 bg-violet-50 rounded-lg border border-violet-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 text-slate-900 text-sm font-['Inter'] w-full transition-all cursor-pointer"
+                  >
+                    <option value="">-- Pilih Komisi --</option>
+                    {komisiOptions.map(k => (
+                      <option key={k.id} value={k.id}>{k.nama_komisi}</option>
                     ))}
                   </select>
                 </div>
-              </div>
+              )}
 
+              {formData.lingkup === 'Departemen' && (
+                <div className="w-full flex-col gap-1 flex animate-in fade-in slide-in-from-top-1">
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <span className="w-5 h-5 rounded-full bg-sky-500 text-white text-[10px] font-black flex items-center justify-center shrink-0">3</span>
+                    <label className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Pilih Departemen</label>
+                  </div>
+                  <select 
+                    name="departemen_id" 
+                    value={formData.departemen_id} 
+                    onChange={handleInputChange} 
+                    className="px-3 py-2 bg-sky-50 rounded-lg border border-sky-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 text-slate-900 text-sm font-['Inter'] w-full transition-all cursor-pointer"
+                  >
+                    <option value="">-- Pilih Departemen --</option>
+                    {departemenOptions.map(d => (
+                      <option key={d.id} value={d.id}>{d.nama_departemen}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Divider */}
+              <div className="w-full border-t border-slate-100" />
+
+              {/* STEP 3/4: Jabatan — filtered & disabled until lingkup chosen */}
+              {(() => {
+                const allowedNames = JABATAN_PER_LINGKUP[formData.lingkup] ?? [];
+                const filteredJabatan = jabatanOptions.filter(j => 
+                  allowedNames.some(name => j.nama_jabatan.toLowerCase().includes(name.toLowerCase()))
+                );
+                const stepNum = formData.lingkup === 'Pusat' ? 2 : formData.lingkup === 'Satelit' ? 3 : 4;
+                return (
+                  <div className="w-full flex-col gap-1 flex">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className={`w-5 h-5 rounded-full text-white text-[10px] font-black flex items-center justify-center shrink-0 ${!formData.lingkup ? 'bg-slate-300' : 'bg-slate-700'}`}>{stepNum}</span>
+                      <label className={`text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider ${!formData.lingkup ? 'text-slate-300' : 'text-slate-700'}`}>Pilih Jabatan</label>
+                    </div>
+                    <select 
+                      name="jabatan_id" 
+                      value={formData.jabatan_id} 
+                      onChange={handleInputChange}
+                      disabled={!formData.lingkup}
+                      className={`px-3 py-2 rounded-lg border text-sm font-['Inter'] w-full transition-all ${
+                        !formData.lingkup 
+                          ? 'bg-slate-50 border-slate-200 text-slate-300 cursor-not-allowed'
+                          : 'bg-white border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 cursor-pointer'
+                      }`}
+                    >
+                      <option value="">{!formData.lingkup ? '— Pilih Lingkup terlebih dahulu —' : '-- Pilih Jabatan --'}</option>
+                      {filteredJabatan.map(j => (
+                        <option key={j.id} value={j.id}>{j.nama_jabatan}</option>
+                      ))}
+                    </select>
+                    {filteredJabatan.length === 0 && formData.lingkup && (
+                      <p className="text-xs text-amber-500 mt-1">⚠ Belum ada data jabatan tersedia untuk lingkup ini. Hubungi admin untuk menambahkannya.</p>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* Periode & Tanggal Mulai */}
               <div className="w-full flex-col gap-4 flex lg:flex-row">
                 <div className="flex-1 flex-col gap-1 flex">
                   <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Periode Kepengurusan</label>
@@ -369,7 +510,7 @@ export default function NewPengurusPage() {
                   >
                     <option value="">-- Pilih Periode --</option>
                     {periodeOptions.map(p => (
-                      <option key={p.id} value={p.id}>{p.nama_periode} ({p.tahun_mulai}-{p.tahun_akhir})</option>
+                      <option key={p.id} value={p.id}>{p.nama_periode} ({p.tahun_mulai}–{p.tahun_akhir})</option>
                     ))}
                   </select>
                 </div>
@@ -385,127 +526,49 @@ export default function NewPengurusPage() {
                 </div>
               </div>
 
-              <div className="w-full flex-col gap-4 flex lg:flex-row">
-                <div className="flex-1 flex-col gap-1 flex">
-                  <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Jalur Pengangkatan</label>
-                  <select 
-                    name="jalur_pengangkatan" 
-                    value={formData.jalur_pengangkatan} 
-                    onChange={handleInputChange} 
-                    className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-['Inter'] w-full transition-all cursor-pointer"
-                  >
-                    <option value="Penunjukan">Penunjukan/Aklamasi</option>
-                    <option value="Pemilihan">Pemilihan</option>
-                  </select>
-                </div>
+              {/* Jalur Pengangkatan */}
+              <div className="w-full flex-col gap-1 flex">
+                <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Jalur Pengangkatan</label>
+                <select 
+                  name="jalur_pengangkatan" 
+                  value={formData.jalur_pengangkatan} 
+                  onChange={handleInputChange} 
+                  className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-['Inter'] w-full transition-all cursor-pointer"
+                >
+                  <option value="Penunjukan">Penunjukan / Aklamasi</option>
+                  <option value="Pemilihan">Pemilihan</option>
+                </select>
               </div>
             </div>
+          </div>
 
-            {/* Catatan Pengurus */}
+          {/* KOLOM KANAN — Catatan Khusus */}
+          <div className="flex flex-col gap-8">
             <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-start items-start gap-6 h-fit">
               <div className="w-full inline-flex justify-start items-center gap-2">
                 <span className="material-icons-round text-slate-700 text-[18px]">edit_note</span>
                 <span className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Catatan Khusus</span>
               </div>
-              
               <div className="w-full flex-col gap-1 flex">
                 <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Catatan (Opsional)</label>
                 <textarea 
                   name="catatan" 
                   value={formData.catatan} 
                   onChange={handleInputChange} 
-                  placeholder="Isi jika ada catatan khusus terkait kepengurusan ini..." 
-                  className="px-3 py-3 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-['Inter'] w-full min-h-[140px] resize-y transition-all" 
+                  placeholder="Isi jika ada catatan khusus terkait kepengurusan ini (misal: PAW menggantikan Bpk. X)..." 
+                  className="px-3 py-3 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-['Inter'] w-full min-h-[160px] resize-y transition-all" 
                 />
               </div>
-            </div>
-          </div>
 
-          {/* KOLOM KANAN */}
-          <div className="flex flex-col gap-8">
-
-            {/* Lingkup Pelayanan (Satelit / Komisi / Departemen) */}
-            <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-start items-start gap-6 h-fit">
-              <div className="w-full inline-flex justify-between items-center gap-2">
-                <div className="flex items-center gap-2">
-                  <span className="material-icons-round text-slate-700 text-[20px]">account_tree</span>
-                  <span className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Lingkup Kepengurusan</span>
-                </div>
-              </div>
-              
-              <div className="w-full flex-col gap-4 flex">
-                <div className="w-full flex-col gap-1 flex">
-                  <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Lingkup</label>
-                  <select 
-                    name="lingkup" 
-                    value={formData.lingkup} 
-                    onChange={handleInputChange} 
-                    className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-['Inter'] w-full transition-all cursor-pointer"
-                  >
-                    <option value="Pusat">Pusat (Umum / Majelis)</option>
-                    <option value="Satelit">Satelit (Umum)</option>
-                    <option value="Komisi">Komisi</option>
-                    <option value="Departemen">Departemen</option>
-                  </select>
-                </div>
-                
-                {formData.lingkup === 'Pusat' && (
-                  <div className="w-full py-4 px-4 text-emerald-600 bg-emerald-50/50 rounded-lg border border-dashed border-emerald-200 flex items-start gap-3">
-                    <span className="material-icons-round text-[20px] opacity-70 mt-0.5">verified</span>
-                    <span className="text-sm font-['Inter'] leading-5 font-medium">Pengurus ini akan didaftarkan di tingkat Pusat/Majelis (Eben Haezer).</span>
-                  </div>
-                )}
-
-                {formData.lingkup !== 'Pusat' && (
-                  <div className="w-full flex-col gap-1 flex items-start animate-in fade-in slide-in-from-top-1">
-                    <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Pilih Lokasi Satelit</label>
-                    <select 
-                      name="lokasi_satelit_id" 
-                      value={formData.lokasi_satelit_id} 
-                      onChange={handleInputChange} 
-                      className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 text-slate-900 text-sm font-['Inter'] w-full transition-all cursor-pointer font-medium"
-                    >
-                      <option value="">-- Pilih Satelit Penugasan --</option>
-                      {satelitOptions.map(s => (
-                        <option key={s.id} value={s.id}>{s.nama_satelit}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {formData.lingkup === 'Komisi' && (
-                  <div className="w-full flex-col gap-1 flex items-start animate-in fade-in slide-in-from-top-1">
-                    <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Pilih Komisi</label>
-                    <select 
-                      name="komisi_id" 
-                      value={formData.komisi_id} 
-                      onChange={handleInputChange} 
-                      className="px-3 py-2 bg-violet-50 rounded-lg border border-violet-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 text-slate-900 text-sm font-['Inter'] w-full transition-all cursor-pointer"
-                    >
-                      <option value="">-- Pilih Komisi --</option>
-                      {komisiOptions.map(k => (
-                        <option key={k.id} value={k.id}>{k.nama_komisi}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {formData.lingkup === 'Departemen' && (
-                  <div className="w-full flex-col gap-1 flex items-start animate-in fade-in slide-in-from-top-1">
-                    <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Pilih Departemen</label>
-                    <select 
-                      name="departemen_id" 
-                      value={formData.departemen_id} 
-                      onChange={handleInputChange} 
-                      className="px-3 py-2 bg-sky-50 rounded-lg border border-sky-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 text-slate-900 text-sm font-['Inter'] w-full transition-all cursor-pointer"
-                    >
-                      <option value="">-- Pilih Departemen --</option>
-                      {departemenOptions.map(d => (
-                        <option key={d.id} value={d.id}>{d.nama_departemen}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
+              {/* Panduan Singkat */}
+              <div className="w-full rounded-lg border border-slate-100 bg-slate-50 p-4 flex flex-col gap-2">
+                <span className="text-slate-600 text-xs font-bold uppercase tracking-wider">Panduan Pengisian</span>
+                <ul className="text-xs text-slate-500 font-['Inter'] space-y-1 list-disc list-inside">
+                  <li>Pilih <strong>Lingkup</strong> terlebih dahulu — opsi Jabatan akan menyesuaikan.</li>
+                  <li><strong>Lokasi Satelit</strong> otomatis terisi dari asal jemaat, namun bisa diubah untuk penugasan lintas satelit.</li>
+                  <li><strong>Tanggal Mulai Menjabat</strong> berbeda dari periode — isi dengan tanggal efektif (penting untuk kasus PAW).</li>
+                  <li>Jabatan <strong>Majelis</strong> hanya tersedia di lingkup Pusat.</li>
+                </ul>
               </div>
             </div>
           </div>
