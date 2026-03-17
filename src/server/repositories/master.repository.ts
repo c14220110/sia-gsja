@@ -74,6 +74,7 @@ export class MasterRepository {
     const query = `
       SELECT id, nama_role
       FROM role_pelayan
+      WHERE is_active = true
       ORDER BY nama_role ASC;
     `;
     const result = await pool.query(query);

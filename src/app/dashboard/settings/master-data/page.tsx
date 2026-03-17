@@ -90,9 +90,9 @@ const TABS: Record<TabKey, TabConfig> = {
   },
   role_pelayan: {
     label: 'Role Pelayan', icon: 'volunteer_activism', group: 'Parameter SDM', groupColor: 'emerald',
-    columns: [{ key: 'nama_role', label: 'Nama Role' }, { key: 'deskripsi', label: 'Deskripsi' }],
+    columns: [{ key: 'nama_role', label: 'Nama Role' }, { key: 'deskripsi', label: 'Deskripsi' }, { key: 'is_active', label: 'Status', width: 'w-28' }],
     formFields: [{ key: 'nama_role', label: 'Nama Role' }, { key: 'deskripsi', label: 'Deskripsi', optional: true }],
-    hasDel: true,
+    hasToggle: true,
   },
   pekerjaan_master: {
     label: 'Pekerjaan', icon: 'work', group: 'Atribut Jemaat', groupColor: 'amber',

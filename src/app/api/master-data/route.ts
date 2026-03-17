@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
         orderBy: 'id',
       },
       role_pelayan: {
-        query: `SELECT id, nama_role, deskripsi, created_at FROM role_pelayan`,
+        query: `SELECT id, nama_role, deskripsi, is_active, created_at FROM role_pelayan`,
         orderBy: 'nama_role',
       },
       pekerjaan_master: {
@@ -177,7 +177,7 @@ export async function DELETE(request: NextRequest) {
     const table = searchParams.get('table');
     const id = searchParams.get('id');
 
-    const DELETABLE = ['jabatan', 'role_pelayan', 'jenis_relasi', 'jenis_kegiatan', 'wilayah'];
+    const DELETABLE = ['jabatan', 'jenis_relasi', 'jenis_kegiatan', 'wilayah'];
     if (!table || !id || !DELETABLE.includes(table)) {
       return NextResponse.json({ success: false, message: 'Tabel tidak dapat dihapus atau ID tidak valid' }, { status: 400 });
     }
@@ -206,7 +206,7 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const { table, id, is_active } = body;
 
-    const TOGGLEABLE = ['satelit', 'departemen', 'komisi', 'periode_kepengurusan', 'pekerjaan_master'];
+    const TOGGLEABLE = ['satelit', 'departemen', 'komisi', 'periode_kepengurusan', 'pekerjaan_master', 'role_pelayan'];
     if (!table || !id || !TOGGLEABLE.includes(table) || typeof is_active !== 'boolean') {
       return NextResponse.json({ success: false, message: 'Parameter tidak valid' }, { status: 400 });
     }
