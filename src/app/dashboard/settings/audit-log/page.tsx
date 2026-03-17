@@ -39,6 +39,7 @@ export default function AuditLogPage() {
   const [data,        setData]        = useState<AuditLogEntry[]>([]);
   const [total,       setTotal]       = useState(0);
   const [loading,     setLoading]     = useState(true);
+  const [initDone,    setInitDone]    = useState(false); // true after first fetch
   const [currentPage, setCurrentPage] = useState(1);
   const limit = 15;
 
@@ -52,7 +53,7 @@ export default function AuditLogPage() {
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
-    showLoader();
+    // No showLoader() here — only used on first-time page mount
     try {
       const params = new URLSearchParams({
         log_type: logType,
@@ -77,9 +78,12 @@ export default function AuditLogPage() {
       console.error('[AuditLog] fetch error:', err);
     } finally {
       setLoading(false);
-      hideLoader();
+      if (!initDone) { hideLoader(); setInitDone(true); }
     }
-  }, [currentPage, logType, filterAksi, dateFrom, dateTo, search]);
+  }, [currentPage, logType, filterAksi, dateFrom, dateTo, search, initDone]);
+
+  // Show Lottie overlay ONLY on first page mount
+  useEffect(() => { showLoader(); }, []);
 
   useEffect(() => { fetchLogs(); }, [fetchLogs]);
 

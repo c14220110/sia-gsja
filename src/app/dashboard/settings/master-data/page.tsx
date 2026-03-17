@@ -18,8 +18,8 @@ interface TabConfig {
   groupColor: string;
   columns:    { key: string; label: string; width?: string }[];
   formFields: { key: string; label: string; type?: string; optionsKey?: string; optional?: boolean }[];
-  hasToggle?: boolean; // data has is_active, can be toggled
-  hasDel?:    boolean; // data can be hard-deleted
+  hasToggle?: boolean;
+  hasDel?:    boolean;
 }
 
 const TABS: Record<TabKey, TabConfig> = {
@@ -114,7 +114,7 @@ const TABS: Record<TabKey, TabConfig> = {
   },
 };
 
-const GROUPS: { name: string; color: string; icon: string }[] = [
+const GROUPS = [
   { name: 'Organisasi & Lokasi', color: 'sky',     icon: 'location_city'  },
   { name: 'Struktur Gereja',     color: 'violet',  icon: 'account_tree'   },
   { name: 'Parameter SDM',       color: 'emerald', icon: 'manage_accounts' },
@@ -122,44 +122,82 @@ const GROUPS: { name: string; color: string; icon: string }[] = [
   { name: 'Parameter Kegiatan',  color: 'rose',    icon: 'event_note'     },
 ];
 
-const GROUP_STYLES: Record<string, { text: string; activeBg: string; activeBgHover: string }> = {
-  sky:     { text: 'text-sky-600',     activeBg: 'bg-sky-600',     activeBgHover: 'hover:bg-sky-700'     },
-  violet:  { text: 'text-violet-600',  activeBg: 'bg-violet-600',  activeBgHover: 'hover:bg-violet-700'  },
-  emerald: { text: 'text-emerald-600', activeBg: 'bg-emerald-600', activeBgHover: 'hover:bg-emerald-700' },
-  amber:   { text: 'text-amber-500',   activeBg: 'bg-amber-500',   activeBgHover: 'hover:bg-amber-600'   },
-  rose:    { text: 'text-rose-600',    activeBg: 'bg-rose-600',    activeBgHover: 'hover:bg-rose-700'    },
+const GS: Record<string, { text: string; activeBg: string; h: string }> = {
+  sky:     { text: 'text-sky-600',     activeBg: 'bg-sky-600',     h: 'hover:bg-sky-700'     },
+  violet:  { text: 'text-violet-600',  activeBg: 'bg-violet-600',  h: 'hover:bg-violet-700'  },
+  emerald: { text: 'text-emerald-600', activeBg: 'bg-emerald-600', h: 'hover:bg-emerald-700' },
+  amber:   { text: 'text-amber-500',   activeBg: 'bg-amber-500',   h: 'hover:bg-amber-600'   },
+  rose:    { text: 'text-rose-600',    activeBg: 'bg-rose-600',    h: 'hover:bg-rose-700'    },
 };
 
-/* ── Add Modal ───────────────────────────────────────────────────────────────── */
-function AddModal({
-  tab, tabKey, onClose, onSaved, selectOptions,
+// ── helper: derive display label from row ──────────────────────────────────────
+function rowLabel(row: any) {
+  return (
+    row.nama_wilayah  ?? row.nama_satelit   ?? row.nama_departemen ??
+    row.nama_komisi   ?? row.nama_periode   ?? row.nama_jabatan    ??
+    row.nama_role     ?? row.nama_pekerjaan ?? row.nama_relasi     ??
+    row.nama_jenis_kegiatan ?? `ID ${row.id}`
+  );
+}
+
+// ── helper: primary text field key ────────────────────────────────────────────
+function primaryKey(tabKey: TabKey): string {
+  const map: Record<TabKey, string> = {
+    wilayah:              'nama_wilayah',
+    satelit:              'nama_satelit',
+    departemen:           'nama_departemen',
+    komisi:               'nama_komisi',
+    periode_kepengurusan: 'nama_periode',
+    jabatan:              'nama_jabatan',
+    role_pelayan:         'nama_role',
+    pekerjaan_master:     'nama_pekerjaan',
+    jenis_relasi:         'nama_relasi',
+    jenis_kegiatan:       'nama_jenis_kegiatan',
+  };
+  return map[tabKey];
+}
+
+/* ── Add / Edit Modal ────────────────────────────────────────────────────────── */
+function DataModal({
+  mode, tab, tabKey, initialData, onClose, onSaved, selectOptions,
 }: {
-  tab: TabConfig; tabKey: TabKey;
+  mode: 'add' | 'edit';
+  tab: TabConfig;
+  tabKey: TabKey;
+  initialData?: Record<string, any>;
   onClose: () => void;
   onSaved: (msg: string) => void;
   selectOptions: Record<string, { id: number; label: string }[]>;
 }) {
-  const [form, setForm]       = useState<Record<string, string>>({});
-  const [submitting, setSub]  = useState(false);
-  const [error, setError]     = useState('');
-  const gs = GROUP_STYLES[tab.groupColor];
+  const [form, setForm]      = useState<Record<string, string>>(() => {
+    const init: Record<string, string> = {};
+    tab.formFields.forEach(f => { init[f.key] = initialData?.[f.key]?.toString() ?? ''; });
+    return init;
+  });
+  const [sub, setSub]        = useState(false);
+  const [error, setError]    = useState('');
+  const gs = GS[tab.groupColor];
 
   const handleSubmit = async () => {
-    // Validate required fields
-    const missing = tab.formFields.filter(f => !f.optional && !form[f.key]?.trim());
+    const missing = tab.formFields.filter(f => !f.optional && !form[f.key]?.toString().trim());
     if (missing.length > 0) {
-      setError(`Field wajib belum diisi: ${missing.map(f => f.label).join(', ')}`);
+      setError(`Field wajib belum diisi: ${missing.map(f => f.label.replace(/ \(.*\)/, '')).join(', ')}`);
       return;
     }
     setSub(true); setError('');
     try {
+      const isEdit = mode === 'edit';
       const res = await fetch('/api/master-data', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ table: tabKey, data: form }),
+        method: isEdit ? 'PATCH' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          table: tabKey,
+          ...(isEdit ? { id: initialData?.id, ...form } : { data: form }),
+        }),
       });
       const json = await res.json();
       if (json.success) {
-        onSaved(`${tab.label} berhasil ditambahkan!`);
+        onSaved(mode === 'edit' ? `${tab.label} berhasil diperbarui!` : `${tab.label} berhasil ditambahkan!`);
         onClose();
       } else {
         setError(json.message || 'Gagal menyimpan data');
@@ -169,23 +207,24 @@ function AddModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-[200] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl flex flex-col animate-in zoom-in-95 duration-200 overflow-hidden">
         <div className={`${gs.activeBg} px-6 py-4 flex justify-between items-center`}>
           <div className="flex items-center gap-2.5">
-            <span className="material-icons-round text-white/80 text-[22px]">{tab.icon}</span>
-            <h2 className="text-white font-bold font-['Inter'] text-base">Tambah {tab.label}</h2>
+            <span className="material-icons-round text-white/80 text-[22px]">{mode === 'edit' ? 'edit' : tab.icon}</span>
+            <h2 className="text-white font-bold font-['Inter'] text-base">
+              {mode === 'edit' ? `Edit ${tab.label}` : `Tambah ${tab.label}`}
+            </h2>
           </div>
           <button onClick={onClose} className="text-white/70 hover:text-white transition-colors">
             <span className="material-icons-round text-[20px]">close</span>
           </button>
         </div>
-
         <div className="px-6 py-5 flex flex-col gap-4">
           {tab.formFields.map(field => (
             <div key={field.key} className="flex flex-col gap-1.5">
               <label className="text-slate-500 text-xs font-bold uppercase tracking-wider font-['Inter'] flex items-center gap-1">
-                {field.label}
+                {field.label.replace(/ \(mis:.*\)/, '')}
                 {field.optional && <span className="font-normal normal-case text-slate-400">(opsional)</span>}
               </label>
               {field.type === 'select' ? (
@@ -209,7 +248,6 @@ function AddModal({
               )}
             </div>
           ))}
-
           {error && (
             <div className="px-3 py-2.5 bg-rose-50 border border-rose-200 rounded-lg flex items-center gap-2">
               <span className="material-icons-round text-rose-500 text-[16px]">error_outline</span>
@@ -217,18 +255,17 @@ function AddModal({
             </div>
           )}
         </div>
-
         <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50">
           <button onClick={onClose} className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-white font-['Public_Sans'] transition-colors">
             Batal
           </button>
           <button
             onClick={handleSubmit}
-            disabled={submitting}
-            className={`${gs.activeBg} ${gs.activeBgHover} text-white px-5 py-2 rounded-lg text-sm font-semibold font-['Public_Sans'] transition-colors disabled:opacity-60 flex items-center gap-2`}
+            disabled={sub}
+            className={`${gs.activeBg} ${gs.h} text-white px-5 py-2 rounded-lg text-sm font-semibold font-['Public_Sans'] transition-colors disabled:opacity-60 flex items-center gap-2`}
           >
-            {submitting && <span className="material-icons-round text-[16px] animate-spin">sync</span>}
-            Simpan Data
+            {sub && <span className="material-icons-round text-[16px] animate-spin">sync</span>}
+            {mode === 'edit' ? 'Simpan Perubahan' : 'Simpan Data'}
           </button>
         </div>
       </div>
@@ -238,67 +275,84 @@ function AddModal({
 
 /* ── Action Dropdown ─────────────────────────────────────────────────────────── */
 function ActionMenu({
-  row, tab, onToggle, onDelete,
+  row, tab, isLastRows, onEdit, onToggle, onDelete,
 }: {
-  row: any; tab: TabConfig;
+  row: any; tab: TabConfig; isLastRows: boolean;
+  onEdit:   (row: any) => void;
   onToggle: (id: number, cur: boolean) => void;
   onDelete: (id: number, label: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
+    if (!open) return;
+    const handler = (e: MouseEvent) => setOpen(false);
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, []);
+  }, [open]);
 
   const hasActions = tab.hasToggle || tab.hasDel;
   if (!hasActions) return null;
 
-  const displayLabel =
-    row.nama_wilayah ?? row.nama_satelit ?? row.nama_departemen ?? row.nama_komisi ??
-    row.nama_periode ?? row.nama_jabatan ?? row.nama_role ?? row.nama_pekerjaan ??
-    row.nama_relasi ?? row.nama_jenis_kegiatan ?? `ID ${row.id}`;
-
   return (
-    <div ref={ref} className="relative">
+    <div className="relative" onMouseDown={e => e.stopPropagation()}>
       <button
         onClick={() => setOpen(v => !v)}
-        className="w-9 h-9 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 flex items-center justify-center text-slate-500 hover:text-slate-700 transition-colors"
+        className="hover:text-slate-700 hover:bg-slate-100 p-1.5 rounded transition-colors text-slate-400"
         title="Aksi"
       >
-        <span className="material-icons-round text-[20px]">more_horiz</span>
+        <span className="material-icons-round text-[24px]">more_horiz</span>
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-1.5 z-40 w-48 bg-white rounded-xl border border-slate-200 shadow-xl py-1.5 animate-in fade-in zoom-in-95 duration-150">
-          {tab.hasToggle && (
+        <>
+          {/* Invisible overlay closes menu (same z as dropdown) */}
+          <div className="fixed inset-0 z-[150]" onClick={() => setOpen(false)} />
+          {/* Dropdown — flips UP for bottom rows, DOWN otherwise */}
+          <div
+            className={`absolute right-0 z-[160] w-48 bg-white rounded-lg shadow-[0_4px_20px_-4px_rgba(0,0,0,0.18)] border border-slate-200 py-1 overflow-visible
+              ${isLastRows ? 'bottom-full mb-1' : 'top-full mt-1'}`}
+          >
+            {/* Edit */}
             <button
-              onClick={() => { setOpen(false); onToggle(row.id, row.is_active); }}
-              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors font-['Public_Sans']"
+              onClick={() => { setOpen(false); onEdit(row); }}
+              className="w-full text-left px-4 py-2 hover:bg-slate-50 transition-colors flex items-center gap-3 text-sm text-slate-700 font-['Public_Sans']"
             >
-              <span className={`material-icons-round text-[18px] ${row.is_active ? 'text-rose-500' : 'text-emerald-500'}`}>
-                {row.is_active ? 'toggle_on' : 'toggle_off'}
-              </span>
-              <span>{row.is_active ? 'Nonaktifkan' : 'Aktifkan'}</span>
+              <span className="material-icons-round text-[18px] text-slate-400">edit</span>
+              Edit Data
             </button>
-          )}
-          {tab.hasDel && (
-            <>
-              {tab.hasToggle && <div className="border-t border-slate-100 my-1" />}
-              <button
-                onClick={() => { setOpen(false); onDelete(row.id, displayLabel); }}
-                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-rose-600 hover:bg-rose-50 transition-colors font-['Public_Sans']"
-              >
-                <span className="material-icons-round text-[18px] text-rose-500">delete</span>
-                <span>Hapus Data</span>
-              </button>
-            </>
-          )}
-        </div>
+
+            {/* Toggle */}
+            {tab.hasToggle && (
+              <>
+                <div className="w-full h-px bg-slate-100 my-1" />
+                <button
+                  onClick={() => { setOpen(false); onToggle(row.id, row.is_active); }}
+                  className="w-full text-left px-4 py-2 hover:bg-amber-50 hover:text-amber-700 transition-colors flex items-center gap-3 text-sm text-amber-600 font-['Public_Sans']"
+                >
+                  <span className="material-icons-round text-[18px] text-amber-400">
+                    {row.is_active ? 'toggle_on' : 'toggle_off'}
+                  </span>
+                  {row.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+                </button>
+              </>
+            )}
+
+            {/* Delete */}
+            {tab.hasDel && (
+              <>
+                <div className="w-full h-px bg-slate-100 my-1" />
+                <button
+                  onClick={() => { setOpen(false); onDelete(row.id, rowLabel(row)); }}
+                  className="w-full text-left px-4 py-2 hover:bg-rose-50 hover:text-rose-700 transition-colors flex items-center gap-3 text-sm text-rose-600 font-['Public_Sans']"
+                >
+                  <span className="material-icons-round text-[18px] text-rose-500">delete</span>
+                  Hapus Data
+                </button>
+              </>
+            )}
+          </div>
+        </>
       )}
     </div>
   );
@@ -312,28 +366,32 @@ export default function MasterDataPage() {
   const [data, setData]           = useState<any[]>([]);
   const [loadingTable, setLoadingTable] = useState(true);
   const [search, setSearch]       = useState('');
-  const [showModal, setShowModal] = useState(false);
   const [selectOptions, setSelectOptions] = useState<Record<string, { id: number; label: string }[]>>({});
+
+  // Modals
+  const [modalState, setModalState] = useState<{
+    open: boolean; mode: 'add' | 'edit'; rowData?: Record<string, any>;
+  }>({ open: false, mode: 'add' });
 
   // SubmitOverlay
   const [submitState, setSubmitState] = useState<{
     status: 'idle' | 'loading' | 'success' | 'error'; message: string;
   }>({ status: 'idle', message: '' });
 
-  // AlertModal — for toggle confirmation
-  const [alertState, setAlertState] = useState<{
+  // AlertModal — toggle
+  const [alertToggle, setAlertToggle] = useState<{
     isOpen: boolean; id: number | null; currentActive: boolean; label: string;
   }>({ isOpen: false, id: null, currentActive: true, label: '' });
 
-  // AlertModal — for delete confirmation
-  const [deleteAlert, setDeleteAlert] = useState<{
+  // AlertModal — delete
+  const [alertDelete, setAlertDelete] = useState<{
     isOpen: boolean; id: number | null; label: string;
   }>({ isOpen: false, id: null, label: '' });
 
   const tab = TABS[activeTab];
-  const gs  = GROUP_STYLES[tab.groupColor];
+  const gs  = GS[tab.groupColor];
 
-  /* ── Fetch data ── */
+  /* ── Fetch table data (inline spinner, no lottie overlay) ── */
   const fetchData = useCallback(async () => {
     setLoadingTable(true);
     try {
@@ -346,9 +404,9 @@ export default function MasterDataPage() {
     finally { setLoadingTable(false); }
   }, [activeTab, search]);
 
-  /* ── Fetch select options (wilayah & satelit for dropdowns) ── */
+  /* ── One-time init: fetch select options with lottie loader ── */
   useEffect(() => {
-    const fetchSelects = async () => {
+    const init = async () => {
       showLoader();
       try {
         const [rw, rs] = await Promise.all([
@@ -364,21 +422,22 @@ export default function MasterDataPage() {
       } catch {}
       finally { hideLoader(); }
     };
-    fetchSelects();
+    init();
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
   useEffect(() => { setSearch(''); }, [activeTab]);
 
-  /* ── Toggle aktif/nonaktif ── */
-  const handleToggleRequest = (id: number, currentActive: boolean, label: string) => {
-    setAlertState({ isOpen: true, id, currentActive, label });
+  /* ── Toggle ── */
+  const handleToggleRequest = (id: number, cur: boolean) => {
+    const lbl = rowLabel(data.find(r => r.id === id) ?? { id });
+    setAlertToggle({ isOpen: true, id, currentActive: cur, label: lbl });
   };
 
   const confirmToggle = async () => {
-    const { id, currentActive } = alertState;
+    const { id, currentActive } = alertToggle;
     if (!id) return;
-    setAlertState(s => ({ ...s, isOpen: false }));
+    setAlertToggle(s => ({ ...s, isOpen: false }));
     setSubmitState({ status: 'loading', message: '' });
     try {
       const res  = await fetch('/api/master-data', {
@@ -392,20 +451,14 @@ export default function MasterDataPage() {
       } else {
         setSubmitState({ status: 'error', message: json.message || 'Gagal mengubah status' });
       }
-    } catch {
-      setSubmitState({ status: 'error', message: 'Terjadi kesalahan koneksi.' });
-    }
+    } catch { setSubmitState({ status: 'error', message: 'Terjadi kesalahan koneksi.' }); }
   };
 
   /* ── Delete ── */
-  const handleDeleteRequest = (id: number, label: string) => {
-    setDeleteAlert({ isOpen: true, id, label });
-  };
-
   const confirmDelete = async () => {
-    const { id } = deleteAlert;
+    const { id } = alertDelete;
     if (!id) return;
-    setDeleteAlert(s => ({ ...s, isOpen: false }));
+    setAlertDelete(s => ({ ...s, isOpen: false }));
     setSubmitState({ status: 'loading', message: '' });
     try {
       const res  = await fetch(`/api/master-data?table=${activeTab}&id=${id}`, { method: 'DELETE' });
@@ -416,9 +469,12 @@ export default function MasterDataPage() {
       } else {
         setSubmitState({ status: 'error', message: json.message || 'Gagal menghapus data' });
       }
-    } catch {
-      setSubmitState({ status: 'error', message: 'Terjadi kesalahan koneksi.' });
-    }
+    } catch { setSubmitState({ status: 'error', message: 'Terjadi kesalahan koneksi.' }); }
+  };
+
+  /* ── Edit ── */
+  const handleEditRequest = (row: any) => {
+    setModalState({ open: true, mode: 'edit', rowData: row });
   };
 
   const groups = GROUPS.map(g => ({
@@ -429,45 +485,42 @@ export default function MasterDataPage() {
   return (
     <div className="flex flex-col gap-0 w-full min-h-0">
 
-      {/* SubmitOverlay for success/error/loading */}
       <SubmitOverlay
         status={submitState.status}
         message={submitState.message}
         onClose={() => setSubmitState({ status: 'idle', message: '' })}
       />
 
-      {/* AlertModal — toggle warning */}
       <AlertModal
-        isOpen={alertState.isOpen}
-        title={alertState.currentActive ? 'Nonaktifkan Data?' : 'Aktifkan Data?'}
+        isOpen={alertToggle.isOpen}
+        title={alertToggle.currentActive ? 'Nonaktifkan Data?' : 'Aktifkan Data?'}
         message={
           <span>
             Apakah Anda yakin ingin{' '}
-            <strong>{alertState.currentActive ? 'menonaktifkan' : 'mengaktifkan'}</strong>{' '}
-            <em>{alertState.label}</em>?{' '}
-            {alertState.currentActive && 'Data ini tidak akan muncul dalam daftar pilihan di form.'}
+            <strong>{alertToggle.currentActive ? 'menonaktifkan' : 'mengaktifkan'}</strong>{' '}
+            <em>{alertToggle.label}</em>?{' '}
+            {alertToggle.currentActive && 'Data ini tidak akan muncul dalam daftar pilihan.'}
           </span>
         }
-        confirmText={alertState.currentActive ? 'Ya, Nonaktifkan' : 'Ya, Aktifkan'}
+        confirmText={alertToggle.currentActive ? 'Ya, Nonaktifkan' : 'Ya, Aktifkan'}
         cancelText="Batal"
         onConfirm={confirmToggle}
-        onCancel={() => setAlertState(s => ({ ...s, isOpen: false }))}
+        onCancel={() => setAlertToggle(s => ({ ...s, isOpen: false }))}
       />
 
-      {/* AlertModal — delete warning */}
       <AlertModal
-        isOpen={deleteAlert.isOpen}
+        isOpen={alertDelete.isOpen}
         title="Hapus Data?"
         message={
           <span>
-            Apakah Anda yakin ingin menghapus <em>{deleteAlert.label}</em>?{' '}
-            <strong>Aksi ini tidak dapat dibatalkan</strong> dan akan gagal jika data masih digunakan oleh data lain.
+            Yakin menghapus <em>{alertDelete.label}</em>?{' '}
+            <strong>Tidak dapat dibatalkan</strong> dan akan gagal jika masih digunakan data lain.
           </span>
         }
         confirmText="Ya, Hapus"
         cancelText="Batal"
         onConfirm={confirmDelete}
-        onCancel={() => setDeleteAlert(s => ({ ...s, isOpen: false }))}
+        onCancel={() => setAlertDelete(s => ({ ...s, isOpen: false }))}
       />
 
       {/* Header */}
@@ -479,15 +532,15 @@ export default function MasterDataPage() {
       {/* 2-column layout */}
       <div className="flex gap-5 items-start">
 
-        {/* ── Left Nav Sidebar ── */}
+        {/* ── Left Nav ── */}
         <div className="w-52 shrink-0 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden sticky top-4">
           {groups.map(g => {
-            const gStyle = GROUP_STYLES[g.color];
+            const gs2 = GS[g.color];
             return (
               <div key={g.name}>
                 <div className="px-3 pt-3 pb-1 flex items-center gap-1.5">
-                  <span className={`material-icons-round text-[14px] ${gStyle.text}`}>{g.icon}</span>
-                  <span className={`text-[10px] font-bold uppercase tracking-widest font-['Inter'] ${gStyle.text}`}>{g.name}</span>
+                  <span className={`material-icons-round text-[14px] ${gs2.text}`}>{g.icon}</span>
+                  <span className={`text-[10px] font-bold uppercase tracking-widest font-['Inter'] ${gs2.text}`}>{g.name}</span>
                 </div>
                 {g.tabs.map(([key, cfg]) => {
                   const active = activeTab === key;
@@ -496,10 +549,10 @@ export default function MasterDataPage() {
                       key={key}
                       onClick={() => setActiveTab(key)}
                       className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium transition-all text-left font-['Public_Sans'] ${
-                        active ? `${gStyle.activeBg} text-white` : 'text-slate-600 hover:bg-slate-50'
+                        active ? `${gs2.activeBg} text-white` : 'text-slate-600 hover:bg-slate-50'
                       }`}
                     >
-                      <span className={`material-icons-round text-[18px] shrink-0 ${active ? 'text-white' : gStyle.text}`}>{cfg.icon}</span>
+                      <span className={`material-icons-round text-[18px] shrink-0 ${active ? 'text-white' : gs2.text}`}>{cfg.icon}</span>
                       {cfg.label}
                     </button>
                   );
@@ -513,7 +566,7 @@ export default function MasterDataPage() {
         {/* ── Right Content ── */}
         <div className="flex-1 min-w-0 flex flex-col gap-4">
 
-          {/* Colored header band */}
+          {/* Header band */}
           <div className={`${gs.activeBg} rounded-xl px-5 py-4 flex items-center justify-between gap-4`}>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
@@ -527,15 +580,15 @@ export default function MasterDataPage() {
               </div>
             </div>
             <button
-              onClick={() => setShowModal(true)}
-              className="flex items-center gap-1.5 px-4 py-2 bg-white/20 hover:bg-white/30 text-white text-sm font-semibold rounded-lg transition-colors font-['Public_Sans'] shrink-0 backdrop-blur-sm border border-white/30"
+              onClick={() => setModalState({ open: true, mode: 'add' })}
+              className="flex items-center gap-1.5 px-4 py-2 bg-white/20 hover:bg-white/30 text-white text-sm font-semibold rounded-lg transition-colors font-['Public_Sans'] shrink-0 border border-white/30"
             >
               <span className="material-icons-round text-[18px]">add</span>
               Tambah {tab.label}
             </button>
           </div>
 
-          {/* Search bar */}
+          {/* Search */}
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 material-icons-round text-slate-400 text-[20px]">search</span>
             <input
@@ -552,24 +605,19 @@ export default function MasterDataPage() {
             )}
           </div>
 
-          {/* Table */}
-          <div className="w-full bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden">
+          {/* Table — overflow-visible so dropdown escapes */}
+          <div className="w-full bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col">
             <div className="w-full overflow-x-auto">
               <table className="w-full min-w-[420px] border-collapse">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200">
                     {tab.columns.map(col => (
-                      <th
-                        key={col.key}
-                        className={`${col.width ?? ''} px-5 py-3.5 text-left text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']`}
-                      >
+                      <th key={col.key} className={`${col.width ?? ''} px-5 py-3.5 text-left text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']`}>
                         {col.label}
                       </th>
                     ))}
                     {(tab.hasToggle || tab.hasDel) && (
-                      <th className="w-16 px-5 py-3.5 text-right text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">
-                        Aksi
-                      </th>
+                      <th className="w-16 px-5 py-3.5 text-right text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">Aksi</th>
                     )}
                   </tr>
                 </thead>
@@ -589,52 +637,52 @@ export default function MasterDataPage() {
                         <div className="flex flex-col items-center gap-2">
                           <span className={`material-icons-round text-5xl ${gs.text} opacity-25`}>{tab.icon}</span>
                           <p className="text-sm text-slate-400 font-['Public_Sans']">Belum ada data {tab.label}</p>
-                          <button
-                            onClick={() => setShowModal(true)}
-                            className={`mt-2 text-xs font-semibold ${gs.text} hover:underline font-['Public_Sans']`}
-                          >
+                          <button onClick={() => setModalState({ open: true, mode: 'add' })} className={`mt-2 text-xs font-semibold ${gs.text} hover:underline font-['Public_Sans']`}>
                             + Tambah sekarang
                           </button>
                         </div>
                       </td>
                     </tr>
                   ) : (
-                    data.map((row, i) => (
-                      <tr key={row.id ?? i} className="border-b border-slate-100 hover:bg-slate-50/70 transition-colors">
-                        {tab.columns.map(col => (
-                          <td key={col.key} className={`${col.width ?? ''} px-5 py-3.5 text-sm font-['Public_Sans']`}>
-                            {col.key === 'is_active' ? (
-                              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                                row[col.key] ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400'
-                              }`}>
-                                <span className="material-icons-round text-[12px]">{row[col.key] ? 'check_circle' : 'cancel'}</span>
-                                {row[col.key] ? 'Aktif' : 'Nonaktif'}
-                              </span>
-                            ) : (
-                              <span className="text-slate-700">{row[col.key] ?? '—'}</span>
-                            )}
-                          </td>
-                        ))}
-                        {(tab.hasToggle || tab.hasDel) && (
-                          <td className="w-16 px-5 py-3.5">
-                            <div className="flex justify-end">
-                              <ActionMenu
-                                row={row}
-                                tab={tab}
-                                onToggle={(id, cur) => {
-                                  const lbl =
-                                    row.nama_wilayah ?? row.nama_satelit ?? row.nama_departemen ?? row.nama_komisi ??
-                                    row.nama_periode ?? row.nama_jabatan ?? row.nama_role ?? row.nama_pekerjaan ??
-                                    row.nama_relasi ?? row.nama_jenis_kegiatan ?? `ID ${id}`;
-                                  handleToggleRequest(id, cur, lbl);
-                                }}
-                                onDelete={handleDeleteRequest}
-                              />
-                            </div>
-                          </td>
-                        )}
-                      </tr>
-                    ))
+                    data.map((row, i) => {
+                      // flip dropdown up for last 2 rows (same pattern as Jemaat page)
+                      const isLastRows = data.length > 2 && i >= data.length - 2;
+                      return (
+                        <tr
+                          key={row.id ?? i}
+                          className="border-b border-slate-100 hover:bg-slate-50/70 transition-colors relative"
+                        >
+                          {tab.columns.map(col => (
+                            <td key={col.key} className={`${col.width ?? ''} px-5 py-3.5 text-sm font-['Public_Sans']`}>
+                              {col.key === 'is_active' ? (
+                                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                                  row[col.key] ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400'
+                                }`}>
+                                  <span className="material-icons-round text-[12px]">{row[col.key] ? 'check_circle' : 'cancel'}</span>
+                                  {row[col.key] ? 'Aktif' : 'Nonaktif'}
+                                </span>
+                              ) : (
+                                <span className="text-slate-700">{row[col.key] ?? '—'}</span>
+                              )}
+                            </td>
+                          ))}
+                          {(tab.hasToggle || tab.hasDel) && (
+                            <td className="w-16 px-5 py-3.5">
+                              <div className="flex justify-end">
+                                <ActionMenu
+                                  row={row}
+                                  tab={tab}
+                                  isLastRows={isLastRows}
+                                  onEdit={handleEditRequest}
+                                  onToggle={handleToggleRequest}
+                                  onDelete={(id, lbl) => setAlertDelete({ isOpen: true, id, label: lbl })}
+                                />
+                              </div>
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
@@ -645,19 +693,19 @@ export default function MasterDataPage() {
               </span>
             </div>
           </div>
+
         </div>
       </div>
 
-      {/* Add modal */}
-      {showModal && (
-        <AddModal
+      {/* Add / Edit Modal */}
+      {modalState.open && (
+        <DataModal
+          mode={modalState.mode}
           tab={tab}
           tabKey={activeTab}
-          onClose={() => setShowModal(false)}
-          onSaved={(msg) => {
-            fetchData();
-            setSubmitState({ status: 'success', message: msg });
-          }}
+          initialData={modalState.rowData}
+          onClose={() => setModalState(s => ({ ...s, open: false }))}
+          onSaved={msg => { fetchData(); setSubmitState({ status: 'success', message: msg }); }}
           selectOptions={selectOptions}
         />
       )}
