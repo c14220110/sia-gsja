@@ -18,13 +18,18 @@ export async function getOptionsController(request: Request) {
       data = await masterService.getKomisiOptions(satelitId);
     } else if (type === 'jemaat_search') {
       const q = searchParams.get('q') || '';
-      data = await masterService.searchJemaatOptions(q);
+      const onlyActive = searchParams.get('only_active') === 'true';
+      data = await masterService.searchJemaatOptions(q, onlyActive);
     } else if (type === 'departemen') {
       data = await masterService.getDepartemenOptions();
     } else if (type === 'pekerjaan') {
       data = await masterService.getPekerjaanOptions();
     } else if (type === 'role_pelayan') {
       data = await masterService.getRolePelayanOptions();
+    } else if (type === 'jabatan') {
+      data = await masterService.getJabatanOptions();
+    } else if (type === 'periode_kepengurusan') {
+      data = await masterService.getPeriodeKepengurusanOptions();
     } else {
       return NextResponse.json({ success: false, message: 'Invalid type parameter' }, { status: 400 });
     }

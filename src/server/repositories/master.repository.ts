@@ -34,12 +34,13 @@ export class MasterRepository {
     return result.rows;
   }
 
-  async searchJemaat(searchQuery: string): Promise<any[]> {
+  async searchJemaat(searchQuery: string, onlyActive?: boolean): Promise<any[]> {
+    const statusFilter = onlyActive ? " AND j.status_jemaat = 'Aktif'" : "";
     const query = `
       SELECT j.id, j.jemaat_id, j.nama_lengkap, j.jenis_kelamin, j.foto_url, j.satelit_id, s.nama_satelit
       FROM jemaat j
       JOIN satelit s ON j.satelit_id = s.id
-      WHERE j.is_deleted = false AND j.nama_lengkap ILIKE $1
+      WHERE j.is_deleted = false AND j.nama_lengkap ILIKE $1${statusFilter}
       ORDER BY j.nama_lengkap ASC
       LIMIT 10;
     `;
@@ -74,6 +75,27 @@ export class MasterRepository {
       SELECT id, nama_role
       FROM role_pelayan
       ORDER BY nama_role ASC;
+    `;
+    const result = await pool.query(query);
+    return result.rows;
+  }
+
+  async getAllPeriodeKepengurusan(): Promise<any[]> {
+    const query = `
+      SELECT id, nama_periode, tahun_mulai, tahun_akhir
+      FROM periode_kepengurusan
+      WHERE is_active = true
+      ORDER BY tahun_mulai DESC;
+    `;
+    const result = await pool.query(query);
+    return result.rows;
+  }
+
+  async getAllJabatan(): Promise<any[]> {
+    const query = `
+      SELECT id, nama_jabatan
+      FROM jabatan
+      ORDER BY id ASC;
     `;
     const result = await pool.query(query);
     return result.rows;

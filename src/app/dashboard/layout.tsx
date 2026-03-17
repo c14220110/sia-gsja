@@ -186,7 +186,7 @@ export default function DashboardLayout({
                     <div className="pl-14 pr-4 py-2 flex flex-col gap-4">
                       <Link href="/dashboard/members" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Data Jemaat</Link>
                       <Link href="/dashboard/pelayan" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Data Pelayan</Link>
-                      <span className="text-slate-300 text-sm font-medium hover:text-white transition-colors cursor-pointer block">Data Pengurus</span>
+                      <Link href="/dashboard/pengurus" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Data Pengurus</Link>
                     </div>
                   </div>
                 </div>
@@ -443,7 +443,7 @@ export default function DashboardLayout({
                         <div className="text-center justify-center text-violet-900 text-sm font-bold font-['Inter'] leading-5">Data Pelayan</div>
                       </div>
                     </Link>
-                    <div className="flex-1 h-32 p-4 bg-pink-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-pink-200 flex flex-col justify-center items-center cursor-pointer hover:bg-pink-100 transition-colors">
+                    <Link href="/dashboard/pengurus" onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-pink-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-pink-200 flex flex-col justify-center items-center cursor-pointer hover:bg-pink-100 transition-colors block text-inherit no-underline">
                       <div className="pb-2 flex flex-col justify-start items-start">
                         <div className="flex flex-col justify-start items-center">
                           <span className="material-icons-round text-pink-600 text-[32px]">admin_panel_settings</span>
@@ -452,7 +452,7 @@ export default function DashboardLayout({
                       <div className="flex flex-col justify-start items-center">
                         <div className="text-center justify-center text-pink-900 text-sm font-bold font-['Inter'] leading-5">Data Pengurus</div>
                       </div>
-                    </div>
+                    </Link>
                   </div>
                 </div>
               </div>
