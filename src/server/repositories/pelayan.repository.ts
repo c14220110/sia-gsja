@@ -166,15 +166,24 @@ export class PelayanRepository {
     try {
       await client.query('BEGIN');
 
+      // 0. Cek duplikasi: jemaat sudah punya row pelayan di satelit yang sama?
+      const dupCheck = await client.query(
+        `SELECT id, id_pelayanan FROM pelayan WHERE jemaat_id = $1 AND satelit_id = $2 LIMIT 1`,
+        [params.jemaat_id, params.satelit_id]
+      );
+      if (dupCheck.rowCount && dupCheck.rowCount > 0) {
+        throw new Error(
+          `Jemaat ini sudah terdaftar sebagai pelayan di satelit yang sama (ID: ${dupCheck.rows[0].id_pelayanan}). ` +
+          `Untuk menambah role baru, gunakan menu Edit Detail Pelayan.`
+        );
+      }
+
       // 1. Get kode_satelit
       const satelitRes = await client.query(`SELECT kode_satelit FROM satelit WHERE id = $1`, [params.satelit_id]);
       if (satelitRes.rowCount === 0) {
         throw new Error('Satelit tidak ditemukan');
       }
-      const kode_satelit = satelitRes.rows[0].kode_satelit; // length up to 10? We need to extract digits or use it if it's 2 digits.
-      // Usually kode_satelit is something like '01' based on prompt: "2 digit dari kode_satelit di tabel satelit".
-      // We will assume kode_satelit is correct length or we substring it.
-      const kodeStr = String(kode_satelit).padStart(2, '0').substring(0, 2);
+      const kodeStr = String(satelitRes.rows[0].kode_satelit).padStart(2, '0').substring(0, 2);
 
       // 2. Generate ID Pelayan: P[kode_satelit][3 digit urut]
       const prefix = `P${kodeStr}`;
@@ -185,14 +194,10 @@ export class PelayanRepository {
         LIMIT 1
       `, [`${prefix}%`]);
 
-      let urut = 0; // "start dari 000" means first is 000
+      let urut = 0;
       if (lastIdRes.rowCount && lastIdRes.rowCount > 0) {
-        const lastId = lastIdRes.rows[0].id_pelayanan;
-        const lastUrutStr = lastId.substring(prefix.length);
-        const lastUrutNum = parseInt(lastUrutStr, 10);
-        if (!isNaN(lastUrutNum)) {
-          urut = lastUrutNum + 1;
-        }
+        const lastUrutNum = parseInt(lastIdRes.rows[0].id_pelayanan.substring(prefix.length), 10);
+        if (!isNaN(lastUrutNum)) urut = lastUrutNum + 1;
       }
       const id_pelayanan = `${prefix}${String(urut).padStart(3, '0')}`;
 

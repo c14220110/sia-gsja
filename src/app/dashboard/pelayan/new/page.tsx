@@ -113,6 +113,8 @@ export default function NewPelayanPage() {
   const [submitState, setSubmitState] = useState<{ status: 'idle'|'loading'|'success'|'error', message: string, errors?: any }>({ status: 'idle', message: '' });
 
   const [roleOptions, setRoleOptions] = useState<any[]>([]);
+  const [satelitOptions, setSatelitOptions] = useState<any[]>([]);
+  const [selectedSatelitId, setSelectedSatelitId] = useState<string>('');
 
   // Selected Jemaat state
   const [selectedJemaat, setSelectedJemaat] = useState<any>(null);
@@ -128,17 +130,27 @@ export default function NewPelayanPage() {
   useEffect(() => {
     const fetchOptions = async () => {
       try {
-        const resRole = await fetch('/api/options?type=role_pelayan');
+        const [resRole, resSat] = await Promise.all([
+          fetch('/api/options?type=role_pelayan'),
+          fetch('/api/options?type=satelit'),
+        ]);
         const roleData = await resRole.json();
-        if (roleData.success) {
-          setRoleOptions(roleData.data);
-        }
+        const satData  = await resSat.json();
+        if (roleData.success) setRoleOptions(roleData.data);
+        if (satData.success)  setSatelitOptions(satData.data);
       } catch (error) {
-        console.error('Failed to fetch role options', error);
+        console.error('Failed to fetch options', error);
       }
     };
     fetchOptions();
   }, []);
+
+  // Saat jemaat dipilih, set default satelit ke satelit asal jemaat (bisa diubah)
+  useEffect(() => {
+    if (selectedJemaat?.satelit_id) {
+      setSelectedSatelitId(selectedJemaat.satelit_id.toString());
+    }
+  }, [selectedJemaat]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -187,17 +199,22 @@ export default function NewPelayanPage() {
       }
     }
 
-    try {
-      setIsSubmitting(true);
-      setSubmitState({ status: 'loading', message: '' });
+      if (!selectedSatelitId) {
+        alert('Pilih lokasi satelit pelayanan terlebih dahulu');
+        return;
+      }
 
-      const payload = {
-        jemaat_id: selectedJemaat.id,
-        satelit_id: selectedJemaat.satelit_id,
-        tanggal_mulai: formData.tanggal_mulai,
-        catatan: formData.catatan,
-        roles: formData.roles,
-      };
+      try {
+        setIsSubmitting(true);
+        setSubmitState({ status: 'loading', message: '' });
+
+        const payload = {
+          jemaat_id:     selectedJemaat.id,
+          satelit_id:    selectedSatelitId,
+          tanggal_mulai: formData.tanggal_mulai,
+          catatan:       formData.catatan,
+          roles:         formData.roles,
+        };
 
       const res = await fetch('/api/pelayan', {
         method: 'POST',
@@ -309,6 +326,34 @@ export default function NewPelayanPage() {
                   <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Tgl Mulai (Global)</label>
                   <input type="date" name="tanggal_mulai" value={formData.tanggal_mulai} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
                 </div>
+              </div>
+
+              {/* Lokasi Satelit Pelayanan — bisa berbeda dari satelit asal jemaat */}
+              <div className="w-full flex-col gap-1 flex">
+                <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4 flex items-center gap-1">
+                  Lokasi Satelit Pelayanan
+                  {selectedJemaat && selectedSatelitId && selectedSatelitId !== selectedJemaat.satelit_id?.toString() && (
+                    <span className="ml-1 px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded-full normal-case tracking-normal">
+                      ⚠ Berbeda dari satelit asal
+                    </span>
+                  )}
+                </label>
+                <select
+                  value={selectedSatelitId}
+                  onChange={e => setSelectedSatelitId(e.target.value)}
+                  className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-['Inter'] w-full transition-all cursor-pointer"
+                >
+                  <option value="">-- Pilih Satelit Pelayanan --</option>
+                  {satelitOptions.map((s: any) => (
+                    <option key={s.id} value={s.id}>
+                      {s.nama_satelit}
+                      {selectedJemaat?.satelit_id === s.id ? ' (Asal Jemaat)' : ''}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-slate-400 text-[11px] font-['Inter'] mt-0.5">
+                  Default: satelit asal jemaat. Ubah jika jemaat ini melayani di satelit lain.
+                </p>
               </div>
             </div>
 
