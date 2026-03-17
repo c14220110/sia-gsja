@@ -96,6 +96,7 @@ export class MasterRepository {
     const query = `
       SELECT id, nama_jabatan
       FROM jabatan
+      WHERE is_active = true
       ORDER BY id ASC;
     `;
     const result = await pool.query(query);

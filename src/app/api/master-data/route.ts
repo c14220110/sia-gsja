@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
         orderBy: 'tahun_mulai DESC',
       },
       jabatan: {
-        query: `SELECT id, nama_jabatan FROM jabatan`,
+        query: `SELECT id, nama_jabatan, is_active FROM jabatan`,
         orderBy: 'id',
       },
       role_pelayan: {
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
         orderBy: 'nama_pekerjaan',
       },
       jenis_relasi: {
-        query: `SELECT id, nama_relasi FROM jenis_relasi`,
+        query: `SELECT id, nama_relasi, is_active FROM jenis_relasi`,
         orderBy: 'nama_relasi',
       },
       jenis_kegiatan: {
@@ -177,7 +177,7 @@ export async function DELETE(request: NextRequest) {
     const table = searchParams.get('table');
     const id = searchParams.get('id');
 
-    const DELETABLE = ['jabatan', 'jenis_relasi', 'jenis_kegiatan', 'wilayah'];
+    const DELETABLE = ['jenis_kegiatan', 'wilayah'];
     if (!table || !id || !DELETABLE.includes(table)) {
       return NextResponse.json({ success: false, message: 'Tabel tidak dapat dihapus atau ID tidak valid' }, { status: 400 });
     }
@@ -206,7 +206,7 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const { table, id, is_active } = body;
 
-    const TOGGLEABLE = ['satelit', 'departemen', 'komisi', 'periode_kepengurusan', 'pekerjaan_master', 'role_pelayan'];
+    const TOGGLEABLE = ['satelit', 'departemen', 'komisi', 'periode_kepengurusan', 'pekerjaan_master', 'role_pelayan', 'jabatan', 'jenis_relasi'];
     if (!table || !id || !TOGGLEABLE.includes(table) || typeof is_active !== 'boolean') {
       return NextResponse.json({ success: false, message: 'Parameter tidak valid' }, { status: 400 });
     }

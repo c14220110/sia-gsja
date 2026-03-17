@@ -84,9 +84,9 @@ const TABS: Record<TabKey, TabConfig> = {
   },
   jabatan: {
     label: 'Jabatan', icon: 'badge', group: 'Parameter SDM', groupColor: 'emerald',
-    columns: [{ key: 'id', label: 'ID', width: 'w-16' }, { key: 'nama_jabatan', label: 'Nama Jabatan' }],
+    columns: [{ key: 'id', label: 'ID', width: 'w-16' }, { key: 'nama_jabatan', label: 'Nama Jabatan' }, { key: 'is_active', label: 'Status', width: 'w-28' }],
     formFields: [{ key: 'nama_jabatan', label: 'Nama Jabatan' }],
-    hasDel: true,
+    hasToggle: true,
   },
   role_pelayan: {
     label: 'Role Pelayan', icon: 'volunteer_activism', group: 'Parameter SDM', groupColor: 'emerald',
@@ -102,9 +102,9 @@ const TABS: Record<TabKey, TabConfig> = {
   },
   jenis_relasi: {
     label: 'Jenis Relasi', icon: 'family_restroom', group: 'Atribut Jemaat', groupColor: 'amber',
-    columns: [{ key: 'nama_relasi', label: 'Nama Relasi' }],
+    columns: [{ key: 'nama_relasi', label: 'Nama Relasi' }, { key: 'is_active', label: 'Status', width: 'w-28' }],
     formFields: [{ key: 'nama_relasi', label: 'Nama Relasi (mis: Suami, Istri, Anak)' }],
-    hasDel: true,
+    hasToggle: true,
   },
   jenis_kegiatan: {
     label: 'Jenis Kegiatan', icon: 'event', group: 'Parameter Kegiatan', groupColor: 'rose',
