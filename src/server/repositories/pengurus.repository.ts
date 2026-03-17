@@ -137,7 +137,14 @@ export class PengurusRepository {
     try {
       await client.query('BEGIN');
 
-      const satelitRes = await client.query(`SELECT kode_satelit FROM satelit WHERE id = $1`, [params.satelit_id]);
+      // Ambil satelit_id dari jemaat (untuk audit log & generate ID)
+      const jemaatRes = await client.query(`SELECT satelit_id FROM jemaat WHERE id = $1`, [params.jemaat_id]);
+      if (jemaatRes.rowCount === 0) throw new Error('Jemaat tidak ditemukan');
+      const jemaat_satelit_id: number = jemaatRes.rows[0].satelit_id;
+
+      // Pilih satelit untuk generate prefix ID: pakai lokasi_satelit_id jika ada, fallback ke satelit jemaat
+      const id_gen_satelit = params.satelit_id || jemaat_satelit_id;
+      const satelitRes = await client.query(`SELECT kode_satelit FROM satelit WHERE id = $1`, [id_gen_satelit]);
       if (satelitRes.rowCount === 0) throw new Error('Satelit tidak ditemukan');
       
       const kodeStr = String(satelitRes.rows[0].kode_satelit).padStart(2, '0').substring(0, 2);
@@ -158,18 +165,18 @@ export class PengurusRepository {
       }
       const id_pengurus = `${prefix}${String(urut).padStart(3, '0')}`;
 
-      // Cek apakah jemaat sudah menjadi pengurus satelit ini
+      // Cek apakah jemaat sudah pernah menjadi pengurus (cukup cek jemaat_id saja)
       let pengurus_id;
-      const existRes = await client.query(`SELECT id FROM pengurus WHERE jemaat_id = $1 AND satelit_id = $2`, [params.jemaat_id, params.satelit_id]);
+      const existRes = await client.query(`SELECT id FROM pengurus WHERE jemaat_id = $1`, [params.jemaat_id]);
       
       if (existRes.rowCount && existRes.rowCount > 0) {
         pengurus_id = existRes.rows[0].id;
       } else {
         const insertPengurusRes = await client.query(`
-          INSERT INTO pengurus (id_pengurus, jemaat_id, satelit_id)
-          VALUES ($1, $2, $3)
+          INSERT INTO pengurus (id_pengurus, jemaat_id)
+          VALUES ($1, $2)
           RETURNING id
-        `, [id_pengurus, params.jemaat_id, params.satelit_id]);
+        `, [id_pengurus, params.jemaat_id]);
         pengurus_id = insertPengurusRes.rows[0].id;
       }
 
@@ -185,7 +192,7 @@ export class PengurusRepository {
         pengurus_id,
         params.user_id,
         params.user_role_id,
-        params.satelit_id,
+        jemaat_satelit_id,
         `Registrasi Jabatan Baru disematkan kepada pengurus ID ${id_pengurus}`
       ]);
 
