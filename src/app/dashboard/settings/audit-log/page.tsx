@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 
 type AuditAction = 'CREATE' | 'UPDATE' | 'DEACTIVATE';
-type LogType = 'jemaat' | 'pelayan';
+type LogType = 'jemaat' | 'pelayan' | 'pengurus';
 
 interface AuditLogEntry {
   id:             number;
@@ -28,8 +28,9 @@ const ACTION_CONFIG: Record<AuditAction, { label: string; bg: string; text: stri
 };
 
 const LOG_TYPE_CONFIG: Record<LogType, { label: string; icon: string; entityLabel: string; detailPath: string }> = {
-  jemaat:  { label: 'Data Jemaat',  icon: 'group',              entityLabel: 'Jemaat',  detailPath: '/dashboard/members' },
-  pelayan: { label: 'Data Pelayan', icon: 'volunteer_activism',  entityLabel: 'Pelayan', detailPath: '/dashboard/members' },
+  jemaat:   { label: 'Data Jemaat',   icon: 'group',              entityLabel: 'Jemaat',   detailPath: '/dashboard/members'  },
+  pelayan:  { label: 'Data Pelayan',  icon: 'volunteer_activism',  entityLabel: 'Pelayan',  detailPath: '/dashboard/members'  },
+  pengurus: { label: 'Data Pengurus', icon: 'admin_panel_settings', entityLabel: 'Pengurus', detailPath: '/dashboard/pengurus' },
 };
 
 export default function AuditLogPage() {

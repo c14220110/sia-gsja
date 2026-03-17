@@ -153,8 +153,7 @@ export default function DashboardLayout({
                   <div className={`md:hidden overflow-hidden transition-all duration-300 ${mobileExpandedMenus['pengaturan_software'] ? 'max-h-96 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
                     <div className="pl-14 pr-4 py-2 flex flex-col gap-4">
                       <span className="text-slate-300 text-sm font-medium hover:text-white transition-colors cursor-pointer block">Role &amp; Permission</span>
-                      <span className="text-slate-300 text-sm font-medium hover:text-white transition-colors cursor-pointer block">Satelit</span>
-                      <span className="text-slate-300 text-sm font-medium hover:text-white transition-colors cursor-pointer block">Master Data</span>
+                      <Link href="/dashboard/settings/master-data" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Master Data</Link>
                       <Link href="/dashboard/settings/audit-log" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Audit Log</Link>
                     </div>
                   </div>
@@ -391,16 +390,11 @@ export default function DashboardLayout({
                       <div className="pb-2"><span className="material-icons-round text-purple-600 text-[32px]">admin_panel_settings</span></div>
                       <div className="text-center text-purple-900 text-sm font-bold font-['Inter'] leading-5">Role &amp; Permission</div>
                     </div>
-                    {/* Satelit */}
-                    <div className="w-[140px] h-32 p-4 bg-sky-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-sky-200 flex flex-col justify-center items-center cursor-pointer hover:bg-sky-100 transition-colors">
-                      <div className="pb-2"><span className="material-icons-round text-sky-600 text-[32px]">church</span></div>
-                      <div className="text-center text-sky-900 text-sm font-bold font-['Inter'] leading-5">Satelit</div>
-                    </div>
                     {/* Master Data */}
-                    <div className="w-[140px] h-32 p-4 bg-emerald-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-emerald-200 flex flex-col justify-center items-center cursor-pointer hover:bg-emerald-100 transition-colors">
+                    <Link href="/dashboard/settings/master-data" onClick={() => setActiveSubmenu(null)} className="w-[140px] h-32 p-4 bg-emerald-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-emerald-200 flex flex-col justify-center items-center cursor-pointer hover:bg-emerald-100 transition-colors text-inherit no-underline">
                       <div className="pb-2"><span className="material-icons-round text-emerald-600 text-[32px]">dataset</span></div>
                       <div className="text-center text-emerald-900 text-sm font-bold font-['Inter'] leading-5">Master Data</div>
-                    </div>
+                    </Link>
                     {/* Audit Log */}
                     <Link href="/dashboard/settings/audit-log" onClick={() => setActiveSubmenu(null)} className="w-[140px] h-32 p-4 bg-amber-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-amber-200 flex flex-col justify-center items-center cursor-pointer hover:bg-amber-100 transition-colors block text-inherit no-underline">
                       <div className="pb-2"><span className="material-icons-round text-amber-600 text-[32px]">history_edu</span></div>

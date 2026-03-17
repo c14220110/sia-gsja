@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
 
-    const log_type  = searchParams.get('log_type') || 'jemaat'; // 'jemaat' | 'pelayan'
+    const log_type  = searchParams.get('log_type') || 'jemaat'; // 'jemaat' | 'pelayan' | 'pengurus'
     const limit     = Math.min(parseInt(searchParams.get('limit')  ?? '15'), 100);
     const offset    = parseInt(searchParams.get('offset') ?? '0');
     const aksi      = searchParams.get('aksi')      || undefined;
@@ -37,6 +37,8 @@ export async function GET(request: NextRequest) {
     let data, total;
     if (log_type === 'pelayan') {
       ({ data, total } = await auditLogRepository.getPelayanAuditLogs(queryParams));
+    } else if (log_type === 'pengurus') {
+      ({ data, total } = await auditLogRepository.getPengurusAuditLogs(queryParams));
     } else {
       ({ data, total } = await auditLogRepository.getJemaatAuditLogs(queryParams));
     }
