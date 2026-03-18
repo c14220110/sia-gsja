@@ -163,7 +163,7 @@ export default function DashboardLayout({
                   {/* Mobile Accordion */}
                   <div className={`md:hidden overflow-hidden transition-all duration-300 ${mobileExpandedMenus['pengaturan_software'] ? 'max-h-96 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
                     <div className="pl-14 pr-4 py-2 flex flex-col gap-4">
-                      <span className="text-slate-300 text-sm font-medium hover:text-white transition-colors cursor-pointer block">Role &amp; Permission</span>
+                      <Link href="/dashboard/settings/akun-akses" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Akun &amp; Hak Akses</Link>
                       <Link href="/dashboard/settings/master-data" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Master Data</Link>
                       <Link href="/dashboard/settings/audit-log" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Audit Log</Link>
                     </div>
@@ -396,11 +396,11 @@ export default function DashboardLayout({
                     <div className="justify-center text-slate-800 text-lg font-bold font-['Inter'] leading-7">Pengaturan Software</div>
                   </div>
                   <div className="self-stretch flex flex-wrap justify-start items-start gap-4">
-                    {/* Role & Permission */}
-                    <div className="w-[140px] h-32 p-4 bg-purple-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-purple-200 flex flex-col justify-center items-center cursor-pointer hover:bg-purple-100 transition-colors">
+                    {/* Akun & Hak Akses */}
+                    <Link href="/dashboard/settings/akun-akses" onClick={() => setActiveSubmenu(null)} className="w-[140px] h-32 p-4 bg-purple-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-purple-200 flex flex-col justify-center items-center cursor-pointer hover:bg-purple-100 transition-colors block text-inherit no-underline">
                       <div className="pb-2"><span className="material-icons-round text-purple-600 text-[32px]">admin_panel_settings</span></div>
-                      <div className="text-center text-purple-900 text-sm font-bold font-['Inter'] leading-5">Role &amp; Permission</div>
-                    </div>
+                      <div className="text-center text-purple-900 text-sm font-bold font-['Inter'] leading-5">Akun &amp; Hak Akses</div>
+                    </Link>
                     {/* Master Data */}
                     <Link href="/dashboard/settings/master-data" onClick={() => setActiveSubmenu(null)} className="w-[140px] h-32 p-4 bg-emerald-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-emerald-200 flex flex-col justify-center items-center cursor-pointer hover:bg-emerald-100 transition-colors text-inherit no-underline">
                       <div className="pb-2"><span className="material-icons-round text-emerald-600 text-[32px]">dataset</span></div>

@@ -1,0 +1,186 @@
+import pool from '@/lib/db';
+
+export class AkunAksesRepository {
+  /**
+   * Mengambil daftar Role Sistem
+   */
+  async getRoles(): Promise<any[]> {
+    const res = await pool.query(`
+      SELECT r.id, r.nama_role, r.deskripsi, r.is_active,
+             (SELECT COUNT(*) FROM user_role ur WHERE ur.role_id = r.id) AS jumlah_pengguna
+      FROM role r
+      ORDER BY r.nama_role ASC
+    `);
+    return res.rows;
+  }
+
+  /**
+   * Mengambil semua Permission dari master
+   */
+  async getPermissions(): Promise<any[]> {
+    const res = await pool.query(`
+      SELECT id, nama_permission, deskripsi
+      FROM permission
+      ORDER BY id ASC
+    `);
+    return res.rows;
+  }
+
+  /**
+   * Mengambil daftar Permission IDs yang dimiliki oleh suatu Role
+   */
+  async getRolePermissions(roleId: number): Promise<number[]> {
+    const res = await pool.query(`SELECT permission_id FROM role_permission WHERE role_id = $1`, [roleId]);
+    return res.rows.map(row => row.permission_id);
+  }
+
+  /**
+   * Menyimpan matrik permission (Bulk Delete + Insert)
+   */
+  async updateRolePermissions(roleId: number, permissionIds: number[]): Promise<boolean> {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      // 1. Delete all existing permissions
+      await client.query(`DELETE FROM role_permission WHERE role_id = $1`, [roleId]);
+      
+      // 2. Insert new permissions only if there are any
+      if (permissionIds.length > 0) {
+        let values: any[] = [];
+        let params: string[] = [];
+        let idx = 1;
+
+        permissionIds.forEach((pid) => {
+          params.push(`($${idx++}, $${idx++})`);
+          values.push(roleId, pid);
+        });
+
+        const insertQuery = `INSERT INTO role_permission (role_id, permission_id) VALUES ${params.join(', ')}`;
+        await client.query(insertQuery, values);
+      }
+      
+      await client.query('COMMIT');
+      return true;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      console.error('Error in updateRolePermissions:', error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Mengambil daftar akun pengguna beserta role
+   */
+  async getPenggunaList(): Promise<any[]> {
+    const res = await pool.query(`
+      SELECT 
+        p.id, p.email, p.is_active, p.last_login_at,
+        j.nama_lengkap,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'role_name', r.nama_role,
+              'satelit_name', s.nama_satelit,
+              'tanggal_mulai', ur.tanggal_mulai,
+              'tanggal_selesai', ur.tanggal_selesai
+            )
+          ) FILTER (WHERE r.id IS NOT NULL),
+          '[]'
+        ) AS roles
+      FROM pengguna p
+      LEFT JOIN jemaat j ON p.jemaat_id = j.id
+      LEFT JOIN user_role ur ON p.id = ur.user_id AND ur.is_active = true
+      LEFT JOIN role r ON ur.role_id = r.id
+      LEFT JOIN satelit s ON ur.satelit_id = s.id
+      GROUP BY p.id, j.id
+      ORDER BY p.created_at DESC
+    `);
+    return res.rows;
+  }
+
+  /**
+   * Membuat Kredensial Pengguna Baru (Bcrypt handled di route)
+   * Menyimpan ke pengguna dan user_role sekaligus
+   */
+  async createPengguna(data: {
+    email: string;
+    password_hash: string;
+    jemaat_id: number;
+    role_id: number;
+    satelit_id: number;
+  }): Promise<{ success: boolean; message?: string }> {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // 1. Insert pengguna. jemaat_id is unique, so checking if user already exists
+      const existUser = await client.query(`SELECT id FROM pengguna WHERE jemaat_id = $1 OR email = $2`, [data.jemaat_id, data.email]);
+      let userId;
+
+      if (existUser.rowCount && existUser.rowCount > 0) {
+        const existWithSameEmail = await client.query(`SELECT id FROM pengguna WHERE email = $1`, [data.email]);
+        if(existWithSameEmail.rowCount && existWithSameEmail.rowCount > 0 && existWithSameEmail.rows[0].id !== existUser.rows[0].id) {
+          throw new Error('Email sudah terdaftar untuk pengguna lain.');
+        }
+        
+        userId = existUser.rows[0].id;
+        // Optionally update password if needed, but for now we throw error if completely duplicate
+      } else {
+        const insUser = await client.query(`
+          INSERT INTO pengguna (email, password_hash, jemaat_id)
+          VALUES ($1, $2, $3)
+          RETURNING id
+        `, [data.email, data.password_hash, data.jemaat_id]);
+        userId = insUser.rows[0].id;
+      }
+
+      // 2. Insert role to user
+      await client.query(`
+        INSERT INTO user_role (user_id, role_id, satelit_id)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (user_id, role_id, satelit_id) DO UPDATE SET is_active = true
+      `, [userId, data.role_id, data.satelit_id]);
+
+      await client.query('COMMIT');
+      return { success: true };
+    } catch (error: any) {
+      await client.query('ROLLBACK');
+      console.error('Error createPengguna:', error);
+      if (error.code === '23505') {
+         return { success: false, message: 'Email atau Jemaat ini sudah memiliki akun di sistem' };
+      }
+      return { success: false, message: error.message };
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Tambah Akses Sementara (Temporary Access)
+   */
+  async addTemporaryAccess(data: {
+    user_id: number;
+    role_id: number;
+    satelit_id: number;
+    tanggal_mulai: string;
+    tanggal_selesai: string;
+  }): Promise<{ success: boolean; message?: string }> {
+    try {
+      await pool.query(`
+        INSERT INTO user_role (user_id, role_id, satelit_id, tanggal_mulai, tanggal_selesai)
+        VALUES ($1, $2, $3, $4, $5)
+        ON CONFLICT (user_id, role_id, satelit_id) 
+        DO UPDATE SET tanggal_mulai = $4, tanggal_selesai = $5, is_active = true
+      `, [data.user_id, data.role_id, data.satelit_id, data.tanggal_mulai, data.tanggal_selesai]);
+      
+      return { success: true };
+    } catch (error: any) {
+      console.error('Error addTemporaryAccess:', error);
+      return { success: false, message: error.message };
+    }
+  }
+}
+
+export const akunAksesRepository = new AkunAksesRepository();
