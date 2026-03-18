@@ -26,22 +26,20 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { email, password, jemaat_id, role_id, satelit_id } = body;
+    const { email, password, jemaat_id, roles } = body;
 
-    if (!email || !password || !jemaat_id || !role_id || !satelit_id) {
-      return NextResponse.json({ success: false, message: 'Mohon lengkapi semua field yang diwajibkan' }, { status: 400 });
+    if (!email || !password || !jemaat_id || !roles || roles.length === 0) {
+      return NextResponse.json({ success: false, message: 'Mohon lengkapi semua field yang diwajibkan (termasuk minimal 1 role)' }, { status: 400 });
     }
 
-    // Hash the password securely
     const saltRounds = 10;
     const password_hash = await bcrypt.hash(password, saltRounds);
 
-    const result = await akunAksesRepository.createPengguna({
+    const result = await akunAksesRepository.createPenggunaMultiRole({
       email,
       password_hash,
       jemaat_id,
-      role_id,
-      satelit_id
+      roles,
     });
 
     if (result.success) {
@@ -51,6 +49,33 @@ export async function POST(req: NextRequest) {
     }
   } catch (error: any) {
     console.error('Error in /api/settings/akun-akses/users POST:', error);
+    return NextResponse.json({ success: false, message: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const caller = await getCallerFromRequest(req);
+    if (!caller || !caller.is_super_admin) {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
+    }
+
+    const body = await req.json();
+    const { user_id, is_active } = body;
+
+    if (typeof user_id !== 'number' || typeof is_active !== 'boolean') {
+      return NextResponse.json({ success: false, message: 'Parameter user_id dan is_active diperlukan' }, { status: 400 });
+    }
+
+    const result = await akunAksesRepository.toggleUserStatus(user_id, is_active);
+
+    if (result.success) {
+      return NextResponse.json({ success: true, message: is_active ? 'Akun berhasil diaktifkan' : 'Akun berhasil dinonaktifkan' });
+    } else {
+      return NextResponse.json({ success: false, message: result.message }, { status: 400 });
+    }
+  } catch (error: any) {
+    console.error('Error in /api/settings/akun-akses/users PATCH:', error);
     return NextResponse.json({ success: false, message: 'Internal Server Error' }, { status: 500 });
   }
 }

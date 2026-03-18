@@ -158,6 +158,69 @@ export class AkunAksesRepository {
   }
 
   /**
+   * Membuat Pengguna Baru dengan Multi-Role Assignment
+   */
+  async createPenggunaMultiRole(data: {
+    email: string;
+    password_hash: string;
+    jemaat_id: number;
+    roles: { role_id: number; satelit_id: number }[];
+  }): Promise<{ success: boolean; message?: string }> {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      const existUser = await client.query(`SELECT id FROM pengguna WHERE jemaat_id = $1 OR email = $2`, [data.jemaat_id, data.email]);
+      let userId;
+
+      if (existUser.rowCount && existUser.rowCount > 0) {
+        userId = existUser.rows[0].id;
+      } else {
+        const insUser = await client.query(`
+          INSERT INTO pengguna (email, password_hash, jemaat_id)
+          VALUES ($1, $2, $3)
+          RETURNING id
+        `, [data.email, data.password_hash, data.jemaat_id]);
+        userId = insUser.rows[0].id;
+      }
+
+      // Insert all roles
+      for (const role of data.roles) {
+        await client.query(`
+          INSERT INTO user_role (user_id, role_id, satelit_id)
+          VALUES ($1, $2, $3)
+          ON CONFLICT (user_id, role_id, satelit_id) DO UPDATE SET is_active = true
+        `, [userId, role.role_id, role.satelit_id]);
+      }
+
+      await client.query('COMMIT');
+      return { success: true };
+    } catch (error: any) {
+      await client.query('ROLLBACK');
+      console.error('Error createPenggunaMultiRole:', error);
+      if (error.code === '23505') {
+        return { success: false, message: 'Email atau Jemaat ini sudah memiliki akun di sistem' };
+      }
+      return { success: false, message: error.message };
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Toggle status aktif/nonaktif pengguna
+   */
+  async toggleUserStatus(userId: number, isActive: boolean): Promise<{ success: boolean; message?: string }> {
+    try {
+      await pool.query(`UPDATE pengguna SET is_active = $1 WHERE id = $2`, [isActive, userId]);
+      return { success: true };
+    } catch (error: any) {
+      console.error('Error toggleUserStatus:', error);
+      return { success: false, message: error.message };
+    }
+  }
+
+  /**
    * Tambah Akses Sementara (Temporary Access)
    */
   async addTemporaryAccess(data: {
