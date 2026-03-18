@@ -25,17 +25,23 @@ export async function GET(request: NextRequest) {
     const roles = await userRepository.getUserRoles(decoded.user_id);
     const activeRole = roles.find(r => r.role_id === decoded.role_id && r.satelit_id === decoded.satelit_id);
     
+    // Re-fetch permissions for latest accuracy (in case role_permission was updated)
+    const permissions = activeRole
+      ? await userRepository.getRolePermissionNames(activeRole.role_id)
+      : (decoded.permissions || []);
+
     return NextResponse.json(
       { 
         user_id: decoded.user_id,
         role_id: decoded.role_id,
         satelit_id: decoded.satelit_id,
         is_super_admin: decoded.is_super_admin,
-        role_name: activeRole?.nama_role.replace(/_/g, ' ') || 'Unknown Role',
+        role_name: activeRole?.nama_role.replace(/_/g, ' ') || decoded.role_name?.replace(/_/g, ' ') || 'Unknown Role',
         satelit_name: activeRole?.nama_satelit || 'Unknown Satelit',
         email: user?.nama_lengkap || user?.email || `User ${decoded.user_id}`,
         jemaat_id: user?.jemaat_nomor || null,
         available_roles: roles,
+        permissions,
       },
       { status: 200 }
     );

@@ -41,12 +41,15 @@ export class AuthService {
     // If exactly 1 role, issue the final token immediately
     const singleRole = roles[0];
     const is_super_admin = singleRole.nama_role === 'SUPER_ADMIN';
+    const permissions = await userRepository.getRolePermissionNames(singleRole.role_id);
 
     const tokenPayload = {
       user_id: user.id,
       role_id: singleRole.role_id,
+      role_name: singleRole.nama_role,
       satelit_id: singleRole.satelit_id,
       is_super_admin,
+      permissions
     };
 
     const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '2h' });
@@ -71,12 +74,15 @@ export class AuthService {
     }
 
     const is_super_admin = selectedRole.nama_role === 'SUPER_ADMIN';
+    const permissions = await userRepository.getRolePermissionNames(selectedRole.role_id);
 
     const tokenPayload = {
       user_id: userId,
       role_id: selectedRole.role_id,
+      role_name: selectedRole.nama_role,
       satelit_id: selectedRole.satelit_id,
       is_super_admin,
+      permissions
     };
 
     const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '2h' });

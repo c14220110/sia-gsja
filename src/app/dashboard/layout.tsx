@@ -80,6 +80,12 @@ export default function DashboardLayout({
     }
   };
 
+  const hasPermission = (perm: string) => {
+    if (!userData) return false;
+    if (userData.is_super_admin) return true;
+    return userData.permissions?.includes?.(perm);
+  };
+
   let topbarTitle = 'Dashboard Utama';
   let topbarIcon  = 'dashboard';
 
@@ -140,7 +146,7 @@ export default function DashboardLayout({
                 </div>
               </div>
               
-              {userData?.is_super_admin && (
+              {(hasPermission('master_data_manage') || hasPermission('user_access_manage') || hasPermission('audit_log_view') || userData?.is_super_admin) && (
                 <div className="w-full">
                   <div
                     className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer"
@@ -163,15 +169,15 @@ export default function DashboardLayout({
                   {/* Mobile Accordion */}
                   <div className={`md:hidden overflow-hidden transition-all duration-300 ${mobileExpandedMenus['pengaturan_software'] ? 'max-h-96 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
                     <div className="pl-14 pr-4 py-2 flex flex-col gap-4">
-                      <Link href="/dashboard/settings/akun-akses" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Akun &amp; Hak Akses</Link>
-                      <Link href="/dashboard/settings/master-data" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Master Data</Link>
-                      <Link href="/dashboard/settings/audit-log" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Audit Log</Link>
+                      {hasPermission('user_access_manage') && <Link href="/dashboard/settings/akun-akses" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Akun &amp; Hak Akses</Link>}
+                      {hasPermission('master_data_manage') && <Link href="/dashboard/settings/master-data" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Master Data</Link>}
+                      {hasPermission('audit_log_view') && <Link href="/dashboard/settings/audit-log" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Audit Log</Link>}
                     </div>
                   </div>
                 </div>
               )}
 
-              {userData?.role_name?.toUpperCase() !== 'BENDAHARA SATELIT' && (
+              {(hasPermission('jemaat_view') || hasPermission('pelayan_view') || hasPermission('pengurus_view')) && (
                 <div className="w-full">
                   <div 
                     className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer"
@@ -194,9 +200,9 @@ export default function DashboardLayout({
                   {/* Mobile Accordion */}
                   <div className={`md:hidden overflow-hidden transition-all duration-300 ${mobileExpandedMenus['manajemen_user'] ? 'max-h-96 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
                     <div className="pl-14 pr-4 py-2 flex flex-col gap-4">
-                      <Link href="/dashboard/members" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Data Jemaat</Link>
-                      <Link href="/dashboard/pelayan" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Data Pelayan</Link>
-                      <Link href="/dashboard/pengurus" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Data Pengurus</Link>
+                      {hasPermission('jemaat_view') && <Link href="/dashboard/members" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Data Jemaat</Link>}
+                      {hasPermission('pelayan_view') && <Link href="/dashboard/pelayan" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Data Pelayan</Link>}
+                      {hasPermission('pengurus_view') && <Link href="/dashboard/pengurus" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Data Pengurus</Link>}
                     </div>
                   </div>
                 </div>
@@ -213,7 +219,7 @@ export default function DashboardLayout({
                 </div>
               </div>
 
-              {userData?.role_name?.toUpperCase() !== 'BENDAHARA SATELIT' && (
+              {hasPermission('pelayan_view') && (
                 <div className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer">
                   <div className="flex justify-start items-center gap-4">
                     <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
@@ -396,21 +402,24 @@ export default function DashboardLayout({
                     <div className="justify-center text-slate-800 text-lg font-bold font-['Inter'] leading-7">Pengaturan Software</div>
                   </div>
                   <div className="self-stretch flex flex-wrap justify-start items-start gap-4">
-                    {/* Akun & Hak Akses */}
-                    <Link href="/dashboard/settings/akun-akses" onClick={() => setActiveSubmenu(null)} className="w-[140px] h-32 p-4 bg-purple-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-purple-200 flex flex-col justify-center items-center cursor-pointer hover:bg-purple-100 transition-colors block text-inherit no-underline">
-                      <div className="pb-2"><span className="material-icons-round text-purple-600 text-[32px]">admin_panel_settings</span></div>
-                      <div className="text-center text-purple-900 text-sm font-bold font-['Inter'] leading-5">Akun &amp; Hak Akses</div>
-                    </Link>
-                    {/* Master Data */}
-                    <Link href="/dashboard/settings/master-data" onClick={() => setActiveSubmenu(null)} className="w-[140px] h-32 p-4 bg-emerald-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-emerald-200 flex flex-col justify-center items-center cursor-pointer hover:bg-emerald-100 transition-colors text-inherit no-underline">
-                      <div className="pb-2"><span className="material-icons-round text-emerald-600 text-[32px]">dataset</span></div>
-                      <div className="text-center text-emerald-900 text-sm font-bold font-['Inter'] leading-5">Master Data</div>
-                    </Link>
-                    {/* Audit Log */}
-                    <Link href="/dashboard/settings/audit-log" onClick={() => setActiveSubmenu(null)} className="w-[140px] h-32 p-4 bg-amber-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-amber-200 flex flex-col justify-center items-center cursor-pointer hover:bg-amber-100 transition-colors block text-inherit no-underline">
-                      <div className="pb-2"><span className="material-icons-round text-amber-600 text-[32px]">history_edu</span></div>
-                      <div className="text-center text-amber-900 text-sm font-bold font-['Inter'] leading-5">Audit Log</div>
-                    </Link>
+                    {hasPermission('user_access_manage') && (
+                      <Link href="/dashboard/settings/akun-akses" onClick={() => setActiveSubmenu(null)} className="w-[140px] h-32 p-4 bg-purple-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-purple-200 flex flex-col justify-center items-center cursor-pointer hover:bg-purple-100 transition-colors block text-inherit no-underline">
+                        <div className="pb-2"><span className="material-icons-round text-purple-600 text-[32px]">admin_panel_settings</span></div>
+                        <div className="text-center text-purple-900 text-sm font-bold font-['Inter'] leading-5">Akun &amp; Hak Akses</div>
+                      </Link>
+                    )}
+                    {hasPermission('master_data_manage') && (
+                      <Link href="/dashboard/settings/master-data" onClick={() => setActiveSubmenu(null)} className="w-[140px] h-32 p-4 bg-emerald-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-emerald-200 flex flex-col justify-center items-center cursor-pointer hover:bg-emerald-100 transition-colors text-inherit no-underline">
+                        <div className="pb-2"><span className="material-icons-round text-emerald-600 text-[32px]">dataset</span></div>
+                        <div className="text-center text-emerald-900 text-sm font-bold font-['Inter'] leading-5">Master Data</div>
+                      </Link>
+                    )}
+                    {hasPermission('audit_log_view') && (
+                      <Link href="/dashboard/settings/audit-log" onClick={() => setActiveSubmenu(null)} className="w-[140px] h-32 p-4 bg-amber-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-amber-200 flex flex-col justify-center items-center cursor-pointer hover:bg-amber-100 transition-colors block text-inherit no-underline">
+                        <div className="pb-2"><span className="material-icons-round text-amber-600 text-[32px]">history_edu</span></div>
+                        <div className="text-center text-amber-900 text-sm font-bold font-['Inter'] leading-5">Audit Log</div>
+                      </Link>
+                    )}
                   </div>
                 </div>
               </div>
@@ -428,36 +437,42 @@ export default function DashboardLayout({
                     <div className="justify-center text-slate-800 text-lg font-bold font-['Inter'] leading-7">Manajemen User</div>
                   </div>
                   <div className="self-stretch flex justify-between items-start gap-4">
-                    <Link href="/dashboard/members" onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-pink-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-pink-200 flex flex-col justify-center items-center cursor-pointer hover:bg-pink-100 transition-colors block text-inherit no-underline">
-                      <div className="pb-2 flex flex-col justify-start items-start">
-                        <div className="flex flex-col justify-start items-center">
-                           <span className="material-icons-round text-pink-600 text-[32px]">group</span>
+                    {hasPermission('jemaat_view') && (
+                      <Link href="/dashboard/members" onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-pink-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-pink-200 flex flex-col justify-center items-center cursor-pointer hover:bg-pink-100 transition-colors block text-inherit no-underline">
+                        <div className="pb-2 flex flex-col justify-start items-start">
+                          <div className="flex flex-col justify-start items-center">
+                            <span className="material-icons-round text-pink-600 text-[32px]">group</span>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex flex-col justify-start items-center">
-                        <div className="text-center justify-center text-pink-900 text-sm font-bold font-['Inter'] leading-5">Data Jemaat</div>
-                      </div>
-                    </Link>
-                    <Link href="/dashboard/pelayan" onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-violet-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-violet-200 flex flex-col justify-center items-center cursor-pointer hover:bg-violet-100 transition-colors block text-inherit no-underline">
-                      <div className="pb-2 flex flex-col justify-start items-start">
                         <div className="flex flex-col justify-start items-center">
-                          <span className="material-icons-round text-violet-600 text-[32px]">volunteer_activism</span>
+                          <div className="text-center justify-center text-pink-900 text-sm font-bold font-['Inter'] leading-5">Data Jemaat</div>
                         </div>
-                      </div>
-                      <div className="flex flex-col justify-start items-center">
-                        <div className="text-center justify-center text-violet-900 text-sm font-bold font-['Inter'] leading-5">Data Pelayan</div>
-                      </div>
-                    </Link>
-                    <Link href="/dashboard/pengurus" onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-pink-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-pink-200 flex flex-col justify-center items-center cursor-pointer hover:bg-pink-100 transition-colors block text-inherit no-underline">
-                      <div className="pb-2 flex flex-col justify-start items-start">
+                      </Link>
+                    )}
+                    {hasPermission('pelayan_view') && (
+                      <Link href="/dashboard/pelayan" onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-violet-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-violet-200 flex flex-col justify-center items-center cursor-pointer hover:bg-violet-100 transition-colors block text-inherit no-underline">
+                        <div className="pb-2 flex flex-col justify-start items-start">
+                          <div className="flex flex-col justify-start items-center">
+                            <span className="material-icons-round text-violet-600 text-[32px]">volunteer_activism</span>
+                          </div>
+                        </div>
                         <div className="flex flex-col justify-start items-center">
-                          <span className="material-icons-round text-pink-600 text-[32px]">admin_panel_settings</span>
+                          <div className="text-center justify-center text-violet-900 text-sm font-bold font-['Inter'] leading-5">Data Pelayan</div>
                         </div>
-                      </div>
-                      <div className="flex flex-col justify-start items-center">
-                        <div className="text-center justify-center text-pink-900 text-sm font-bold font-['Inter'] leading-5">Data Pengurus</div>
-                      </div>
-                    </Link>
+                      </Link>
+                    )}
+                    {hasPermission('pengurus_view') && (
+                      <Link href="/dashboard/pengurus" onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-pink-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-pink-200 flex flex-col justify-center items-center cursor-pointer hover:bg-pink-100 transition-colors block text-inherit no-underline">
+                        <div className="pb-2 flex flex-col justify-start items-start">
+                          <div className="flex flex-col justify-start items-center">
+                            <span className="material-icons-round text-pink-600 text-[32px]">admin_panel_settings</span>
+                          </div>
+                        </div>
+                        <div className="flex flex-col justify-start items-center">
+                          <div className="text-center justify-center text-pink-900 text-sm font-bold font-['Inter'] leading-5">Data Pengurus</div>
+                        </div>
+                      </Link>
+                    )}
                   </div>
                 </div>
               </div>

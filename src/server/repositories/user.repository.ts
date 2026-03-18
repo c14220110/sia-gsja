@@ -56,7 +56,9 @@ export class UserRepository {
       FROM user_role ur
       JOIN role r ON ur.role_id = r.id
       JOIN satelit s ON ur.satelit_id = s.id
-      WHERE ur.user_id = $1
+      WHERE ur.user_id = $1 
+        AND ur.is_active = true
+        AND (ur.tanggal_selesai IS NULL OR (ur.tanggal_mulai <= CURRENT_DATE AND ur.tanggal_selesai >= CURRENT_DATE))
 
       UNION
 
@@ -81,6 +83,17 @@ export class UserRepository {
       WHERE id = $1;
     `;
     await pool.query(query, [userId]);
+  }
+
+  async getRolePermissionNames(roleId: number): Promise<string[]> {
+    const query = `
+      SELECT p.nama_permission
+      FROM role_permission rp
+      JOIN permission p ON rp.permission_id = p.id
+      WHERE rp.role_id = $1
+    `;
+    const result = await pool.query(query, [roleId]);
+    return result.rows.map(row => row.nama_permission);
   }
 }
 
