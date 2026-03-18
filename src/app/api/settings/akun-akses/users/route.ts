@@ -79,3 +79,37 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ success: false, message: 'Internal Server Error' }, { status: 500 });
   }
 }
+
+export async function PUT(req: NextRequest) {
+  try {
+    const caller = await getCallerFromRequest(req);
+    if (!caller || !caller.is_super_admin) {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
+    }
+
+    const body = await req.json();
+    const { user_id, email, password, roles } = body;
+
+    if (!user_id) {
+      return NextResponse.json({ success: false, message: 'user_id diperlukan' }, { status: 400 });
+    }
+
+    const updateData: any = {};
+    if (email) updateData.email = email;
+    if (password) {
+      updateData.password_hash = await bcrypt.hash(password, 10);
+    }
+    if (roles !== undefined) updateData.roles = roles;
+
+    const result = await akunAksesRepository.updatePengguna(user_id, updateData);
+
+    if (result.success) {
+      return NextResponse.json({ success: true, message: 'Data pengguna berhasil diperbarui' });
+    } else {
+      return NextResponse.json({ success: false, message: result.message }, { status: 400 });
+    }
+  } catch (error: any) {
+    console.error('Error in /api/settings/akun-akses/users PUT:', error);
+    return NextResponse.json({ success: false, message: 'Internal Server Error' }, { status: 500 });
+  }
+}

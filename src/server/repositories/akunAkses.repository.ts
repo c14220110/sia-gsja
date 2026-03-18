@@ -221,6 +221,58 @@ export class AkunAksesRepository {
   }
 
   /**
+   * Update data pengguna (email, password opsional, dan roles)
+   */
+  async updatePengguna(userId: number, data: {
+    email?: string;
+    password_hash?: string;
+    roles?: { role_id: number; satelit_id: number }[];
+  }): Promise<{ success: boolean; message?: string }> {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Update email / password jika ada
+      if (data.email || data.password_hash) {
+        const updates: string[] = [];
+        const vals: any[] = [];
+        let idx = 1;
+        if (data.email) { updates.push(`email = $${idx++}`); vals.push(data.email); }
+        if (data.password_hash) { updates.push(`password_hash = $${idx++}`); vals.push(data.password_hash); }
+        updates.push(`updated_at = NOW()`);
+        vals.push(userId);
+        await client.query(`UPDATE pengguna SET ${updates.join(', ')} WHERE id = $${idx}`, vals);
+      }
+
+      // Update roles jika diberikan
+      if (data.roles !== undefined) {
+        // Hapus semua permanent roles (bukan panitia sementara)
+        await client.query(`DELETE FROM user_role WHERE user_id = $1 AND tanggal_selesai IS NULL`, [userId]);
+        // Insert roles baru
+        for (const role of data.roles) {
+          await client.query(`
+            INSERT INTO user_role (user_id, role_id, satelit_id)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (user_id, role_id, satelit_id) DO UPDATE SET is_active = true
+          `, [userId, role.role_id, role.satelit_id]);
+        }
+      }
+
+      await client.query('COMMIT');
+      return { success: true };
+    } catch (error: any) {
+      await client.query('ROLLBACK');
+      console.error('Error updatePengguna:', error);
+      if (error.code === '23505') {
+        return { success: false, message: 'Email sudah digunakan oleh pengguna lain.' };
+      }
+      return { success: false, message: error.message };
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
    * Tambah Akses Sementara (Temporary Access)
    */
   async addTemporaryAccess(data: {
