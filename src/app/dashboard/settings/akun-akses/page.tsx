@@ -76,6 +76,11 @@ export default function AkunAksesPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('role_permission');
   const [dataRoles, setDataRoles] = useState<any[]>([]);
   const [dataUsers, setDataUsers] = useState<any[]>([]);
+  
+  // Auth & Permissions State
+  const [userData, setUserData] = useState<any>(null);
+  const [canManageUserAccess, setCanManageUserAccess] = useState(false);
+  const [canManageTempAccess, setCanManageTempAccess] = useState(false);
 
   // Submit & Alert State
   const [submitState, setSubmitState] = useState<{ status: 'idle'|'loading'|'success'|'error', message: string }>({ status: 'idle', message: '' });
@@ -135,9 +140,33 @@ export default function AkunAksesPage() {
   };
 
   useEffect(() => {
-    if (activeTab === 'role_permission') fetchRolesData();
-    else if (activeTab === 'akun_pengguna') { fetchUsersData(); fetchRolesData(true); }
-  }, [activeTab]);
+    const fetchAuthParams = async () => {
+      try {
+        const res = await fetch('/api/auth/me');
+        if (res.ok) {
+          const u = await res.json();
+          setUserData(u);
+          const hasUserAcc = u.is_super_admin || u.permissions?.includes('user_access_manage');
+          const hasTempAcc = u.is_super_admin || u.permissions?.includes('akses_sementara_manage');
+          setCanManageUserAccess(hasUserAcc);
+          setCanManageTempAccess(hasTempAcc);
+          
+          if (!hasUserAcc && hasTempAcc) {
+            setActiveTab('akses_sementara');
+          }
+        }
+      } catch (err) {
+        console.error('Failed fetching auth data', err);
+      }
+    };
+    fetchAuthParams();
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'role_permission' && canManageUserAccess) fetchRolesData();
+    else if (activeTab === 'akun_pengguna' && canManageUserAccess) { fetchUsersData(); fetchRolesData(true); }
+    else if (activeTab === 'akses_sementara' && canManageTempAccess) { fetchUsersData(); fetchRolesData(true); }
+  }, [activeTab, canManageUserAccess, canManageTempAccess]);
 
   const filteredUsers = dataUsers.filter(u => {
     // Search
@@ -303,10 +332,12 @@ export default function AkunAksesPage() {
         {/* Tab Navigation */}
         <div className="w-full bg-slate-100 rounded-xl p-1 inline-flex justify-start items-center gap-1 overflow-x-auto">
           {[
-            { key: 'role_permission', label: 'Manajemen Role & Permission', icon: 'admin_panel_settings' },
-            { key: 'akun_pengguna', label: 'Daftar Akun Pengguna', icon: 'vpn_key' },
-            { key: 'akses_sementara', label: 'Akses Sementara', icon: 'timelapse' },
-          ].map((tab) => (
+            { key: 'role_permission', label: 'Manajemen Role & Permission', icon: 'admin_panel_settings', show: canManageUserAccess },
+            { key: 'akun_pengguna', label: 'Daftar Akun Pengguna', icon: 'vpn_key', show: canManageUserAccess },
+            { key: 'akses_sementara', label: 'Akses Sementara', icon: 'timelapse', show: canManageTempAccess },
+          ]
+          .filter(tab => tab.show)
+          .map((tab) => (
             <div key={tab.key} onClick={() => setActiveTab(tab.key as TabKey)}
               className={`flex-1 h-10 px-4 rounded-lg flex justify-center items-center gap-2 cursor-pointer transition-all whitespace-nowrap ${activeTab === tab.key ? 'bg-white shadow-sm border border-slate-200' : 'hover:bg-slate-200/50 text-slate-500'}`}>
               <span className={`material-icons-round text-[18px] ${activeTab === tab.key ? 'text-violet-600' : ''}`}>{tab.icon}</span>
@@ -316,7 +347,7 @@ export default function AkunAksesPage() {
         </div>
 
         {/* Tab 1: Manajemen Role & Permission */}
-        {activeTab === 'role_permission' && (
+        {activeTab === 'role_permission' && canManageUserAccess && (
           <div className="w-full mt-4 flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-2">
             <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2"><span className="material-icons-round text-violet-500">list_alt</span> Daftar Role Sistem</h2>
             <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
@@ -350,7 +381,7 @@ export default function AkunAksesPage() {
         )}
 
         {/* Tab 2: Daftar Akun Pengguna */}
-        {activeTab === 'akun_pengguna' && (
+        {activeTab === 'akun_pengguna' && canManageUserAccess && (
           <div className="w-full mt-4 flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-2">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2"><span className="material-icons-round text-violet-500">people</span> Daftar Akun Pengguna</h2>
@@ -468,7 +499,7 @@ export default function AkunAksesPage() {
         )}
 
         {/* Tab 3: Akses Sementara */}
-        {activeTab === 'akses_sementara' && (
+        {activeTab === 'akses_sementara' && canManageTempAccess && (
           <div className="w-full mt-4 flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-2">
             <div className="flex items-center justify-between">
               <div>
