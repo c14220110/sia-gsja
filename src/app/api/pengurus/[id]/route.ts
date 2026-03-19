@@ -8,6 +8,11 @@ const pengurusRepository = new PengurusRepository();
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const caller = await getCallerFromRequest(request);
+    if (!caller || (!caller.is_super_admin && !caller.permissions.includes('pengurus_manage'))) {
+      return NextResponse.json({ success: false, message: 'Akses Ditolak: Anda tidak memiliki izin untuk mengubah status pengurus (pengurus_manage).' }, { status: 403 });
+    }
+
     const { id } = await params;
     if (!id) return NextResponse.json({ success: false, message: 'ID required' }, { status: 400 });
 
@@ -23,7 +28,6 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ success: false, message: 'Pengurus tidak ditemukan atau gagal diupdate' }, { status: 404 });
     }
 
-    const caller = await getCallerFromRequest(request);
     if (caller) {
       const isDeactivation = status_jabatan !== 'Aktif';
       try {

@@ -141,6 +141,14 @@ export default function EditJemaatPage() {
   const [treeLoading, setTreeLoading] = useState(false);
   const [treeError, setTreeError]     = useState('');
   const [treeKey, setTreeKey]         = useState(0);
+
+  // User Auth State
+  const [userData, setUserData] = useState<any>(null);
+  const hasPermission = (perm: string) => {
+    if (!userData) return false;
+    if (userData.is_super_admin) return true;
+    return userData.permissions?.includes?.(perm);
+  };
   
   // Options State
   const [satelitOptions, setSatelitOptions] = useState<any[]>([]);
@@ -214,7 +222,24 @@ export default function EditJemaatPage() {
         if (deptData.success) setDepartemenOptions(deptData.data);
         if (pekrData.success) setPekerjaanOptions(pekrData.data);
 
-        // Fetch User Data
+        // Fetch User Data for Permissions
+        try {
+          const resUser = await fetch('/api/auth/me');
+          if (resUser.ok) {
+            const authData = await resUser.json();
+            setUserData(authData);
+            
+            // Force read-only mode if user doesn't have edit permission
+            const canEdit = authData?.is_super_admin || authData?.permissions?.includes('jemaat_edit');
+            if (!canEdit && searchParams.get('mode') === 'edit') {
+              router.replace(`/dashboard/members/${jemaatId}?mode=view`);
+            }
+          }
+        } catch (e) {
+          console.error('Failed to fetch user permissions', e);
+        }
+
+        // Fetch Detail Data
         if (jemaatId) {
           const detailRes = await fetch(`/api/members/${jemaatId}`);
           if (detailRes.ok) {
@@ -1081,10 +1106,12 @@ export default function EditJemaatPage() {
                   <Link href="/dashboard/members" className="px-8 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg inline-flex flex-col justify-center items-center transition-colors">
                     <span className="text-slate-700 text-sm font-bold font-['Inter'] uppercase leading-5 tracking-wide">Kembali</span>
                   </Link>
-                  <Link href={`/dashboard/members/${jemaatId}?mode=edit`} className="px-10 py-2.5 bg-slate-700 hover:bg-slate-800 rounded-lg flex justify-start items-center gap-2 transition-all shadow-lg">
-                    <span className="material-icons-round text-white text-[20px]">edit</span>
-                    <span className="text-white text-sm font-bold font-['Inter'] uppercase leading-5 tracking-wide">Edit Data</span>
-                  </Link>
+                  {hasPermission('jemaat_edit') && (
+                    <Link href={`/dashboard/members/${jemaatId}?mode=edit`} className="px-10 py-2.5 bg-slate-700 hover:bg-slate-800 rounded-lg flex justify-start items-center gap-2 transition-all shadow-lg">
+                      <span className="material-icons-round text-white text-[20px]">edit</span>
+                      <span className="text-white text-sm font-bold font-['Inter'] uppercase leading-5 tracking-wide">Edit Data</span>
+                    </Link>
+                  )}
                 </>
               ) : (
                 <>

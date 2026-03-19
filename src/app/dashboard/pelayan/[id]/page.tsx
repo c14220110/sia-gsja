@@ -24,11 +24,18 @@ export default function PelayanDetailPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitState, setSubmitState] = useState<{ status: 'idle'|'loading'|'success'|'error', message: string, errors?: any }>({ status: 'idle', message: '' });
 
-  // Error pesan duplikat role
   const [duplicateError, setDuplicateError] = useState<string | null>(null);
 
   const [roleOptions, setRoleOptions] = useState<any[]>([]);
   const [pelayan, setPelayan] = useState<any>(null);
+
+  // User Auth State
+  const [userData, setUserData] = useState<any>(null);
+  const hasPermission = (perm: string) => {
+    if (!userData) return false;
+    if (userData.is_super_admin) return true;
+    return userData.permissions?.includes?.(perm);
+  };
 
   const [formData, setFormData] = useState({
     tanggal_mulai: '',
@@ -38,14 +45,27 @@ export default function PelayanDetailPage() {
   });
 
   useEffect(() => {
-    const fetchRoleOptions = async () => {
+    const fetchRoleOptionsAndUser = async () => {
       try {
-        const res = await fetch('/api/options?type=role_pelayan');
-        const data = await res.json();
+        const [resRole, resUser] = await Promise.all([
+          fetch('/api/options?type=role_pelayan'),
+          fetch('/api/auth/me')
+        ]);
+        const data = await resRole.json();
         if (data.success) setRoleOptions(data.data);
-      } catch (err) { console.error('Failed to fetch role options:', err); }
+
+        if (resUser.ok) {
+          const authData = await resUser.json();
+          setUserData(authData);
+          
+          const canManage = authData?.is_super_admin || authData?.permissions?.includes('pelayan_manage');
+          if (!canManage && searchParams.get('mode') === 'edit') {
+            router.replace(`/dashboard/pelayan/${id}?mode=view`);
+          }
+        }
+      } catch (err) { console.error('Failed to fetch initial options & user:', err); }
     };
-    fetchRoleOptions();
+    fetchRoleOptionsAndUser();
   }, []);
 
   useEffect(() => {
@@ -246,7 +266,7 @@ export default function PelayanDetailPage() {
               <span className="text-slate-700 font-bold">{pelayan.id_pelayanan}</span>
             </div>
           </div>
-          {isReadOnly && (
+          {isReadOnly && hasPermission('pelayan_manage') && (
             <Link 
               href={`/dashboard/pelayan/${id}?mode=edit`}
               className="px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-lg flex items-center gap-2 font-bold text-sm shadow-sm transition-colors"

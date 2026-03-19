@@ -40,8 +40,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const caller = await getCallerFromRequest(request);
-    if (!caller) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    if (!caller || (!caller.is_super_admin && !caller.permissions.includes('pelayan_manage'))) {
+      return NextResponse.json({ success: false, message: 'Akses Ditolak: Anda tidak memiliki izin untuk mendaftarkan pelayan baru (pelayan_manage).' }, { status: 403 });
     }
 
     const body = await request.json();

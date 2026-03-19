@@ -26,6 +26,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const caller = getCallerFromRequest(request);
+    if (!caller || (!caller.is_super_admin && !caller.permissions.includes('jemaat_edit'))) {
+      return NextResponse.json({ success: false, message: 'Akses Ditolak: Anda tidak memiliki izin untuk mengubah data jemaat (jemaat_edit).' }, { status: 403 });
+    }
+
     const { id } = await params;
     if (!id) return NextResponse.json({ success: false, message: 'ID required' }, { status: 400 });
 
@@ -45,7 +50,6 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     // Insert audit log for UPDATE — fire-and-forget, don't block response
-    const caller = getCallerFromRequest(request);
     if (caller) {
       auditLogRepository.insertAuditLog({
         jemaat_id:  parseInt(id),
@@ -67,6 +71,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 // PATCH /api/members/:id → Update status jemaat (Nonaktifkan/Aktifkan)
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const caller = getCallerFromRequest(request);
+    if (!caller || (!caller.is_super_admin && !caller.permissions.includes('jemaat_edit'))) {
+      return NextResponse.json({ success: false, message: 'Akses Ditolak: Anda tidak memiliki izin untuk mengubah status jemaat (jemaat_edit).' }, { status: 403 });
+    }
+
     const { id } = await params;
     if (!id) return NextResponse.json({ success: false, message: 'ID required' }, { status: 400 });
 
@@ -85,7 +94,6 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     // Only record DEACTIVATE when status is changed to non-active
     const isDeactivation = status_jemaat === 'Tidak Aktif' || status_jemaat === 'Keluar';
-    const caller = getCallerFromRequest(request);
     if (caller) {
       auditLogRepository.insertAuditLog({
         jemaat_id:  parseInt(id),

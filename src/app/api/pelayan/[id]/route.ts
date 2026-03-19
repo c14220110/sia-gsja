@@ -5,6 +5,11 @@ import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const caller = getCallerFromRequest(request);
+    if (!caller || (!caller.is_super_admin && !caller.permissions.includes('pelayan_manage'))) {
+      return NextResponse.json({ success: false, message: 'Akses Ditolak: Anda tidak memiliki izin untuk mengubah status pelayan (pelayan_manage).' }, { status: 403 });
+    }
+
     const { id } = await params;
     if (!id) return NextResponse.json({ success: false, message: 'ID required' }, { status: 400 });
 
@@ -21,7 +26,6 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     // Audit log (fire-and-forget)
-    const caller = getCallerFromRequest(request);
     if (caller) {
       const isDeactivation = status_pelayan === 'Tidak Aktif';
       auditLogRepository.insertPelayanAuditLog({
@@ -73,10 +77,8 @@ export async function PUT(
 ) {
   try {
     const caller = getCallerFromRequest(request);
-    if (!caller) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-    if (!caller.is_super_admin && caller.role_id !== 1 && caller.role_id !== 2) {
-      // Allow Admin/Super Admin
-      return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
+    if (!caller || (!caller.is_super_admin && !caller.permissions.includes('pelayan_manage'))) {
+      return NextResponse.json({ success: false, message: 'Akses Ditolak: Anda tidak memiliki izin untuk mengubah data pelayan (pelayan_manage).' }, { status: 403 });
     }
 
     const { id: idStr } = await params;

@@ -25,6 +25,12 @@ export default function PengurusPage() {
 
   // Authentication State
   const [userData, setUserData] = useState<any>(null);
+  
+  const hasPermission = (perm: string) => {
+    if (!userData) return false;
+    if (userData.is_super_admin) return true;
+    return userData.permissions?.includes?.(perm);
+  };
 
   // Options State
   const [satelitOptions,     setSatelitOptions]     = useState<any[]>([]);
@@ -185,10 +191,12 @@ export default function PengurusPage() {
           <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Database Pengurus</h1>
           <div className="text-slate-500 text-base font-medium font-['Inter'] leading-6">Sistem Informasi Manajemen Data Pengurus</div>
         </div>
-        <Link href="/dashboard/pengurus/new" className="px-5 py-2.5 bg-slate-700 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none">
-          <span className="material-icons-round text-white text-[20px]">add</span>
-          <span className="text-white text-sm font-bold font-['Inter'] leading-5">Tambah Pengurus Baru</span>
-        </Link>
+        {hasPermission('pengurus_manage') && (
+          <Link href="/dashboard/pengurus/new" className="px-5 py-2.5 bg-slate-700 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none">
+            <span className="material-icons-round text-white text-[20px]">add</span>
+            <span className="text-white text-sm font-bold font-['Inter'] leading-5">Tambah Pengurus Baru</span>
+          </Link>
+        )}
       </div>
 
       {/* Statistic Cards */}
@@ -490,21 +498,25 @@ export default function PengurusPage() {
                               >
                                 <span className="material-icons-round text-[18px] text-slate-400">visibility</span> Lihat Detail
                               </Link>
-                              <Link
-                                href={`/dashboard/pengurus/${pengurus.id}?mode=edit`}
-                                className="w-full text-left px-4 py-2 hover:bg-slate-50 transition-colors flex items-center gap-3 text-sm text-slate-700 font-['Public_Sans']"
-                              >
-                                <span className="material-icons-round text-[18px] text-slate-400">edit</span> Edit Data
-                              </Link>
-                              <div className="w-full h-px bg-slate-100 my-1"></div>
-                              {pengurus.status_jabatan === 'Aktif' ? (
-                                <button onClick={() => { setOpenMenuId(null); handleToggleStatus(pengurus.id, pengurus.status_jabatan); }} className="w-full text-left px-4 py-2 hover:bg-amber-50 hover:text-amber-700 transition-colors flex items-center gap-3 text-sm text-amber-600 font-['Public_Sans']">
-                                  <span className="material-icons-round text-[18px] text-amber-400">person_off</span> Demisioner
-                                </button>
-                              ) : (
-                                <button onClick={() => { setOpenMenuId(null); handleToggleStatus(pengurus.id, pengurus.status_jabatan); }} className="w-full text-left px-4 py-2 hover:bg-emerald-50 hover:text-emerald-700 transition-colors flex items-center gap-3 text-sm text-emerald-600 font-['Public_Sans']">
-                                  <span className="material-icons-round text-[18px] text-emerald-400">person_add</span> Aktifkan
-                                </button>
+                              {hasPermission('pengurus_manage') && (
+                                <>
+                                  <Link
+                                    href={`/dashboard/pengurus/${pengurus.id}?mode=edit`}
+                                    className="w-full text-left px-4 py-2 hover:bg-slate-50 transition-colors flex items-center gap-3 text-sm text-slate-700 font-['Public_Sans']"
+                                  >
+                                    <span className="material-icons-round text-[18px] text-slate-400">edit</span> Edit Data
+                                  </Link>
+                                  <div className="w-full h-px bg-slate-100 my-1"></div>
+                                  {pengurus.status_jabatan === 'Aktif' ? (
+                                    <button onClick={() => { setOpenMenuId(null); handleToggleStatus(pengurus.id, pengurus.status_jabatan); }} className="w-full text-left px-4 py-2 hover:bg-amber-50 hover:text-amber-700 transition-colors flex items-center gap-3 text-sm text-amber-600 font-['Public_Sans']">
+                                      <span className="material-icons-round text-[18px] text-amber-400">person_off</span> Demisioner
+                                    </button>
+                                  ) : (
+                                    <button onClick={() => { setOpenMenuId(null); handleToggleStatus(pengurus.id, pengurus.status_jabatan); }} className="w-full text-left px-4 py-2 hover:bg-emerald-50 hover:text-emerald-700 transition-colors flex items-center gap-3 text-sm text-emerald-600 font-['Public_Sans']">
+                                      <span className="material-icons-round text-[18px] text-emerald-400">person_add</span> Aktifkan
+                                    </button>
+                                  )}
+                                </>
                               )}
                             </div>
                           </>

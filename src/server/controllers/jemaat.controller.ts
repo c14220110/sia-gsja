@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import { UserRepository } from '@/server/repositories/user.repository';
 import { getJwtSecret } from '@/server/utils/jwt';
 import { createJemaatSchema } from '@/server/validations/jemaat.validation';
+import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 
 const userRepository = new UserRepository();
 
@@ -69,8 +70,18 @@ export async function getJemaatController(request: Request) {
   }
 }
 
-export async function createJemaatController(request: Request) {
+  export async function createJemaatController(request: Request) {
   try {
+    const caller = await getCallerFromRequest(request);
+    
+    // RBAC Check for Create Jemaat
+    if (!caller || (!caller.is_super_admin && !caller.permissions.includes('jemaat_create'))) {
+      return NextResponse.json({
+        success: false,
+        message: 'Akses Ditolak: Anda tidak memiliki izin untuk mendaftarkan jemaat baru (jemaat_create).',
+      }, { status: 403 });
+    }
+
     const body = await request.json();
 
     // Validate input with Zod
