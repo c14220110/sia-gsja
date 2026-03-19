@@ -52,13 +52,18 @@ export class UserRepository {
         ur.role_id, 
         r.nama_role, 
         ur.satelit_id, 
-        s.nama_satelit
+        s.nama_satelit,
+        ur.tanggal_mulai,
+        ur.tanggal_selesai
       FROM user_role ur
       JOIN role r ON ur.role_id = r.id
       JOIN satelit s ON ur.satelit_id = s.id
       WHERE ur.user_id = $1 
         AND ur.is_active = true
-        AND (ur.tanggal_selesai IS NULL OR (ur.tanggal_mulai <= CURRENT_DATE AND ur.tanggal_selesai >= CURRENT_DATE))
+        AND (
+          ur.tanggal_selesai IS NULL 
+          OR (ur.tanggal_mulai <= CURRENT_DATE AND ur.tanggal_selesai >= CURRENT_DATE)
+        )
 
       UNION
 
@@ -66,11 +71,22 @@ export class UserRepository {
         (SELECT id FROM role WHERE UPPER(nama_role) = 'JEMAAT') as role_id,
         'JEMAAT' as nama_role,
         j.satelit_id,
-        s.nama_satelit
+        s.nama_satelit,
+        NULL as tanggal_mulai,
+        NULL as tanggal_selesai
       FROM pengguna p
       JOIN jemaat j ON p.jemaat_id = j.id
       LEFT JOIN satelit s ON j.satelit_id = s.id
-      WHERE p.id = $1 AND p.jemaat_id IS NOT NULL
+      WHERE p.id = $1 
+        AND p.jemaat_id IS NOT NULL
+        AND NOT EXISTS (
+          SELECT 1 FROM user_role ur2
+          JOIN role r2 ON ur2.role_id = r2.id
+          WHERE ur2.user_id = $1
+            AND UPPER(r2.nama_role) = 'JEMAAT'
+            AND ur2.is_active = true
+            AND ur2.tanggal_selesai IS NULL
+        )
     `;
     const result = await pool.query(query, [userId]);
     return result.rows as UserRoleDetail[];
