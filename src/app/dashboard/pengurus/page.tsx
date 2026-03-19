@@ -90,7 +90,7 @@ export default function PengurusPage() {
         if (komisiData.success) setKomisiOptions(komisiData.data);
         if (authData) {
           setUserData(authData);
-          if (authData.role_name === 'GEMBALA SATELIT') {
+          if (authData.role_name?.toUpperCase().includes('SATELIT')) {
             setFilterSatelit(authData.satelit_id?.toString() || '');
           }
         }
@@ -267,12 +267,12 @@ export default function PengurusPage() {
           <select
             value={filterSatelit}
             onChange={(e) => setFilterSatelit(e.target.value)}
-            disabled={userData?.role_name === 'GEMBALA SATELIT'}
+            disabled={userData?.role_name?.toUpperCase().includes('SATELIT')}
             className={`appearance-none w-full pl-4 pr-10 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm ${
-              userData?.role_name === 'GEMBALA SATELIT' ? 'bg-slate-200 cursor-not-allowed opacity-70' : 'bg-slate-50 cursor-pointer'
+              userData?.role_name?.toUpperCase().includes('SATELIT') ? 'bg-slate-200 cursor-not-allowed opacity-70' : 'bg-slate-50 cursor-pointer'
             }`}
           >
-            {userData?.role_name !== 'GEMBALA SATELIT' && <option value="">Semua Satelit</option>}
+            {!userData?.role_name?.toUpperCase().includes('SATELIT') && <option value="">Semua Satelit</option>}
             {satelitOptions.map((satelit) => (
               <option key={satelit.id} value={satelit.id}>{satelit.nama_satelit}</option>
             ))}

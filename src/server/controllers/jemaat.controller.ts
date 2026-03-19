@@ -36,7 +36,7 @@ export async function getJemaatController(request: Request) {
         const roles = await userRepository.getUserRoles(decoded.user_id);
         const activeRole = roles.find(r => r.role_id === decoded.role_id && r.satelit_id === decoded.satelit_id);
         
-        if (activeRole && activeRole.nama_role === 'GEMBALA_SATELIT') {
+        if (activeRole && activeRole.nama_role?.toUpperCase().includes('SATELIT')) {
           // Forcefully restrict the search to their own satelit regardless of frontend param
           params.satelit_id = decoded.satelit_id.toString();
         }

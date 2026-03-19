@@ -18,6 +18,11 @@ export async function GET(request: NextRequest) {
       offset:     parseInt(searchParams.get('offset') ?? '0'),
     };
 
+    const caller = await getCallerFromRequest(request);
+    if (caller && caller.role_name?.toUpperCase().includes('SATELIT')) {
+      params.satelit_id = caller.satelit_id?.toString();
+    }
+
     const result = await pelayanRepository.getPelayanPagination(params);
 
     return NextResponse.json({
