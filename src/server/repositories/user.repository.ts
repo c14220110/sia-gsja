@@ -62,7 +62,10 @@ export class UserRepository {
         AND ur.is_active = true
         AND (
           ur.tanggal_selesai IS NULL 
-          OR (ur.tanggal_mulai <= CURRENT_DATE AND ur.tanggal_selesai >= CURRENT_DATE)
+          OR (
+            ur.tanggal_mulai <= (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Jakarta')::date
+            AND ur.tanggal_selesai >= (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Jakarta')::date
+          )
         )
 
       UNION
