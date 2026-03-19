@@ -146,7 +146,7 @@ export default function DashboardLayout({
                 </div>
               </div>
               
-              {(hasPermission('master_data_manage') || hasPermission('user_access_manage') || hasPermission('audit_log_view') || userData?.is_super_admin) && (
+              {(hasPermission('master_data_manage') || hasPermission('user_access_manage') || hasPermission('akses_sementara_manage') || hasPermission('audit_log_view') || userData?.is_super_admin) && (
                 <div className="w-full">
                   <div
                     className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer"
@@ -169,7 +169,7 @@ export default function DashboardLayout({
                   {/* Mobile Accordion */}
                   <div className={`md:hidden overflow-hidden transition-all duration-300 ${mobileExpandedMenus['pengaturan_software'] ? 'max-h-96 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
                     <div className="pl-14 pr-4 py-2 flex flex-col gap-4">
-                      {hasPermission('user_access_manage') && <Link href="/dashboard/settings/akun-akses" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Akun &amp; Hak Akses</Link>}
+                      {(hasPermission('user_access_manage') || hasPermission('akses_sementara_manage')) && <Link href="/dashboard/settings/akun-akses" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Akun &amp; Hak Akses</Link>}
                       {hasPermission('master_data_manage') && <Link href="/dashboard/settings/master-data" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Master Data</Link>}
                       {hasPermission('audit_log_view') && <Link href="/dashboard/settings/audit-log" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Audit Log</Link>}
                     </div>
@@ -402,7 +402,7 @@ export default function DashboardLayout({
                     <div className="justify-center text-slate-800 text-lg font-bold font-['Inter'] leading-7">Pengaturan Software</div>
                   </div>
                   <div className="self-stretch flex flex-wrap justify-start items-start gap-4">
-                    {hasPermission('user_access_manage') && (
+                    {(hasPermission('user_access_manage') || hasPermission('akses_sementara_manage')) && (
                       <Link href="/dashboard/settings/akun-akses" onClick={() => setActiveSubmenu(null)} className="w-[140px] h-32 p-4 bg-purple-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-purple-200 flex flex-col justify-center items-center cursor-pointer hover:bg-purple-100 transition-colors block text-inherit no-underline">
                         <div className="pb-2"><span className="material-icons-round text-purple-600 text-[32px]">admin_panel_settings</span></div>
                         <div className="text-center text-purple-900 text-sm font-bold font-['Inter'] leading-5">Akun &amp; Hak Akses</div>
