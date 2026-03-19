@@ -305,6 +305,38 @@ export default function AkunAksesPage() {
     } catch(e) { setSubmitState({ status: 'error', message: 'Terjadi kesalahan koneksi.' }); }
   };
 
+  const handleCreateTempAccess = async () => {
+    if (!tempUserForm.user_id && !newUserSelectedJemaat) { setSubmitState({ status: 'error', message: 'Silakan pilih Jemaat yang akan diberikan akses kepanitiaan!' }); return; }
+    if (!tempUserForm.role_id || !tempUserForm.satelit_id) { setSubmitState({ status: 'error', message: 'Role Panitia dan Satelit wajib dipilih!' }); return; }
+    if (!tempUserForm.tanggal_mulai || !tempUserForm.tanggal_selesai) { setSubmitState({ status: 'error', message: 'Durasi awal dan akhir kepanitiaan wajib diisi!' }); return; }
+    if (new Date(tempUserForm.tanggal_selesai) < new Date(tempUserForm.tanggal_mulai)) { setSubmitState({ status: 'error', message: 'Tanggal selesai tidak boleh mendahului tanggal mulai!' }); return; }
+    
+    setIsAddTempModalOpen(false);
+    setSubmitState({ status: 'loading', message: '' });
+    try {
+      const payload = {
+        jemaat_id: newUserSelectedJemaat?.id || parseInt(tempUserForm.user_id),
+        email: newUserForm.email,
+        password: newUserForm.password,
+        role_id: parseInt(tempUserForm.role_id),
+        satelit_id: parseInt(tempUserForm.satelit_id),
+        tanggal_mulai: tempUserForm.tanggal_mulai,
+        tanggal_selesai: tempUserForm.tanggal_selesai
+      };
+      
+      const res = await fetch('/api/settings/akun-akses/users/temp-access', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const json = await res.json();
+      if (json.success) {
+        setSubmitState({ status: 'success', message: 'Akses Panitia Sementara berhasil dibuat!' });
+        setTempUserForm({ user_id: '', role_id: '', satelit_id: '', tanggal_mulai: '', tanggal_selesai: '' });
+        setNewUserSelectedJemaat(null);
+        setNewUserSearchQuery('');
+        setNewUserForm({ email: '', password: '' });
+        fetchUsersData();
+      } else setSubmitState({ status: 'error', message: json.message || 'Gagal memberikan akses sementara.' });
+    } catch(e) { setSubmitState({ status: 'error', message: 'Terjadi kesalahan server saat menyimpan akses panitia.' }); }
+  };
+
   return (
     <div className="w-full flex justify-start items-start gap-8 flex-col sm:flex-row pb-12">
 
@@ -713,6 +745,62 @@ export default function AkunAksesPage() {
             <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-white rounded-b-2xl flex-shrink-0">
               <button onClick={() => setIsEditUserModalOpen(false)} className="px-6 py-2 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-100">Batal</button>
               <button onClick={handleUpdateUser} className="px-8 py-2 rounded-lg text-sm font-bold text-white bg-amber-500 hover:bg-amber-600 shadow flex items-center gap-2"><span className="material-icons-round text-[18px]">save</span> Simpan Perubahan</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Tambah Akses Sementara */}
+      {isAddTempModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-xl bg-white rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
+            <div className="h-2 w-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-t-2xl flex-shrink-0"></div>
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center flex-shrink-0">
+              <h3 className="text-xl font-bold flex items-center gap-2 text-slate-800"><span className="material-icons-round text-amber-500">add_task</span> Assign Akses Sementara (Panitia)</h3>
+              <button onClick={() => setIsAddTempModalOpen(false)} className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex justify-center items-center"><span className="material-icons-round text-[20px] text-slate-500">close</span></button>
+            </div>
+            <div className="p-6 flex flex-col gap-5 bg-slate-50/50 overflow-y-auto">
+              <div className="relative">
+                <JemaatAutocomplete label="Cari Jemaat / Panitia:" valueName={newUserSearchQuery} placeholder="Ketik nama jemaat terdaftar..."
+                  onSelect={(j, str) => { setNewUserSelectedJemaat(j); setNewUserSearchQuery(str); setNewUserForm(p => ({ ...p, email: j?.email || p.email })); }} />
+                {newUserSelectedJemaat && <div className="mt-2 p-2 bg-emerald-50 text-emerald-700 text-xs font-bold font-mono border border-emerald-100 rounded flex gap-2 w-fit"><span className="material-icons-round text-[16px]">check_circle</span> {newUserSelectedJemaat.jemaat_id} - Terverifikasi</div>}
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1">
+                  <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">Email Login</label>
+                  <input type="email" placeholder="contoh@gsja.id" className="px-3 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm" value={newUserForm.email} onChange={e => setNewUserForm(p => ({ ...p, email: e.target.value }))} />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">Password</label>
+                  <input type="text" placeholder="Default Password" className="px-3 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm" value={newUserForm.password} onChange={e => setNewUserForm(p => ({ ...p, password: e.target.value }))} />
+                </div>
+                <div className="col-span-2 text-[10px] text-amber-600 italic -mt-2">💡 Jika jemaat ini belum memiliki akun sama sekali, kredensial di atas akan digunakan untuk memberinya askes login.</div>
+              </div>
+
+              <div className="flex flex-col gap-3 p-4 bg-amber-50 border border-amber-100 rounded-xl">
+                <div className="text-amber-800 font-bold text-sm flex items-center gap-1"><span className="material-icons-round text-[16px]">how_to_reg</span> Role &amp; Lingkup</div>
+                <div className="flex items-center gap-2">
+                  <select className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm font-semibold text-slate-800" value={tempUserForm.role_id} onChange={e => setTempUserForm(p => ({ ...p, role_id: e.target.value }))}>
+                    <option value="">-- Role Panitia --</option>
+                    {dataRoles.filter(r => r.is_active && r.nama_role.includes('PANITIA')).map(r => <option key={r.id} value={r.id}>{r.nama_role}</option>)}
+                  </select>
+                  <select className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm font-semibold text-slate-800" value={tempUserForm.satelit_id} onChange={e => setTempUserForm(p => ({ ...p, satelit_id: e.target.value }))}>
+                    <option value="">-- Lokasi Satelit --</option>
+                    {satelitOptions.map(s => <option key={s.id} value={s.id}>{s.nama_satelit}</option>)}
+                  </select>
+                </div>
+
+                <div className="text-amber-800 font-bold text-sm flex items-center gap-1 mt-2"><span className="material-icons-round text-[16px]">event</span> Masa Berlaku Kepanitiaan</div>
+                <div className="flex items-center gap-2">
+                  <input type="date" className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm font-semibold text-slate-800" value={tempUserForm.tanggal_mulai} onChange={e => setTempUserForm(p => ({ ...p, tanggal_mulai: e.target.value }))} />
+                  <span className="text-slate-400 font-bold text-sm mx-1">s/d</span>
+                  <input type="date" className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm font-semibold text-slate-800" value={tempUserForm.tanggal_selesai} onChange={e => setTempUserForm(p => ({ ...p, tanggal_selesai: e.target.value }))} />
+                </div>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-white rounded-b-2xl flex-shrink-0">
+              <button onClick={() => setIsAddTempModalOpen(false)} className="px-6 py-2 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-100">Batal</button>
+              <button onClick={handleCreateTempAccess} className="px-8 py-2 rounded-lg text-sm font-bold text-white bg-amber-600 hover:bg-amber-700 shadow flex items-center gap-2"><span className="material-icons-round text-[18px]">bolt</span> Berikan Akses Sementara</button>
             </div>
           </div>
         </div>
