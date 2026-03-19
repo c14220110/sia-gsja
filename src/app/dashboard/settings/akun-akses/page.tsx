@@ -84,6 +84,12 @@ export default function AkunAksesPage() {
   // Action menu state (pola ... seperti Data Jemaat)
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
 
+  // Filter & Search states for Tab 2
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [filterUserRole, setFilterUserRole] = useState('');
+  const [filterUserSatelit, setFilterUserSatelit] = useState('');
+  const [filterUserStatus, setFilterUserStatus] = useState('Semua');
+
   // Matrix modal
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState<any>(null);
@@ -132,6 +138,27 @@ export default function AkunAksesPage() {
     if (activeTab === 'role_permission') fetchRolesData();
     else if (activeTab === 'akun_pengguna') { fetchUsersData(); fetchRolesData(true); }
   }, [activeTab]);
+
+  const filteredUsers = dataUsers.filter(u => {
+    // Search
+    if (userSearchQuery && !u.nama_lengkap?.toLowerCase().includes(userSearchQuery.toLowerCase()) && !u.email?.toLowerCase().includes(userSearchQuery.toLowerCase())) return false;
+    
+    // Status
+    if (filterUserStatus === 'Aktif' && !u.is_active) return false;
+    if (filterUserStatus === 'Nonaktif' && u.is_active) return false;
+    
+    // Satelit
+    if (filterUserSatelit) {
+      if (!u.roles?.some((r: any) => r.satelit_id?.toString() === filterUserSatelit)) return false;
+    }
+    
+    // Role
+    if (filterUserRole) {
+      if (!u.roles?.some((r: any) => r.role_id?.toString() === filterUserRole)) return false;
+    }
+    
+    return true;
+  });
 
   const handleEditRoleAccess = async (role: any) => {
     setSelectedRole(role);
@@ -182,6 +209,9 @@ export default function AkunAksesPage() {
   const handleCreateUser = async () => {
     if (!newUserSelectedJemaat) { setSubmitState({ status: 'error', message: 'Pilih Jemaat yang akan diberikan akun!' }); return; }
     if (!newUserForm.email || !newUserForm.password) { setSubmitState({ status: 'error', message: 'Email dan Password wajib diisi!' }); return; }
+    const hasIncomplete = roleAssignments.some(r => (r.role_id && !r.satelit_id) || (!r.role_id && r.satelit_id));
+    if (hasIncomplete) { setSubmitState({ status: 'error', message: 'Pilihan Role dan Satelit harus berpasangan (tidak boleh ada yang kosong)!' }); return; }
+    
     const validRoles = roleAssignments.filter(r => r.role_id && r.satelit_id);
     if (validRoles.length === 0) { setSubmitState({ status: 'error', message: 'Assign minimal 1 Role dan Satelit!' }); return; }
     setIsAddUserModalOpen(false);
@@ -212,6 +242,9 @@ export default function AkunAksesPage() {
   const handleUpdateUser = async () => {
     if (!editingUser) return;
     if (!editForm.email) { setSubmitState({ status: 'error', message: 'Email tidak boleh kosong!' }); return; }
+    const hasIncomplete = editRoleAssignments.some(r => (r.role_id && !r.satelit_id) || (!r.role_id && r.satelit_id));
+    if (hasIncomplete) { setSubmitState({ status: 'error', message: 'Pilihan Role dan Satelit harus berpasangan (tidak boleh ada yang kosong)!' }); return; }
+    
     const validRoles = editRoleAssignments.filter(r => r.role_id && r.satelit_id);
     setIsEditUserModalOpen(false);
     setSubmitState({ status: 'loading', message: '' });
@@ -325,6 +358,42 @@ export default function AkunAksesPage() {
                 <span className="material-icons-round text-[18px]">person_add</span> Tambah Akun Baru
               </button>
             </div>
+
+            {/* Filter Options for Users */}
+            <div className="w-full px-4 py-4 bg-white rounded-xl border border-slate-200 flex flex-wrap items-center gap-4 shadow-sm">
+              <div className="flex-1 min-w-[250px] relative flex items-center">
+                <span className="material-icons-round absolute left-4 text-slate-400 text-[20px]">search</span>
+                <input type="text" placeholder="Cari nama pengguna atau email..." 
+                  className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm font-['Public_Sans']"
+                  value={userSearchQuery} onChange={e => setUserSearchQuery(e.target.value)} />
+              </div>
+              <div className="relative min-w-[150px]">
+                <select className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer" 
+                  value={filterUserRole} onChange={e => setFilterUserRole(e.target.value)}>
+                  <option value="">Semua Role</option>
+                  {dataRoles.filter(r => r.is_active).map(r => <option key={r.id} value={r.id}>{r.nama_role}</option>)}
+                </select>
+                <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
+              </div>
+              <div className="relative min-w-[150px]">
+                <select className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer" 
+                  value={filterUserSatelit} onChange={e => setFilterUserSatelit(e.target.value)}>
+                  <option value="">Semua Satelit</option>
+                  {satelitOptions.map(s => <option key={s.id} value={s.id}>{s.nama_satelit}</option>)}
+                </select>
+                <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
+              </div>
+              <div className="relative min-w-[150px]">
+                <select className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer" 
+                  value={filterUserStatus} onChange={e => setFilterUserStatus(e.target.value)}>
+                  <option value="Semua">Semua Status</option>
+                  <option value="Aktif">Aktif</option>
+                  <option value="Nonaktif">Suspended</option>
+                </select>
+                <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
+              </div>
+            </div>
+
             <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
               <table className="w-full text-left text-sm text-slate-600">
                 <thead className="bg-slate-50 font-semibold text-slate-800 text-xs uppercase tracking-wider">
@@ -336,8 +405,8 @@ export default function AkunAksesPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {dataUsers.map((user, idx) => {
-                    const isLastRows = dataUsers.length > 2 && idx >= dataUsers.length - 2;
+                  {filteredUsers.map((user, idx) => {
+                    const isLastRows = filteredUsers.length > 2 && idx >= filteredUsers.length - 2;
                     return (
                       <tr key={user.id} className={`hover:bg-slate-50 transition-colors relative ${openMenuId === user.id ? 'z-50' : 'z-10'}`}>
                         <td className="px-6 py-4 align-top">
@@ -391,7 +460,7 @@ export default function AkunAksesPage() {
                       </tr>
                     );
                   })}
-                  {dataUsers.length === 0 && <tr><td colSpan={4} className="p-8 text-center text-slate-400">Belum ada akun terdaftar</td></tr>}
+                  {filteredUsers.length === 0 && <tr><td colSpan={4} className="p-8 text-center text-slate-400">Pencarian tidak menemukan akun pengguna.</td></tr>}
                 </tbody>
               </table>
             </div>
