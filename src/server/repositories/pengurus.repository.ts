@@ -103,7 +103,7 @@ export class PengurusRepository {
           p.created_at
         ${fromJoin}
         ${where}
-        ORDER BY dk.created_at DESC
+        ORDER BY dk.id DESC
         LIMIT $${idx} OFFSET $${idx + 1}
       `, [...values, limit, offset]),
       pool.query(`
@@ -242,9 +242,9 @@ export class PengurusRepository {
   async updatePengurusStatus(id: string, status: string): Promise<boolean> {
     const updateRes = await pool.query(`
       UPDATE detail_kepengurusan 
-      SET status_jabatan = $1, updated_at = NOW() 
+      SET status_jabatan = $1 
       WHERE pengurus_id = $2 
-      AND id = (SELECT id FROM detail_kepengurusan WHERE pengurus_id = $2 ORDER BY created_at DESC LIMIT 1)
+      AND id = (SELECT id FROM detail_kepengurusan WHERE pengurus_id = $2 ORDER BY id DESC LIMIT 1)
       RETURNING id
     `, [status, id]);
 
