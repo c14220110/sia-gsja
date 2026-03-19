@@ -657,11 +657,8 @@ export default function AkunAksesPage() {
                     setNewUserSearchQuery(str);
                     // Auto-fill email dari data jemaat
                     if (j?.email) setNewUserForm(p => ({ ...p, email: j.email }));
-                    // Auto-fill satelit dan pre-select role JEMAAT di baris pertama
-                    if (j?.satelit_id) {
-                      const jemaatRole = dataRoles.find(r => r.nama_role === 'JEMAAT');
-                      setRoleAssignments([{ role_id: jemaatRole ? String(jemaatRole.id) : '', satelit_id: String(j.satelit_id) }]);
-                    }
+                    // Reset role assignment (JEMAAT tidak perlu di-assign manual)
+                    setRoleAssignments([{ role_id: '', satelit_id: '' }]);
                   }} />
                 {newUserSelectedJemaat && <div className="mt-2 p-2 bg-emerald-50 text-emerald-700 text-xs font-bold font-mono border border-emerald-100 rounded flex gap-2 w-fit"><span className="material-icons-round text-[16px]">check_circle</span> {newUserSelectedJemaat.jemaat_id} - Terverifikasi</div>}
               </div>
@@ -701,7 +698,7 @@ export default function AkunAksesPage() {
                             <div key={idx} className="flex items-center gap-2 bg-white rounded-lg p-2.5 border border-violet-100">
                               <select className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm font-semibold text-slate-800" value={assignment.role_id} onChange={e => updateRoleRow(setRoleAssignments, idx, 'role_id', e.target.value)}>
                                 <option value="">-- Role --</option>
-                                {dataRoles.filter(r => r.is_active).map(r => <option key={r.id} value={r.id}>{r.nama_role}</option>)}
+                                {dataRoles.filter(r => r.is_active && r.nama_role !== 'JEMAAT').map(r => <option key={r.id} value={r.id}>{r.nama_role}</option>)}
                               </select>
                               <select className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm font-semibold text-slate-800" value={assignment.satelit_id} onChange={e => updateRoleRow(setRoleAssignments, idx, 'satelit_id', e.target.value)}>
                                 <option value="">-- Satelit --</option>
