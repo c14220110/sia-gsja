@@ -652,7 +652,17 @@ export default function AkunAksesPage() {
             <div className="p-6 flex flex-col gap-5 bg-slate-50/50 overflow-y-auto">
               <div className="relative">
                 <JemaatAutocomplete label="Beri Akses Kepada: (Cari Jemaat)" valueName={newUserSearchQuery} placeholder="Ketik nama jemaat terdaftar..."
-                  onSelect={(j, str) => { setNewUserSelectedJemaat(j); setNewUserSearchQuery(str); setNewUserForm(p => ({ ...p, email: j?.email || p.email })); }} />
+                  onSelect={(j, str) => {
+                    setNewUserSelectedJemaat(j);
+                    setNewUserSearchQuery(str);
+                    // Auto-fill email dari data jemaat
+                    if (j?.email) setNewUserForm(p => ({ ...p, email: j.email }));
+                    // Auto-fill satelit dan pre-select role JEMAAT di baris pertama
+                    if (j?.satelit_id) {
+                      const jemaatRole = dataRoles.find(r => r.nama_role === 'JEMAAT');
+                      setRoleAssignments([{ role_id: jemaatRole ? String(jemaatRole.id) : '', satelit_id: String(j.satelit_id) }]);
+                    }
+                  }} />
                 {newUserSelectedJemaat && <div className="mt-2 p-2 bg-emerald-50 text-emerald-700 text-xs font-bold font-mono border border-emerald-100 rounded flex gap-2 w-fit"><span className="material-icons-round text-[16px]">check_circle</span> {newUserSelectedJemaat.jemaat_id} - Terverifikasi</div>}
               </div>
               {(() => {
@@ -784,7 +794,15 @@ export default function AkunAksesPage() {
             <div className="p-6 flex flex-col gap-5 bg-slate-50/50 overflow-y-auto">
               <div className="relative">
                 <JemaatAutocomplete label="Cari Jemaat / Panitia:" valueName={newUserSearchQuery} placeholder="Ketik nama jemaat terdaftar..."
-                  onSelect={(j, str) => { setNewUserSelectedJemaat(j); setNewUserSearchQuery(str); setNewUserForm(p => ({ ...p, email: j?.email || p.email })); }} />
+                  onSelect={(j, str) => {
+                    setNewUserSelectedJemaat(j);
+                    setNewUserSearchQuery(str);
+                    // Auto-fill email dan satelit dari data jemaat
+                    if (j?.email) setNewUserForm(p => ({ ...p, email: j.email }));
+                    if (j?.satelit_id) {
+                      setTempUserForm(p => ({ ...p, satelit_id: String(j.satelit_id) }));
+                    }
+                  }} />
                 {newUserSelectedJemaat && <div className="mt-2 p-2 bg-emerald-50 text-emerald-700 text-xs font-bold font-mono border border-emerald-100 rounded flex gap-2 w-fit"><span className="material-icons-round text-[16px]">check_circle</span> {newUserSelectedJemaat.jemaat_id} - Terverifikasi</div>}
               </div>
               {(() => {
