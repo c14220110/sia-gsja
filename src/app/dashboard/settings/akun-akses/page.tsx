@@ -655,42 +655,64 @@ export default function AkunAksesPage() {
                   onSelect={(j, str) => { setNewUserSelectedJemaat(j); setNewUserSearchQuery(str); setNewUserForm(p => ({ ...p, email: j?.email || p.email })); }} />
                 {newUserSelectedJemaat && <div className="mt-2 p-2 bg-emerald-50 text-emerald-700 text-xs font-bold font-mono border border-emerald-100 rounded flex gap-2 w-fit"><span className="material-icons-round text-[16px]">check_circle</span> {newUserSelectedJemaat.jemaat_id} - Terverifikasi</div>}
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1">
-                  <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">Email Login</label>
-                  <input type="email" placeholder="contoh@gsja.id" className="px-3 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm" value={newUserForm.email} onChange={e => setNewUserForm(p => ({ ...p, email: e.target.value }))} />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">Password</label>
-                  <input type="text" placeholder="Default Password" className="px-3 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm" value={newUserForm.password} onChange={e => setNewUserForm(p => ({ ...p, password: e.target.value }))} />
-                </div>
-              </div>
-              <div className="flex flex-col gap-3 p-4 bg-violet-50 border border-violet-100 rounded-xl">
-                <div className="flex items-center justify-between">
-                  <div className="text-violet-800 font-bold text-sm flex items-center gap-1"><span className="material-icons-round text-[16px]">how_to_reg</span> Assign Role Inti</div>
-                  <button type="button" onClick={() => addRoleRow(setRoleAssignments)} className="text-xs font-bold text-violet-600 bg-white border border-violet-200 hover:bg-violet-50 px-2 py-1 rounded-lg flex items-center gap-1 transition-colors"><span className="material-icons-round text-[14px]">add</span> Tambah Role</button>
-                </div>
-                <div className="flex flex-col gap-2">
-                  {roleAssignments.map((assignment, idx) => (
-                    <div key={idx} className="flex items-center gap-2 bg-white rounded-lg p-2.5 border border-violet-100">
-                      <select className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm font-semibold text-slate-800" value={assignment.role_id} onChange={e => updateRoleRow(setRoleAssignments, idx, 'role_id', e.target.value)}>
-                        <option value="">-- Role --</option>
-                        {dataRoles.filter(r => r.is_active).map(r => <option key={r.id} value={r.id}>{r.nama_role}</option>)}
-                      </select>
-                      <select className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm font-semibold text-slate-800" value={assignment.satelit_id} onChange={e => updateRoleRow(setRoleAssignments, idx, 'satelit_id', e.target.value)}>
-                        <option value="">-- Satelit --</option>
-                        {satelitOptions.map(s => <option key={s.id} value={s.id}>{s.nama_satelit}</option>)}
-                      </select>
-                      {roleAssignments.length > 1 && <button type="button" onClick={() => removeRoleRow(setRoleAssignments, idx)} className="w-7 h-7 rounded-full bg-rose-50 hover:bg-rose-100 flex items-center justify-center text-rose-500 flex-shrink-0"><span className="material-icons-round text-[16px]">close</span></button>}
+              {(() => {
+                const existingUserForNew = newUserSelectedJemaat ? dataUsers.find(u => u.jemaat_id === newUserSelectedJemaat.id) : null;
+                if (existingUserForNew) {
+                  const maskedEmail = existingUserForNew.email ? existingUserForNew.email.replace(/^(..)(.*)(@.+)$/, (match: string, start: string, middle: string, end: string) => start + '*'.repeat(middle.length) + end) : '***';
+                  return (
+                    <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-3 shadow-inner mt-2">
+                      <span className="material-icons-round text-rose-600 mt-0.5">error</span>
+                      <div className="flex flex-col gap-1.5">
+                        <p className="text-sm text-rose-800 font-bold leading-relaxed">Jemaat ini sudah memiliki akun sistem (<span className="underline">{maskedEmail}</span>)!</p>
+                        <p className="text-sm text-rose-700 leading-relaxed">Untuk menambah atau memodifikasi jabatannya, mohon tutup kotak ini, cari nama jemaat tersebut di dalam tabel Daftar Akun Pengguna, lalu pilih opsi <span className="font-bold underline text-rose-900 bg-rose-100 px-1 rounded">Edit Akun &amp; Role</span>.</p>
+                      </div>
                     </div>
-                  ))}
-                </div>
-                <p className="text-[11px] text-violet-600 italic">💡 Satu pengguna bisa memegang beberapa role di satelit berbeda.</p>
-              </div>
+                  );
+                } else {
+                  return (
+                    <>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="flex flex-col gap-1">
+                          <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">Email Login</label>
+                          <input type="email" placeholder="contoh@gsja.id" className="px-3 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm" value={newUserForm.email} onChange={e => setNewUserForm(p => ({ ...p, email: e.target.value }))} />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">Password</label>
+                          <input type="text" placeholder="Default Password" className="px-3 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm" value={newUserForm.password} onChange={e => setNewUserForm(p => ({ ...p, password: e.target.value }))} />
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-3 p-4 bg-violet-50 border border-violet-100 rounded-xl">
+                        <div className="flex items-center justify-between">
+                          <div className="text-violet-800 font-bold text-sm flex items-center gap-1"><span className="material-icons-round text-[16px]">how_to_reg</span> Assign Role Inti</div>
+                          <button type="button" onClick={() => addRoleRow(setRoleAssignments)} className="text-xs font-bold text-violet-600 bg-white border border-violet-200 hover:bg-violet-50 px-2 py-1 rounded-lg flex items-center gap-1 transition-colors"><span className="material-icons-round text-[14px]">add</span> Tambah Role</button>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          {roleAssignments.map((assignment, idx) => (
+                            <div key={idx} className="flex items-center gap-2 bg-white rounded-lg p-2.5 border border-violet-100">
+                              <select className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm font-semibold text-slate-800" value={assignment.role_id} onChange={e => updateRoleRow(setRoleAssignments, idx, 'role_id', e.target.value)}>
+                                <option value="">-- Role --</option>
+                                {dataRoles.filter(r => r.is_active).map(r => <option key={r.id} value={r.id}>{r.nama_role}</option>)}
+                              </select>
+                              <select className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm font-semibold text-slate-800" value={assignment.satelit_id} onChange={e => updateRoleRow(setRoleAssignments, idx, 'satelit_id', e.target.value)}>
+                                <option value="">-- Satelit --</option>
+                                {satelitOptions.map(s => <option key={s.id} value={s.id}>{s.nama_satelit}</option>)}
+                              </select>
+                              {roleAssignments.length > 1 && <button type="button" onClick={() => removeRoleRow(setRoleAssignments, idx)} className="w-7 h-7 rounded-full bg-rose-50 hover:bg-rose-100 flex items-center justify-center text-rose-500 flex-shrink-0"><span className="material-icons-round text-[16px]">close</span></button>}
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-[11px] text-violet-600 italic">💡 Satu pengguna bisa memegang beberapa role di satelit berbeda.</p>
+                      </div>
+                    </>
+                  );
+                }
+              })()}
             </div>
             <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-white rounded-b-2xl flex-shrink-0">
               <button onClick={() => setIsAddUserModalOpen(false)} className="px-6 py-2 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-100">Batal</button>
-              <button onClick={handleCreateUser} className="px-8 py-2 rounded-lg text-sm font-bold text-white bg-violet-600 hover:bg-violet-700 shadow flex items-center gap-2"><span className="material-icons-round text-[18px]">vpn_key</span> Buat Akses Sekarang</button>
+              {!(newUserSelectedJemaat && dataUsers.find(u => u.jemaat_id === newUserSelectedJemaat.id)) && (
+                <button onClick={handleCreateUser} className="px-8 py-2 rounded-lg text-sm font-bold text-white bg-violet-600 hover:bg-violet-700 shadow flex items-center gap-2"><span className="material-icons-round text-[18px]">vpn_key</span> Buat Akses Sekarang</button>
+              )}
             </div>
           </div>
         </div>
