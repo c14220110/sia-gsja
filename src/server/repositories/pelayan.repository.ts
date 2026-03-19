@@ -18,6 +18,7 @@ export interface UpdatePelayanParams {
   roles: {
     role_id: number;
     tanggal_mulai: string | null;
+    tanggal_selesai: string | null;
     status_role: string;
   }[];
   user_id: number;
@@ -336,14 +337,14 @@ export class PelayanRepository {
         if (existingRoles.includes(role.role_id)) {
            await client.query(`
              UPDATE pelayan_role 
-             SET tanggal_mulai = $1, status_role = $2
-             WHERE pelayan_id = $3 AND role_id = $4
-           `, [role.tanggal_mulai, role.status_role, id, role.role_id]);
+             SET tanggal_mulai = $1, tanggal_selesai = $2, status_role = $3
+             WHERE pelayan_id = $4 AND role_id = $5
+           `, [role.tanggal_mulai, role.tanggal_selesai || null, role.status_role, id, role.role_id]);
         } else {
            await client.query(`
-             INSERT INTO pelayan_role (pelayan_id, role_id, tanggal_mulai, status_role)
-             VALUES ($1, $2, $3, $4)
-           `, [id, role.role_id, role.tanggal_mulai, role.status_role]);
+             INSERT INTO pelayan_role (pelayan_id, role_id, tanggal_mulai, tanggal_selesai, status_role)
+             VALUES ($1, $2, $3, $4, $5)
+           `, [id, role.role_id, role.tanggal_mulai, role.tanggal_selesai || null, role.status_role]);
         }
       }
 

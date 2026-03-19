@@ -5,6 +5,13 @@ import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
 
+interface RoleEntry {
+  role_id: string;
+  tanggal_mulai: string;
+  tanggal_selesai: string;
+  status_role: string;
+}
+
 export default function PelayanDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -17,17 +24,17 @@ export default function PelayanDetailPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitState, setSubmitState] = useState<{ status: 'idle'|'loading'|'success'|'error', message: string, errors?: any }>({ status: 'idle', message: '' });
 
-  const [roleOptions, setRoleOptions] = useState<any[]>([]);
+  // Error pesan duplikat role
+  const [duplicateError, setDuplicateError] = useState<string | null>(null);
 
-  // Pelayan Entity State
+  const [roleOptions, setRoleOptions] = useState<any[]>([]);
   const [pelayan, setPelayan] = useState<any>(null);
 
-  // Form State
   const [formData, setFormData] = useState({
     tanggal_mulai: '',
     status_pelayan: 'Aktif',
     catatan: '',
-    roles: [] as { role_id: string, tanggal_mulai: string, status_role: string }[],
+    roles: [] as RoleEntry[],
   });
 
   useEffect(() => {
@@ -35,12 +42,8 @@ export default function PelayanDetailPage() {
       try {
         const res = await fetch('/api/options?type=role_pelayan');
         const data = await res.json();
-        if (data.success) {
-          setRoleOptions(data.data);
-        }
-      } catch (err) {
-        console.error('Failed to fetch role options:', err);
-      }
+        if (data.success) setRoleOptions(data.data);
+      } catch (err) { console.error('Failed to fetch role options:', err); }
     };
     fetchRoleOptions();
   }, []);
@@ -62,61 +65,106 @@ export default function PelayanDetailPage() {
             roles: (p.roles || []).map((r: any) => ({
               role_id: r.role_id.toString(),
               tanggal_mulai: r.tanggal_mulai ? new Date(r.tanggal_mulai).toISOString().split('T')[0] : '',
-              status_role: r.status_role || 'Aktif'
+              tanggal_selesai: r.tanggal_selesai ? new Date(r.tanggal_selesai).toISOString().split('T')[0] : '',
+              status_role: r.status_role || 'Aktif',
             }))
           });
         }
-      } catch (err) {
-        console.error('Failed to fetch pelayan data:', err);
-      } finally {
-        setIsLoading(false);
-      }
+      } catch (err) { console.error('Failed to fetch pelayan data:', err); }
+      finally { setIsLoading(false); }
     };
     fetchPelayan();
   }, [id]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleAddRole = () => {
     if (isReadOnly) return;
     setFormData(prev => ({
       ...prev,
-      roles: [...prev.roles, { role_id: '', tanggal_mulai: '', status_role: 'Aktif' }]
+      roles: [...prev.roles, { role_id: '', tanggal_mulai: '', tanggal_selesai: '', status_role: 'Aktif' }]
     }));
+    setDuplicateError(null);
   };
 
   const handleRemoveRole = (index: number) => {
     if (isReadOnly) return;
-    setFormData(prev => ({
-      ...prev,
-      roles: prev.roles.filter((_, i) => i !== index)
-    }));
+    setFormData(prev => ({ ...prev, roles: prev.roles.filter((_, i) => i !== index) }));
+    setDuplicateError(null);
   };
 
-  const handleRoleChange = (index: number, field: string, value: string) => {
+  const handleRoleChange = (index: number, field: keyof RoleEntry, value: string) => {
     if (isReadOnly) return;
+    setDuplicateError(null);
     setFormData(prev => {
       const newRoles = [...prev.roles];
-      newRoles[index] = { ...newRoles[index], [field]: value };
+      let updated = { ...newRoles[index], [field]: value };
+      // Jika status diubah jadi Aktif, hapus tanggal selesai
+      if (field === 'status_role' && value === 'Aktif') {
+        updated = { ...updated, tanggal_selesai: '' };
+      }
+      newRoles[index] = updated;
       return { ...prev, roles: newRoles };
     });
+  };
+
+  // Validasi duplikat role
+  const checkDuplicateRoles = (roles: RoleEntry[]): string | null => {
+    const filledRoles = roles.filter(r => r.role_id);
+    const roleIds = filledRoles.map(r => r.role_id);
+    const uniqueIds = new Set(roleIds);
+    if (uniqueIds.size !== roleIds.length) {
+      // Temukan yang duplikat
+      const seen = new Set<string>();
+      for (const r of filledRoles) {
+        if (seen.has(r.role_id)) {
+          const roleName = roleOptions.find(ro => ro.id.toString() === r.role_id)?.nama_role || r.role_id;
+          return `⚠️ Role "${roleName}" tidak boleh dipilih lebih dari sekali!`;
+        }
+        seen.add(r.role_id);
+      }
+    }
+    return null;
+  };
+
+  // Filter opsi dropdown agar role yang sudah dipakai di baris lain tidak muncul
+  const getAvailableRoles = (currentIdx: number) => {
+    const usedRoleIds = formData.roles
+      .map((r, i) => i !== currentIdx ? r.role_id : null)
+      .filter(Boolean) as string[];
+    return roleOptions.filter(r => !usedRoleIds.includes(r.id.toString()));
   };
 
   const handleSave = async () => {
     if (isReadOnly) return;
 
     if (!formData.tanggal_mulai) {
-      alert('Tanggal mulai pelayan harus diisi');
+      setSubmitState({ status: 'error', message: 'Tanggal mulai pelayan harus diisi' });
       return;
     }
+
+    // Validasi setiap role
     for (const r of formData.roles) {
       if (!r.role_id || !r.tanggal_mulai) {
-        alert('Setiap baris role pelayanan harus memiliki role dan tanggal mulai yang terisi');
+        setSubmitState({ status: 'error', message: 'Setiap baris role harus memiliki role dan tanggal mulai yang terisi' });
         return;
       }
+      if (r.status_role === 'Tidak Aktif' && !r.tanggal_selesai) {
+        const roleName = roleOptions.find(ro => ro.id.toString() === r.role_id)?.nama_role || r.role_id;
+        setSubmitState({ status: 'error', message: `Role "${roleName}" berstatus Tidak Aktif — wajib isi Tanggal Selesai!` });
+        return;
+      }
+    }
+
+    // Validasi duplikat
+    const dupError = checkDuplicateRoles(formData.roles);
+    if (dupError) {
+      setDuplicateError(dupError);
+      setSubmitState({ status: 'error', message: dupError });
+      return;
     }
 
     try {
@@ -127,7 +175,12 @@ export default function PelayanDetailPage() {
         tanggal_mulai: formData.tanggal_mulai,
         status_pelayan: formData.status_pelayan,
         catatan: formData.catatan,
-        roles: formData.roles,
+        roles: formData.roles.map(r => ({
+          role_id: parseInt(r.role_id),
+          tanggal_mulai: r.tanggal_mulai || null,
+          tanggal_selesai: r.tanggal_selesai || null,
+          status_role: r.status_role,
+        })),
         jemaat_id: pelayan.jemaat_id,
         satelit_id: pelayan.satelit_id,
       };
@@ -227,7 +280,7 @@ export default function PelayanDetailPage() {
             <div className="text-slate-400 text-xs font-bold font-['Inter'] uppercase tracking-wider mb-1">Profile Jemaat Terhubung</div>
             <div className="text-slate-900 text-2xl font-bold font-['Inter'] leading-8 mb-1">{pelayan.nama_lengkap}</div>
             
-            <div className="mt-3 inline-flex items-center gap-4 text-sm font-medium text-slate-600 bg-slate-50 border border-slate-200 p-3 rounded-lg w-fit relative overflow-hidden">
+            <div className="mt-3 inline-flex items-center gap-4 text-sm font-medium text-slate-600 bg-slate-50 border border-slate-200 p-3 rounded-lg w-fit">
                <div className="flex flex-col">
                  <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider mb-0.5">ID Jemaat</span>
                  <span className="font-['Liberation_Mono'] text-slate-800">{pelayan.jemaat_nomor || '-'}</span>
@@ -240,7 +293,7 @@ export default function PelayanDetailPage() {
                <div className="w-px h-8 bg-slate-200"></div>
                <div className="flex flex-col">
                  <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider mb-0.5">Status Pelayan</span>
-                 <span className={`font-['Inter'] text-xs font-bold uppercase rounded-full px-2 py-0.5 block w-fit \${pelayan.status_pelayan === 'Aktif' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                 <span className={`font-['Inter'] text-xs font-bold uppercase rounded-full px-2 py-0.5 block w-fit ${pelayan.status_pelayan === 'Aktif' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
                    {pelayan.status_pelayan}
                  </span>
                </div>
@@ -264,10 +317,7 @@ export default function PelayanDetailPage() {
                 <div className="flex-1 flex-col gap-1 flex">
                   <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Status Pelayanan (Global)</label>
                   <select 
-                    name="status_pelayan" 
-                    value={formData.status_pelayan} 
-                    onChange={handleInputChange} 
-                    disabled={isReadOnly}
+                    name="status_pelayan" value={formData.status_pelayan} onChange={handleInputChange} disabled={isReadOnly}
                     className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-['Inter'] w-full transition-all disabled:bg-slate-50 disabled:text-slate-500"
                   >
                     <option value="Aktif">Aktif</option>
@@ -276,14 +326,8 @@ export default function PelayanDetailPage() {
                 </div>
                 <div className="flex-1 flex-col gap-1 flex">
                   <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Tgl Mulai (Global)</label>
-                  <input 
-                    type="date" 
-                    name="tanggal_mulai" 
-                    value={formData.tanggal_mulai} 
-                    onChange={handleInputChange} 
-                    disabled={isReadOnly}
-                    className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-['Inter'] w-full transition-all disabled:bg-slate-50 disabled:text-slate-500" 
-                  />
+                  <input type="date" name="tanggal_mulai" value={formData.tanggal_mulai} onChange={handleInputChange} disabled={isReadOnly}
+                    className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-['Inter'] w-full transition-all disabled:bg-slate-50 disabled:text-slate-500" />
                 </div>
               </div>
             </div>
@@ -294,14 +338,10 @@ export default function PelayanDetailPage() {
                 <span className="material-icons-round text-slate-700 text-[18px]">edit_note</span>
                 <span className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Catatan Khusus</span>
               </div>
-              
               <div className="w-full flex-col gap-1 flex">
                 <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Catatan (Opsional)</label>
                 <textarea 
-                  name="catatan" 
-                  value={formData.catatan} 
-                  onChange={handleInputChange} 
-                  disabled={isReadOnly}
+                  name="catatan" value={formData.catatan} onChange={handleInputChange} disabled={isReadOnly}
                   placeholder="Isi jika ada catatan riwayat / teguran / pujian khusus..." 
                   className="px-3 py-3 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-['Inter'] w-full min-h-[140px] resize-y transition-all disabled:bg-slate-50 disabled:text-slate-500 disabled:resize-none" 
                 />
@@ -324,11 +364,20 @@ export default function PelayanDetailPage() {
                   </button>
                 )}
               </div>
+
+              {/* Pesan error duplikat */}
+              {duplicateError && (
+                <div className="w-full px-4 py-3 bg-rose-50 border border-rose-200 rounded-lg text-sm text-rose-700 font-semibold flex items-center gap-2">
+                  <span className="material-icons-round text-[18px] text-rose-500">warning</span>
+                  {duplicateError}
+                </div>
+              )}
               
               {formData.roles.map((role, idx) => (
-                <div key={idx} className="w-full bg-slate-50 rounded-xl border border-slate-100 p-4 flex flex-col gap-4 animate-in fade-in slide-in-from-top-1">
-                  <div className="w-full flex flex-col md:flex-row gap-4 items-end">
-                    <div className="flex-1 w-full flex-col gap-1 flex">
+                <div key={idx} className="w-full bg-slate-50 rounded-xl border border-slate-100 p-4 flex flex-col gap-3 animate-in fade-in slide-in-from-top-1">
+                  {/* Baris 1: Pilih Role + Delete */}
+                  <div className="w-full flex gap-3 items-end">
+                    <div className="flex-1 flex-col gap-1 flex">
                       <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Role / Departemen</label>
                       <select 
                         value={role.role_id} 
@@ -337,50 +386,89 @@ export default function PelayanDetailPage() {
                         className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-['Inter'] w-full transition-all disabled:bg-slate-50 disabled:text-slate-500"
                       >
                         <option value="">-- Pilih Role --</option>
-                        {roleOptions.map(r => (
+                        {/* Filter: sembunyikan role yang sudah dipakai baris lain */}
+                        {getAvailableRoles(idx).map(r => (
                           <option key={r.id} value={r.id}>{r.nama_role}</option>
                         ))}
+                        {/* Selalu tampilkan yang sedang dipilih baris ini */}
+                        {role.role_id && !getAvailableRoles(idx).find(r => r.id.toString() === role.role_id) && (
+                          <option value={role.role_id}>{roleOptions.find(r => r.id.toString() === role.role_id)?.nama_role || role.role_id}</option>
+                        )}
                       </select>
                     </div>
                     {!isReadOnly && (
                       <button type="button" onClick={() => handleRemoveRole(idx)}
-                        className="w-10 h-10 shrink-0 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center text-red-400 hover:text-red-600 transition-colors border border-red-100 outline-none">
+                        className="w-10 h-10 shrink-0 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center text-red-400 hover:text-red-600 transition-colors border border-red-100">
                         <span className="material-icons-round text-[20px]">delete_outline</span>
                       </button>
                     )}
                   </div>
                   
-                  <div className="w-full flex gap-4">
+                  {/* Baris 2: Tanggal Mulai + Status */}
+                  <div className="w-full flex gap-3">
                     <div className="flex-1 flex-col gap-1 flex">
                       <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Tanggal Mulai Role</label>
-                      <input 
-                        type="date" 
-                        value={role.tanggal_mulai} 
-                        onChange={(e) => handleRoleChange(idx, 'tanggal_mulai', e.target.value)} 
-                        disabled={isReadOnly}
-                        className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-['Inter'] w-full transition-all disabled:bg-slate-50 disabled:text-slate-500" 
-                      />
+                      <input type="date" value={role.tanggal_mulai}
+                        onChange={(e) => handleRoleChange(idx, 'tanggal_mulai', e.target.value)} disabled={isReadOnly}
+                        className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-['Inter'] w-full transition-all disabled:bg-slate-50 disabled:text-slate-500" />
                     </div>
                     <div className="flex-1 flex-col gap-1 flex">
                       <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Status</label>
-                      <select 
-                        value={role.status_role} 
-                        onChange={(e) => handleRoleChange(idx, 'status_role', e.target.value)} 
-                        disabled={isReadOnly}
-                        className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-['Inter'] w-full transition-all disabled:bg-slate-50 disabled:text-slate-500"
+                      <select value={role.status_role}
+                        onChange={(e) => handleRoleChange(idx, 'status_role', e.target.value)} disabled={isReadOnly}
+                        className={`px-3 py-2 bg-white rounded-lg border focus:outline-none focus:ring-2 focus:border-violet-500 text-slate-900 text-sm font-['Inter'] w-full transition-all disabled:bg-slate-50 disabled:text-slate-500 ${role.status_role === 'Tidak Aktif' ? 'border-amber-300 focus:ring-amber-300/20' : 'border-slate-200 focus:ring-violet-500/20'}`}
                       >
                         <option value="Aktif">Aktif</option>
                         <option value="Tidak Aktif">Tidak Aktif</option>
                       </select>
                     </div>
                   </div>
+
+                  {/* Baris 3: Tanggal Selesai (KONDISIONAL — hanya muncul jika Tidak Aktif) */}
+                  {role.status_role === 'Tidak Aktif' && (
+                    <div className="w-full flex-col gap-1 flex animate-in fade-in slide-in-from-top-1 duration-200">
+                      <label className="text-amber-600 text-xs font-bold font-['Inter'] uppercase leading-4 flex items-center gap-1">
+                        <span className="material-icons-round text-[14px]">event_busy</span>
+                        Tanggal Selesai Role <span className="text-red-500">*</span>
+                      </label>
+                      <input 
+                        type="date" 
+                        value={role.tanggal_selesai}
+                        onChange={(e) => handleRoleChange(idx, 'tanggal_selesai', e.target.value)} 
+                        disabled={isReadOnly}
+                        min={role.tanggal_mulai || undefined}
+                        className={`px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-amber-400/20 focus:border-amber-400 text-slate-900 text-sm font-['Inter'] w-full transition-all disabled:bg-slate-50 disabled:text-slate-500 ${!role.tanggal_selesai && !isReadOnly ? 'border-amber-400 bg-amber-50' : 'border-amber-200 bg-white'}`}
+                      />
+                      {!role.tanggal_selesai && !isReadOnly && (
+                        <p className="text-amber-600 text-[11px] font-medium mt-0.5">
+                          ⚠️ Wajib diisi — kapan {roleOptions.find(r => r.id.toString() === role.role_id)?.nama_role || 'role ini'} selesai?
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Badge ringkasan historis jika sudah ada tanggal selesai (mode view) */}
+                  {isReadOnly && role.tanggal_selesai && (
+                    <div className="flex items-center gap-2 mt-1 text-xs text-slate-500 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                      <span className="material-icons-round text-[14px] text-amber-500">history</span>
+                      <span>Masa bakti: <strong>{role.tanggal_mulai}</strong> s/d <strong>{role.tanggal_selesai}</strong></span>
+                    </div>
+                  )}
                 </div>
               ))}
               
               {formData.roles.length === 0 && (
                 <div className="w-full py-6 text-center text-slate-400 flex flex-col items-center gap-2 bg-slate-50/50 rounded-lg border border-dashed border-slate-300">
                   <span className="material-icons-round text-4xl opacity-50">note_add</span>
-                  <span className="text-sm font-['Inter']">Belum ada role diassign. Silakan klik tombol "+ Tambah Role".</span>
+                  <span className="text-sm font-['Inter']">Belum ada role diassign. Silakan klik tombol &quot;+ Tambah Role&quot;.</span>
+                </div>
+              )}
+
+              {/* Hint validasi anti-duplikat */}
+              {!isReadOnly && formData.roles.length > 1 && (
+                <div className="w-full text-[11px] text-slate-400 flex items-center gap-1.5 font-medium">
+                  <span className="material-icons-round text-[14px]">info_outline</span>
+                  Dropdown otomatis menyembunyikan role yang sudah dipilih di baris lain.
                 </div>
               )}
             </div>
@@ -395,14 +483,14 @@ export default function PelayanDetailPage() {
             </Link>
             <button 
               onClick={handleSave} 
-              className={`px-10 py-2.5 bg-slate-700 hover:bg-slate-800 rounded-lg flex justify-start items-center gap-2 transition-all shadow-lg \${isSubmitting ? 'opacity-70 pointer-events-none' : ''}`}
+              className={`px-10 py-2.5 bg-slate-700 hover:bg-slate-800 rounded-lg flex justify-start items-center gap-2 transition-all shadow-lg ${isSubmitting ? 'opacity-70 pointer-events-none' : ''}`}
             >
               {isSubmitting ? (
                 <span className="material-icons-round text-white animate-spin text-[20px]">sync</span>
               ) : (
                 <span className="material-icons-round text-white text-[20px]">save</span>
               )}
-              <span className="text-white text-sm font-bold font-['Inter'] uppercase leading-5 tracking-wide">Simpan Pemuikthahiran</span>
+              <span className="text-white text-sm font-bold font-['Inter'] uppercase leading-5 tracking-wide">Simpan Pembaruan</span>
             </button>
           </div>
         )}
@@ -414,8 +502,6 @@ export default function PelayanDetailPage() {
         errors={submitState.errors} 
         onClose={() => {
           if (submitState.status === 'success') {
-            router.push(`/dashboard/pelayan/${id}?mode=view`);
-            // Force reload to get updated data
             window.location.href = `/dashboard/pelayan/${id}?mode=view`;
           } else {
             setSubmitState({ status: 'idle', message: '' });
