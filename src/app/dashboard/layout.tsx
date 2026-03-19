@@ -403,21 +403,39 @@ export default function DashboardLayout({
                   </div>
                   <div className="self-stretch flex flex-wrap justify-start items-start gap-4">
                     {(hasPermission('user_access_manage') || hasPermission('akses_sementara_manage')) && (
-                      <Link href="/dashboard/settings/akun-akses" onClick={() => setActiveSubmenu(null)} className="w-[140px] h-32 p-4 bg-purple-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-purple-200 flex flex-col justify-center items-center cursor-pointer hover:bg-purple-100 transition-colors block text-inherit no-underline">
-                        <div className="pb-2"><span className="material-icons-round text-purple-600 text-[32px]">admin_panel_settings</span></div>
-                        <div className="text-center text-purple-900 text-sm font-bold font-['Inter'] leading-5">Akun &amp; Hak Akses</div>
+                      <Link href="/dashboard/settings/akun-akses" onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-purple-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-purple-200 flex flex-col justify-center items-center cursor-pointer hover:bg-purple-100 transition-colors block text-inherit no-underline">
+                        <div className="pb-2 flex flex-col justify-start items-start">
+                          <div className="flex flex-col justify-start items-center">
+                            <span className="material-icons-round text-purple-600 text-[32px]">admin_panel_settings</span>
+                          </div>
+                        </div>
+                        <div className="flex flex-col justify-start items-center">
+                          <div className="text-center justify-center text-purple-900 text-sm font-bold font-['Inter'] leading-5">Akun &amp; Hak Akses</div>
+                        </div>
                       </Link>
                     )}
                     {hasPermission('master_data_manage') && (
-                      <Link href="/dashboard/settings/master-data" onClick={() => setActiveSubmenu(null)} className="w-[140px] h-32 p-4 bg-emerald-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-emerald-200 flex flex-col justify-center items-center cursor-pointer hover:bg-emerald-100 transition-colors text-inherit no-underline">
-                        <div className="pb-2"><span className="material-icons-round text-emerald-600 text-[32px]">dataset</span></div>
-                        <div className="text-center text-emerald-900 text-sm font-bold font-['Inter'] leading-5">Master Data</div>
+                      <Link href="/dashboard/settings/master-data" onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-emerald-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-emerald-200 flex flex-col justify-center items-center cursor-pointer hover:bg-emerald-100 transition-colors text-inherit no-underline">
+                        <div className="pb-2 flex flex-col justify-start items-start">
+                          <div className="flex flex-col justify-start items-center">
+                            <span className="material-icons-round text-emerald-600 text-[32px]">dataset</span>
+                          </div>
+                        </div>
+                        <div className="flex flex-col justify-start items-center">
+                          <div className="text-center justify-center text-emerald-900 text-sm font-bold font-['Inter'] leading-5">Master Data</div>
+                        </div>
                       </Link>
                     )}
                     {hasPermission('audit_log_view') && (
-                      <Link href="/dashboard/settings/audit-log" onClick={() => setActiveSubmenu(null)} className="w-[140px] h-32 p-4 bg-amber-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-amber-200 flex flex-col justify-center items-center cursor-pointer hover:bg-amber-100 transition-colors block text-inherit no-underline">
-                        <div className="pb-2"><span className="material-icons-round text-amber-600 text-[32px]">history_edu</span></div>
-                        <div className="text-center text-amber-900 text-sm font-bold font-['Inter'] leading-5">Audit Log</div>
+                      <Link href="/dashboard/settings/audit-log" onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-amber-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-amber-200 flex flex-col justify-center items-center cursor-pointer hover:bg-amber-100 transition-colors block text-inherit no-underline">
+                        <div className="pb-2 flex flex-col justify-start items-start">
+                          <div className="flex flex-col justify-start items-center">
+                            <span className="material-icons-round text-amber-600 text-[32px]">history_edu</span>
+                          </div>
+                        </div>
+                        <div className="flex flex-col justify-start items-center">
+                          <div className="text-center justify-center text-amber-900 text-sm font-bold font-['Inter'] leading-5">Audit Log</div>
+                        </div>
                       </Link>
                     )}
                   </div>
