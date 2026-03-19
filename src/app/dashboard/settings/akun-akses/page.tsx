@@ -765,17 +765,35 @@ export default function AkunAksesPage() {
                   onSelect={(j, str) => { setNewUserSelectedJemaat(j); setNewUserSearchQuery(str); setNewUserForm(p => ({ ...p, email: j?.email || p.email })); }} />
                 {newUserSelectedJemaat && <div className="mt-2 p-2 bg-emerald-50 text-emerald-700 text-xs font-bold font-mono border border-emerald-100 rounded flex gap-2 w-fit"><span className="material-icons-round text-[16px]">check_circle</span> {newUserSelectedJemaat.jemaat_id} - Terverifikasi</div>}
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1">
-                  <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">Email Login</label>
-                  <input type="email" placeholder="contoh@gsja.id" className="px-3 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm" value={newUserForm.email} onChange={e => setNewUserForm(p => ({ ...p, email: e.target.value }))} />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">Password</label>
-                  <input type="text" placeholder="Default Password" className="px-3 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm" value={newUserForm.password} onChange={e => setNewUserForm(p => ({ ...p, password: e.target.value }))} />
-                </div>
-                <div className="col-span-2 text-[10px] text-amber-600 italic -mt-2">💡 Jika jemaat ini belum memiliki akun sama sekali, kredensial di atas akan digunakan untuk memberinya askes login.</div>
-              </div>
+              {(() => {
+                const existingUserForTemp = newUserSelectedJemaat ? dataUsers.find(u => u.jemaat_id === newUserSelectedJemaat.id) : null;
+                if (existingUserForTemp) {
+                  const maskedEmail = existingUserForTemp.email ? existingUserForTemp.email.replace(/^(..)(.*)(@.+)$/, (match: string, start: string, middle: string, end: string) => start + '*'.repeat(middle.length) + end) : '***';
+                  return (
+                    <div className="p-4 bg-sky-50 border border-sky-200 rounded-xl flex items-start gap-3 shadow-inner">
+                      <span className="material-icons-round text-sky-600 mt-0.5">info</span>
+                      <p className="text-sm text-sky-800 leading-relaxed">Jemaat ini sudah memiliki akun sistem (<span className="font-bold underline text-sky-900">{maskedEmail}</span>). Hak akses Panitia akan otomatis ditambahkan ke akun tersebut saat ia login.</p>
+                    </div>
+                  );
+                } else {
+                  return (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">Email Login</label>
+                        <input type="email" placeholder="contoh@gsja.id" className="px-3 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm" value={newUserForm.email} onChange={e => setNewUserForm(p => ({ ...p, email: e.target.value }))} />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">Password</label>
+                        <input type="text" placeholder="Default Password" className="px-3 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm" value={newUserForm.password} onChange={e => setNewUserForm(p => ({ ...p, password: e.target.value }))} />
+                      </div>
+                      <div className="col-span-2 text-[11px] text-amber-700 italic font-medium -mt-1 bg-amber-50 p-2 rounded-lg border border-amber-100 flex gap-2">
+                        <span className="material-icons-round text-[16px] text-amber-500">lightbulb</span> 
+                        Jika jemaat ini belum memiliki akun sama sekali, kredensial di atas akan digunakan untuk memberinya askes login.
+                      </div>
+                    </div>
+                  );
+                }
+              })()}
 
               <div className="flex flex-col gap-3 p-4 bg-amber-50 border border-amber-100 rounded-xl">
                 <div className="text-amber-800 font-bold text-sm flex items-center gap-1"><span className="material-icons-round text-[16px]">how_to_reg</span> Role &amp; Lingkup</div>

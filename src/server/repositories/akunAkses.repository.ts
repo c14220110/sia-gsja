@@ -76,7 +76,7 @@ export class AkunAksesRepository {
   async getPenggunaList(): Promise<any[]> {
     const res = await pool.query(`
       SELECT 
-        p.id, p.email, p.is_active, p.last_login_at,
+        p.id, p.email, p.is_active, p.last_login_at, p.jemaat_id,
         j.nama_lengkap,
         COALESCE(
           json_agg(
