@@ -68,7 +68,7 @@ async function createTables() {
         waktu_mulai time not null,
         waktu_selesai time null,
         lokasi_kegiatan text null,
-        pic_pegawai_id integer null references public.pengguna(id),
+        pic_pengurus_id integer null references public.pengurus(id),
         berbayar boolean null default false,
         status_kegiatan varchar(50) default 'Draft',
         created_at timestamp without time zone null default CURRENT_TIMESTAMP

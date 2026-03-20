@@ -13,6 +13,8 @@ export async function GET(request: Request) {
   const statusKegiatan = searchParams.get('status') || '';
   const jenisKegiatan = searchParams.get('jenis_kegiatan_id') || '';
   const filterTanggal = searchParams.get('tanggal') || 'Bulan Ini';
+  const startDate = searchParams.get('start_date') || '';
+  const endDate = searchParams.get('end_date') || '';
   
   const limit = parseInt(searchParams.get('limit') || '10', 10);
   const offset = parseInt(searchParams.get('offset') || '0', 10);
@@ -63,6 +65,10 @@ export async function GET(request: Request) {
       whereClauses.push(`k.tanggal_mulai >= date_trunc('week', CURRENT_DATE) AND k.tanggal_mulai < date_trunc('week', CURRENT_DATE) + interval '7 days'`);
     } else if (filterTanggal === 'Hari Ini') {
       whereClauses.push(`k.tanggal_mulai = CURRENT_DATE`);
+    } else if (filterTanggal === 'Custom' && startDate && endDate) {
+      whereClauses.push(`k.tanggal_mulai >= $${paramIndex} AND k.tanggal_mulai <= $${paramIndex + 1}`);
+      values.push(startDate, endDate);
+      paramIndex += 2;
     }
 
     // 6. Sihir Status "Menunggu LPJ" vs Status Normal
