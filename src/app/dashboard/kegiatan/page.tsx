@@ -409,7 +409,7 @@ export default function KegiatanPage() {
               <div className="flex-1 min-w-[150px] shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">LOKASI</div>
               <div className="w-[170px] shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">PENYELENGGARA</div>
               <div className="w-28 shrink-0 text-center text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">STATUS</div>
-              <div className="w-12 shrink-0 text-right text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">AKSI</div>
+              <div className="w-[140px] shrink-0 text-right text-slate-500 pr-2 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">AKSI</div>
             </div>
 
             {/* Table Body */}
@@ -472,33 +472,93 @@ export default function KegiatanPage() {
                   </div>
 
                   {/* Kolom 8: Aksi */}
-                  <div className="w-12 shrink-0 flex justify-end items-center gap-1">
-                    <button 
-                      onClick={() => setOpenMenuId(openMenuId === kegiatan.id ? null : kegiatan.id)}
-                      className="w-8 h-8 rounded-full flex justify-center items-center hover:bg-slate-200 text-slate-500 transition-colors"
-                    >
-                      <span className="material-icons-round text-[20px]">more_vert</span>
-                    </button>
-
-                    {/* Dropdown Menu */}
-                    {openMenuId === kegiatan.id && (
-                      <div className={`absolute right-10 w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-2 animate-in fade-in zoom-in-95 duration-150 ${isLastRows ? 'bottom-8' : 'top-10'}`}>
-                        <div className="px-4 py-2 hover:bg-slate-50 cursor-pointer flex items-center gap-3 text-sm text-slate-700 transition-colors">
-                          <span className="material-icons-round text-[18px] text-slate-400">visibility</span> Lihat Detail
-                        </div>
-                        {kegiatan.status_kegiatan !== 'Selesai' && (
-                          <div className="px-4 py-2 hover:bg-slate-50 cursor-pointer flex items-center gap-3 text-sm text-slate-700 transition-colors">
-                            <span className="material-icons-round text-[18px] text-slate-400">edit_square</span> Edit Kegiatan
-                          </div>
-                        )}
-                        <div className="px-4 py-2 hover:bg-slate-50 cursor-pointer flex items-center gap-3 text-sm text-slate-700 transition-colors border-t border-slate-100 mt-1 pt-2">
-                          <span className="material-icons-round text-[18px] text-emerald-500">how_to_reg</span> Input Absensi
-                        </div>
-                        <div className="px-4 py-2 hover:bg-slate-50 cursor-pointer flex items-center gap-3 text-sm text-slate-700 transition-colors">
-                          <span className="material-icons-round text-[18px] text-amber-500">description</span> Input LPJ
-                        </div>
-                      </div>
+                  <div className="w-32 shrink-0 flex justify-end items-center gap-2 pr-2">
+                    
+                    {/* Priority Buttons */}
+                    {displayStatus === 'Menunggu LPJ' && (
+                      <button className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded flex items-center gap-1.5 transition-colors shadow-sm">
+                        <span className="material-icons-round text-[14px]">edit_document</span>
+                        LPJ
+                      </button>
                     )}
+                    {displayStatus === 'Ongoing' && (
+                      <button className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded flex items-center gap-1.5 transition-colors shadow-sm">
+                        <span className="material-icons-round text-[14px]">qr_code_scanner</span>
+                        Absen
+                      </button>
+                    )}
+
+                    <div className="relative">
+                      <button 
+                        onClick={() => setOpenMenuId(openMenuId === kegiatan.id ? null : kegiatan.id)}
+                        className="w-8 h-8 rounded-full flex justify-center items-center hover:bg-slate-200 text-slate-500 transition-colors"
+                      >
+                        <span className="material-icons-round text-[20px]">more_vert</span>
+                      </button>
+
+                      {openMenuId === kegiatan.id && (
+                        <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-slate-100 py-2 z-50">
+                          
+                          {/* DRAFT */}
+                          {displayStatus === 'Draft' && (
+                            <>
+                              <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Detail</button>
+                              <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">edit</span>Edit Kegiatan</button>
+                              <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">rocket_launch</span>Publish Acara</button>
+                              <div className="w-full h-px bg-slate-100 my-1"></div>
+                              <button className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-red-400">delete</span>Hapus Data</button>
+                            </>
+                          )}
+
+                          {/* AKAN DATANG */}
+                          {displayStatus === 'Akan Datang' && (
+                            <>
+                              <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Detail</button>
+                              <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">edit_note</span>Edit Terbatas</button>
+                              {kegiatan.berbayar && (
+                                 <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">groups</span>Kelola Peserta</button>
+                              )}
+                              <div className="w-full h-px bg-slate-100 my-1"></div>
+                              <button className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-red-400">cancel</span>Batalkan Acara</button>
+                            </>
+                          )}
+
+                          {/* ONGOING */}
+                          {displayStatus === 'Ongoing' && (
+                            <>
+                              <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Detail</button>
+                              <div className="w-full h-px bg-slate-100 my-1"></div>
+                              <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">flag</span>Akhiri Kegiatan</button>
+                            </>
+                          )}
+
+                          {/* MENUNGGU LPJ */}
+                          {displayStatus === 'Menunggu LPJ' && (
+                            <>
+                              <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Detail</button>
+                              <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">how_to_reg</span>Absensi Susulan</button>
+                            </>
+                          )}
+
+                          {/* SELESAI */}
+                          {displayStatus === 'Selesai' && (
+                            <>
+                              <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Detail</button>
+                              <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">print</span>Cetak Daftar Hadir</button>
+                              <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">article</span>Lihat / Cetak LPJ</button>
+                            </>
+                          )}
+
+                          {/* DIBATALKAN */}
+                          {displayStatus === 'Dibatalkan' && (
+                            <>
+                              <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Detail</button>
+                            </>
+                          )}
+
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
