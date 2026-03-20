@@ -180,6 +180,13 @@ export default function KegiatanPage() {
     return timeString.substring(0, 5);
   };
 
+  // Buka advanced filter otomatis jika pilih custom
+  useEffect(() => {
+    if (filterTanggal === 'Custom' && !showAdvancedFilters) {
+      setShowAdvancedFilters(true);
+    }
+  }, [filterTanggal]);
+
   return (
     <div className="w-full flex flex-col gap-8 pb-10">
       
@@ -301,42 +308,19 @@ export default function KegiatanPage() {
           <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
         </div>
 
-        {/* Tanggal Dropdown / Custom Date Picker */}
-        <div className="relative min-w-[150px] flex items-center">
-          {filterTanggal === 'Custom' ? (
-            <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg p-1">
-              <input 
-                type="date" 
-                value={customStartDate} 
-                onChange={(e) => setCustomStartDate(e.target.value)}
-                className="bg-transparent border-none text-slate-700 text-sm font-['Public_Sans'] w-32 focus:outline-none focus:ring-0 px-2"
-              />
-              <span className="text-slate-400 mx-1">-</span>
-              <input 
-                type="date" 
-                value={customEndDate} 
-                onChange={(e) => setCustomEndDate(e.target.value)}
-                className="bg-transparent border-none text-slate-700 text-sm font-['Public_Sans'] w-32 focus:outline-none focus:ring-0 px-2"
-              />
-              <button onClick={() => { setFilterTanggal('Bulan Ini'); setCustomStartDate(''); setCustomEndDate(''); }} className="ml-1 w-7 h-7 flex justify-center items-center hover:bg-slate-200 rounded-md text-slate-400 transition-colors">
-                <span className="material-icons-round text-[16px]">close</span>
-              </button>
-            </div>
-          ) : (
-            <>
-              <select 
-                value={filterTanggal}
-                onChange={(e) => setFilterTanggal(e.target.value)}
-                className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
-              >
-                <option value="Hari Ini">Hari Ini</option>
-                <option value="Minggu Ini">Minggu Ini</option>
-                <option value="Bulan Ini">Bulan Ini</option>
-                <option value="Custom">Custom Date</option>
-              </select>
-              <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">calendar_today</span>
-            </>
-          )}
+        {/* Tanggal Dropdown */}
+        <div className="relative min-w-[150px]">
+          <select 
+            value={filterTanggal}
+            onChange={(e) => setFilterTanggal(e.target.value)}
+            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
+          >
+            <option value="Hari Ini">Hari Ini</option>
+            <option value="Minggu Ini">Minggu Ini</option>
+            <option value="Bulan Ini">Bulan Ini</option>
+            <option value="Custom">Custom Date (Rentang)</option>
+          </select>
+          <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">calendar_today</span>
         </div>
 
         {/* More Filters Toggle */}
@@ -351,7 +335,31 @@ export default function KegiatanPage() {
 
       {/* Advanced Filter Collapse Layer */}
       {showAdvancedFilters && (
-        <div className="w-full p-6 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in slide-in-from-top-2 duration-200 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className={`w-full p-6 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in slide-in-from-top-2 duration-200 grid gap-6 ${filterTanggal === 'Custom' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 md:grid-cols-2'}`}>
+          
+          {filterTanggal === 'Custom' && (
+            <>
+              <div className="flex flex-col gap-2">
+                <label className="text-slate-700 text-sm font-bold font-['Public_Sans']">Dari Tanggal</label>
+                <input 
+                  type="date" 
+                  value={customStartDate} 
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm"
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-slate-700 text-sm font-bold font-['Public_Sans']">Sampai Tanggal</label>
+                <input 
+                  type="date" 
+                  value={customEndDate} 
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm"
+                />
+              </div>
+            </>
+          )}
+
           <div className="flex flex-col gap-2">
             <label className="text-slate-700 text-sm font-bold font-['Public_Sans']">Jenis Kegiatan</label>
             <div className="relative">
@@ -438,18 +446,18 @@ export default function KegiatanPage() {
 
                   {/* Kolom 4: Waktu */}
                   <div className="w-[170px] shrink-0 flex flex-col justify-center pr-4">
-                     <div className="text-slate-700 text-sm font-medium truncate flex items-center gap-1.5">
+                     <div className="text-slate-700 text-sm font-bold truncate flex items-center gap-1.5">
                         <span className="material-icons-round text-[16px] text-slate-400">event</span>
                         {formatDate(kegiatan.tanggal_mulai)}
                      </div>
-                     <div className="text-slate-500 text-xs mt-0.5 ml-5 truncate">
-                        Pkl {formatTime(kegiatan.waktu_mulai)} WIB
+                     <div className="text-slate-500 text-sm font-medium mt-0.5 ml-5 truncate">
+                        Pkl. {formatTime(kegiatan.waktu_mulai)} WIB
                      </div>
                   </div>
                   
                   {/* Kolom 5: Lokasi */}
                   <div className="w-36 shrink-0 flex flex-col justify-center pr-4">
-                     <span className="text-slate-600 text-sm line-clamp-2 leading-tight">{kegiatan.lokasi_kegiatan || '-'}</span>
+                     <span className="text-slate-600 text-sm font-medium line-clamp-2 leading-tight">{kegiatan.lokasi_kegiatan || '-'}</span>
                   </div>
 
                   {/* Kolom 6: Penyelenggara */}
