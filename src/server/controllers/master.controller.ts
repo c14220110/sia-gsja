@@ -30,6 +30,8 @@ export async function getOptionsController(request: Request) {
       data = await masterService.getJabatanOptions();
     } else if (type === 'periode_kepengurusan') {
       data = await masterService.getPeriodeKepengurusanOptions();
+    } else if (type === 'jenis_kegiatan') {
+      data = await masterService.getJenisKegiatanOptions();
     } else {
       return NextResponse.json({ success: false, message: 'Invalid type parameter' }, { status: 400 });
     }

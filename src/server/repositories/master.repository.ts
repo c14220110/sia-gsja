@@ -102,4 +102,14 @@ export class MasterRepository {
     const result = await pool.query(query);
     return result.rows;
   }
+
+  async getAllJenisKegiatan(): Promise<any[]> {
+    const query = `
+      SELECT id, nama_jenis_kegiatan
+      FROM jenis_kegiatan
+      ORDER BY id ASC;
+    `;
+    const result = await pool.query(query);
+    return result.rows;
+  }
 }

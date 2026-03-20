@@ -20,6 +20,7 @@ export default function KegiatanPage() {
   // Options State
   const [satelitOptions, setSatelitOptions] = useState<any[]>([]);
   const [departemenOptions, setDepartemenOptions] = useState<any[]>([]);
+  const [jenisKegiatanOptions, setJenisKegiatanOptions] = useState<any[]>([]);
   
   // Pagination & Stats State
   const [data, setData] = useState<any[]>([]);
@@ -42,9 +43,10 @@ export default function KegiatanPage() {
     const fetchOptionsAndUser = async () => {
       showLoader();
       try {
-        const [resSatelit, resDept, resUser] = await Promise.all([
+        const [resSatelit, resDept, resJenis, resUser] = await Promise.all([
           fetch('/api/options?type=satelit'),
           fetch('/api/options?type=departemen'), // Assuming this exists or falls back safely
+          fetch('/api/options?type=jenis_kegiatan'),
           fetch('/api/auth/me')
         ]);
         const satelitData = await resSatelit.json();
@@ -56,10 +58,17 @@ export default function KegiatanPage() {
            try { deptData = JSON.parse(text); } catch(e){}
         }
 
+        let jenisData = { success: false, data: [] };
+        if (resJenis.ok) {
+           const text = await resJenis.text();
+           try { jenisData = JSON.parse(text); } catch(e){}
+        }
+
         const authData = resUser.ok ? await resUser.json() : null;
 
         if (satelitData.success) setSatelitOptions(satelitData.data);
         if (deptData.success) setDepartemenOptions(deptData.data);
+        if (jenisData.success) setJenisKegiatanOptions(jenisData.data);
         if (authData) {
           setUserData(authData);
           if (authData.role_name?.toUpperCase().includes('SATELIT')) {
@@ -193,7 +202,7 @@ export default function KegiatanPage() {
         {/* Card 2 */}
         <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex items-center gap-4 hover:shadow-md transition-shadow">
           <div className="w-14 h-14 bg-emerald-50 rounded-xl flex justify-center items-center">
-            <span className="material-icons-round text-emerald-600 text-3xl">event_upcoming</span>
+            <span className="material-icons-round text-emerald-600 text-3xl">event_note</span>
           </div>
           <div className="flex flex-col">
             <span className="text-slate-500 text-sm font-medium font-['Public_Sans'] uppercase tracking-wide leading-tight">
@@ -311,9 +320,9 @@ export default function KegiatanPage() {
                 className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
               >
                 <option value="">Semua Jenis</option>
-                <option value="1">Kebaktian Umum (Ibadah Raya)</option>
-                <option value="7">Komsel</option>
-                <option value="10">Camp / Retreat</option>
+                {jenisKegiatanOptions.map((jenis) => (
+                  <option key={jenis.id} value={jenis.id}>{jenis.nama_jenis_kegiatan}</option>
+                ))}
               </select>
               <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
             </div>

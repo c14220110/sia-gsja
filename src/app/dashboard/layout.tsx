@@ -99,6 +99,9 @@ export default function DashboardLayout({
   } else if (pathname.includes('/dashboard/settings')) {
     topbarTitle = 'Pengaturan Software';
     topbarIcon  = 'settings';
+  } else if (pathname.includes('/dashboard/kegiatan')) {
+    topbarTitle = 'Modul Kegiatan';
+    topbarIcon  = 'event';
   } else if (pathname.includes('/dashboard/family-tree')) {
     topbarTitle = 'Family Tree';
     topbarIcon  = 'account_tree';
