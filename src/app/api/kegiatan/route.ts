@@ -9,7 +9,11 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const search = searchParams.get('search') || '';
   const satelitId = searchParams.get('satelit_id') || '';
-  const departemenId = searchParams.get('departemen_id') || '';
+  const penyelenggara = searchParams.get('penyelenggara') || '';
+  const statusKegiatan = searchParams.get('status') || '';
+  const jenisKegiatan = searchParams.get('jenis_kegiatan_id') || '';
+  const filterTanggal = searchParams.get('tanggal') || 'Bulan Ini';
+  
   const limit = parseInt(searchParams.get('limit') || '10', 10);
   const offset = parseInt(searchParams.get('offset') || '0', 10);
 
@@ -18,29 +22,71 @@ export async function GET(request: Request) {
     let values: any[] = [];
     let paramIndex = 1;
 
+    // 1. Search Query
     if (search) {
       whereClauses.push(`(k.nama_kegiatan ILIKE $${paramIndex} OR k.kode_kegiatan ILIKE $${paramIndex})`);
       values.push(`%${search}%`);
       paramIndex++;
     }
 
+    // 2. Satelit
     if (satelitId) {
       whereClauses.push(`k.satelit_id = $${paramIndex}`);
       values.push(satelitId);
       paramIndex++;
     }
 
-    if (departemenId) {
-      whereClauses.push(`k.departemen_id = $${paramIndex}`);
-      values.push(departemenId);
+    // 3. Penyelenggara (Merge Komisi & Departemen)
+    if (penyelenggara) {
+      if (penyelenggara.startsWith('dept_')) {
+        whereClauses.push(`k.departemen_id = $${paramIndex}`);
+        values.push(penyelenggara.replace('dept_', ''));
+        paramIndex++;
+      } else if (penyelenggara.startsWith('komisi_')) {
+        whereClauses.push(`k.komisi_id = $${paramIndex}`);
+        values.push(penyelenggara.replace('komisi_', ''));
+        paramIndex++;
+      }
+    }
+
+    // 4. Jenis Kegiatan
+    if (jenisKegiatan) {
+      whereClauses.push(`k.jenis_kegiatan_id = $${paramIndex}`);
+      values.push(jenisKegiatan);
+      paramIndex++;
+    }
+
+    // 5. Rentang Waktu (Tanggal)
+    if (filterTanggal === 'Bulan Ini') {
+      whereClauses.push(`date_trunc('month', k.tanggal_mulai) = date_trunc('month', CURRENT_DATE)`);
+    } else if (filterTanggal === 'Minggu Ini') {
+      whereClauses.push(`k.tanggal_mulai >= date_trunc('week', CURRENT_DATE) AND k.tanggal_mulai < date_trunc('week', CURRENT_DATE) + interval '7 days'`);
+    } else if (filterTanggal === 'Hari Ini') {
+      whereClauses.push(`k.tanggal_mulai = CURRENT_DATE`);
+    }
+
+    // 6. Sihir Status "Menunggu LPJ" vs Status Normal
+    if (statusKegiatan === 'Menunggu LPJ') {
+      whereClauses.push(`k.tanggal_mulai < CURRENT_DATE AND lpj.kegiatan_id IS NULL AND k.status_kegiatan != 'Dibatalkan'`);
+    } else if (statusKegiatan) {
+      whereClauses.push(`k.status_kegiatan = $${paramIndex}`);
+      values.push(statusKegiatan);
       paramIndex++;
     }
 
     const whereString = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
-    // Fetch total count for pagination
+    // Fetch total count for pagination (Need left join lpj if Menunggu LPJ is checked, but safely we can join lpj for count too)
+    const joinClauses = `
+      LEFT JOIN public.jenis_kegiatan jk ON k.jenis_kegiatan_id = jk.id
+      LEFT JOIN public.satelit s ON k.satelit_id = s.id
+      LEFT JOIN public.departemen d ON k.departemen_id = d.id
+      LEFT JOIN public.komisi kom ON k.komisi_id = kom.id
+      LEFT JOIN public.kegiatan_lpj lpj ON k.id = lpj.kegiatan_id
+    `;
+
     const countResult = await pool.query(
-      `SELECT COUNT(*) FROM public.kegiatan k ${whereString}`,
+      `SELECT COUNT(DISTINCT k.id) FROM public.kegiatan k ${joinClauses} ${whereString}`,
       values
     );
     const totalCount = parseInt(countResult.rows[0].count, 10);
@@ -57,13 +103,13 @@ export async function GET(request: Request) {
         k.status_kegiatan,
         jk.nama_jenis_kegiatan,
         s.nama_satelit,
-        d.nama_departemen
+        d.nama_departemen,
+        kom.nama_komisi,
+        lpj.kegiatan_id AS is_lpj_submitted
       FROM public.kegiatan k
-      LEFT JOIN public.jenis_kegiatan jk ON k.jenis_kegiatan_id = jk.id
-      LEFT JOIN public.satelit s ON k.satelit_id = s.id
-      LEFT JOIN public.departemen d ON k.departemen_id = d.id
+      ${joinClauses}
       ${whereString}
-      ORDER BY k.tanggal_mulai DESC, k.waktu_mulai DESC
+      ORDER BY k.tanggal_mulai ASC, k.waktu_mulai ASC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
 

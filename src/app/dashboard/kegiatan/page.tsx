@@ -20,6 +20,7 @@ export default function KegiatanPage() {
   // Options State
   const [satelitOptions, setSatelitOptions] = useState<any[]>([]);
   const [departemenOptions, setDepartemenOptions] = useState<any[]>([]);
+  const [komisiOptions, setKomisiOptions] = useState<any[]>([]);
   const [jenisKegiatanOptions, setJenisKegiatanOptions] = useState<any[]>([]);
   
   // Pagination & Stats State
@@ -33,7 +34,7 @@ export default function KegiatanPage() {
   
   // Filters
   const [filterSatelit, setFilterSatelit] = useState('');
-  const [filterDepartemen, setFilterDepartemen] = useState('');
+  const [filterPenyelenggara, setFilterPenyelenggara] = useState('');
   const [filterTanggal, setFilterTanggal] = useState('Bulan Ini');
   const [filterJenis, setFilterJenis] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -43,19 +44,26 @@ export default function KegiatanPage() {
     const fetchOptionsAndUser = async () => {
       showLoader();
       try {
-        const [resSatelit, resDept, resJenis, resUser] = await Promise.all([
+        const [resSatelit, resDept, resKomisi, resJenis, resUser] = await Promise.all([
           fetch('/api/options?type=satelit'),
-          fetch('/api/options?type=departemen'), // Assuming this exists or falls back safely
+          fetch('/api/options?type=departemen'),
+          fetch('/api/options?type=komisi'),
           fetch('/api/options?type=jenis_kegiatan'),
           fetch('/api/auth/me')
         ]);
         const satelitData = await resSatelit.json();
         
-        // Handle if departemen options API doesn't exist yet but we don't want to crash
+        // Handle if API options don't exist yet but we don't want to crash
         let deptData = { success: false, data: [] };
         if (resDept.ok) {
            const text = await resDept.text();
            try { deptData = JSON.parse(text); } catch(e){}
+        }
+
+        let komisiData = { success: false, data: [] };
+        if (resKomisi.ok) {
+           const text = await resKomisi.text();
+           try { komisiData = JSON.parse(text); } catch(e){}
         }
 
         let jenisData = { success: false, data: [] };
@@ -68,6 +76,7 @@ export default function KegiatanPage() {
 
         if (satelitData.success) setSatelitOptions(satelitData.data);
         if (deptData.success) setDepartemenOptions(deptData.data);
+        if (komisiData.success) setKomisiOptions(komisiData.data);
         if (jenisData.success) setJenisKegiatanOptions(jenisData.data);
         if (authData) {
           setUserData(authData);
@@ -99,7 +108,7 @@ export default function KegiatanPage() {
   // Reset page to 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, filterSatelit, filterDepartemen, filterTanggal, filterJenis, filterStatus]);
+  }, [debouncedSearch, filterSatelit, filterPenyelenggara, filterTanggal, filterJenis, filterStatus]);
 
   // Fetch Data
   useEffect(() => {
@@ -109,10 +118,10 @@ export default function KegiatanPage() {
         const queryParams = new URLSearchParams();
         if (debouncedSearch) queryParams.append('search', debouncedSearch);
         if (filterSatelit) queryParams.append('satelit_id', filterSatelit);
-        if (filterDepartemen) queryParams.append('departemen_id', filterDepartemen);
+        if (filterPenyelenggara) queryParams.append('penyelenggara', filterPenyelenggara);
+        if (filterTanggal) queryParams.append('tanggal', filterTanggal);
         if (filterStatus) queryParams.append('status', filterStatus);
-        
-        // Tanggal filter logic usually goes here...
+        if (filterJenis) queryParams.append('jenis_kegiatan_id', filterJenis);
         
         queryParams.append('limit', limit.toString());
         queryParams.append('offset', ((currentPage - 1) * limit).toString());
@@ -135,7 +144,7 @@ export default function KegiatanPage() {
     };
 
     fetchData();
-  }, [debouncedSearch, filterSatelit, filterDepartemen, filterTanggal, filterJenis, filterStatus, currentPage]);
+  }, [debouncedSearch, filterSatelit, filterPenyelenggara, filterTanggal, filterJenis, filterStatus, currentPage]);
 
   const totalPages = Math.ceil(totalItems / limit) || 1;
 
@@ -264,21 +273,24 @@ export default function KegiatanPage() {
           <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
         </div>
 
-        {/* Departemen Dropdown */}
-        <div className="relative min-w-[200px]">
+        {/* Penyelenggara Dropdown (Gabungan Komisi & Departemen) */}
+        <div className="relative min-w-[220px]">
           <select 
-            value={filterDepartemen}
-            onChange={(e) => setFilterDepartemen(e.target.value)}
+            value={filterPenyelenggara}
+            onChange={(e) => setFilterPenyelenggara(e.target.value)}
             className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
           >
-            <option value="">Semua Departemen/Komisi</option>
-            {departemenOptions.length > 0 ? (
-                departemenOptions.map((dept) => (
-                    <option key={dept.id} value={dept.id}>{dept.nama_departemen}</option>
-                ))
-            ) : (
-                <option value="none">Data belum sinkron</option>
-            )}
+            <option value="">Semua Penyelenggara</option>
+            <optgroup label="-- KOMISI --">
+              {komisiOptions.map((komisi) => (
+                  <option key={`komisi_${komisi.id}`} value={`komisi_${komisi.id}`}>{komisi.nama_komisi}</option>
+              ))}
+            </optgroup>
+            <optgroup label="-- DEPARTEMEN --">
+              {departemenOptions.map((dept) => (
+                  <option key={`dept_${dept.id}`} value={`dept_${dept.id}`}>{dept.nama_departemen}</option>
+              ))}
+            </optgroup>
           </select>
           <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
         </div>
@@ -353,12 +365,14 @@ export default function KegiatanPage() {
           <div className="min-w-[1050px] flex flex-col">
             {/* Table Header */}
             <div className="w-full bg-slate-50 border-b border-slate-200 flex items-center px-6 py-4">
-              <div className="w-32 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">ID KEGIATAN</div>
-              <div className="w-64 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">NAMA & JENIS KEGIATAN</div>
-              <div className="flex-1 min-w-[200px] text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">JADWAL & LOKASI</div>
-              <div className="w-48 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">PENYELENGGARA</div>
+              <div className="w-24 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">ID</div>
+              <div className="flex-1 min-w-[150px] text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">NAMA KEGIATAN</div>
+              <div className="w-40 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">JENIS KEGIATAN</div>
+              <div className="w-48 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">WAKTU PELAKSANAAN</div>
+              <div className="w-32 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">LOKASI</div>
+              <div className="w-44 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">PENYELENGGARA</div>
               <div className="w-32 shrink-0 text-center text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">STATUS</div>
-              <div className="w-20 shrink-0 text-right text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">AKSI</div>
+              <div className="w-16 shrink-0 text-right text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">AKSI</div>
             </div>
 
             {/* Table Body */}
@@ -372,46 +386,53 @@ export default function KegiatanPage() {
                 data.map((kegiatan, idx) => {
                   const isLastRows = data.length > 2 && idx >= data.length - 2;
                   
-                  // Hitung status if menuggu LPJ (jika selesai tp belum ada LPJ)
-                  // For UI mockup display logic:
+                  // Hitung status Menunggu LPJ
                   let displayStatus = kegiatan.status_kegiatan;
-                  if (displayStatus === 'Selesai' && true /* condition if waiting LPJ, but normally backend returns this */) {
-                    // We assume backend handles the precise text or we can modify it
+                  if (new Date(kegiatan.tanggal_mulai) < new Date() && !kegiatan.is_lpj_submitted && displayStatus !== 'Dibatalkan' && displayStatus !== 'Draft') {
+                    displayStatus = 'Menunggu LPJ';
                   }
 
                   return (
                 <div key={kegiatan.id || idx} className={`w-full flex items-center px-6 py-4 border-b border-slate-100 hover:bg-slate-50 transition-colors relative ${openMenuId === kegiatan.id ? 'z-50' : 'z-10'}`}>
                   {/* Kolom 1: ID */}
-                  <div className="w-32 shrink-0 text-slate-500 text-sm font-bold font-['Liberation_Mono'] tracking-wide">{kegiatan.kode_kegiatan}</div>
+                  <div className="w-24 shrink-0 text-slate-500 text-xs font-bold font-['Liberation_Mono'] tracking-wide">{kegiatan.kode_kegiatan}</div>
                   
-                  {/* Kolom 2: Nama & Jenis */}
-                  <div className="w-64 shrink-0 flex flex-col justify-center pr-4">
-                     <span className="text-slate-900 font-bold text-sm truncate">{kegiatan.nama_kegiatan}</span>
-                     <span className="text-slate-500 text-xs font-medium truncate mt-0.5">{kegiatan.nama_jenis_kegiatan || 'Praise & Worship'}</span>
+                  {/* Kolom 2: Nama */}
+                  <div className="flex-1 min-w-[150px] flex flex-col justify-center pr-4">
+                     <span className="text-slate-900 font-bold text-sm line-clamp-2">{kegiatan.nama_kegiatan}</span>
                   </div>
 
-                  {/* Kolom 3: Jadwal & Lokasi */}
-                  <div className="flex-1 min-w-[200px] flex flex-col justify-center pr-4">
-                     <div className="text-slate-700 text-sm font-semibold truncate flex items-center gap-1">
-                        <span className="material-icons-round text-[14px] text-slate-400">schedule</span>
-                        {formatDate(kegiatan.tanggal_mulai)} • {formatTime(kegiatan.waktu_mulai)}
-                     </div>
-                     <span className="text-slate-500 text-xs mt-0.5 truncate">{kegiatan.lokasi_kegiatan || 'Belum diatur'}</span>
+                  {/* Kolom 3: Jenis */}
+                  <div className="w-40 shrink-0 flex flex-col justify-center pr-4">
+                     <span className="text-slate-600 font-medium text-sm truncate">{kegiatan.nama_jenis_kegiatan || 'Tidak Diatur'}</span>
                   </div>
 
-                  {/* Kolom 4: Penyelenggara */}
+                  {/* Kolom 4: Waktu */}
                   <div className="w-48 shrink-0 flex flex-col justify-center pr-4">
-                     <span className="text-slate-700 text-sm font-medium truncate">{kegiatan.nama_satelit || 'Gereja Pusat'}</span>
-                     <span className="text-slate-500 text-xs truncate mt-0.5">{kegiatan.nama_departemen || 'Umum'}</span>
+                     <div className="text-slate-700 text-sm font-medium truncate flex items-center gap-1.5">
+                        <span className="material-icons-round text-[16px] text-slate-400">event</span>
+                        {formatDate(kegiatan.tanggal_mulai)}, {formatTime(kegiatan.waktu_mulai)}
+                     </div>
+                  </div>
+                  
+                  {/* Kolom 5: Lokasi */}
+                  <div className="w-32 shrink-0 flex flex-col justify-center pr-4">
+                     <span className="text-slate-600 text-sm line-clamp-2 leading-tight">{kegiatan.lokasi_kegiatan || '-'}</span>
                   </div>
 
-                  {/* Kolom 5: Status */}
+                  {/* Kolom 6: Penyelenggara */}
+                  <div className="w-44 shrink-0 flex flex-col justify-center pr-4">
+                     <span className="text-slate-700 text-sm font-medium truncate">{kegiatan.nama_satelit || 'Pusat'}</span>
+                     <span className="text-slate-500 text-xs truncate mt-0.5">{kegiatan.nama_komisi || kegiatan.nama_departemen || 'Umum'}</span>
+                  </div>
+
+                  {/* Kolom 7: Status */}
                   <div className="w-32 shrink-0 flex justify-center">
-                    {renderStatusBadge(kegiatan.status_kegiatan)}
+                    {renderStatusBadge(displayStatus)}
                   </div>
 
-                  {/* Kolom 6: Aksi */}
-                  <div className="w-20 shrink-0 flex justify-end items-center gap-2">
+                  {/* Kolom 8: Aksi */}
+                  <div className="w-16 shrink-0 flex justify-end items-center gap-2">
                     <button 
                       onClick={() => setOpenMenuId(openMenuId === kegiatan.id ? null : kegiatan.id)}
                       className="w-8 h-8 rounded-full flex justify-center items-center hover:bg-slate-200 text-slate-500 transition-colors"
