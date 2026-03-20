@@ -338,9 +338,11 @@ export default function DashboardLayout({
                   {/* Mobile Accordion */}
                   <div className={`md:hidden overflow-hidden transition-all duration-300 ${mobileExpandedMenus['kegiatan'] ? 'max-h-96 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
                     <div className="pl-14 pr-4 py-2 flex flex-col gap-4">
-                      <span className="text-slate-300 text-sm font-medium hover:text-white transition-colors cursor-pointer block">Jadwal Kegiatan</span>
-                      <span className="text-slate-300 text-sm font-medium hover:text-white transition-colors cursor-pointer block">Daftar / Registrasi Event</span>
-                      <span className="text-slate-300 text-sm font-medium hover:text-white transition-colors cursor-pointer block">Riwayat Kehadiran</span>
+                      <Link href="/dashboard/kegiatan" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Daftar Kegiatan</Link>
+                      <Link href="/dashboard/kegiatan/pendaftaran" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Pendaftaran Peserta</Link>
+                      <Link href="/dashboard/kegiatan/absensi" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Absensi & Kehadiran</Link>
+                      <Link href="/dashboard/kegiatan/lpj" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">LPJ Kegiatan</Link>
+                      <Link href="/dashboard/kegiatan/pemilu" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Pemilihan Umum</Link>
                     </div>
                   </div>
               </div>
@@ -503,41 +505,56 @@ export default function DashboardLayout({
                 onMouseEnter={() => { if (submenuTimeout.current) clearTimeout(submenuTimeout.current) }}
                 onMouseLeave={handleMouseLeaveMenu}
               >
-                <div className="w-[500px] p-6 bg-white rounded-xl outline outline-1 outline-offset-[-1px] outline-slate-200 shadow-2xl flex flex-col justify-start items-start gap-4">
+                <div className="w-[600px] p-6 bg-white rounded-xl outline outline-1 outline-offset-[-1px] outline-slate-200 shadow-2xl flex flex-col justify-start items-start gap-4">
                   <div className="self-stretch pb-2 border-b border-slate-100 flex flex-col justify-start items-start">
-                    <div className="justify-center text-slate-800 text-lg font-bold font-['Inter'] leading-7">Kegiatan</div>
+                    <div className="justify-center text-slate-800 text-lg font-bold font-['Inter'] leading-7">Modul Kegiatan</div>
                   </div>
-                  <div className="self-stretch flex justify-between items-start gap-4">
-                    <div className="flex-1 h-32 p-4 bg-blue-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-blue-200 flex flex-col justify-center items-center cursor-pointer hover:bg-blue-100 transition-colors">
-                      <div className="pb-2 flex flex-col justify-start items-start">
-                        <div className="flex flex-col justify-start items-center">
-                          <span className="material-icons-round text-blue-600 text-[32px]">calendar_month</span>
-                        </div>
+                  <div className="self-stretch grid grid-cols-6 gap-4">
+                    {/* Item 1 */}
+                    <Link href="/dashboard/kegiatan" onClick={() => setActiveSubmenu(null)} className="col-span-2 h-32 p-4 bg-blue-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-blue-200 flex flex-col justify-center items-center cursor-pointer hover:bg-blue-100 transition-colors block text-inherit no-underline">
+                      <div className="pb-2 flex flex-col justify-start items-center">
+                        <span className="material-icons-round text-blue-600 text-[32px]">calendar_month</span>
                       </div>
-                      <div className="flex flex-col justify-start items-center text-center">
-                        <div className="justify-center text-blue-900 text-sm font-bold font-['Inter'] leading-5">Jadwal Kegiatan</div>
+                      <div className="text-center justify-center text-blue-900 text-sm font-bold font-['Inter'] leading-5">Daftar Kegiatan</div>
+                    </Link>
+
+                    {/* Item 2 */}
+                    <Link href="/dashboard/kegiatan/pendaftaran" onClick={() => setActiveSubmenu(null)} className="col-span-2 h-32 p-4 bg-sky-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-sky-200 flex flex-col justify-center items-center cursor-pointer hover:bg-sky-100 transition-colors block text-inherit no-underline">
+                      <div className="pb-2 flex flex-col justify-start items-center">
+                        <span className="material-icons-round text-sky-600 text-[32px]">how_to_reg</span>
                       </div>
-                    </div>
-                    <div className="flex-1 h-32 p-4 bg-blue-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-blue-200 flex flex-col justify-center items-center cursor-pointer hover:bg-blue-100 transition-colors">
-                      <div className="pb-2 flex flex-col justify-start items-start">
-                        <div className="flex flex-col justify-start items-center">
-                          <span className="material-icons-round text-blue-600 text-[32px]">how_to_reg</span>
-                        </div>
+                      <div className="text-center justify-center text-sky-900 text-sm font-bold font-['Inter'] leading-5">Pendaftaran Peserta</div>
+                    </Link>
+
+                    {/* Item 3 */}
+                    <Link href="/dashboard/kegiatan/absensi" onClick={() => setActiveSubmenu(null)} className="col-span-2 h-32 p-4 bg-indigo-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-indigo-200 flex flex-col justify-center items-center cursor-pointer hover:bg-indigo-100 transition-colors block text-inherit no-underline">
+                      <div className="pb-2 flex flex-col justify-start items-center">
+                        <span className="material-icons-round text-indigo-600 text-[32px]">playlist_add_check</span>
                       </div>
-                      <div className="flex flex-col justify-start items-center text-center">
-                        <div className="justify-center text-blue-900 text-sm font-bold font-['Inter'] leading-5">Daftar / Registrasi Event</div>
+                      <div className="text-center justify-center text-indigo-900 text-sm font-bold font-['Inter'] leading-5">Absensi & Kehadiran</div>
+                    </Link>
+
+                    {/* Item 4 */}
+                    <Link href="/dashboard/kegiatan/lpj" onClick={() => setActiveSubmenu(null)} className="col-span-3 h-24 p-5 bg-cyan-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-cyan-200 flex flex-row justify-start items-center cursor-pointer hover:bg-cyan-100 transition-colors block text-inherit no-underline gap-4">
+                      <div className="flex flex-col justify-start items-center">
+                        <span className="material-icons-round text-cyan-600 text-[36px]">description</span>
                       </div>
-                    </div>
-                    <div className="flex-1 h-32 p-4 bg-blue-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-blue-200 flex flex-col justify-center items-center cursor-pointer hover:bg-blue-100 transition-colors">
-                      <div className="pb-2 flex flex-col justify-start items-start">
-                        <div className="flex flex-col justify-start items-center">
-                          <span className="material-icons-round text-blue-600 text-[32px]">history</span>
-                        </div>
+                      <div className="flex flex-col">
+                        <div className="text-left text-cyan-900 text-sm font-bold font-['Inter'] leading-5">LPJ Kegiatan</div>
+                        <div className="text-left text-cyan-700 text-xs leading-4 mt-0.5">Pelaporan naratif pasca-kegiatan</div>
                       </div>
-                      <div className="flex flex-col justify-start items-center text-center">
-                        <div className="justify-center text-blue-900 text-sm font-bold font-['Inter'] leading-5">Riwayat Kehadiran</div>
+                    </Link>
+
+                    {/* Item 5 */}
+                    <Link href="/dashboard/kegiatan/pemilu" onClick={() => setActiveSubmenu(null)} className="col-span-3 h-24 p-5 bg-blue-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-blue-200 flex flex-row justify-start items-center cursor-pointer hover:bg-blue-100 transition-colors block text-inherit no-underline gap-4">
+                      <div className="flex flex-col justify-start items-center">
+                        <span className="material-icons-round text-blue-600 text-[36px]">how_to_vote</span>
                       </div>
-                    </div>
+                      <div className="flex flex-col">
+                        <div className="text-left text-blue-900 text-sm font-bold font-['Inter'] leading-5">Pemilihan Umum</div>
+                        <div className="text-left text-blue-700 text-xs leading-4 mt-0.5">Voting & Pemilu pengurus baru</div>
+                      </div>
+                    </Link>
                   </div>
                 </div>
               </div>
