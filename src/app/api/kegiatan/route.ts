@@ -71,10 +71,8 @@ export async function GET(request: Request) {
       paramIndex += 2;
     }
 
-    // 6. Sihir Status "Menunggu LPJ" vs Status Normal
-    if (statusKegiatan === 'Menunggu LPJ') {
-      whereClauses.push(`k.tanggal_mulai < CURRENT_DATE AND lpj.kegiatan_id IS NULL AND k.status_kegiatan != 'Dibatalkan'`);
-    } else if (statusKegiatan) {
+    // 6. Filter Berdasarkan Status Kegiatan Murni
+    if (statusKegiatan) {
       whereClauses.push(`k.status_kegiatan = $${paramIndex}`);
       values.push(statusKegiatan);
       paramIndex++;
@@ -138,9 +136,8 @@ export async function GET(request: Request) {
 
     // 3. Menunggu LPJ
     const countMenungguLpjResult = await pool.query(`
-      SELECT COUNT(*) as total FROM public.kegiatan k
-      LEFT JOIN public.kegiatan_lpj l ON k.id = l.kegiatan_id
-      WHERE k.tanggal_selesai < CURRENT_DATE AND l.kegiatan_id IS NULL AND k.status_kegiatan != 'Draft'
+      SELECT COUNT(*) as total FROM public.kegiatan
+      WHERE status_kegiatan = 'Menunggu LPJ'
     `);
     const totalMenungguLpj = parseInt(countMenungguLpjResult.rows[0].total, 10);
 
