@@ -28,8 +28,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { email, password, jemaat_id, roles } = body;
 
-    if (!email || !password || !jemaat_id || !roles || roles.length === 0) {
-      return NextResponse.json({ success: false, message: 'Mohon lengkapi semua field yang diwajibkan (termasuk minimal 1 role)' }, { status: 400 });
+    if (!email || !password || !jemaat_id || !roles) {
+      return NextResponse.json({ success: false, message: 'Mohon lengkapi semua field yang diwajibkan (Email, Password, Jemaat)' }, { status: 400 });
     }
 
     const saltRounds = 10;

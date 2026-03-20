@@ -242,7 +242,6 @@ export default function AkunAksesPage() {
     if (hasIncomplete) { setSubmitState({ status: 'error', message: 'Pilihan Role dan Satelit harus berpasangan (tidak boleh ada yang kosong)!' }); return; }
     
     const validRoles = roleAssignments.filter(r => r.role_id && r.satelit_id);
-    if (validRoles.length === 0) { setSubmitState({ status: 'error', message: 'Assign minimal 1 Role dan Satelit!' }); return; }
     setIsAddUserModalOpen(false);
     setSubmitState({ status: 'loading', message: '' });
     try {
@@ -692,7 +691,7 @@ export default function AkunAksesPage() {
                       </div>
                       <div className="flex flex-col gap-3 p-4 bg-violet-50 border border-violet-100 rounded-xl">
                         <div className="flex items-center justify-between">
-                          <div className="text-violet-800 font-bold text-sm flex items-center gap-1"><span className="material-icons-round text-[16px]">how_to_reg</span> Assign Role Inti</div>
+                          <div className="text-violet-800 font-bold text-sm flex items-center gap-1"><span className="material-icons-round text-[16px]">how_to_reg</span> Assign Role Inti <span className="text-[11px] font-normal text-slate-500 ml-2 italic">💡 Opsional. Kosongkan jika hanya untuk Jemaat biasa.</span></div>
                           <button type="button" onClick={() => addRoleRow(setRoleAssignments)} className="text-xs font-bold text-violet-600 bg-white border border-violet-200 hover:bg-violet-50 px-2 py-1 rounded-lg flex items-center gap-1 transition-colors"><span className="material-icons-round text-[14px]">add</span> Tambah Role</button>
                         </div>
                         <div className="flex flex-col gap-2">
@@ -752,7 +751,7 @@ export default function AkunAksesPage() {
               </div>
               <div className="flex flex-col gap-3 p-4 bg-amber-50 border border-amber-100 rounded-xl">
                 <div className="flex items-center justify-between">
-                  <div className="text-amber-800 font-bold text-sm flex items-center gap-1"><span className="material-icons-round text-[16px]">admin_panel_settings</span> Role &amp; Akses Permanen</div>
+                  <div className="text-amber-800 font-bold text-sm flex items-center gap-1"><span className="material-icons-round text-[16px]">admin_panel_settings</span> Role &amp; Akses Permanen <span className="text-[11px] font-normal text-slate-500 ml-2 italic">💡 Opsional. Kosongkan jika hanya untuk Jemaat biasa.</span></div>
                   <button type="button" onClick={() => addRoleRow(setEditRoleAssignments)} className="text-xs font-bold text-amber-700 bg-white border border-amber-200 hover:bg-amber-50 px-2 py-1 rounded-lg flex items-center gap-1 transition-colors"><span className="material-icons-round text-[14px]">add</span> Tambah Role</button>
                 </div>
                 <div className="flex flex-col gap-2">
