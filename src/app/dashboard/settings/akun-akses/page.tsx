@@ -708,6 +708,7 @@ export default function AkunAksesPage() {
                       </th>
                       <th className="px-4 py-4 border-b border-slate-200">ID Jemaat</th>
                       <th className="px-4 py-4 border-b border-slate-200 min-w-[200px]">Data Jemaat</th>
+                      <th className="px-4 py-4 border-b border-slate-200">Tanggal Lahir</th>
                       <th className="px-4 py-4 border-b border-slate-200">Kontak (Email)</th>
                       <th className="px-4 py-4 border-b border-slate-200">Asal Satelit</th>
                       <th className="px-4 py-4 border-b border-slate-200">Status Akun</th>
@@ -725,6 +726,12 @@ export default function AkunAksesPage() {
                         </td>
                         <td className="px-4 py-3 font-mono text-slate-500 text-xs">{j.jemaat_id}</td>
                         <td className="px-4 py-3 font-bold text-slate-900">{j.nama_lengkap}</td>
+                        <td className="px-4 py-3">
+                          {j.tanggal_lahir ? 
+                            <span className="font-mono bg-slate-100 px-2 py-1 rounded text-slate-700 text-xs">{new Date(j.tanggal_lahir).toLocaleDateString('id-ID')}</span> : 
+                            <span className="text-rose-500 text-[10px] font-bold italic border border-rose-200 bg-rose-50 px-2 py-0.5 rounded">TIDAK ADA TGL LAHIR</span>
+                          }
+                        </td>
                         <td className="px-4 py-3">
                           {j.email ? <span className="text-slate-600 text-sm">{j.email}</span> : <span className="text-rose-500 text-[10px] font-bold italic border border-rose-200 bg-rose-50 px-2 py-0.5 rounded">TIDAK ADA EMAIL</span>}
                         </td>
