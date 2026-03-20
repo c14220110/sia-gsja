@@ -476,14 +476,14 @@ export default function KegiatanPage() {
                     
                     {/* Priority Buttons */}
                     {displayStatus === 'Menunggu LPJ' && (
-                      <button className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded flex items-center gap-1.5 transition-colors shadow-sm">
-                        <span className="material-icons-round text-[14px]">edit_document</span>
-                        LPJ
+                      <button className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded flex items-center gap-1 transition-colors shadow-sm whitespace-nowrap">
+                        <span className="material-icons-round text-[14px]">description</span>
+                        Isi LPJ
                       </button>
                     )}
                     {displayStatus === 'Ongoing' && (
-                      <button className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded flex items-center gap-1.5 transition-colors shadow-sm">
-                        <span className="material-icons-round text-[14px]">qr_code_scanner</span>
+                      <button className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded flex items-center gap-1 transition-colors shadow-sm whitespace-nowrap">
+                        <span className="material-icons-round text-[14px]">how_to_reg</span>
                         Absen
                       </button>
                     )}
