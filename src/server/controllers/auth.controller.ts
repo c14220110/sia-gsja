@@ -21,6 +21,17 @@ export class AuthController {
       // Authentication Service
       const result = await authService.authenticateUser(parseResult.data);
 
+      if (result.requires_password_change) {
+        return NextResponse.json(
+          { 
+            message: 'Anda menggunakan sandi default. Silakan ubah password Anda.', 
+            requires_password_change: true,
+            data: { email: result.email }
+          },
+          { status: 200 }
+        );
+      }
+
       if (result.requires_role_selection) {
         // Return 200 but indicate that role selection is required. Do not set cookie yet.
         return NextResponse.json(

@@ -11,6 +11,7 @@ export interface Pengguna {
   jemaat_id: number | null;
   jemaat_nomor?: string | null;
   nama_lengkap?: string | null;
+  requires_password_change?: boolean;
 }
 
 export interface UserRoleDetail {
@@ -24,7 +25,7 @@ export class UserRepository {
   async findById(id: number): Promise<Pengguna | null> {
     const query = `
       SELECT 
-        p.id, p.email, p.password_hash, p.is_active, p.last_login_at, p.created_at, p.updated_at, p.jemaat_id,
+        p.id, p.email, p.password_hash, p.is_active, p.last_login_at, p.created_at, p.updated_at, p.jemaat_id, p.requires_password_change,
         j.jemaat_id as jemaat_nomor, j.nama_lengkap
       FROM pengguna p
       LEFT JOIN jemaat j ON p.jemaat_id = j.id
@@ -37,7 +38,7 @@ export class UserRepository {
 
   async findByEmail(email: string): Promise<Pengguna | null> {
     const query = `
-      SELECT id, email, password_hash, is_active, last_login_at, created_at, updated_at, jemaat_id
+      SELECT id, email, password_hash, is_active, last_login_at, created_at, updated_at, jemaat_id, requires_password_change
       FROM pengguna
       WHERE email = $1;
     `;

@@ -298,6 +298,63 @@ export class AkunAksesRepository {
       return { success: false, message: error.message };
     }
   }
+
+  /**
+   * Bulk Generate Akun Jemaat (Akun Massal)
+   */
+  async bulkCreatePengguna(dataList: {
+    email: string;
+    password_hash: string;
+    jemaat_id: number;
+    satelit_id: number;
+  }[]): Promise<{ success: boolean; createdCount: number; message?: string }> {
+    const client = await pool.connect();
+    let createdCount = 0;
+    try {
+      await client.query('BEGIN');
+      
+      // Ambil ID dari Role 'JEMAAT'
+      const roleRow = await client.query(`SELECT id FROM role WHERE UPPER(nama_role) = 'JEMAAT' LIMIT 1`);
+      const roleJemaatId = roleRow.rowCount && roleRow.rowCount > 0 ? roleRow.rows[0].id : null;
+
+      for (const data of dataList) {
+        // Cek apakah email/jemaat sudah ada
+        const existUser = await client.query(`SELECT id FROM pengguna WHERE jemaat_id = $1 OR email = $2`, [data.jemaat_id, data.email]);
+        if (existUser.rowCount && existUser.rowCount > 0) {
+          continue; // Skip jika sudah ada
+        }
+
+        // Insert ke pengguna
+        const insUser = await client.query(`
+          INSERT INTO pengguna (email, password_hash, jemaat_id, requires_password_change)
+          VALUES ($1, $2, $3, true)
+          RETURNING id
+        `, [data.email, data.password_hash, data.jemaat_id]);
+        
+        const userId = insUser.rows[0].id;
+
+        // Insert ke user_role sebagai JEMAAT jika role id ditemukan
+        if (roleJemaatId) {
+          await client.query(`
+            INSERT INTO user_role (user_id, role_id, satelit_id)
+            VALUES ($1, $2, $3)
+            ON CONFLICT DO NOTHING
+          `, [userId, roleJemaatId, data.satelit_id]);
+        }
+        
+        createdCount++;
+      }
+
+      await client.query('COMMIT');
+      return { success: true, createdCount };
+    } catch (error: any) {
+      await client.query('ROLLBACK');
+      console.error('Error bulkCreatePengguna:', error);
+      return { success: false, createdCount: 0, message: error.message };
+    } finally {
+      client.release();
+    }
+  }
 }
 
 export const akunAksesRepository = new AkunAksesRepository();

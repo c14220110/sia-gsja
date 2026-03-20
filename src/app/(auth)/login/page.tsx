@@ -10,7 +10,13 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Force Change Password states
+  const [showForceChange, setShowForceChange] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   const toggleDarkMode = () => {
     document.documentElement.classList.toggle('dark');
@@ -18,21 +24,21 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setLoading(true);
-    showLoader();
-
+    setError(''); setSuccessMsg('');
+    setLoading(true); showLoader();
     try {
       const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-
       const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(data.message || 'Login failed');
+      if (!res.ok) throw new Error(data.message || 'Login failed');
+
+      if (data.requires_password_change) {
+        setShowForceChange(true);
+        hideLoader();
+        return;
       }
 
       if (data.requires_role_selection) {
@@ -43,13 +49,29 @@ export default function LoginPage() {
         hideLoader();
         router.push('/dashboard');
       }
+    } catch (err: any) { setError(err.message); hideLoader(); } 
+    finally { setLoading(false); }
+  };
+
+  const handleForceChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) { setError('Konfirmasi password tidak cocok.'); return; }
+    if (newPassword.length < 6) { setError('Password minimal 6 karakter.'); return; }
+    
+    setError(''); setSuccessMsg(''); setLoading(true); showLoader();
+    try {
+      const res = await fetch('/api/auth/force-change-password', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, old_password: password, new_password: newPassword })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Gagal mengubah password');
       
-    } catch (err: any) {
-      setError(err.message);
-      hideLoader(); 
-    } finally {
-      setLoading(false);
-    }
+      setSuccessMsg(data.message || 'Berhasil. Silakan login dengan password baru.');
+      setShowForceChange(false);
+      setPassword(''); setNewPassword(''); setConfirmPassword('');
+    } catch(err: any) { setError(err.message); }
+    finally { setLoading(false); hideLoader(); }
   };
 
   return (
@@ -83,10 +105,10 @@ export default function LoginPage() {
                 <img src="/assets/logo_gsja.png" alt="GSJA Logo" className="w-full h-full object-contain" />
               </div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
-                Welcome Back
+                {showForceChange ? 'Ubah Password Default' : 'Welcome Back'}
               </h1>
               <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                Please enter your credentials to access the SIA dashboard.
+                {showForceChange ? 'Demi keamanan, Anda diwajibkan mengganti password lahir default Anda sekarang.' : 'Please enter your credentials to access the SIA dashboard.'}
               </p>
             </div>
             {error && (
@@ -94,7 +116,13 @@ export default function LoginPage() {
                 {error}
               </div>
             )}
-            <form onSubmit={handleLogin} className="space-y-6">
+            {successMsg && (
+              <div className="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 p-3 rounded-lg text-sm text-center">
+                {successMsg}
+              </div>
+            )}
+            {!showForceChange ? (
+              <form onSubmit={handleLogin} className="space-y-6">
               <div className="relative group">
                 <label
                   className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 pl-1"
@@ -171,6 +199,36 @@ export default function LoginPage() {
                 </p>
               </div>
             </form>
+            ) : (
+              <form onSubmit={handleForceChange} className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+                <div className="relative group">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 pl-1">Password Baru</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <span className="material-icons-round text-gray-400 dark:text-gray-500 group-focus-within:text-emerald-500 transition-colors">lock_outline</span>
+                    </div>
+                    <input className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      required type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Minimal 6 karakter" minLength={6} />
+                  </div>
+                </div>
+                <div className="relative group">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 pl-1">Konfirmasi Password</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <span className="material-icons-round text-gray-400 dark:text-gray-500 group-focus-within:text-emerald-500 transition-colors">check_circle_outline</span>
+                    </div>
+                    <input className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      required type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Ulangi password baru" minLength={6} />
+                  </div>
+                </div>
+                <div className="pt-2 flex gap-3">
+                  <button type="button" onClick={() => { setShowForceChange(false); setPassword(''); setError(''); }} className="w-1/3 py-3 px-4 border border-gray-300 text-gray-700 bg-white rounded-lg font-semibold hover:bg-gray-50">Batal</button>
+                  <button type="submit" disabled={loading} className="w-2/3 py-3 px-4 border border-transparent rounded-lg font-semibold text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-70">
+                    {loading ? 'Menyimpan...' : 'Simpan Password'}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       </div>

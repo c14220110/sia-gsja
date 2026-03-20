@@ -23,6 +23,14 @@ export class AuthService {
       throw new Error('Email atau password salah');
     }
 
+    if (user.requires_password_change) {
+      return {
+        requires_password_change: true,
+        user_id: user.id,
+        email: user.email,
+      };
+    }
+
     const roles = await userRepository.getUserRoles(user.id);
 
     if (roles.length === 0) {

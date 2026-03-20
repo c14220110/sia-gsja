@@ -68,7 +68,7 @@ const JemaatAutocomplete = ({
   );
 };
 
-type TabKey = 'role_permission' | 'akun_pengguna' | 'akses_sementara';
+type TabKey = 'role_permission' | 'akun_pengguna' | 'akses_sementara' | 'bulk_generate';
 interface RoleAssignment { role_id: string; satelit_id: string; }
 
 export default function AkunAksesPage() {
@@ -119,6 +119,14 @@ export default function AkunAksesPage() {
   const [isAddTempModalOpen, setIsAddTempModalOpen] = useState(false);
   const [tempUserForm, setTempUserForm] = useState({ user_id: '', role_id: '', satelit_id: '', tanggal_mulai: '', tanggal_selesai: '' });
 
+  // Bulk Generate State
+  const [dataBulk, setDataBulk] = useState<any[]>([]);
+  const [filterBulkStatus, setFilterBulkStatus] = useState<string>('no_account'); // 'all' | 'no_account'
+  const [bulkSearchQuery, setBulkSearchQuery] = useState('');
+  const [selectedBulkIds, setSelectedBulkIds] = useState<number[]>([]);
+  const [isBulkLoading, setIsBulkLoading] = useState(false);
+  const [bulkPage, setBulkPage] = useState(1);
+
   const fetchRolesData = async (silent = false) => {
     try {
       if (!silent) showLoader();
@@ -137,6 +145,15 @@ export default function AkunAksesPage() {
       if (jsonUsers.success) setDataUsers(jsonUsers.data);
       if (jsonSat.success) setSatelitOptions(jsonSat.data);
     } catch (e) { console.error(e); } finally { hideLoader(); }
+  };
+
+  const fetchBulkData = async (filter: string = 'no_account') => {
+    try {
+      setIsBulkLoading(true);
+      const res = await fetch(`/api/settings/akun-akses/bulk-generate?filter=${filter}`);
+      const json = await res.json();
+      if (json.success) { setDataBulk(json.data); setSelectedBulkIds([]); setBulkPage(1); }
+    } catch(e) { console.error(e); } finally { setIsBulkLoading(false); }
   };
 
   useEffect(() => {
@@ -166,7 +183,14 @@ export default function AkunAksesPage() {
     if (activeTab === 'role_permission' && canManageUserAccess) fetchRolesData();
     else if (activeTab === 'akun_pengguna' && canManageUserAccess) { fetchUsersData(); fetchRolesData(true); }
     else if (activeTab === 'akses_sementara' && canManageTempAccess) { fetchUsersData(); fetchRolesData(true); }
+    else if (activeTab === 'bulk_generate' && canManageUserAccess) { fetchBulkData(filterBulkStatus); }
   }, [activeTab, canManageUserAccess, canManageTempAccess]);
+
+  useEffect(() => {
+    if (activeTab === 'bulk_generate') {
+      fetchBulkData(filterBulkStatus);
+    }
+  }, [filterBulkStatus]);
 
   const filteredUsers = dataUsers.filter(u => {
     // Search
@@ -234,6 +258,52 @@ export default function AkunAksesPage() {
   const addRoleRow = (setter: React.Dispatch<React.SetStateAction<RoleAssignment[]>>) => setter(prev => [...prev, { role_id: '', satelit_id: '' }]);
   const removeRoleRow = (setter: React.Dispatch<React.SetStateAction<RoleAssignment[]>>, idx: number) => setter(prev => prev.filter((_, i) => i !== idx));
   const updateRoleRow = (setter: React.Dispatch<React.SetStateAction<RoleAssignment[]>>, idx: number, field: keyof RoleAssignment, value: string) => setter(prev => prev.map((r, i) => i === idx ? { ...r, [field]: value } : r));
+
+  const filteredBulk = dataBulk.filter(j => {
+    if (bulkSearchQuery && !j.nama_lengkap?.toLowerCase().includes(bulkSearchQuery.toLowerCase())) return false;
+    return true;
+  });
+  const bulkItemsPerPage = 50;
+  const bulkTotalPages = Math.ceil(filteredBulk.length / bulkItemsPerPage);
+  const currentBulkItems = filteredBulk.slice((bulkPage - 1) * bulkItemsPerPage, bulkPage * bulkItemsPerPage);
+
+  const handleSelectAllBulk = () => {
+    const selectable = currentBulkItems.filter(j => !j.has_account);
+    const allSelectedInPage = selectable.every(j => selectedBulkIds.includes(j.id));
+    if (allSelectedInPage) {
+      // Remove all elements of current selectable from selectedBulkIds
+      const selectableIds = selectable.map(j => j.id);
+      setSelectedBulkIds(prev => prev.filter(id => !selectableIds.includes(id)));
+    } else {
+      // Add all elements of current selectable to selectedBulkIds
+      const selectableIds = selectable.map(j => j.id);
+      setSelectedBulkIds(prev => Array.from(new Set([...prev, ...selectableIds])));
+    }
+  };
+
+  const handleToggleBulkItem = (id: number) => {
+    setSelectedBulkIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const handleBulkGenerate = async () => {
+    if (selectedBulkIds.length === 0) return;
+    setIsBulkLoading(true);
+    try {
+      const res = await fetch('/api/settings/akun-akses/bulk-generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jemaat_ids: selectedBulkIds })
+      });
+      const json = await res.json();
+      setSubmitState({ status: json.success ? 'success' : 'error', message: json.message });
+      if (json.success) {
+        setSelectedBulkIds([]);
+        fetchBulkData(filterBulkStatus);
+        fetchUsersData();
+      }
+    } catch(e) { setSubmitState({ status: 'error', message: 'Terjadi kesalahan sistem.' }); } 
+    finally { setIsBulkLoading(false); }
+  };
 
   const handleCreateUser = async () => {
     if (!newUserSelectedJemaat) { setSubmitState({ status: 'error', message: 'Pilih Jemaat yang akan diberikan akun!' }); return; }
@@ -368,6 +438,7 @@ export default function AkunAksesPage() {
             { key: 'role_permission', label: 'Manajemen Role & Permission', icon: 'admin_panel_settings', show: canManageUserAccess },
             { key: 'akun_pengguna', label: 'Daftar Akun Pengguna', icon: 'vpn_key', show: canManageUserAccess },
             { key: 'akses_sementara', label: 'Akses Sementara', icon: 'timelapse', show: canManageTempAccess },
+            { key: 'bulk_generate', label: 'Generate Akun Massal', icon: 'group_add', show: canManageUserAccess },
           ]
           .filter(tab => tab.show)
           .map((tab) => (
@@ -582,6 +653,106 @@ export default function AkunAksesPage() {
                   {dataUsers.filter(u => u.roles?.some((r: any) => r.tanggal_selesai)).length === 0 && <tr><td colSpan={3} className="p-8 text-center text-slate-400">Belum ada daftar kepanitiaan yang menggunakan akses sementara.</td></tr>}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 4: Generate Akun Massal */}
+        {activeTab === 'bulk_generate' && canManageUserAccess && (
+          <div className="w-full mt-4 flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-2">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2"><span className="material-icons-round text-emerald-500">group_add</span> Pembuatan Akun Massal</h2>
+                <p className="text-sm text-slate-500 mt-1">Sistem otomatis membuatkan akun serta mengunci sandi dengan <strong>tanggal lahir (DD/MM/YYYY)</strong>. <br/>Jemaat <strong>wajib ganti password</strong> pada login perdana.</p>
+              </div>
+              <button 
+                onClick={handleBulkGenerate} 
+                disabled={isBulkLoading || selectedBulkIds.length === 0}
+                className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-sm font-bold py-2.5 px-6 rounded-xl flex flex-shrink-0 items-center gap-2 transition-all shadow-md">
+                <span className="material-icons-round text-[18px]">bolt</span> Generate {selectedBulkIds.length > 0 ? selectedBulkIds.length : ''} Akun
+              </button>
+            </div>
+
+            <div className="w-full px-4 py-4 bg-white rounded-xl border border-slate-200 flex flex-wrap items-center gap-4 shadow-sm">
+              <div className="flex-1 min-w-[250px] relative flex items-center">
+                <span className="material-icons-round absolute left-4 text-slate-400 text-[20px]">search</span>
+                <input type="text" placeholder="Cari nama jemaat..." 
+                  className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-['Public_Sans']"
+                  value={bulkSearchQuery} onChange={e => { setBulkSearchQuery(e.target.value); setBulkPage(1); }} />
+              </div>
+              <div className="relative min-w-[200px]">
+                <select className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer" 
+                  value={filterBulkStatus} onChange={e => setFilterBulkStatus(e.target.value)}>
+                  <option value="no_account">Hanya Belum Punya Akun</option>
+                  <option value="all">Tampilkan Semua Status</option>
+                </select>
+                <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
+              </div>
+            </div>
+
+            <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm flex flex-col relative">
+              {isBulkLoading && (
+                <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-10 flex items-center justify-center">
+                   <div className="animate-spin h-8 w-8 border-4 border-emerald-500 border-t-transparent rounded-full" />
+                </div>
+              )}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm text-slate-600 whitespace-nowrap">
+                  <thead className="bg-slate-50 font-semibold text-slate-800 text-xs uppercase tracking-wider">
+                    <tr>
+                      <th className="px-4 py-4 border-b border-slate-200 w-10 text-center">
+                        <input type="checkbox" className="w-4 h-4 accent-emerald-500 cursor-pointer rounded"
+                          checked={currentBulkItems.filter(j => !j.has_account).length > 0 && selectedBulkIds.length > 0 && currentBulkItems.filter(j => !j.has_account).every(j => selectedBulkIds.includes(j.id))}
+                          onChange={handleSelectAllBulk}
+                        />
+                      </th>
+                      <th className="px-4 py-4 border-b border-slate-200">ID Jemaat</th>
+                      <th className="px-4 py-4 border-b border-slate-200 min-w-[200px]">Data Jemaat</th>
+                      <th className="px-4 py-4 border-b border-slate-200">Kontak (Email)</th>
+                      <th className="px-4 py-4 border-b border-slate-200">Asal Satelit</th>
+                      <th className="px-4 py-4 border-b border-slate-200">Status Akun</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {currentBulkItems.map((j) => (
+                      <tr key={j.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-4 py-3 text-center">
+                          <input type="checkbox" className="w-4 h-4 accent-emerald-500 cursor-pointer rounded"
+                            checked={selectedBulkIds.includes(j.id)}
+                            onChange={() => handleToggleBulkItem(j.id)}
+                            disabled={j.has_account}
+                          />
+                        </td>
+                        <td className="px-4 py-3 font-mono text-slate-500 text-xs">{j.jemaat_id}</td>
+                        <td className="px-4 py-3 font-bold text-slate-900">{j.nama_lengkap}</td>
+                        <td className="px-4 py-3">
+                          {j.email ? <span className="text-slate-600 text-sm">{j.email}</span> : <span className="text-rose-500 text-[10px] font-bold italic border border-rose-200 bg-rose-50 px-2 py-0.5 rounded">TIDAK ADA EMAIL</span>}
+                        </td>
+                        <td className="px-4 py-3 text-slate-600">{j.nama_satelit || '-'}</td>
+                        <td className="px-4 py-3">
+                          {j.has_account ? 
+                            <span className="px-2 py-1 bg-violet-100 text-violet-700 rounded text-[10px] font-bold uppercase tracking-wider">SUDAH PUNYA</span> : 
+                            <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded text-[10px] font-bold uppercase tracking-wider">BELUM PUNYA</span>
+                          }
+                        </td>
+                      </tr>
+                    ))}
+                    {currentBulkItems.length === 0 && !isBulkLoading && <tr><td colSpan={6} className="p-8 text-center text-slate-400">Tidak ada data jemaat yang sesuai pencarian.</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+              
+              {bulkTotalPages > 1 && (
+                <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+                  <div className="text-sm text-slate-500">
+                    Menampilkan <span className="font-bold text-slate-700">{(bulkPage - 1) * bulkItemsPerPage + 1}</span> hingga <span className="font-bold text-slate-700">{Math.min(bulkPage * bulkItemsPerPage, filteredBulk.length)}</span> dari <span className="font-bold text-slate-700">{filteredBulk.length}</span> entri
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => setBulkPage(p => Math.max(1, p - 1))} disabled={bulkPage === 1} className="px-3 py-1.5 rounded bg-white border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 hover:text-emerald-600 disabled:opacity-50 transition-colors">Prev</button>
+                    <button onClick={() => setBulkPage(p => Math.min(bulkTotalPages, p + 1))} disabled={bulkPage === bulkTotalPages} className="px-3 py-1.5 rounded bg-white border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 hover:text-emerald-600 disabled:opacity-50 transition-colors">Next</button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
