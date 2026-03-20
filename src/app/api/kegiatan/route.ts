@@ -71,8 +71,14 @@ export async function GET(request: Request) {
       paramIndex += 2;
     }
 
-    // 6. Filter Berdasarkan Status Kegiatan Murni
-    if (statusKegiatan) {
+    // 6. Filter Berdasarkan Status Kegiatan Murni (Ditambah Sihir Tanggal Sinkron UX)
+    if (statusKegiatan === 'Menunggu LPJ') {
+      whereClauses.push(`COALESCE(k.tanggal_selesai, k.tanggal_mulai) < CURRENT_DATE AND lpj.kegiatan_id IS NULL AND k.status_kegiatan NOT IN ('Dibatalkan', 'Draft', 'Selesai')`);
+    } else if (statusKegiatan === 'Ongoing') {
+      whereClauses.push(`CURRENT_DATE BETWEEN k.tanggal_mulai AND COALESCE(k.tanggal_selesai, k.tanggal_mulai) AND lpj.kegiatan_id IS NULL AND k.status_kegiatan NOT IN ('Dibatalkan', 'Draft', 'Selesai')`);
+    } else if (statusKegiatan === 'Akan Datang') {
+      whereClauses.push(`k.tanggal_mulai > CURRENT_DATE AND k.status_kegiatan NOT IN ('Dibatalkan', 'Draft', 'Selesai')`);
+    } else if (statusKegiatan) {
       whereClauses.push(`k.status_kegiatan = $${paramIndex}`);
       values.push(statusKegiatan);
       paramIndex++;
@@ -136,8 +142,9 @@ export async function GET(request: Request) {
 
     // 3. Menunggu LPJ
     const countMenungguLpjResult = await pool.query(`
-      SELECT COUNT(*) as total FROM public.kegiatan
-      WHERE status_kegiatan = 'Menunggu LPJ'
+      SELECT COUNT(*) as total FROM public.kegiatan k
+      LEFT JOIN public.kegiatan_lpj l ON k.id = l.kegiatan_id
+      WHERE COALESCE(k.tanggal_selesai, k.tanggal_mulai) < CURRENT_DATE AND l.kegiatan_id IS NULL AND k.status_kegiatan NOT IN ('Dibatalkan', 'Draft', 'Selesai')
     `);
     const totalMenungguLpj = parseInt(countMenungguLpjResult.rows[0].total, 10);
 
