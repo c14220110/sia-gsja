@@ -423,11 +423,7 @@ export default function KegiatanPage() {
                 data.map((kegiatan, idx) => {
                   const isLastRows = data.length > 2 && idx >= data.length - 2;
                   
-                  // Hitung status Menunggu LPJ
                   let displayStatus = kegiatan.status_kegiatan;
-                  if (new Date(kegiatan.tanggal_mulai) < new Date() && !kegiatan.is_lpj_submitted && displayStatus !== 'Dibatalkan' && displayStatus !== 'Draft') {
-                    displayStatus = 'Menunggu LPJ';
-                  }
 
                   return (
                 <div key={kegiatan.id || idx} className={`w-full flex items-center px-6 py-4 border-b border-slate-100 hover:bg-slate-50 transition-colors relative ${openMenuId === kegiatan.id ? 'z-50' : 'z-10'}`}>
