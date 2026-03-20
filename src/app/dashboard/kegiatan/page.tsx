@@ -403,10 +403,10 @@ export default function KegiatanPage() {
             {/* Table Header */}
             <div className="w-full bg-slate-50 border-b border-slate-200 flex items-center px-6 py-4">
               <div className="w-20 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">ID</div>
-              <div className="flex-1 min-w-[180px] max-w-[260px] text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">NAMA KEGIATAN</div>
+              <div className="flex-1 min-w-[180px] text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">NAMA KEGIATAN</div>
               <div className="w-40 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">JENIS KEGIATAN</div>
               <div className="w-[170px] shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">WAKTU PELAKSANAAN</div>
-              <div className="w-36 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">LOKASI</div>
+              <div className="flex-1 min-w-[150px] shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">LOKASI</div>
               <div className="w-[170px] shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">PENYELENGGARA</div>
               <div className="w-28 shrink-0 text-center text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">STATUS</div>
               <div className="w-12 shrink-0 text-right text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">AKSI</div>
@@ -435,7 +435,7 @@ export default function KegiatanPage() {
                   <div className="w-20 shrink-0 text-slate-500 text-xs font-bold font-['Liberation_Mono'] tracking-wide">{kegiatan.kode_kegiatan}</div>
                   
                   {/* Kolom 2: Nama */}
-                  <div className="flex-1 min-w-[180px] max-w-[260px] flex flex-col justify-center pr-4">
+                  <div className="flex-1 min-w-[180px] flex flex-col justify-center pr-4">
                      <span className="text-slate-900 font-bold text-sm line-clamp-2 leading-tight" title={kegiatan.nama_kegiatan}>{kegiatan.nama_kegiatan}</span>
                   </div>
 
@@ -456,7 +456,7 @@ export default function KegiatanPage() {
                   </div>
                   
                   {/* Kolom 5: Lokasi */}
-                  <div className="w-36 shrink-0 flex flex-col justify-center pr-4">
+                  <div className="flex-1 min-w-[150px] shrink-0 flex flex-col justify-center pr-4">
                      <span className="text-slate-600 text-sm font-medium line-clamp-2 leading-tight">{kegiatan.lokasi_kegiatan || '-'}</span>
                   </div>
 
