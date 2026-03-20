@@ -409,7 +409,7 @@ export default function KegiatanPage() {
               <div className="flex-1 min-w-[150px] shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">LOKASI</div>
               <div className="w-[170px] shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">PENYELENGGARA</div>
               <div className="w-32 shrink-0 text-center text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">STATUS</div>
-              <div className="w-32 shrink-0 text-right text-slate-500 pr-2 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">AKSI</div>
+              <div className="w-12 shrink-0 text-center text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">AKSI</div>
             </div>
 
             {/* Table Body */}
@@ -472,22 +472,7 @@ export default function KegiatanPage() {
                   </div>
 
                   {/* Kolom 8: Aksi */}
-                  <div className="w-32 shrink-0 flex justify-end items-center gap-2 pr-2">
-                    
-                    {/* Priority Buttons */}
-                    {displayStatus === 'Menunggu LPJ' && (
-                      <button className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded flex items-center gap-1 transition-colors shadow-sm whitespace-nowrap">
-                        <span className="material-icons-round text-[14px]">description</span>
-                        Isi LPJ
-                      </button>
-                    )}
-                    {displayStatus === 'Ongoing' && (
-                      <button className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded flex items-center gap-1 transition-colors shadow-sm whitespace-nowrap">
-                        <span className="material-icons-round text-[14px]">how_to_reg</span>
-                        Absen
-                      </button>
-                    )}
-
+                  <div className="w-12 shrink-0 flex justify-center items-center">
                     <div className="relative">
                       <button 
                         onClick={() => setOpenMenuId(openMenuId === kegiatan.id ? null : kegiatan.id)}
