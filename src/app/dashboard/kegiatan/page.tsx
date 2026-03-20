@@ -408,8 +408,8 @@ export default function KegiatanPage() {
               <div className="w-[170px] shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">WAKTU PELAKSANAAN</div>
               <div className="flex-1 min-w-[150px] shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">LOKASI</div>
               <div className="w-[170px] shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">PENYELENGGARA</div>
-              <div className="w-28 shrink-0 text-center text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">STATUS</div>
-              <div className="w-[140px] shrink-0 text-right text-slate-500 pr-2 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">AKSI</div>
+              <div className="w-32 shrink-0 text-center text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">STATUS</div>
+              <div className="w-32 shrink-0 text-right text-slate-500 pr-2 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">AKSI</div>
             </div>
 
             {/* Table Body */}
@@ -467,7 +467,7 @@ export default function KegiatanPage() {
                   </div>
 
                   {/* Kolom 7: Status */}
-                  <div className="w-28 shrink-0 flex justify-center">
+                  <div className="w-32 shrink-0 flex justify-center">
                     {renderStatusBadge(displayStatus)}
                   </div>
 
