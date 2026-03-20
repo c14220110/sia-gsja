@@ -81,6 +81,8 @@ export class AkunAksesRepository {
         COALESCE(
           json_agg(
             json_build_object(
+              'role_id', r.id,
+              'satelit_id', s.id,
               'role_name', r.nama_role,
               'satelit_name', s.nama_satelit,
               'tanggal_mulai', ur.tanggal_mulai,

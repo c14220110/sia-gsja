@@ -260,10 +260,12 @@ export default function AkunAksesPage() {
     setOpenMenuId(null);
     setEditingUser(user);
     setEditForm({ email: user.email, password: '' });
-    const existingRoles = (user.roles || []).filter((r: any) => !r.tanggal_selesai).map((r: any) => ({
-      role_id: String(dataRoles.find(dr => dr.nama_role === r.role_name)?.id || ''),
-      satelit_id: String(satelitOptions.find(s => s.nama_satelit === r.satelit_name)?.id || '')
-    }));
+    const existingRoles = (user.roles || [])
+      .filter((r: any) => !r.tanggal_selesai && r.role_name !== 'JEMAAT')
+      .map((r: any) => ({
+        role_id: r.role_id ? String(r.role_id) : '',
+        satelit_id: r.satelit_id ? String(r.satelit_id) : ''
+      }));
     setEditRoleAssignments(existingRoles.length > 0 ? existingRoles : [{ role_id: '', satelit_id: '' }]);
     setIsEditUserModalOpen(true);
   };
@@ -758,7 +760,7 @@ export default function AkunAksesPage() {
                     <div key={idx} className="flex items-center gap-2 bg-white rounded-lg p-2.5 border border-amber-100">
                       <select className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 text-sm font-semibold text-slate-800" value={assignment.role_id} onChange={e => updateRoleRow(setEditRoleAssignments, idx, 'role_id', e.target.value)}>
                         <option value="">-- Role --</option>
-                        {dataRoles.filter(r => r.is_active).map(r => <option key={r.id} value={r.id}>{r.nama_role}</option>)}
+                        {dataRoles.filter(r => r.is_active && r.nama_role !== 'JEMAAT').map(r => <option key={r.id} value={r.id}>{r.nama_role}</option>)}
                       </select>
                       <select className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 text-sm font-semibold text-slate-800" value={assignment.satelit_id} onChange={e => updateRoleRow(setEditRoleAssignments, idx, 'satelit_id', e.target.value)}>
                         <option value="">-- Satelit --</option>
