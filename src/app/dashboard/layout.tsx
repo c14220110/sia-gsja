@@ -208,6 +208,37 @@ export default function DashboardLayout({
                 </div>
               )}
 
+              <div className="w-full">
+                <div 
+                  className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer"
+                  onMouseEnter={(e) => handleMouseEnterMenu('kegiatan', e)}
+                  onMouseLeave={handleMouseLeaveMenu}
+                  onClick={() => toggleMobileMenu('kegiatan')}
+                >
+                  <div className="flex justify-start items-center gap-4">
+                    <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
+                      <span className="material-icons-round text-slate-300 text-[20px]">event</span>
+                    </div>
+                    <div className="flex flex-col justify-start items-start opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 w-auto md:w-0 md:group-hover:w-auto overflow-hidden whitespace-nowrap">
+                      <div className="h-5 justify-center text-slate-200 text-sm font-medium font-['Inter'] leading-5 pr-4">Kegiatan</div>
+                    </div>
+                  </div>
+                  <div className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">
+                    <span className="material-icons-round text-slate-400 text-[16px]">chevron_right</span>
+                  </div>
+                </div>
+                {/* Mobile Accordion */}
+                <div className={`md:hidden overflow-hidden transition-all duration-300 ${mobileExpandedMenus['kegiatan'] ? 'max-h-96 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
+                  <div className="pl-14 pr-4 py-2 flex flex-col gap-4">
+                    <Link href="/dashboard/kegiatan" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Daftar Kegiatan</Link>
+                    <Link href="/dashboard/kegiatan/pendaftaran" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Pendaftaran Peserta</Link>
+                    <Link href="/dashboard/kegiatan/absensi" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Absensi & Kehadiran</Link>
+                    <Link href="/dashboard/kegiatan/lpj" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">LPJ Kegiatan</Link>
+                    <Link href="/dashboard/kegiatan/pemilu" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Pemilihan Umum</Link>
+                  </div>
+                </div>
+              </div>
+
               <div className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer">
                 <div className="flex justify-start items-center gap-4">
                   <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
@@ -239,17 +270,6 @@ export default function DashboardLayout({
                   </div>
                   <div className="flex flex-col justify-start items-start opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 w-auto md:w-0 md:group-hover:w-auto overflow-hidden whitespace-nowrap">
                     <div className="h-5 justify-center text-slate-200 text-sm font-medium font-['Inter'] leading-5 pr-4">Anggaran & Proposal</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer">
-                <div className="flex justify-start items-center gap-4">
-                  <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
-                    <span className="material-icons-round text-slate-300 text-[20px]">event</span>
-                  </div>
-                  <div className="flex flex-col justify-start items-start opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 w-auto md:w-0 md:group-hover:w-auto overflow-hidden whitespace-nowrap">
-                    <div className="h-5 justify-center text-slate-200 text-sm font-medium font-['Inter'] leading-5 pr-4">Kegiatan</div>
                   </div>
                 </div>
               </div>
