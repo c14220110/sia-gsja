@@ -164,3 +164,88 @@ export async function GET(request: Request) {
     return NextResponse.json({ success: false, message: 'Internal Server Error' }, { status: 500 });
   }
 }
+
+export async function POST(request: Request) {
+  let client;
+  try {
+    const body = await request.json();
+    
+    // Parse Payload
+    const {
+      nama_kegiatan, jenis_kegiatan_id, frekuensi_kegiatan,
+      tanggal_mulai, tanggal_selesai, waktu_mulai, waktu_selesai,
+      lokasi_kegiatan, tipe_penyelenggara, satelit_id, departemen_id, komisi_id,
+      pic_pengurus_id, berbayar, status_kegiatan,
+      
+      // Ibadah specific
+      tema_khotbah, nama_pengkhotbah_1, nama_pengkhotbah_2
+    } = body;
+
+    // Validation
+    if (!nama_kegiatan || !jenis_kegiatan_id || !tanggal_mulai || !waktu_mulai) {
+      return NextResponse.json({ success: false, message: 'Lengkapi field wajib (Nama, Jenis, Tanggal Mulai, Waktu Mulai)' }, { status: 400 });
+    }
+
+    const t_selesai = (tanggal_selesai && tanggal_selesai.trim() !== '') ? tanggal_selesai : null;
+    const w_selesai = (waktu_selesai && waktu_selesai.trim() !== '') ? waktu_selesai : null;
+    
+    const s_id = tipe_penyelenggara === 'Satelit' && satelit_id ? satelit_id : null;
+    const d_id = tipe_penyelenggara === 'Departemen' && departemen_id ? departemen_id : null;
+    const k_id = tipe_penyelenggara === 'Komisi' && komisi_id ? komisi_id : null;
+    const pic_id = pic_pengurus_id ? pic_pengurus_id : null;
+
+    // Generate unique code KEG-YYMMDD-RANDOM
+    const now = new Date();
+    const yy = now.getFullYear().toString().slice(-2);
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const rand = Math.floor(1000 + Math.random() * 9000);
+    const kode_kegiatan = `KEG-${yy}${mm}${dd}-${rand}`;
+
+    client = await pool.connect();
+    await client.query('BEGIN'); // Start Transaction
+
+    const insertKegiatanQuery = `
+      INSERT INTO public.kegiatan (
+        kode_kegiatan, nama_kegiatan, jenis_kegiatan_id, satelit_id, departemen_id, komisi_id,
+        frekuensi_kegiatan, tanggal_mulai, tanggal_selesai, waktu_mulai, waktu_selesai,
+        lokasi_kegiatan, pic_pengurus_id, berbayar, status_kegiatan
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      RETURNING id;
+    `;
+
+    const kegiatanResult = await client.query(insertKegiatanQuery, [
+      kode_kegiatan, nama_kegiatan, jenis_kegiatan_id, s_id, d_id, k_id,
+      frekuensi_kegiatan, tanggal_mulai, t_selesai, waktu_mulai, w_selesai,
+      lokasi_kegiatan, pic_id, berbayar, status_kegiatan
+    ]);
+
+    const newKegiatanId = kegiatanResult.rows[0].id;
+
+    // Conditionally Insert to kegiatan_detail_ibadah
+    if (tema_khotbah || nama_pengkhotbah_1 || nama_pengkhotbah_2) {
+      const insertDetailQuery = `
+        INSERT INTO public.kegiatan_detail_ibadah (
+          kegiatan_id, tema_khotbah, nama_pengkhotbah_1, nama_pengkhotbah_2
+        ) VALUES ($1, $2, $3, $4)
+      `;
+      await client.query(insertDetailQuery, [
+        newKegiatanId, 
+        tema_khotbah || null, 
+        nama_pengkhotbah_1 || null, 
+        nama_pengkhotbah_2 || null
+      ]);
+    }
+
+    await client.query('COMMIT'); // Finish Transaction successful
+    
+    return NextResponse.json({ success: true, message: 'Kegiatan berhasil dibuat!', data: { id: newKegiatanId } });
+
+  } catch (error: any) {
+    if (client) await client.query('ROLLBACK');
+    console.error('Error creating kegiatan:', error);
+    return NextResponse.json({ success: false, message: 'Gagal membuat kegiatan. Terjadi kesalahan server.', error: error.message }, { status: 500 });
+  } finally {
+    if (client) client.release();
+  }
+}

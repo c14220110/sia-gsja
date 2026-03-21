@@ -103,6 +103,18 @@ export class MasterRepository {
     return result.rows;
   }
 
+  async getAllPengurus(): Promise<any[]> {
+    const query = `
+      SELECT p.id, j.nama_lengkap 
+      FROM pengurus p 
+      JOIN jemaat j ON p.jemaat_id = j.id
+      WHERE p.is_active = true AND j.is_deleted = false
+      ORDER BY j.nama_lengkap ASC;
+    `;
+    const result = await pool.query(query);
+    return result.rows;
+  }
+
   async getAllJenisKegiatan(): Promise<any[]> {
     const query = `
       SELECT id, nama_jenis_kegiatan

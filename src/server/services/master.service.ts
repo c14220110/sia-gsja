@@ -63,3 +63,7 @@ export async function getPeriodeKepengurusanOptions(): Promise<any[]> {
 export async function getJabatanOptions(): Promise<any[]> {
   return await masterRepository.getAllJabatan();
 }
+
+export async function getPengurusOptions(): Promise<any[]> {
+  return await masterRepository.getAllPengurus();
+}
