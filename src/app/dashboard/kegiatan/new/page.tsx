@@ -242,8 +242,6 @@ export default function NewKegiatanPage() {
       {/* Header Area */}
       <div className="w-full flex flex-col justify-start items-start gap-4">
         <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-['Inter'] leading-4">
-          <Link href="/dashboard" className="text-slate-500 hover:text-blue-600">Dashboard</Link>
-          <span className="text-slate-500 material-icons-round text-[14px]">chevron_right</span>
           <span className="text-slate-500">Modul Kegiatan</span>
           <span className="text-slate-500 material-icons-round text-[14px]">chevron_right</span>
           <Link href="/dashboard/kegiatan" className="text-slate-500 hover:text-blue-600">Daftar Kegiatan</Link>
