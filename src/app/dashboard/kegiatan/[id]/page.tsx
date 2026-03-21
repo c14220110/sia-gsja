@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -112,9 +112,10 @@ const AsyncAutocomplete = ({
   );
 };
 
-export default function DetailKegiatanPage({ params }: { params: { id: string } }) {
+export default function DetailKegiatanPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
-  const { id } = params;
+  const unwrappedParams = use(params);
+  const id = unwrappedParams.id;
 
   const [activeTab, setActiveTab] = useState<'info'|'jemaat'|'pelayan'>('info');
   const [data, setData] = useState<any>(null);
@@ -416,7 +417,7 @@ export default function DetailKegiatanPage({ params }: { params: { id: string } 
                   <p className="text-slate-500 text-sm max-w-[300px]">Tim ibadah/acara masih kosong. Mari mulai dengan melantik Worship Leader (WL) atau Koordinator pertama.</p>
                 </div>
               ) : (
-                <div className="w-full">
+                <div className="w-full overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-wider border-b border-slate-200">
