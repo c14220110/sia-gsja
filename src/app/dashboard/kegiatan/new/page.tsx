@@ -392,7 +392,7 @@ export default function NewKegiatanPage() {
                   </div>
                   <div className="flex-1 flex-col gap-1.5 flex">
                     <label className="text-blue-800 text-xs font-bold font-['Inter'] uppercase">Pengkhotbah Pendamping (Opsional)</label>
-                    <input type="text" name="nama_pengkhotbah_2" value={formData.nama_pengkhotbah_2} onChange={handleInputChange} placeholder="Penerjemah / WL..." className="px-4 py-2 bg-white rounded-lg border border-blue-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-['Inter'] text-sm w-full placeholder-slate-400 transition-all" />
+                    <input type="text" name="nama_pengkhotbah_2" value={formData.nama_pengkhotbah_2} onChange={handleInputChange} placeholder="Contoh: Pdt. Budi (Opsional)" className="px-4 py-2 bg-white rounded-lg border border-blue-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-['Inter'] text-sm w-full placeholder-slate-400 transition-all" />
                   </div>
                 </div>
               </div>
