@@ -42,30 +42,23 @@ export default function KegiatanPage() {
   const [filterStatus, setFilterStatus] = useState('');
 
   // Fetch Options and User Data on Mount
+  // Fetch Master Options (Except Komisi which is reactive to Satelit) & User Data
   useEffect(() => {
     const fetchOptionsAndUser = async () => {
       showLoader();
       try {
-        const [resSatelit, resDept, resKomisi, resJenis, resUser] = await Promise.all([
+        const [resSatelit, resDept, resJenis, resUser] = await Promise.all([
           fetch('/api/options?type=satelit'),
           fetch('/api/options?type=departemen'),
-          fetch('/api/options?type=komisi'),
           fetch('/api/options?type=jenis_kegiatan'),
           fetch('/api/auth/me')
         ]);
         const satelitData = await resSatelit.json();
         
-        // Handle if API options don't exist yet but we don't want to crash
         let deptData = { success: false, data: [] };
         if (resDept.ok) {
            const text = await resDept.text();
            try { deptData = JSON.parse(text); } catch(e){}
-        }
-
-        let komisiData = { success: false, data: [] };
-        if (resKomisi.ok) {
-           const text = await resKomisi.text();
-           try { komisiData = JSON.parse(text); } catch(e){}
         }
 
         let jenisData = { success: false, data: [] };
@@ -78,8 +71,8 @@ export default function KegiatanPage() {
 
         if (satelitData.success) setSatelitOptions(satelitData.data);
         if (deptData.success) setDepartemenOptions(deptData.data);
-        if (komisiData.success) setKomisiOptions(komisiData.data);
         if (jenisData.success) setJenisKegiatanOptions(jenisData.data);
+        
         if (authData) {
           setUserData(authData);
           if (authData.role_name?.toUpperCase().includes('SATELIT')) {
@@ -94,6 +87,30 @@ export default function KegiatanPage() {
     };
     fetchOptionsAndUser();
   }, []);
+
+  // Reactive Komisi Fetcher based on Satelit
+  useEffect(() => {
+    const fetchKomisi = async () => {
+      try {
+        // Reset penyelenggara if it's currently a Komisi, to prevent orphaned selection
+        if (filterPenyelenggara.startsWith('komisi_')) {
+          setFilterPenyelenggara('');
+        }
+        const query = filterSatelit ? `?type=komisi&satelit_id=${filterSatelit}` : `?type=komisi`;
+        const res = await fetch(`/api/options${query}`);
+        if (res.ok) {
+          const text = await res.text();
+          try {
+            const data = JSON.parse(text);
+            if (data.success) setKomisiOptions(data.data);
+          } catch(e) {}
+        }
+      } catch (err) {
+        console.error('Failed to fetch reactive komisi', err);
+      }
+    };
+    fetchKomisi();
+  }, [filterSatelit]);
 
   const hasPermission = (perm: string) => {
     if (!userData) return false;
@@ -257,19 +274,34 @@ export default function KegiatanPage() {
       <div className="w-full px-4 py-4 bg-white rounded-xl border border-slate-200 flex flex-wrap items-center gap-4 shadow-sm">
         
         {/* Search Bar */}
-        <div className="flex-1 min-w-[300px] relative flex items-center">
+        <div className="flex-1 min-w-[250px] relative flex items-center">
           <span className="material-icons-round absolute left-4 text-slate-400 text-[20px]">search</span>
           <input 
             type="text" 
-            placeholder="Cari berdasarkan ID Kegiatan, Nama, atau Tema..."
+            placeholder="Cari ID, Nama, atau Tema..."
             className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
 
+        {/* Jenis Kegiatan Dropdown */}
+        <div className="relative min-w-[180px]">
+          <select 
+            value={filterJenis}
+            onChange={(e) => setFilterJenis(e.target.value)}
+            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
+          >
+            <option value="">Semua Jenis Kegiatan</option>
+            {jenisKegiatanOptions.map((jenis) => (
+              <option key={jenis.id} value={jenis.id}>{jenis.nama_jenis_kegiatan}</option>
+            ))}
+          </select>
+          <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
+        </div>
+
         {/* Satelit Dropdown */}
-        <div className="relative min-w-[200px]">
+        <div className="relative min-w-[170px]">
           <select 
             value={filterSatelit}
             onChange={(e) => setFilterSatelit(e.target.value)}
@@ -287,7 +319,7 @@ export default function KegiatanPage() {
         </div>
 
         {/* Penyelenggara Dropdown (Gabungan Komisi & Departemen) */}
-        <div className="relative min-w-[220px]">
+        <div className="relative min-w-[200px]">
           <select 
             value={filterPenyelenggara}
             onChange={(e) => setFilterPenyelenggara(e.target.value)}
@@ -308,21 +340,6 @@ export default function KegiatanPage() {
           <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
         </div>
 
-        {/* Tanggal Dropdown */}
-        <div className="relative min-w-[150px]">
-          <select 
-            value={filterTanggal}
-            onChange={(e) => setFilterTanggal(e.target.value)}
-            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
-          >
-            <option value="Hari Ini">Hari Ini</option>
-            <option value="Minggu Ini">Minggu Ini</option>
-            <option value="Bulan Ini">Bulan Ini</option>
-            <option value="Custom">Custom Date (Rentang)</option>
-          </select>
-          <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">calendar_today</span>
-        </div>
-
         {/* More Filters Toggle */}
         <button 
           onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
@@ -335,11 +352,50 @@ export default function KegiatanPage() {
 
       {/* Advanced Filter Collapse Layer */}
       {showAdvancedFilters && (
-        <div className={`w-full p-6 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in slide-in-from-top-2 duration-200 grid gap-6 ${filterTanggal === 'Custom' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 md:grid-cols-2'}`}>
+        <div className={`w-full p-6 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in slide-in-from-top-2 duration-200 grid gap-6 ${filterTanggal === 'Custom' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4'}`}>
           
+          {/* Status Dropdown */}
+          <div className="flex flex-col gap-2">
+            <label className="text-slate-700 text-sm font-bold font-['Public_Sans']">Status Kegiatan</label>
+            <div className="relative w-full">
+              <select 
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
+              >
+                <option value="">Semua Status</option>
+                <option value="Draft">Draft (Konsep)</option>
+                <option value="Akan Datang">Akan Datang</option>
+                <option value="Ongoing">Ongoing</option>
+                <option value="Menunggu LPJ">Menunggu LPJ</option>
+                <option value="Selesai">Selesai</option>
+                <option value="Dibatalkan">Dibatalkan</option>
+              </select>
+              <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
+            </div>
+          </div>
+
+          {/* Tanggal Dropdown */}
+          <div className="flex flex-col gap-2">
+            <label className="text-slate-700 text-sm font-bold font-['Public_Sans']">Rentang Waktu</label>
+            <div className="relative w-full">
+              <select 
+                value={filterTanggal}
+                onChange={(e) => setFilterTanggal(e.target.value)}
+                className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
+              >
+                <option value="Hari Ini">Hari Ini</option>
+                <option value="Minggu Ini">Minggu Ini</option>
+                <option value="Bulan Ini">Bulan Ini</option>
+                <option value="Custom">Custom Date (Rentang)</option>
+              </select>
+              <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">calendar_today</span>
+            </div>
+          </div>
+
           {filterTanggal === 'Custom' && (
             <>
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
                 <label className="text-slate-700 text-sm font-bold font-['Public_Sans']">Dari Tanggal</label>
                 <input 
                   type="date" 
