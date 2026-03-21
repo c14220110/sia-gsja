@@ -43,3 +43,29 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ success: false, message: 'Internal Server Error' }, { status: 500 });
   }
 }
+
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+
+  try {
+    const body = await request.json();
+    const { status_kegiatan, alasan_pembatalan } = body;
+
+    if (!status_kegiatan) {
+      return NextResponse.json({ success: false, message: 'Status wajib diisi' }, { status: 400 });
+    }
+
+    if (status_kegiatan === 'Dibatalkan') {
+      const updateQuery = `UPDATE public.kegiatan SET status_kegiatan = $1, alasan_pembatalan = $2 WHERE id = $3 RETURNING id`;
+      await pool.query(updateQuery, [status_kegiatan, alasan_pembatalan, id]);
+    } else {
+      const updateQuery = `UPDATE public.kegiatan SET status_kegiatan = $1 WHERE id = $2 RETURNING id`;
+      await pool.query(updateQuery, [status_kegiatan, id]);
+    }
+
+    return NextResponse.json({ success: true, message: `Status berhasil diubah menjadi ${status_kegiatan}` });
+  } catch (error) {
+    console.error('Error updating status kegiatan:', error);
+    return NextResponse.json({ success: false, message: 'Internal Server Error' }, { status: 500 });
+  }
+}

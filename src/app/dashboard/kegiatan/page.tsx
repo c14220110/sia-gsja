@@ -41,6 +41,33 @@ export default function KegiatanPage() {
   const [filterJenis, setFilterJenis] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
 
+  // Status Change State
+  const [cancelModal, setCancelModal] = useState<{isOpen: boolean, kegiatanId: number | null, reason: string}>({isOpen: false, kegiatanId: null, reason: ''});
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+
+  const handleUpdateStatus = async (id: number, newStatus: string, reason?: string) => {
+    setIsUpdatingStatus(true);
+    try {
+      const res = await fetch(`/api/kegiatan/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status_kegiatan: newStatus, alasan_pembatalan: reason })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCancelModal({ isOpen: false, kegiatanId: null, reason: '' });
+        setOpenMenuId(null);
+        setCurrentPage(1); // Refresh data
+      } else {
+        alert(data.message || 'Gagal mengubah status');
+      }
+    } catch(err) {
+      alert('Terjadi kesalahan server');
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
   // Fetch Options and User Data on Mount
   // Fetch Master Options (Except Komisi which is reactive to Satelit) & User Data
   useEffect(() => {
@@ -549,14 +576,14 @@ export default function KegiatanPage() {
                       </button>
 
                       {openMenuId === kegiatan.id && (
-                        <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-slate-100 py-2 z-50">
+                        <div className={`absolute right-0 ${isLastRows ? 'bottom-full mb-1' : 'top-full mt-1'} w-56 bg-white rounded-lg shadow-xl border border-slate-100 py-2 z-50`}>
                           
                           {/* DRAFT */}
                           {displayStatus === 'Draft' && (
                             <>
-                              <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Detail</button>
-                              <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">edit</span>Edit Kegiatan</button>
-                              <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">rocket_launch</span>Publish Acara</button>
+                              <Link href={`/dashboard/kegiatan/${kegiatan.id}`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Detail</Link>
+                              <Link href={`/dashboard/kegiatan/${kegiatan.id}/edit`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">edit</span>Edit Kegiatan</Link>
+                              <button onClick={() => handleUpdateStatus(kegiatan.id, 'Akan Datang')} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-blue-500">rocket_launch</span>Publish Acara</button>
                               <div className="w-full h-px bg-slate-100 my-1"></div>
                               <button className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-red-400">delete</span>Hapus Data</button>
                             </>
@@ -565,13 +592,12 @@ export default function KegiatanPage() {
                           {/* AKAN DATANG */}
                           {displayStatus === 'Akan Datang' && (
                             <>
-                              <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Detail</button>
-                              <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">edit_note</span>Edit Terbatas</button>
-                              {kegiatan.berbayar && (
-                                 <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">groups</span>Kelola Peserta</button>
-                              )}
+                              <Link href={`/dashboard/kegiatan/${kegiatan.id}`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Detail / Kelola Acara</Link>
+                              <Link href={`/dashboard/kegiatan/${kegiatan.id}/edit`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-amber-500">edit_note</span>Edit Terbatas</Link>
+                              <Link href={`/dashboard/kegiatan/${kegiatan.id}?tab=pelayan`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-indigo-400">groups</span>Kelola Pelayan & Peserta</Link>
                               <div className="w-full h-px bg-slate-100 my-1"></div>
-                              <button className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-red-400">cancel</span>Batalkan Acara</button>
+                              <button onClick={() => handleUpdateStatus(kegiatan.id, 'Ongoing')} className="w-full text-left px-4 py-2 hover:bg-emerald-50 text-emerald-700 text-sm flex items-center gap-2 font-bold"><span className="material-icons-round text-[18px] text-emerald-600">play_circle</span>Mulai Acara (Buka Absensi)</button>
+                              <button onClick={() => setCancelModal({ isOpen: true, kegiatanId: kegiatan.id, reason: '' })} className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-red-400">block</span>Batalkan Kegiatan</button>
                             </>
                           )}
 
@@ -661,6 +687,56 @@ export default function KegiatanPage() {
           </div>
         )}
       </div>
+
+      {/* CANCEL MODAL */}
+      {cancelModal.isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => !isUpdatingStatus && setCancelModal({ isOpen: false, kegiatanId: null, reason: '' })}></div>
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="px-6 py-5 border-b border-slate-100 flex items-center gap-3 bg-slate-50/50">
+              <div className="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+                <span className="material-icons-round">warning</span>
+              </div>
+              <div>
+                <h3 className="text-slate-900 font-bold text-lg">Batalkan Kegiatan</h3>
+                <p className="text-slate-500 text-xs mt-0.5">Acara akan dibatalkan permanen untuk jemaat.</p>
+              </div>
+            </div>
+            
+            <div className="p-6 flex flex-col gap-4">
+               <div className="w-full flex flex-col gap-1.5">
+                 <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase">Alasan Keputusan Pembatalan <span className="text-red-500">*</span></label>
+                 <textarea 
+                   rows={3}
+                   value={cancelModal.reason} 
+                   onChange={(e) => setCancelModal(prev => ({ ...prev, reason: e.target.value }))}
+                   placeholder="Contoh: Bencana alam, cuaca buruk, narasumber batal hadir..."
+                   className="px-4 py-3 bg-slate-50 rounded-lg border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-sm w-full font-medium text-slate-700 resize-none transition-all"
+                 ></textarea>
+               </div>
+               <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg flex gap-3 items-start">
+                 <span className="material-icons-round text-amber-600 text-[18px] mt-0.5">info</span>
+                 <p className="text-amber-800 text-xs leading-relaxed">Pemberitahuan darurat akan diteruskan ke aplikasi *mobile* Jemaat yang sudah terdaftar, dan notifikasi email ke seluruh panitia yang terlibat.</p>
+               </div>
+            </div>
+
+            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+               <button onClick={() => setCancelModal({ isOpen: false, kegiatanId: null, reason: '' })} disabled={isUpdatingStatus} className="px-5 py-2.5 rounded-lg text-slate-600 font-bold hover:bg-slate-200 text-sm transition-colors">
+                 Tutup
+               </button>
+               <button 
+                 onClick={() => cancelModal.kegiatanId && handleUpdateStatus(cancelModal.kegiatanId, 'Dibatalkan', cancelModal.reason)} 
+                 disabled={isUpdatingStatus || !cancelModal.reason.trim()} 
+                 className="px-6 py-2.5 rounded-lg bg-red-600 text-white font-bold hover:bg-red-700 flex items-center gap-2 text-sm shadow-sm hover:shadow-md disabled:opacity-50 transition-all"
+               >
+                 {isUpdatingStatus ? <span className="material-icons-round animate-spin text-[18px]">refresh</span> : <span className="material-icons-round text-[18px]">block</span>}
+                 Proses Pembatalan Acara
+               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
