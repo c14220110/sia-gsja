@@ -392,7 +392,7 @@ export class JemaatRepository {
       LEFT JOIN jemaat p ON j.pasangan_id = p.id
       LEFT JOIN jemaat_komisi jk ON j.id = jk.jemaat_id
       LEFT JOIN jemaat_departemen jd ON j.id = jd.jemaat_id
-      WHERE j.jemaat_id = $1 AND j.is_deleted = false
+      WHERE j.id::text = $1 AND j.is_deleted = false
       GROUP BY j.id, a.jemaat_id, i.jemaat_id, p.jemaat_id
     `;
     const res = await pool.query(query, [id]);
