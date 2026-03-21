@@ -244,9 +244,11 @@ export default function NewKegiatanPage() {
         <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-['Inter'] leading-4">
           <Link href="/dashboard" className="text-slate-500 hover:text-blue-600">Dashboard</Link>
           <span className="text-slate-500 material-icons-round text-[14px]">chevron_right</span>
-          <Link href="/dashboard/kegiatan" className="text-slate-500 hover:text-blue-600">Kegiatan & Jadwal</Link>
+          <span className="text-slate-500">Modul Kegiatan</span>
           <span className="text-slate-500 material-icons-round text-[14px]">chevron_right</span>
-          <span className="text-slate-700 font-bold">Tambah Jadwal Baru</span>
+          <Link href="/dashboard/kegiatan" className="text-slate-500 hover:text-blue-600">Daftar Kegiatan</Link>
+          <span className="text-slate-500 material-icons-round text-[14px]">chevron_right</span>
+          <span className="text-slate-700 font-bold">Tambah Kegiatan Baru</span>
         </div>
         
         <div className="self-stretch inline-flex justify-between items-end">
@@ -356,26 +358,26 @@ export default function NewKegiatanPage() {
 
           {/* CARD 3: DETAIL KHUSUS IBADAH (DYNAMIC 🔥) */}
           {isKebaktian && (
-            <div className="relative p-6 bg-gradient-to-br from-[#1C2C54] to-[#111A33] rounded-xl shadow-lg border border-[#2B3B66] flex flex-col gap-6 animate-in slide-in-from-top-4 fade-in duration-500 overflow-hidden">
-              <div className="absolute right-0 top-0 opacity-10 pointer-events-none">
-                 <span className="material-icons-round text-[150px]">auto_stories</span>
+            <div className="relative p-6 bg-blue-50/50 rounded-xl shadow-sm border border-blue-100 flex flex-col gap-6 animate-in slide-in-from-top-4 fade-in duration-500 overflow-hidden">
+              <div className="absolute right-0 top-0 opacity-[0.03] pointer-events-none">
+                 <span className="material-icons-round text-[150px] text-blue-900">auto_stories</span>
               </div>
-              <div className="w-full inline-flex items-center justify-between border-b border-[#2B3B66] pb-3 z-10">
+              <div className="w-full inline-flex items-center justify-between border-b border-blue-100 pb-3 z-10">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-[#2B3B66] text-blue-200 flex items-center justify-center shadow-inner">
+                  <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center">
                     <span className="material-icons-round text-[18px]">church</span>
                   </div>
-                  <span className="text-white text-sm font-bold font-['Inter'] uppercase tracking-wider">Detail Ibadah (*Auto-Triggered*)</span>
+                  <span className="text-blue-900 text-sm font-bold font-['Inter'] uppercase tracking-wider">Detail Ibadah (*Auto-Triggered*)</span>
                 </div>
-                <div className="px-2 py-0.5 bg-blue-500/20 text-blue-300 border border-blue-500/40 rounded text-[10px] font-bold tracking-wide">
+                <div className="px-2 py-0.5 bg-blue-100 text-blue-700 border border-blue-200 rounded text-[10px] font-bold tracking-wide">
                   MODE KHOTBAH
                 </div>
               </div>
               
               <div className="w-full flex-col gap-5 flex z-10">
                 <div className="w-full flex-col gap-1.5 flex">
-                  <label className="text-blue-200 text-xs font-bold font-['Inter'] uppercase">Tema / Judul Khotbah Mingguan</label>
-                  <input type="text" name="tema_khotbah" value={formData.tema_khotbah} onChange={handleInputChange} placeholder="Garam dan Terang Dunia..." className="px-4 py-3 bg-[#111A33]/50 rounded-lg border border-[#2B3B66] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400 font-['Inter'] text-sm w-full placeholder-blue-900/40" />
+                  <label className="text-blue-800 text-xs font-bold font-['Inter'] uppercase">Tema / Judul Khotbah Mingguan</label>
+                  <input type="text" name="tema_khotbah" value={formData.tema_khotbah} onChange={handleInputChange} placeholder="Garam dan Terang Dunia..." className="px-4 py-3 bg-white rounded-lg border border-blue-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-['Inter'] text-sm w-full placeholder-slate-400 transition-all" />
                 </div>
 
                 <div className="w-full flex gap-5">
@@ -388,11 +390,11 @@ export default function NewKegiatanPage() {
                       placeholder="Cari jemaat atau ketik nama tamu..." 
                       onSelect={(id, name) => setFormData(prev => ({ ...prev, nama_pengkhotbah_1: name }))}
                     />
-                    <span className="text-[10px] text-blue-400 mt-0.5 ml-1">Mendukung nama di luar database jemaat.</span>
+                    <span className="text-[10px] text-blue-600 mt-0.5 ml-1">Mendukung nama di luar database jemaat.</span>
                   </div>
                   <div className="flex-1 flex-col gap-1.5 flex">
-                    <label className="text-blue-200 text-xs font-bold font-['Inter'] uppercase">Pengkhotbah Pendamping (Opsional)</label>
-                    <input type="text" name="nama_pengkhotbah_2" value={formData.nama_pengkhotbah_2} onChange={handleInputChange} placeholder="Penerjemah / WL..." className="px-4 py-2 bg-[#111A33]/50 rounded-lg border border-[#2B3B66] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400 font-['Inter'] text-sm w-full placeholder-blue-900/40" />
+                    <label className="text-blue-800 text-xs font-bold font-['Inter'] uppercase">Pengkhotbah Pendamping (Opsional)</label>
+                    <input type="text" name="nama_pengkhotbah_2" value={formData.nama_pengkhotbah_2} onChange={handleInputChange} placeholder="Penerjemah / WL..." className="px-4 py-2 bg-white rounded-lg border border-blue-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-['Inter'] text-sm w-full placeholder-slate-400 transition-all" />
                   </div>
                 </div>
               </div>
@@ -508,7 +510,7 @@ export default function NewKegiatanPage() {
          </button>
          <div className="flex gap-3">
            <button onClick={() => handleCreate('Draft')} className="px-6 py-2.5 rounded-lg bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 transition-colors text-sm border border-slate-200">
-             Simpan ke Konsep
+             Simpan sebagai Draft
            </button>
            <button onClick={() => handleCreate('Akan Datang')} className="px-8 py-2.5 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/30 text-sm flex gap-2 items-center">
              <span className="material-icons-round text-[18px]">publish</span> Publish Jadwal Acara
