@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import QRCode from 'react-qr-code';
+import { AlertModal } from '@/components/ui/AlertModal';
+import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
 
 export default function KioskAbsensiPage({ params }: { params: Promise<{ id: string }> }) {
   const unwrappedParams = React.use(params);
@@ -43,6 +45,11 @@ export default function KioskAbsensiPage({ params }: { params: Promise<{ id: str
   
   const [timeLeftStr, setTimeLeftStr] = useState('00:00');
   const [rotateProgress, setRotateProgress] = useState(100);
+
+  // UX states (Fullscreen, Loaders)
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showCloseAlert, setShowCloseAlert] = useState(false);
+  const [submitState, setSubmitState] = useState<{ status: 'idle'|'loading'|'success'|'error', message: string }>({ status: 'idle', message: '' });
 
   // Load Header Info & Initial Stats
   useEffect(() => {
@@ -127,11 +134,18 @@ export default function KioskAbsensiPage({ params }: { params: Promise<{ id: str
      setSessionActive(true);
   };
 
-  const handleStopSession = () => {
-     if (confirm('Apakah Anda yakin ingin menutup sesi absensi saat ini?')) {
+  const handleStopSession = () => setShowCloseAlert(true);
+
+  const confirmStopSession = () => {
+     setShowCloseAlert(false);
+     setSubmitState({ status: 'loading', message: 'Tutup Sesi sedang diproses...' });
+     // Animasi Lottie Loading -> Sukses
+     setTimeout(() => {
        setSessionActive(false);
        setQrPayload('');
-     }
+       setIsFullscreen(false);
+       setSubmitState({ status: 'success', message: 'Sesi Absensi telah berhasil ditutup!' });
+     }, 1200);
   };
 
   const fetchLogs = async (silent = false) => {
@@ -250,22 +264,94 @@ export default function KioskAbsensiPage({ params }: { params: Promise<{ id: str
   if (isLoadingHeader) return <div className="h-screen flex items-center justify-center bg-slate-50 text-slate-800"><span className="material-icons-round text-5xl animate-spin text-blue-600">refresh</span></div>;
 
   return (
-    <div className="w-full h-screen bg-white text-slate-800 flex flex-col overflow-hidden font-['Inter']">
+    <div className="w-full h-screen bg-slate-50 text-slate-800 flex flex-col overflow-hidden font-['Inter']">
       
-      {/* HEADER BAR - Enterprise Soft (Mirip Dashboard GSJA) */}
-      <div className="w-full h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0 relative z-10 shadow-sm">
-         <div className="flex items-center gap-4">
-           <Link href="/dashboard/kegiatan" className="w-10 h-10 border border-slate-200 hover:bg-slate-50 rounded-full flex items-center justify-center text-slate-500 transition-colors">
-              <span className="material-icons-round text-[20px]">arrow_back</span>
-           </Link>
-           <h1 className="text-xl font-bold tracking-tight text-slate-800">
-             Absensi Dinamis <span className="text-slate-300 mx-2">|</span> <span className="text-blue-600 font-medium">{kegiatan?.nama_kegiatan || 'Acara GSJA'}</span>
-           </h1>
-         </div>
-         <div className="flex items-center gap-3">
-            <span className="material-icons-round text-slate-400">qr_code_scanner</span>
-            <span className="text-sm font-bold uppercase tracking-wider text-slate-500">Mode Kiosk Terpusat</span>
-         </div>
+      <AlertModal
+        isOpen={showCloseAlert}
+        title="Tutup Sesi Absensi?"
+        message="Anda akan mengakhiri tayangan sesi pendaftaran ini. Anda masih tetap dapat melihat riwayat atau membuka sesi yang baru kapanpun setelah ini."
+        onConfirm={confirmStopSession}
+        onCancel={() => setShowCloseAlert(false)}
+        confirmText="Tutup Sesi Sekarang"
+        cancelText="Batal"
+      />
+      
+      <SubmitOverlay 
+        status={submitState.status} 
+        message={submitState.message} 
+        onClose={() => setSubmitState({ status: 'idle', message: '' })} 
+      />
+
+      {/* FULLSCREEN QR OVERLAY */}
+      {isFullscreen && sessionActive && (
+        <div className="fixed inset-0 z-[999] bg-white flex flex-col items-center justify-center p-8 animate-in zoom-in-95 duration-300">
+           <button onClick={() => setIsFullscreen(false)} className="absolute top-8 right-8 w-14 h-14 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full flex items-center justify-center transition-colors shadow-sm cursor-pointer hover:scale-105">
+              <span className="material-icons-round text-3xl">fullscreen_exit</span>
+           </button>
+           
+           <div className="text-center mb-10 flex flex-col items-center max-w-3xl">
+              <h2 className="text-5xl md:text-[54px] font-black text-slate-900 mb-5 tracking-tight leading-tight">PINDAI UNTUK HADIR</h2>
+              <p className="text-slate-500 text-2xl font-medium">Gunakan fitur Kamera / Scan di Aplikasi GSJA Smartphone Anda</p>
+           </div>
+           
+           <div className="relative p-5 bg-white rounded-[40px] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] border border-slate-100 mt-4">
+              <div className="absolute -top-7 left-0 right-0 h-4 bg-slate-100 rounded-full overflow-hidden shadow-inner flex border border-slate-200/50">
+                 <div className="h-full bg-blue-500 transition-all duration-100 ease-linear rounded-full" style={{ width: `${rotateProgress}%` }}></div>
+              </div>
+              
+              <div className="p-8 border-4 border-slate-100 rounded-[32px] flex items-center justify-center relative bg-white">
+                 {qrPayload ? (
+                    <div className="animate-in fade-in zoom-in-95 duration-300">
+                      <QRCode value={qrPayload} size={420} level="H" />
+                    </div>
+                 ) : (
+                    <div className="w-[420px] h-[420px] flex items-center justify-center bg-slate-50 rounded-3xl">
+                       <span className="material-icons-round text-slate-300 text-[80px] animate-spin">refresh</span>
+                    </div>
+                 )}
+              </div>
+              <p className="absolute -bottom-16 left-0 right-0 text-center text-lg font-bold text-slate-500 uppercase tracking-widest bg-slate-50 py-3 rounded-full border border-slate-200">
+                 QR diperbarui dalam <span className="text-blue-600 font-black">{Math.ceil((rotateProgress / 100) * rotateSeconds)}</span> Detik
+              </p>
+
+              <div className="absolute top-1/2 -right-40 -translate-y-1/2 transform flex flex-col items-center gap-3">
+                 <div className="flex items-center gap-2 px-5 py-2 lg:py-3 bg-white border border-slate-200 rounded-full shadow-sm">
+                    <span className="relative flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                    </span>
+                    <span className="text-slate-700 font-extrabold text-sm uppercase tracking-wide">{timeLeftStr}</span>
+                 </div>
+              </div>
+           </div>
+        </div>
+      )}
+
+      {/* HEADER BAR - Mode Breadcrumb */}
+      <div className="w-full bg-white border-b border-slate-200 flex flex-col justify-center px-8 py-5 shrink-0 relative z-10 shadow-sm gap-3">
+        <div className="flex items-center gap-2 text-xs font-medium font-['Inter'] leading-4">
+           <span className="text-slate-500">Modul Kegiatan</span>
+           <span className="text-slate-400 material-icons-round text-[14px]">chevron_right</span>
+           <Link href="/dashboard/kegiatan" className="text-slate-500 hover:text-blue-600 transition-colors">Daftar Kegiatan</Link>
+           <span className="text-slate-400 material-icons-round text-[14px]">chevron_right</span>
+           <span className="text-slate-700 font-bold">Kiosk Absensi Dinamis</span>
+        </div>
+        <div className="flex justify-between items-end">
+           <div className="flex gap-4 items-center">
+              <h1 className="text-slate-900 text-2xl md:text-3xl font-black font-['Inter'] leading-tight tracking-tight">
+                {kegiatan?.nama_kegiatan || 'Acara GSJA'}
+              </h1>
+              {sessionActive && (
+                <div className="px-3 py-1 bg-emerald-50 rounded border border-emerald-300 flex items-center gap-2">
+                   <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                   <span className="text-emerald-700 text-xs font-bold uppercase tracking-wide">SESI TERBUKA</span>
+                </div>
+              )}
+           </div>
+           <div className="text-slate-500 text-sm font-medium font-['Inter'] flex gap-2 items-center">
+              <span className="material-icons-round text-lg text-slate-400">qr_code_scanner</span> <span className="uppercase tracking-wider font-bold text-xs">Mode Kiosk Terpusat</span>
+           </div>
+        </div>
       </div>
 
       {/* MAIN SPLIT SCREEN */}
@@ -355,9 +441,14 @@ export default function KioskAbsensiPage({ params }: { params: Promise<{ id: str
                     <span className="text-slate-700 font-bold text-sm tracking-wide">Sesi Terbuka — {timeLeftStr}</span>
                  </div>
 
-                 <button onClick={handleStopSession} className="absolute top-8 right-8 flex items-center gap-2 px-5 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-full border border-rose-200 transition-colors shadow-sm font-bold text-sm tracking-wide">
-                    <span className="material-icons-round text-[18px]">stop_circle</span> Tutup Sesi
-                 </button>
+                 <div className="absolute top-8 right-8 flex gap-3 z-50">
+                    <button onClick={() => setIsFullscreen(true)} className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 rounded-lg border border-slate-200 transition-colors shadow-sm font-bold text-sm tracking-wide">
+                       <span className="material-icons-round text-[18px] text-blue-500">fullscreen</span> Perbesar Layar
+                    </button>
+                    <button onClick={handleStopSession} className="flex items-center gap-2 px-5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg border border-rose-200 transition-colors shadow-sm font-bold text-sm tracking-wide">
+                       <span className="material-icons-round text-[18px]">stop_circle</span> Tutup Sesi
+                    </button>
+                 </div>
 
                  <div className="text-center mb-8 flex flex-col items-center">
                     <h2 className="text-4xl font-black text-slate-800 mb-2 tracking-tight">PINDAI UNTUK HADIR</h2>
