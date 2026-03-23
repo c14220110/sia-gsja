@@ -98,6 +98,125 @@ const GenericAutocomplete = ({
   );
 };
 
+// Helper component for Hybrid Async Autocomplete (Search internal but allow free text external)
+const HybridAsyncAutocomplete = ({ 
+  label, 
+  valueName, 
+  onSelect,
+  placeholder = "Ketik minimal 3 huruf..." 
+}: { 
+  label: string, 
+  valueName: string, 
+  onSelect: (name: string) => void,
+  placeholder?: string 
+}) => {
+  const [query, setQuery] = useState(valueName);
+  const [results, setResults] = useState<any[]>([]);
+  const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    setQuery(valueName);
+  }, [valueName]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const fetchResults = async (searchTerm: string) => {
+    if (searchTerm.length < 3) {
+      setResults([]);
+      setIsOpen(false);
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const res = await fetch(`/api/options?type=jemaat_search&query=${encodeURIComponent(searchTerm)}`);
+      const data = await res.json();
+      if (data.success && data.data.length > 0) {
+        setResults(data.data);
+        setIsOpen(true);
+      } else {
+        setResults([]);
+        setIsOpen(false);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setQuery(val);
+    onSelect(val); // IMMEDIATELY sync as free text!
+    
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => {
+      fetchResults(val);
+    }, 400);
+  };
+
+  return (
+    <div className="w-full flex-col gap-1 flex relative" ref={wrapperRef}>
+      <label className="text-blue-800 text-xs font-bold font-['Inter'] uppercase leading-4">{label}</label>
+      <div className="relative">
+        <input 
+          type="text" 
+          value={query} 
+          onChange={handleInputChange}
+          onFocus={() => { if(query.length >= 3 && results.length > 0) setIsOpen(true); }}
+          placeholder={placeholder} 
+          className="px-4 py-3 pr-10 bg-white rounded-lg border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" 
+        />
+        {isLoading && (
+          <div className="absolute right-3 top-3 w-4 h-4 rounded-full border-2 border-slate-200 border-t-blue-500 animate-spin"></div>
+        )}
+      </div>
+      
+      {isOpen && results.length > 0 && (
+        <div className="absolute z-20 top-full mt-1 w-full bg-white rounded-lg border border-blue-200 shadow-xl max-h-56 overflow-y-auto">
+          <div className="px-3 py-2 bg-slate-50 border-b border-slate-100 text-[10px] uppercase font-bold text-slate-400">
+            Saran dari Database Jemaat
+          </div>
+          {results.map((r, i) => (
+            <div 
+              key={i} 
+              className="p-3 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-0 flex items-center gap-3"
+              onClick={() => {
+                onSelect(r.nama_lengkap);
+                setQuery(r.nama_lengkap);
+                setIsOpen(false);
+              }}
+            >
+              {r.foto_url ? (
+                <img src={r.foto_url} alt={r.nama_lengkap} className="w-8 h-8 rounded-full object-cover border border-slate-200" />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-xs uppercase">
+                   {r.nama_lengkap.charAt(0)}
+                </div>
+              )}
+              <div className="flex flex-col">
+                 <div className="text-sm font-bold text-slate-900">{r.nama_lengkap}</div>
+                 <div className="text-[10px] text-slate-500">{r.jemaat_id} - {r.nama_satelit || 'Gereja'}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function NewKegiatanPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -396,19 +515,21 @@ export default function NewKegiatanPage() {
 
                 <div className="w-full flex gap-5">
                   <div className="flex-1 flex-col gap-1.5 flex">
-                    <GenericAutocomplete 
+                    <HybridAsyncAutocomplete 
                       label="Pengkhotbah Utama" 
                       valueName={formData.nama_pengkhotbah_1} 
-                      valueId="" // Not enforcing ID linkage for speaker
-                      options={pengurusOptions} 
                       placeholder="Cari jemaat atau ketik nama tamu..." 
-                      onSelect={(id, name) => setFormData(prev => ({ ...prev, nama_pengkhotbah_1: name }))}
+                      onSelect={(name) => setFormData(prev => ({ ...prev, nama_pengkhotbah_1: name }))}
                     />
-                    <span className="text-[10px] text-blue-600 mt-0.5 ml-1">Mendukung nama di luar database jemaat.</span>
+                    <span className="text-[10px] text-blue-600 mt-0.5 ml-1">Mendukung nama pendeta tamu dari luar gereja.</span>
                   </div>
                   <div className="flex-1 flex-col gap-1.5 flex">
-                    <label className="text-blue-800 text-xs font-bold font-['Inter'] uppercase">Pengkhotbah Pendamping (Opsional)</label>
-                    <input type="text" name="nama_pengkhotbah_2" value={formData.nama_pengkhotbah_2} onChange={handleInputChange} placeholder="Contoh: Pdt. Budi (Opsional)" className="px-4 py-2 bg-white rounded-lg border border-blue-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-['Inter'] text-sm w-full placeholder-slate-400 transition-all" />
+                    <HybridAsyncAutocomplete 
+                      label="Pengkhotbah Pendamping (Opsional)" 
+                      valueName={formData.nama_pengkhotbah_2} 
+                      placeholder="Cari/Ketik nama tandeman atau penerjemah..." 
+                      onSelect={(name) => setFormData(prev => ({ ...prev, nama_pengkhotbah_2: name }))}
+                    />
                   </div>
                 </div>
               </div>
