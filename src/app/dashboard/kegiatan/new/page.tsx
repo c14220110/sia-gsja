@@ -177,7 +177,7 @@ export default function NewKegiatanPage() {
     fetchOptions();
   }, []);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
     if (type === 'checkbox') {
       const checked = (e.target as HTMLInputElement).checked;
@@ -352,6 +352,21 @@ export default function NewKegiatanPage() {
                   <input type="text" name="lokasi_kegiatan" value={formData.lokasi_kegiatan} onChange={handleInputChange} placeholder="contoh: Ruang Ibadah Utama / Balai Rw 05" className="pl-11 pr-4 py-3 bg-slate-50 rounded-lg border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
                 </div>
               </div>
+
+              <div className="w-full flex-col gap-1.5 flex mt-2">
+                <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase flex items-center gap-1">
+                  <span className="material-icons-round text-[14px]">notes</span> Keterangan / Catatan Tambahan (Opsional)
+                </label>
+                <textarea 
+                  name="keterangan" 
+                  value={formData.keterangan || ''} 
+                  onChange={handleInputChange} 
+                  placeholder="Instruksi khusus Sekretaris, misal: Gunakan AC utama maksimal 22 derajat..." 
+                  rows={3}
+                  className="px-4 py-3 bg-slate-50 rounded-lg border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-900 text-sm font-['Inter'] w-full transition-all resize-none" 
+                />
+              </div>
+
             </div>
           </div>
 
@@ -446,12 +461,22 @@ export default function NewKegiatanPage() {
               )}
 
               {formData.tipe_penyelenggara === 'Komisi' && (
-                <div className="w-full flex flex-col gap-1.5 animate-in fade-in slide-in-from-top-1">
-                  <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase">Pilih Komisi Lokal <span className="text-red-500">*</span></label>
-                  <select name="komisi_id" value={formData.komisi_id} onChange={handleInputChange} className="px-3 py-2 bg-slate-50 rounded-lg border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-sm w-full cursor-pointer">
-                    <option value="">-- Pilih --</option>
-                    {komisiOptions.map((k) => <option key={k.id} value={k.id}>{k.nama_komisi}</option>)}
-                  </select>
+                <div className="w-full flex flex-col gap-4 animate-in fade-in slide-in-from-top-1">
+                  <div className="w-full flex flex-col gap-1.5 border border-blue-100 bg-blue-50/30 p-3 rounded-lg">
+                    <label className="text-blue-800 text-xs font-bold font-['Inter'] uppercase">1. Induk Satelit <span className="text-red-500">*</span></label>
+                    <select name="satelit_id" value={formData.satelit_id} onChange={(e) => { handleInputChange(e); setFormData(prev => ({ ...prev, komisi_id: '' })); }} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-sm w-full cursor-pointer">
+                      <option value="">-- Pilih Satelit Terlebih Dahulu --</option>
+                      {satelitOptions.map((s) => <option key={s.id} value={s.id}>{s.nama_satelit}</option>)}
+                    </select>
+                  </div>
+                  
+                  <div className="w-full flex flex-col gap-1.5 border border-slate-200 bg-slate-50 p-3 rounded-lg">
+                    <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase">2. Pilih Komisi Lokal <span className="text-red-500">*</span></label>
+                    <select name="komisi_id" value={formData.komisi_id} onChange={handleInputChange} disabled={!formData.satelit_id} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-sm w-full cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                      <option value="">{formData.satelit_id ? '-- Pilih Komisi --' : '-- Menunggu Satelit --'}</option>
+                      {komisiOptions.filter(k => k.satelit_id === (formData.satelit_id ? parseInt(formData.satelit_id) : null)).map((k) => <option key={k.id} value={k.id}>{k.nama_komisi}</option>)}
+                    </select>
+                  </div>
                 </div>
               )}
 
