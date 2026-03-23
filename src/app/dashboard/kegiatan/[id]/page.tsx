@@ -39,7 +39,7 @@ const AsyncAutocomplete = ({
     }
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/options?type=jemaat_search&query=${encodeURIComponent(searchTerm)}`);
+      const res = await fetch(`/api/options?type=jemaat_search&q=${encodeURIComponent(searchTerm)}`);
       const data = await res.json();
       if (data.success && data.data.length > 0) {
         setResults(data.data);
