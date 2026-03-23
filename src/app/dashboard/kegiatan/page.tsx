@@ -638,7 +638,7 @@ export default function KegiatanPage() {
                           {displayStatus === 'Ongoing' && (
                             <>
                               <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Detail</button>
-                              <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-emerald-500">how_to_reg</span>Input Absensi</button>
+                              <Link href={`/dashboard/kegiatan/${kegiatan.id}/absen`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-emerald-500">how_to_reg</span>Input Absensi</Link>
                               <div className="w-full h-px bg-slate-100 my-1"></div>
                               <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">flag</span>Akhiri Kegiatan</button>
                             </>
