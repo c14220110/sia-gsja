@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useLoader } from '@/components/ui/GlobalLoader';
 import Link from 'next/link';
 import { AlertModal } from '@/components/ui/AlertModal';
+import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
 
 export default function KegiatanPage() {
   const { showLoader, hideLoader } = useLoader();
@@ -44,10 +45,10 @@ export default function KegiatanPage() {
 
   // Status Change State
   const [cancelModal, setCancelModal] = useState<{isOpen: boolean, kegiatanId: number | null, reason: string}>({isOpen: false, kegiatanId: null, reason: ''});
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [submitState, setSubmitState] = useState<{ status: 'idle'|'loading'|'success'|'error', message: string }>({ status: 'idle', message: '' });
 
   const handleUpdateStatus = async (id: number, newStatus: string, reason?: string) => {
-    setIsUpdatingStatus(true);
+    setSubmitState({ status: 'loading', message: `Sedang memproses acara...` });
     try {
       const res = await fetch(`/api/kegiatan/${id}`, {
         method: 'PATCH',
@@ -56,36 +57,44 @@ export default function KegiatanPage() {
       });
       const data = await res.json();
       if (data.success) {
-        setCancelModal({ isOpen: false, kegiatanId: null, reason: '' });
-        setOpenMenuId(null);
-        setRefreshTrigger(prev => prev + 1); // Force re-fetch data
+        setSubmitState({ status: 'success', message: 'Tindakan berhasil diaplikasikan!' });
+        setTimeout(() => {
+          setSubmitState({ status: 'idle', message: '' });
+          setCancelModal({ isOpen: false, kegiatanId: null, reason: '' });
+          setOpenMenuId(null);
+          setRefreshTrigger(prev => prev + 1); // Force re-fetch data
+        }, 1500);
       } else {
-        alert(data.message || 'Gagal mengubah status');
+        setSubmitState({ status: 'error', message: data.message || 'Gagal mengubah status.' });
+        setTimeout(() => setSubmitState({ status: 'idle', message: '' }), 2000);
       }
     } catch(err) {
-      alert('Terjadi kesalahan server');
-    } finally {
-      setIsUpdatingStatus(false);
+      setSubmitState({ status: 'error', message: 'Terjadi kesalahan server.' });
+      setTimeout(() => setSubmitState({ status: 'idle', message: '' }), 2000);
     }
   };
 
   const handleDeleteDraft = async (id: number) => {
     if (!confirm('Apakah Anda yakin ingin MENGHAPUS PERMANEN draf kegiatan ini? Data tidak dapat dipulihkan.')) return;
     
-    setIsUpdatingStatus(true);
+    setSubmitState({ status: 'loading', message: 'Menghapus permanen acara...' });
     try {
       const res = await fetch(`/api/kegiatan/${id}`, { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
-        setOpenMenuId(null);
-        setRefreshTrigger(prev => prev + 1); // Force re-fetch data
+        setSubmitState({ status: 'success', message: 'Draf berhasil dihapus permanen!' });
+        setTimeout(() => {
+          setSubmitState({ status: 'idle', message: '' });
+          setOpenMenuId(null);
+          setRefreshTrigger(prev => prev + 1); // Force re-fetch data
+        }, 1500);
       } else {
-        alert(data.message || 'Gagal menghapus draf kegiatan');
+        setSubmitState({ status: 'error', message: data.message || 'Gagal menghapus draf kegiatan' });
+        setTimeout(() => setSubmitState({ status: 'idle', message: '' }), 2000);
       }
     } catch(err) {
-      alert('Terjadi kesalahan server');
-    } finally {
-      setIsUpdatingStatus(false);
+      setSubmitState({ status: 'error', message: 'Terjadi kesalahan server.' });
+      setTimeout(() => setSubmitState({ status: 'idle', message: '' }), 2000);
     }
   };
 
@@ -253,8 +262,11 @@ export default function KegiatanPage() {
   }, [filterTanggal]);
 
   return (
-    <div className="w-full flex flex-col gap-8 pb-10">
+    <div className="w-full flex flex-col gap-8 pb-10 relative">
       
+      {/* Submit Overlay */}
+      {(submitState.status !== 'idle') && <SubmitOverlay status={submitState.status} message={submitState.message} />}
+
       {/* Header Section */}
       <div className="w-full flex justify-between items-start">
         <div className="flex flex-col gap-1">
@@ -712,7 +724,7 @@ export default function KegiatanPage() {
       {/* CANCEL MODAL */}
       {cancelModal.isOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => !isUpdatingStatus && setCancelModal({ isOpen: false, kegiatanId: null, reason: '' })}></div>
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => submitState.status !== 'loading' && setCancelModal({ isOpen: false, kegiatanId: null, reason: '' })}></div>
           <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="px-6 py-5 border-b border-slate-100 flex items-center gap-3 bg-slate-50/50">
               <div className="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0">
@@ -742,15 +754,15 @@ export default function KegiatanPage() {
             </div>
 
             <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
-               <button onClick={() => setCancelModal({ isOpen: false, kegiatanId: null, reason: '' })} disabled={isUpdatingStatus} className="px-5 py-2.5 rounded-lg text-slate-600 font-bold hover:bg-slate-200 text-sm transition-colors">
+               <button onClick={() => setCancelModal({ isOpen: false, kegiatanId: null, reason: '' })} disabled={submitState.status === 'loading'} className="px-5 py-2.5 rounded-lg text-slate-600 font-bold hover:bg-slate-200 text-sm transition-colors">
                  Tutup
                </button>
                <button 
                  onClick={() => cancelModal.kegiatanId && handleUpdateStatus(cancelModal.kegiatanId, 'Dibatalkan', cancelModal.reason)} 
-                 disabled={isUpdatingStatus || !cancelModal.reason.trim()} 
+                 disabled={submitState.status === 'loading' || !cancelModal.reason.trim()} 
                  className="px-6 py-2.5 rounded-lg bg-red-600 text-white font-bold hover:bg-red-700 flex items-center gap-2 text-sm shadow-sm hover:shadow-md disabled:opacity-50 transition-all"
                >
-                 {isUpdatingStatus ? <span className="material-icons-round animate-spin text-[18px]">refresh</span> : <span className="material-icons-round text-[18px]">block</span>}
+                 {submitState.status === 'loading' ? <span className="material-icons-round animate-spin text-[18px]">refresh</span> : <span className="material-icons-round text-[18px]">block</span>}
                  Proses Pembatalan Acara
                </button>
             </div>
