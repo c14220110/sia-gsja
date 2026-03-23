@@ -491,9 +491,9 @@ export default function NewKegiatanPage() {
 
           {/* CARD 3: DETAIL KHUSUS IBADAH (DYNAMIC 🔥) */}
           {isKebaktian && (
-            <div className="relative p-6 bg-blue-50/50 rounded-xl shadow-sm border border-blue-100 flex flex-col gap-6 animate-in slide-in-from-top-4 fade-in duration-500 overflow-hidden">
-              <div className="absolute right-0 top-0 opacity-[0.03] pointer-events-none">
-                 <span className="material-icons-round text-[150px] text-blue-900">auto_stories</span>
+            <div className="relative p-6 bg-blue-50/50 rounded-xl shadow-sm border border-blue-100 flex flex-col gap-6 animate-in slide-in-from-top-4 fade-in duration-500">
+              <div className="absolute right-0 top-0 w-48 h-48 overflow-hidden pointer-events-none rounded-tr-xl">
+                 <span className="material-icons-round text-[150px] text-blue-900 absolute -top-4 -right-4 opacity-[0.03]">auto_stories</span>
               </div>
               <div className="w-full inline-flex items-center justify-between border-b border-blue-100 pb-3 z-10">
                 <div className="flex items-center gap-3">
