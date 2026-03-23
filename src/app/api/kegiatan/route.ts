@@ -174,7 +174,7 @@ export async function POST(request: Request) {
     const {
       nama_kegiatan, jenis_kegiatan_id, frekuensi_kegiatan,
       tanggal_mulai, tanggal_selesai, waktu_mulai, waktu_selesai,
-      lokasi_kegiatan, tipe_penyelenggara, satelit_id, departemen_id, komisi_id,
+      lokasi_kegiatan, keterangan, tipe_penyelenggara, satelit_id, departemen_id, komisi_id,
       pic_pengurus_id, berbayar, status_kegiatan,
       
       // Ibadah specific
@@ -209,15 +209,15 @@ export async function POST(request: Request) {
       INSERT INTO public.kegiatan (
         kode_kegiatan, nama_kegiatan, jenis_kegiatan_id, satelit_id, departemen_id, komisi_id,
         frekuensi_kegiatan, tanggal_mulai, tanggal_selesai, waktu_mulai, waktu_selesai,
-        lokasi_kegiatan, pic_pengurus_id, berbayar, status_kegiatan
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+        lokasi_kegiatan, keterangan, pic_pengurus_id, berbayar, status_kegiatan
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
       RETURNING id;
     `;
 
     const kegiatanResult = await client.query(insertKegiatanQuery, [
       kode_kegiatan, nama_kegiatan, jenis_kegiatan_id, s_id, d_id, k_id,
       frekuensi_kegiatan, tanggal_mulai, t_selesai, waktu_mulai, w_selesai,
-      lokasi_kegiatan, pic_id, berbayar, status_kegiatan
+      lokasi_kegiatan, keterangan || null, pic_id, berbayar, status_kegiatan
     ]);
 
     const newKegiatanId = kegiatanResult.rows[0].id;

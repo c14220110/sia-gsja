@@ -120,6 +120,7 @@ export default function NewKegiatanPage() {
     waktu_mulai: '',
     waktu_selesai: '',
     lokasi_kegiatan: '',
+    keterangan: '',
     
     // Card 3: Ibadah Detail
     tema_khotbah: '',

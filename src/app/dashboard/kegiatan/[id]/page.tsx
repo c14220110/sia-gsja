@@ -348,6 +348,14 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
                        {data.pic_name || 'Belum diatur'}
                     </span>
                   </div>
+                  {data.keterangan && (
+                    <div className="flex flex-col gap-1 mt-1">
+                      <span className="text-xs text-slate-400 font-bold uppercase">Catatan / Instruksi Khusus</span>
+                      <div className="text-sm font-medium text-slate-700 border border-amber-100 bg-amber-50/50 p-4 rounded-lg leading-relaxed whitespace-pre-wrap">
+                         {data.keterangan}
+                      </div>
+                    </div>
+                  )}
                 </div>
              </div>
 
