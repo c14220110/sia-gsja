@@ -40,6 +40,7 @@ export default function KegiatanPage() {
   const [customEndDate, setCustomEndDate] = useState('');
   const [filterJenis, setFilterJenis] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Status Change State
   const [cancelModal, setCancelModal] = useState<{isOpen: boolean, kegiatanId: number | null, reason: string}>({isOpen: false, kegiatanId: null, reason: ''});
@@ -57,9 +58,29 @@ export default function KegiatanPage() {
       if (data.success) {
         setCancelModal({ isOpen: false, kegiatanId: null, reason: '' });
         setOpenMenuId(null);
-        setCurrentPage(1); // Refresh data
+        setRefreshTrigger(prev => prev + 1); // Force re-fetch data
       } else {
         alert(data.message || 'Gagal mengubah status');
+      }
+    } catch(err) {
+      alert('Terjadi kesalahan server');
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
+  const handleDeleteDraft = async (id: number) => {
+    if (!confirm('Apakah Anda yakin ingin MENGHAPUS PERMANEN draf kegiatan ini? Data tidak dapat dipulihkan.')) return;
+    
+    setIsUpdatingStatus(true);
+    try {
+      const res = await fetch(`/api/kegiatan/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        setOpenMenuId(null);
+        setRefreshTrigger(prev => prev + 1); // Force re-fetch data
+      } else {
+        alert(data.message || 'Gagal menghapus draf kegiatan');
       }
     } catch(err) {
       alert('Terjadi kesalahan server');
@@ -194,7 +215,7 @@ export default function KegiatanPage() {
     };
 
     fetchData();
-  }, [debouncedSearch, filterSatelit, filterPenyelenggara, filterTanggal, customStartDate, customEndDate, filterJenis, filterStatus, currentPage]);
+  }, [debouncedSearch, filterSatelit, filterPenyelenggara, filterTanggal, customStartDate, customEndDate, filterJenis, filterStatus, currentPage, refreshTrigger]);
 
   const totalPages = Math.ceil(totalItems / limit) || 1;
 
@@ -585,7 +606,7 @@ export default function KegiatanPage() {
                               <Link href={`/dashboard/kegiatan/${kegiatan.id}/edit`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">edit</span>Edit Kegiatan</Link>
                               <button onClick={() => handleUpdateStatus(kegiatan.id, 'Akan Datang')} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-blue-500">rocket_launch</span>Publish Acara</button>
                               <div className="w-full h-px bg-slate-100 my-1"></div>
-                              <button className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-red-400">delete</span>Hapus Data</button>
+                              <button onClick={() => handleDeleteDraft(kegiatan.id)} className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-red-400">delete</span>Hapus Data</button>
                             </>
                           )}
 

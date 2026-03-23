@@ -69,3 +69,33 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ success: false, message: 'Internal Server Error' }, { status: 500 });
   }
 }
+
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+    
+    // Hard delete dependent tables first (to prevent foreign key constraints error)
+    await client.query('DELETE FROM public.kegiatan_detail_ibadah WHERE kegiatan_id = $1', [id]);
+    await client.query('DELETE FROM public.kegiatan_pelayan WHERE kegiatan_id = $1', [id]);
+    
+    // Hard delete main record
+    const result = await client.query('DELETE FROM public.kegiatan WHERE id = $1 RETURNING id', [id]);
+    
+    if (result.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return NextResponse.json({ success: false, message: 'Kegiatan tidak ditemukan atau sudah dihapus' }, { status: 404 });
+    }
+    
+    await client.query('COMMIT');
+    return NextResponse.json({ success: true, message: 'Kegiatan berstatus Draft berhasil dihapus permanen.' });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error hard deleting kegiatan:', error);
+    return NextResponse.json({ success: false, message: 'Internal Server Error' }, { status: 500 });
+  } finally {
+    client.release();
+  }
+}
