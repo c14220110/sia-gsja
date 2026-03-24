@@ -455,7 +455,7 @@ export default function PengurusPage() {
               ) : (
                 data.map((pengurus, idx) => {
                   const isLastRows = data.length > 2 && idx >= data.length - 2;
-                  const jabatanAktifCount = parseInt(pengurus.jabatan_aktif_count ?? '0', 10);
+
                   return (
                     <div key={pengurus.id || idx} className={`w-full flex items-center px-6 py-4 border-b border-slate-100 hover:bg-slate-50 transition-colors relative ${openMenuId === pengurus.id ? 'z-50' : 'z-10'}`}>
 
@@ -479,24 +479,21 @@ export default function PengurusPage() {
                         </div>
                       </div>
 
-                      {/* Jabatan Aktif + Badge */}
-                      <div className="flex-1 min-w-[200px] flex items-center gap-2 pr-4">
-                        {jabatanAktifCount === 0 ? (
-                          <span className="text-slate-400 text-sm italic">Tidak ada jabatan aktif</span>
-                        ) : (
-                          <>
-                            <div className="flex flex-col min-w-0">
-                              <span className="text-slate-800 text-sm font-semibold font-['Inter'] truncate">{pengurus.jabatan_aktif_pertama}</span>
-                              <span className="text-slate-400 text-xs font-['Public_Sans'] truncate">{pengurus.jabatan_aktif_lingkup}</span>
-                            </div>
-                            {jabatanAktifCount > 1 && (
-                              <span className="shrink-0 px-2 py-0.5 bg-violet-100 text-violet-700 text-[11px] font-black rounded-full border border-violet-200">
-                                +{jabatanAktifCount - 1} lainnya
-                              </span>
-                            )}
-                          </>
-                        )}
+                      {/* Jabatan Aktif — semua chip horizontal dari JSON array */}
+                      <div className="flex-1 flex items-center gap-1.5 flex-wrap pr-4">
+                        {(() => {
+                          const list: { nama: string; label: string }[] = pengurus.jabatan_aktif_list ?? [];
+                          if (list.length === 0) return <span className="text-slate-400 text-sm italic">Tidak ada jabatan aktif</span>;
+                          return list.map((j, i) => (
+                            <span key={i} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 text-slate-700 text-xs font-semibold rounded-full border border-slate-200 whitespace-nowrap">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                              {j.label}
+                            </span>
+                          ));
+                        })()}
                       </div>
+
+
 
                       {/* Status Global (pengurus.is_active) */}
                       <div className="w-32 shrink-0 flex justify-center">

@@ -66,36 +66,27 @@ export class PengurusRepository {
         j.nama_lengkap,
         j.foto_url,
         js.nama_satelit AS nama_satelit_asal,
-        -- nama jabatan aktif pertama (primer display)
+        -- semua jabatan aktif sebagai JSON array
         (
-          SELECT jab2.nama_jabatan
-          FROM detail_kepengurusan dk2
-          JOIN jabatan jab2 ON dk2.jabatan_id = jab2.id
-          WHERE dk2.pengurus_id = p.id AND dk2.status_jabatan = 'Aktif'
-          ORDER BY dk2.id ASC LIMIT 1
-        ) AS jabatan_aktif_pertama,
-        -- lingkup jabatan aktif pertama (Satelit · Air Hidup)
-        (
-          SELECT CONCAT(dk2.lingkup,
-            CASE
-              WHEN s2.nama_satelit IS NOT NULL THEN CONCAT(' · ', s2.nama_satelit)
-              WHEN kom2.nama_komisi IS NOT NULL THEN CONCAT(' · ', kom2.nama_komisi)
-              WHEN dep2.nama_departemen IS NOT NULL THEN CONCAT(' · ', dep2.nama_departemen)
-              ELSE '' END
+          SELECT JSON_AGG(
+            JSON_BUILD_OBJECT(
+              'nama', jab2.nama_jabatan,
+              'label', CONCAT(jab2.nama_jabatan, ' · ', dk2.lingkup,
+                CASE
+                  WHEN s2.nama_satelit IS NOT NULL THEN CONCAT(' · ', s2.nama_satelit)
+                  WHEN kom2.nama_komisi IS NOT NULL THEN CONCAT(' · ', kom2.nama_komisi)
+                  WHEN dep2.nama_departemen IS NOT NULL THEN CONCAT(' · ', dep2.nama_departemen)
+                  ELSE '' END
+              )
+            ) ORDER BY dk2.id ASC
           )
           FROM detail_kepengurusan dk2
+          JOIN jabatan jab2 ON dk2.jabatan_id = jab2.id
           LEFT JOIN satelit s2 ON dk2.satelit_id = s2.id
           LEFT JOIN komisi kom2 ON dk2.komisi_id = kom2.id
           LEFT JOIN departemen dep2 ON dk2.departemen_id = dep2.id
           WHERE dk2.pengurus_id = p.id AND dk2.status_jabatan = 'Aktif'
-          ORDER BY dk2.id ASC LIMIT 1
-        ) AS jabatan_aktif_lingkup,
-        -- jumlah semua jabatan aktif (untuk badge +N)
-        (
-          SELECT COUNT(*)::int
-          FROM detail_kepengurusan dk3
-          WHERE dk3.pengurus_id = p.id AND dk3.status_jabatan = 'Aktif'
-        ) AS jabatan_aktif_count,
+        ) AS jabatan_aktif_list,
         p.created_at
       ${baseFrom}
       ${where}
