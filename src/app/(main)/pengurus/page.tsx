@@ -47,21 +47,25 @@ export default function PengurusPage() {
   const [currentPage,   setCurrentPage]   = useState(1);
   const limit = 10;
 
-  // Basic Filters
-  const [filterSatelit, setFilterSatelit] = useState('');
-  const [filterJabatan, setFilterJabatan] = useState('');
+  // ── Quick Filters ──────────────────────────────────
+  const [filterSatelitAsal,    setFilterSatelitAsal]    = useState('');
+  const [filterStatusGlobal,   setFilterStatusGlobal]   = useState('Aktif');
 
-  // Advanced Filters
-  const [filterStatus,  setFilterStatus]  = useState('Aktif');
-  const [filterPeriode, setFilterPeriode] = useState('');
-  const [filterKomisi,  setFilterKomisi]  = useState('');
-  const [filterDepartemen, setFilterDepartemen] = useState('');
+  // ── Advanced Filters (applied on click) ────────────
+  const [filterLingkup,        setFilterLingkup]        = useState('');
+  const [filterSatelitPenugasan, setFilterSatelitPenugasan] = useState('');
+  const [filterJabatan,        setFilterJabatan]        = useState('');
+  const [filterPeriode,        setFilterPeriode]        = useState('');
+  const [filterKomisi,         setFilterKomisi]         = useState('');
+  const [filterDepartemen,     setFilterDepartemen]     = useState('');
 
-  // Local temp states for Advanced Filters (apply button logic)
-  const [tempStatus,     setTempStatus]     = useState('Aktif');
-  const [tempPeriode,    setTempPeriode]    = useState('');
-  const [tempKomisi,     setTempKomisi]     = useState('');
-  const [tempDepartemen, setTempDepartemen] = useState('');
+  // Local temp states for Advanced Filters (apply button)
+  const [tempLingkup,          setTempLingkup]          = useState('');
+  const [tempSatelitPenugasan, setTempSatelitPenugasan] = useState('');
+  const [tempJabatan,          setTempJabatan]          = useState('');
+  const [tempPeriode,          setTempPeriode]          = useState('');
+  const [tempKomisi,           setTempKomisi]           = useState('');
+  const [tempDepartemen,       setTempDepartemen]       = useState('');
 
   // Fetch Options and User Data on Mount
   useEffect(() => {
@@ -88,10 +92,11 @@ export default function PengurusPage() {
         if (periodeData.success) setPeriodeOptions(periodeData.data);
         if (departemenData.success) setDepartemenOptions(departemenData.data);
         if (komisiData.success) setKomisiOptions(komisiData.data);
+    // Auto-lock satelit asal untuk admin satelit
         if (authData) {
           setUserData(authData);
           if (authData.role_name?.toUpperCase().includes('SATELIT')) {
-            setFilterSatelit(authData.satelit_id?.toString() || '');
+            setFilterSatelitAsal(authData.satelit_id?.toString() || '');
           }
         }
       } catch (error) {
@@ -112,7 +117,7 @@ export default function PengurusPage() {
   // Reset page to 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, filterSatelit, filterJabatan, filterStatus, filterPeriode, filterKomisi, filterDepartemen]);
+  }, [debouncedSearch, filterSatelitAsal, filterStatusGlobal, filterLingkup, filterSatelitPenugasan, filterJabatan, filterPeriode, filterKomisi, filterDepartemen]);
 
   // Fetch Data
   useEffect(() => {
@@ -120,13 +125,15 @@ export default function PengurusPage() {
       showLoader();
       try {
         const queryParams = new URLSearchParams();
-        if (debouncedSearch) queryParams.append('search',     debouncedSearch);
-        if (filterSatelit)   queryParams.append('satelit_id', filterSatelit);
-        if (filterJabatan)   queryParams.append('jabatan_id', filterJabatan);
-        if (filterStatus && filterStatus !== 'Semua') queryParams.append('status', filterStatus);
-        if (filterPeriode)   queryParams.append('periode_id', filterPeriode);
-        if (filterKomisi)    queryParams.append('komisi_id',  filterKomisi);
-        if (filterDepartemen) queryParams.append('departemen_id', filterDepartemen);
+        if (debouncedSearch)          queryParams.append('search',                debouncedSearch);
+        if (filterSatelitAsal)        queryParams.append('satelit_asal_id',       filterSatelitAsal);
+        if (filterStatusGlobal && filterStatusGlobal !== 'Semua') queryParams.append('status_global', filterStatusGlobal);
+        if (filterLingkup)            queryParams.append('lingkup',               filterLingkup);
+        if (filterSatelitPenugasan)   queryParams.append('satelit_penugasan_id',  filterSatelitPenugasan);
+        if (filterJabatan)            queryParams.append('jabatan_id',            filterJabatan);
+        if (filterPeriode)            queryParams.append('periode_id',            filterPeriode);
+        if (filterKomisi)             queryParams.append('komisi_id',             filterKomisi);
+        if (filterDepartemen)         queryParams.append('departemen_id',         filterDepartemen);
 
         queryParams.append('limit',  limit.toString());
         queryParams.append('offset', ((currentPage - 1) * limit).toString());
@@ -148,7 +155,8 @@ export default function PengurusPage() {
     };
 
     fetchData();
-  }, [debouncedSearch, filterSatelit, filterJabatan, filterStatus, filterPeriode, filterKomisi, filterDepartemen, currentPage]);
+  }, [debouncedSearch, filterSatelitAsal, filterStatusGlobal, filterLingkup, filterSatelitPenugasan, filterJabatan, filterPeriode, filterKomisi, filterDepartemen, currentPage]);
+
 
   const handleToggleStatus = (id: number, currentStatus: string) => {
     const newStatus = currentStatus === 'Aktif' ? 'Demisioner' : 'Aktif';
@@ -247,190 +255,246 @@ export default function PengurusPage() {
 
       </div>
 
-      {/* Filter Options */}
-      <div className="w-full px-4 py-4 bg-white rounded-xl border border-slate-200 flex flex-wrap items-center gap-4 shadow-sm">
+      {/* ─── LEVEL 1: Quick Filters ─────────────────────────── */}
+      <div className="w-full px-4 py-4 bg-white rounded-xl border border-slate-200 flex flex-wrap items-center gap-3 shadow-sm">
 
         {/* Search Bar */}
-        <div className="flex-1 min-w-[300px] relative flex items-center">
+        <div className="flex-1 min-w-[280px] relative flex items-center">
           <span className="material-icons-round absolute left-4 text-slate-400 text-[20px]">search</span>
           <input
             type="text"
-            placeholder="Cari pengurus berdasarkan nama, nama jemaat, atau ID pengurus..."
+            placeholder="Cari nama jemaat atau ID pengurus..."
             className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
 
-        {/* Satelit Dropdown */}
-        <div className="relative min-w-[200px]">
+        {/* Satelit Asal (homebase jemaat) */}
+        <div className="relative min-w-[190px]">
           <select
-            value={filterSatelit}
-            onChange={(e) => setFilterSatelit(e.target.value)}
+            value={filterSatelitAsal}
+            onChange={(e) => setFilterSatelitAsal(e.target.value)}
             disabled={userData?.role_name?.toUpperCase().includes('SATELIT')}
             className={`appearance-none w-full pl-4 pr-10 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm ${
               userData?.role_name?.toUpperCase().includes('SATELIT') ? 'bg-slate-200 cursor-not-allowed opacity-70' : 'bg-slate-50 cursor-pointer'
             }`}
           >
-            {!userData?.role_name?.toUpperCase().includes('SATELIT') && <option value="">Semua Satelit</option>}
-            {satelitOptions.map((satelit) => (
-              <option key={satelit.id} value={satelit.id}>{satelit.nama_satelit}</option>
+            <option value="">Semua Satelit Asal</option>
+            {satelitOptions.map((s) => (
+              <option key={s.id} value={s.id}>{s.nama_satelit}</option>
             ))}
           </select>
           <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
         </div>
 
-        {/* Jabatan Dropdown */}
-        <div className="relative min-w-[200px]">
-          <select
-            value={filterJabatan}
-            onChange={(e) => setFilterJabatan(e.target.value)}
-            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
-          >
-            <option value="">Semua Jabatan</option>
-            {jabatanOptions.map((jabatan) => (
-              <option key={jabatan.id} value={jabatan.id}>{jabatan.nama_jabatan}</option>
-            ))}
-          </select>
-          <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
+        {/* Status Global — pill toggle */}
+        <div className="flex items-center gap-1.5 bg-slate-100 rounded-lg p-1">
+          {(['Semua', 'Aktif', 'Non-Aktif'] as const).map((s) => (
+            <button
+              key={s}
+              onClick={() => setFilterStatusGlobal(s === 'Semua' ? '' : s)}
+              className={`px-3.5 py-1.5 rounded-md text-xs font-bold transition-all ${
+                (filterStatusGlobal === s) || (s === 'Semua' && !filterStatusGlobal)
+                  ? 'bg-white text-slate-800 shadow-sm border border-slate-200'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              {s === 'Aktif' && <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1 align-middle"></span>}
+              {s === 'Non-Aktif' && <span className="inline-block w-1.5 h-1.5 rounded-full bg-rose-400 mr-1 align-middle"></span>}
+              {s}
+            </button>
+          ))}
         </div>
 
         {/* More Filters Toggle */}
-        <button
-          onClick={() => {
-            if (!showAdvancedFilters) {
-              setTempStatus(filterStatus);
-              setTempPeriode(filterPeriode);
-              setTempKomisi(filterKomisi);
-              setTempDepartemen(filterDepartemen);
-            }
-            setShowAdvancedFilters(!showAdvancedFilters);
-          }}
-          className={`px-4 py-2.5 border rounded-lg flex items-center gap-2 transition-colors group ${showAdvancedFilters ? 'bg-slate-100 border-slate-300' : (filterStatus !== 'Aktif' || filterPeriode || filterKomisi || filterDepartemen) ? 'bg-violet-50 border-violet-200 text-violet-700' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
-        >
-          <span className={`material-icons-round text-[20px] transition-colors ${showAdvancedFilters ? 'text-slate-800' : (filterStatus !== 'Aktif' || filterPeriode || filterKomisi || filterDepartemen) ? 'text-violet-700' : 'text-slate-500 group-hover:text-slate-700'}`}>tune</span>
-          <span className={`text-sm font-medium font-['Public_Sans'] transition-colors ${showAdvancedFilters ? 'text-slate-900' : (filterStatus !== 'Aktif' || filterPeriode || filterKomisi || filterDepartemen) ? 'text-violet-700 font-bold' : 'text-slate-600 group-hover:text-slate-800'}`}>More Filters</span>
-          {(filterStatus !== 'Aktif' || filterPeriode || filterKomisi || filterDepartemen) && (
-            <span className="flex items-center justify-center w-5 h-5 ml-1 bg-violet-600 text-white text-[10px] font-bold rounded-full">
-              {(filterStatus !== 'Aktif' ? 1 : 0) + (filterPeriode ? 1 : 0) + (filterKomisi ? 1 : 0) + (filterDepartemen ? 1 : 0)}
-            </span>
-          )}
-        </button>
+        {(() => {
+          const advCount = (filterLingkup ? 1 : 0) + (filterSatelitPenugasan ? 1 : 0) +
+            (filterJabatan ? 1 : 0) + (filterPeriode ? 1 : 0) + (filterKomisi ? 1 : 0) + (filterDepartemen ? 1 : 0);
+          const isActive = advCount > 0;
+          return (
+            <button
+              onClick={() => {
+                if (!showAdvancedFilters) {
+                  setTempLingkup(filterLingkup);
+                  setTempSatelitPenugasan(filterSatelitPenugasan);
+                  setTempJabatan(filterJabatan);
+                  setTempPeriode(filterPeriode);
+                  setTempKomisi(filterKomisi);
+                  setTempDepartemen(filterDepartemen);
+                }
+                setShowAdvancedFilters(!showAdvancedFilters);
+              }}
+              className={`px-4 py-2.5 border rounded-lg flex items-center gap-2 transition-colors group ${
+                showAdvancedFilters ? 'bg-slate-100 border-slate-300' :
+                isActive ? 'bg-violet-50 border-violet-200 text-violet-700' : 'bg-white border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              <span className={`material-icons-round text-[20px] ${showAdvancedFilters ? 'text-slate-800' : isActive ? 'text-violet-700' : 'text-slate-500 group-hover:text-slate-700'}`}>tune</span>
+              <span className={`text-sm font-medium font-['Public_Sans'] ${showAdvancedFilters ? 'text-slate-900' : isActive ? 'text-violet-700 font-bold' : 'text-slate-600 group-hover:text-slate-800'}`}>Filter Lanjutan</span>
+              {isActive && (
+                <span className="flex items-center justify-center w-5 h-5 ml-1 bg-violet-600 text-white text-[10px] font-bold rounded-full">{advCount}</span>
+              )}
+            </button>
+          );
+        })()}
       </div>
 
-      {/* Advanced Filter Collapse Layer */}
+      {/* ─── LEVEL 2: Advanced Filters Collapse Panel ────────── */}
       {showAdvancedFilters && (
-        <div className="w-full p-6 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in slide-in-from-top-2 duration-200 flex flex-col gap-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {/* 1. Status Pengurus */}
-            <div className="flex flex-col gap-2">
-              <label className="text-slate-700 text-sm font-bold font-['Public_Sans']">Status</label>
+        <div className="w-full p-6 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in slide-in-from-top-2 duration-200 flex flex-col gap-5">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="material-icons-round text-violet-600 text-[18px]">manage_search</span>
+            <h3 className="text-slate-800 text-sm font-bold font-['Inter']">Filter Lanjutan Jabatan</h3>
+            <span className="text-slate-400 text-xs font-['Public_Sans']">— Semua filter ini menggunakan logika EXISTS (1 orang tetap 1 baris)</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+
+            {/* 1. Lingkup Pelayanan */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-slate-600 text-xs font-bold font-['Inter'] uppercase tracking-wide">Lingkup</label>
               <div className="relative">
                 <select
-                  value={tempStatus}
-                  onChange={(e) => setTempStatus(e.target.value)}
-                  className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
+                  value={tempLingkup}
+                  onChange={(e) => setTempLingkup(e.target.value)}
+                  className="appearance-none w-full pl-3 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-['Public_Sans'] text-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-violet-400"
                 >
-                  <option value="Semua">Semua</option>
-                  <option value="Aktif">Aktif</option>
-                  <option value="Demisioner">Demisioner</option>
-                  <option value="Non-Aktif">Non-Aktif</option>
+                  <option value="">Semua Lingkup</option>
+                  <option value="Pusat">Pusat</option>
+                  <option value="Satelit">Satelit</option>
+                  <option value="Komisi">Komisi</option>
+                  <option value="Departemen">Departemen</option>
                 </select>
-                <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
+                <span className="material-icons-round absolute right-2 top-2 text-slate-400 text-[18px] pointer-events-none">expand_more</span>
               </div>
             </div>
 
-            {/* 2. Periode */}
-            <div className="flex flex-col gap-2">
-              <label className="text-slate-700 text-sm font-bold font-['Public_Sans']">Periode</label>
+            {/* 2. Satelit Penugasan */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-slate-600 text-xs font-bold font-['Inter'] uppercase tracking-wide">Satelit Penugasan</label>
+              <div className="relative">
+                <select
+                  value={tempSatelitPenugasan}
+                  onChange={(e) => setTempSatelitPenugasan(e.target.value)}
+                  className="appearance-none w-full pl-3 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-['Public_Sans'] text-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-violet-400"
+                >
+                  <option value="">Semua</option>
+                  {satelitOptions.map((s) => (
+                    <option key={s.id} value={s.id}>{s.nama_satelit}</option>
+                  ))}
+                </select>
+                <span className="material-icons-round absolute right-2 top-2 text-slate-400 text-[18px] pointer-events-none">expand_more</span>
+              </div>
+            </div>
+
+            {/* 3. Jabatan */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-slate-600 text-xs font-bold font-['Inter'] uppercase tracking-wide">Jabatan</label>
+              <div className="relative">
+                <select
+                  value={tempJabatan}
+                  onChange={(e) => setTempJabatan(e.target.value)}
+                  className="appearance-none w-full pl-3 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-['Public_Sans'] text-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-violet-400"
+                >
+                  <option value="">Semua Jabatan</option>
+                  {jabatanOptions.map((j) => (
+                    <option key={j.id} value={j.id}>{j.nama_jabatan}</option>
+                  ))}
+                </select>
+                <span className="material-icons-round absolute right-2 top-2 text-slate-400 text-[18px] pointer-events-none">expand_more</span>
+              </div>
+            </div>
+
+            {/* 4. Periode */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-slate-600 text-xs font-bold font-['Inter'] uppercase tracking-wide">Periode</label>
               <div className="relative">
                 <select
                   value={tempPeriode}
                   onChange={(e) => setTempPeriode(e.target.value)}
-                  className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
+                  className="appearance-none w-full pl-3 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-['Public_Sans'] text-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-violet-400"
                 >
                   <option value="">Semua Periode</option>
-                  {periodeOptions.map((periode) => (
-                    <option key={periode.id} value={periode.id}>{periode.nama_periode}</option>
+                  {periodeOptions.map((p) => (
+                    <option key={p.id} value={p.id}>{p.nama_periode}</option>
                   ))}
                 </select>
-                <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
+                <span className="material-icons-round absolute right-2 top-2 text-slate-400 text-[18px] pointer-events-none">expand_more</span>
               </div>
             </div>
 
-            {/* 3. Komisi */}
-            <div className="flex flex-col gap-2">
-              <label className="text-slate-700 text-sm font-bold font-['Public_Sans']">Saring Komisi</label>
+            {/* 5. Komisi */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-slate-600 text-xs font-bold font-['Inter'] uppercase tracking-wide">Komisi</label>
               <div className="relative">
                 <select
                   value={tempKomisi}
-                  onChange={(e) => setTempKomisi(e.target.value)}
+                  onChange={(e) => { setTempKomisi(e.target.value); if (e.target.value) setTempDepartemen(''); }}
                   disabled={!!tempDepartemen}
-                  className={`appearance-none w-full pl-4 pr-10 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm ${tempDepartemen ? 'bg-slate-200 cursor-not-allowed opacity-60' : 'bg-slate-50 cursor-pointer'}`}
+                  className={`appearance-none w-full pl-3 pr-8 py-2 border border-slate-200 rounded-lg text-slate-700 font-['Public_Sans'] text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 ${tempDepartemen ? 'bg-slate-100 cursor-not-allowed opacity-50' : 'bg-slate-50 cursor-pointer'}`}
                 >
                   <option value="">Semua</option>
                   {komisiOptions.map((k) => (
                     <option key={k.id} value={k.id}>{k.nama_komisi}</option>
                   ))}
                 </select>
-                <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
+                <span className="material-icons-round absolute right-2 top-2 text-slate-400 text-[18px] pointer-events-none">expand_more</span>
               </div>
             </div>
 
-            {/* 4. Departemen */}
-            <div className="flex flex-col gap-2">
-              <label className="text-slate-700 text-sm font-bold font-['Public_Sans']">Saring Departemen</label>
+            {/* 6. Departemen */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-slate-600 text-xs font-bold font-['Inter'] uppercase tracking-wide">Departemen</label>
               <div className="relative">
                 <select
                   value={tempDepartemen}
-                  onChange={(e) => setTempDepartemen(e.target.value)}
+                  onChange={(e) => { setTempDepartemen(e.target.value); if (e.target.value) setTempKomisi(''); }}
                   disabled={!!tempKomisi}
-                  className={`appearance-none w-full pl-4 pr-10 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm ${tempKomisi ? 'bg-slate-200 cursor-not-allowed opacity-60' : 'bg-slate-50 cursor-pointer'}`}
+                  className={`appearance-none w-full pl-3 pr-8 py-2 border border-slate-200 rounded-lg text-slate-700 font-['Public_Sans'] text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 ${tempKomisi ? 'bg-slate-100 cursor-not-allowed opacity-50' : 'bg-slate-50 cursor-pointer'}`}
                 >
                   <option value="">Semua</option>
                   {departemenOptions.map((d) => (
                     <option key={d.id} value={d.id}>{d.nama_departemen}</option>
                   ))}
                 </select>
-                <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
+                <span className="material-icons-round absolute right-2 top-2 text-slate-400 text-[18px] pointer-events-none">expand_more</span>
               </div>
             </div>
           </div>
-          
+
           <div className="flex justify-end items-center gap-3 pt-4 border-t border-slate-100">
-              <button
-                onClick={() => {
-                  setTempStatus('Aktif');
-                  setTempPeriode('');
-                  setTempKomisi('');
-                  setTempDepartemen('');
-                  setFilterStatus('Aktif');
-                  setFilterPeriode('');
-                  setFilterKomisi('');
-                  setFilterDepartemen('');
-                  setCurrentPage(1);
-                  setShowAdvancedFilters(false);
-                }}
-                className="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
-              >
-                Reset
-              </button>
-              <button
-                onClick={() => {
-                  setFilterStatus(tempStatus);
-                  setFilterPeriode(tempPeriode);
-                  setFilterKomisi(tempKomisi);
-                  setFilterDepartemen(tempDepartemen);
-                  setCurrentPage(1);
-                  setShowAdvancedFilters(false);
-                }}
-              className="px-4 py-2 text-sm font-medium text-white bg-slate-800 rounded-lg hover:bg-slate-900 transition-colors shadow-sm"
+            <button
+              onClick={() => {
+                setTempLingkup(''); setTempSatelitPenugasan(''); setTempJabatan('');
+                setTempPeriode(''); setTempKomisi(''); setTempDepartemen('');
+                setFilterLingkup(''); setFilterSatelitPenugasan(''); setFilterJabatan('');
+                setFilterPeriode(''); setFilterKomisi(''); setFilterDepartemen('');
+                setCurrentPage(1);
+                setShowAdvancedFilters(false);
+              }}
+              className="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
             >
-              Terapkan
+              Reset Filter Lanjutan
+            </button>
+            <button
+              onClick={() => {
+                setFilterLingkup(tempLingkup);
+                setFilterSatelitPenugasan(tempSatelitPenugasan);
+                setFilterJabatan(tempJabatan);
+                setFilterPeriode(tempPeriode);
+                setFilterKomisi(tempKomisi);
+                setFilterDepartemen(tempDepartemen);
+                setCurrentPage(1);
+                setShowAdvancedFilters(false);
+              }}
+              className="px-5 py-2 text-sm font-bold text-white bg-violet-600 rounded-lg hover:bg-violet-700 transition-colors shadow-sm"
+            >
+              Terapkan Filter
             </button>
           </div>
         </div>
       )}
+
 
       {/* Data Table */}
       <div className="w-full bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col relative z-0">

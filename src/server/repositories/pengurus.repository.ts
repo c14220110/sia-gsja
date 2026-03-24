@@ -2,12 +2,16 @@ import pool from '@/lib/db';
 
 export interface PengurusFilterParams {
   search?: string;
-  satelit_id?: string;
+  // Quick Filters
+  satelit_asal_id?: string;      // homebase jemaat (j.satelit_id)
+  status_global?: string;         // 'Aktif' | 'Non-Aktif' | '' — maps to p.is_active
+  // Advanced Filters
+  lingkup?: string;               // dk.lingkup: Pusat | Satelit | Komisi | Departemen
+  satelit_penugasan_id?: string;  // lokasi jabatan (dk.satelit_id)
   jabatan_id?: string;
   periode_id?: string;
   komisi_id?: string;
   departemen_id?: string;
-  status?: string;
   limit?: number;
   offset?: number;
 }
@@ -20,8 +24,8 @@ export class PengurusRepository {
     pengurus_demisioner: number;
   }> {
     const {
-      search, satelit_id, jabatan_id, periode_id,
-      komisi_id, departemen_id, status,
+      search, satelit_asal_id, status_global,
+      lingkup, satelit_penugasan_id, jabatan_id, periode_id, komisi_id, departemen_id,
       limit = 10, offset = 0,
     } = params;
 
@@ -29,20 +33,34 @@ export class PengurusRepository {
     const values: any[] = [];
     let idx = 1;
 
+    // Quick filter: search by name or ID
     if (search) {
       conditions.push(`(j.nama_lengkap ILIKE $${idx} OR p.id_pengurus ILIKE $${idx})`);
       values.push(`%${search}%`);
       idx++;
     }
 
-    // Jabatan-level filters via EXISTS — so 1 row per person is maintained
+    // Quick filter: satelit asal/homebase (from jemaat table, NOT jabatan)
+    if (satelit_asal_id) {
+      conditions.push(`j.satelit_id = $${idx++}`);
+      values.push(parseInt(satelit_asal_id));
+    }
+
+    // Quick filter: status global pengurus (p.is_active)
+    if (status_global === 'Aktif') {
+      conditions.push(`p.is_active = true`);
+    } else if (status_global === 'Non-Aktif') {
+      conditions.push(`p.is_active = false`);
+    }
+
+    // Advanced filters — all via EXISTS to preserve 1-row-per-person guarantee
     const jabatanConds: string[] = [];
-    if (satelit_id)    { jabatanConds.push(`dk.satelit_id    = $${idx++}`); values.push(parseInt(satelit_id)); }
-    if (jabatan_id)    { jabatanConds.push(`dk.jabatan_id    = $${idx++}`); values.push(parseInt(jabatan_id)); }
-    if (periode_id)    { jabatanConds.push(`dk.periode_id    = $${idx++}`); values.push(parseInt(periode_id)); }
-    if (komisi_id)     { jabatanConds.push(`dk.komisi_id     = $${idx++}`); values.push(parseInt(komisi_id)); }
-    if (departemen_id) { jabatanConds.push(`dk.departemen_id = $${idx++}`); values.push(parseInt(departemen_id)); }
-    if (status)        { jabatanConds.push(`dk.status_jabatan= $${idx++}`); values.push(status); }
+    if (lingkup)               { jabatanConds.push(`dk.lingkup        = $${idx++}`); values.push(lingkup); }
+    if (satelit_penugasan_id)  { jabatanConds.push(`dk.satelit_id     = $${idx++}`); values.push(parseInt(satelit_penugasan_id)); }
+    if (jabatan_id)            { jabatanConds.push(`dk.jabatan_id     = $${idx++}`); values.push(parseInt(jabatan_id)); }
+    if (periode_id)            { jabatanConds.push(`dk.periode_id     = $${idx++}`); values.push(parseInt(periode_id)); }
+    if (komisi_id)             { jabatanConds.push(`dk.komisi_id      = $${idx++}`); values.push(parseInt(komisi_id)); }
+    if (departemen_id)         { jabatanConds.push(`dk.departemen_id  = $${idx++}`); values.push(parseInt(departemen_id)); }
 
     if (jabatanConds.length > 0) {
       conditions.push(`EXISTS (

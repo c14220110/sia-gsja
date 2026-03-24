@@ -9,21 +9,25 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
 
     const params = {
-      search:        searchParams.get('search')        || undefined,
-      satelit_id:    searchParams.get('satelit_id')    || undefined,
-      jabatan_id:    searchParams.get('jabatan_id')    || undefined,
-      periode_id:    searchParams.get('periode_id')    || undefined,
-      komisi_id:     searchParams.get('komisi_id')     || undefined,
-      departemen_id: searchParams.get('departemen_id') || undefined,
-      status:        searchParams.get('status')        || undefined,
-      limit:         parseInt(searchParams.get('limit')  ?? '10'),
-      offset:        parseInt(searchParams.get('offset') ?? '0'),
+      search:                searchParams.get('search')                || undefined,
+      satelit_asal_id:       searchParams.get('satelit_asal_id')       || undefined,
+      status_global:         searchParams.get('status_global')         || undefined,
+      lingkup:               searchParams.get('lingkup')               || undefined,
+      satelit_penugasan_id:  searchParams.get('satelit_penugasan_id')  || undefined,
+      jabatan_id:            searchParams.get('jabatan_id')            || undefined,
+      periode_id:            searchParams.get('periode_id')            || undefined,
+      komisi_id:             searchParams.get('komisi_id')             || undefined,
+      departemen_id:         searchParams.get('departemen_id')         || undefined,
+      limit:                 parseInt(searchParams.get('limit')  ?? '10'),
+      offset:                parseInt(searchParams.get('offset') ?? '0'),
     };
 
     const caller = await getCallerFromRequest(request);
+    // Auto-lock satelit asal untuk admin satelit
     if (caller && caller.role_name?.toUpperCase().includes('SATELIT')) {
-      params.satelit_id = caller.satelit_id?.toString();
+      params.satelit_asal_id = caller.satelit_id?.toString();
     }
+
 
     const result = await pengurusRepository.getPengurusPagination(params);
 
