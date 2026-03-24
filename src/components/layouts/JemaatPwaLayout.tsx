@@ -85,7 +85,7 @@ export default function JemaatPwaLayout({
                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Manajemen Profil</h4>
                
                {/* Data Diri Link */}
-               <Link href={`/dashboard/members/${userData?.jemaat_id}?mode=edit`} onClick={() => setIsSettingsOpen(false)} className="w-full flex items-center justify-between p-3 hover:bg-slate-50 rounded-2xl transition-colors">
+               <Link href={`/jemaat/${userData?.jemaat_id}?mode=edit`} onClick={() => setIsSettingsOpen(false)} className="w-full flex items-center justify-between p-3 hover:bg-slate-50 rounded-2xl transition-colors">
                   <div className="flex items-center gap-4">
                      <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center">
                         <span className="material-icons-round text-[20px]">badge</span>
@@ -99,7 +99,7 @@ export default function JemaatPwaLayout({
                </Link>
 
                {/* Relasi Keluarga Link */}
-               <Link href="/dashboard/family-tree" onClick={() => setIsSettingsOpen(false)} className="w-full flex items-center justify-between p-3 hover:bg-slate-50 rounded-2xl transition-colors">
+               <Link href="/family-tree" onClick={() => setIsSettingsOpen(false)} className="w-full flex items-center justify-between p-3 hover:bg-slate-50 rounded-2xl transition-colors">
                   <div className="flex items-center gap-4">
                      <div className="w-10 h-10 bg-teal-50 text-teal-600 rounded-full flex items-center justify-center">
                         <span className="material-icons-round text-[20px]">family_restroom</span>
