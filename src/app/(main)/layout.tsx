@@ -410,8 +410,7 @@ export default function DashboardLayout({
                   {/* Mobile Accordion */}
                   <div className={`md:hidden overflow-hidden transition-all duration-300 ${mobileExpandedMenus['profil_saya'] ? 'max-h-96 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
                     <div className="pl-14 pr-4 py-2 flex flex-col gap-4">
-                      <Link href={`/jemaat/${userData?.jemaat_id || 'not-found'}?mode=view`} onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Data Diri</Link>
-                      <span className="text-slate-300 text-sm font-medium hover:text-white transition-colors cursor-pointer block">Family Tree</span>
+                      <Link href="/profil" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Data Diri & Profil</Link>
                     </div>
                   </div>
               </div>
@@ -612,7 +611,7 @@ export default function DashboardLayout({
                     <div className="justify-center text-slate-800 text-lg font-bold font-['Inter'] leading-7">Profil Saya</div>
                   </div>
                   <div className="self-stretch flex justify-between items-start gap-4">
-                    <Link href={`/jemaat/${userData?.jemaat_id || 'not-found'}?mode=view`} onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-teal-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-teal-200 flex flex-col justify-center items-center cursor-pointer hover:bg-teal-100 transition-colors block text-inherit no-underline">
+                    <Link href="/profil" onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-teal-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-teal-200 flex flex-col justify-center items-center cursor-pointer hover:bg-teal-100 transition-colors block text-inherit no-underline">
                       <div className="pb-2 flex flex-col justify-start items-start">
                         <div className="flex flex-col justify-start items-center">
                           <span className="material-icons-round text-teal-600 text-[32px]">badge</span>
@@ -622,16 +621,16 @@ export default function DashboardLayout({
                         <div className="justify-center text-teal-900 text-sm font-bold font-['Inter'] leading-5">Data Diri</div>
                       </div>
                     </Link>
-                    <div className="flex-1 h-32 p-4 bg-teal-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-teal-200 flex flex-col justify-center items-center cursor-pointer hover:bg-teal-100 transition-colors">
+                    <Link href="/profil" onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-teal-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-teal-200 flex flex-col justify-center items-center cursor-pointer hover:bg-teal-100 transition-colors block text-inherit no-underline">
                       <div className="pb-2 flex flex-col justify-start items-start">
                         <div className="flex flex-col justify-start items-center">
                           <span className="material-icons-round text-teal-600 text-[32px]">family_restroom</span>
                         </div>
                       </div>
                       <div className="flex flex-col justify-start items-center text-center">
-                        <div className="justify-center text-teal-900 text-sm font-bold font-['Inter'] leading-5">Family Tree</div>
+                        <div className="justify-center text-teal-900 text-sm font-bold font-['Inter'] leading-5">Silsilah Keluarga</div>
                       </div>
-                    </div>
+                    </Link>
                   </div>
                 </div>
               </div>

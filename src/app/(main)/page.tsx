@@ -158,9 +158,14 @@ export default function DashboardHome() {
               </div>
            </div>
            
-           <Link href={`/jemaat/${userData.jemaat_id}?mode=view`} className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center shadow-inner border border-blue-100 overflow-hidden shrink-0">
-             <span className="material-icons-round text-blue-500 text-2xl">person</span>
+           <Link href={`/profil`} className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center shadow-inner border border-blue-100 overflow-hidden shrink-0">
+             {userData?.foto_url ? (
+               <img src={userData.foto_url} alt="profil" className="w-full h-full object-cover" />
+             ) : (
+               <span className="material-icons-round text-blue-500 text-2xl">person</span>
+             )}
            </Link>
+
         </div>
 
         <div className="w-full px-6 flex flex-col gap-8 pb-12 mt-6">
