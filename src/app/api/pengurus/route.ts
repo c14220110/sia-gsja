@@ -52,43 +52,68 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { 
-      jemaat_id, 
-      satelit_id, 
-      jabatan_id, 
-      lingkup, 
-      komisi_id, 
-      departemen_id, 
-      periode_id, 
-      tanggal_mulai,
-      jalur_pengangkatan, 
-      catatan 
-    } = body;
+    const { jemaat_id } = body;
 
-    if (!jemaat_id || !satelit_id || !jabatan_id || !lingkup || !periode_id || !tanggal_mulai || !jalur_pengangkatan) {
-      return NextResponse.json({ success: false, message: 'Harap lengkapi semua field utama form pengurus' }, { status: 400 });
+    if (!jemaat_id) {
+      return NextResponse.json({ success: false, message: 'jemaat_id wajib diisi' }, { status: 400 });
     }
 
-    const result = await pengurusRepository.createPengurus({
-      jemaat_id: parseInt(jemaat_id, 10),
-      satelit_id: parseInt(satelit_id, 10),
-      jabatan_id: parseInt(jabatan_id, 10),
-      lingkup,
-      komisi_id: komisi_id ? parseInt(komisi_id, 10) : null,
-      departemen_id: departemen_id ? parseInt(departemen_id, 10) : null,
-      periode_id: parseInt(periode_id, 10),
-      tanggal_mulai,
-      jalur_pengangkatan,
-      catatan,
-      user_id: caller.user_id,
-      user_role_id: caller.role_id,
+    // Support multi-jabatan array AND legacy single flat payload
+    let jabatanList: any[] = [];
+    if (Array.isArray(body.jabatan_list) && body.jabatan_list.length > 0) {
+      jabatanList = body.jabatan_list;
+    } else if (body.jabatan_id) {
+      jabatanList = [{
+        jabatan_id: body.jabatan_id,
+        lingkup: body.lingkup,
+        satelit_id: body.satelit_id,
+        komisi_id: body.komisi_id,
+        departemen_id: body.departemen_id,
+        periode_id: body.periode_id,
+        tanggal_mulai: body.tanggal_mulai,
+        jalur_pengangkatan: body.jalur_pengangkatan,
+        catatan: body.catatan,
+      }];
+    }
+
+    if (jabatanList.length === 0) {
+      return NextResponse.json({ success: false, message: 'Minimal 1 jabatan harus diisi' }, { status: 400 });
+    }
+
+    let lastPengurusId: number | undefined;
+    for (const jab of jabatanList) {
+      const { jabatan_id, lingkup, satelit_id, komisi_id, departemen_id, periode_id, tanggal_mulai, jalur_pengangkatan, catatan } = jab;
+
+      if (!jabatan_id || !lingkup || !periode_id || !tanggal_mulai || !jalur_pengangkatan) {
+        return NextResponse.json({ success: false, message: 'Setiap jabatan harus memiliki lingkup, jabatan, periode, tanggal mulai, dan jalur pengangkatan' }, { status: 400 });
+      }
+
+      const result = await pengurusRepository.createPengurus({
+        jemaat_id:          parseInt(jemaat_id, 10),
+        satelit_id:         parseInt(satelit_id, 10),
+        jabatan_id:         parseInt(jabatan_id, 10),
+        lingkup,
+        komisi_id:          komisi_id ? parseInt(komisi_id, 10) : null,
+        departemen_id:      departemen_id ? parseInt(departemen_id, 10) : null,
+        periode_id:         parseInt(periode_id, 10),
+        tanggal_mulai,
+        jalur_pengangkatan,
+        catatan,
+        user_id:            caller.user_id,
+        user_role_id:       caller.role_id,
+      });
+
+      if (!result.success) {
+        return NextResponse.json({ success: false, message: result.message || 'Gagal menambahkan jabatan' }, { status: 400 });
+      }
+      lastPengurusId = result.pengurus_id;
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `Pengurus berhasil ditambahkan dengan ${jabatanList.length} jabatan`,
+      data: { id: lastPengurusId }
     });
-
-    if (result.success) {
-      return NextResponse.json({ success: true, message: 'Pengurus berhasil ditambahkan', data: { id: result.pengurus_id } });
-    } else {
-      return NextResponse.json({ success: false, message: result.message || 'Gagal menambahkan pengurus' }, { status: 400 });
-    }
   } catch (error: any) {
     console.error('[PengurusRoute] POST error:', error);
     return NextResponse.json({ success: false, message: error.message || 'Internal Server Error' }, { status: 500 });

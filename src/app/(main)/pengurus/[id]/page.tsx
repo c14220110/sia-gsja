@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
+import { FormDetailKepengurusan, JabatanEntry, defaultJabatanEntry } from '@/components/pengurus/FormDetailKepengurusan';
 
 export default function PengurusDetailPage() {
   const params = useParams();
@@ -18,33 +19,69 @@ export default function PengurusDetailPage() {
   const [submitState, setSubmitState] = useState<{ status: 'idle'|'loading'|'success'|'error', message: string }>({ status: 'idle', message: '' });
 
   const [userData, setUserData] = useState<any>(null);
+
+  // States for Modals
+  const [isAddJabatanOpen, setIsAddJabatanOpen] = useState(false);
+  const [isDeactivateOpen, setIsDeactivateOpen] = useState(false);
+  const [selectedDetailId, setSelectedDetailId] = useState<number | null>(null);
+
+  // Form Data for Tambah Jabatan
+  const [newJabatan, setNewJabatan] = useState<JabatanEntry>(defaultJabatanEntry());
+  const [options, setOptions] = useState<any>({ jabatan: [], satelit: [], komisi: [], departemen: [], periode: [] });
+
+  // Form Data for Pemberhentian
+  const [deactivateForm, setDeactivateForm] = useState({
+    status_jabatan: 'Demisioner',
+    tanggal_akhir_menjabat: '',
+    catatan: '',
+  });
+
   const hasPermission = (perm: string) => {
     if (!userData) return false;
     if (userData.is_super_admin) return true;
     return userData.permissions?.includes?.(perm);
   };
 
-  useEffect(() => {
-    const fetchAll = async () => {
-      setIsLoadingData(true);
-      try {
-        const [resPengurus, resUser] = await Promise.all([
-          fetch(`/api/pengurus/${id}`),
-          fetch('/api/auth/me'),
-        ]);
-        if (resUser.ok) setUserData(await resUser.json());
-        if (resPengurus.ok) {
-          const json = await resPengurus.json();
-          if (json.success && json.data) setPengurus(json.data);
-        }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setIsLoadingData(false);
+  const fetchAll = async () => {
+    setIsLoadingData(true);
+    try {
+      const [resPengurus, resUser] = await Promise.all([
+        fetch(`/api/pengurus/${id}`),
+        fetch('/api/auth/me'),
+      ]);
+      if (resUser.ok) setUserData(await resUser.json());
+      if (resPengurus.ok) {
+        const json = await resPengurus.json();
+        if (json.success && json.data) setPengurus(json.data);
       }
-    };
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
+
+  useEffect(() => {
     if (id) fetchAll();
   }, [id]);
+
+  useEffect(() => {
+    if (!isReadOnly && hasPermission('pengurus_manage')) {
+      Promise.all([
+        fetch('/api/options?type=jabatan').then(r => r.json()),
+        fetch('/api/options?type=satelit').then(r => r.json()),
+        fetch('/api/options?type=komisi').then(r => r.json()),
+        fetch('/api/options?type=departemen').then(r => r.json()),
+        fetch('/api/options?type=periode_kepengurusan').then(r => r.json()),
+      ]).then(([jab, sat, kom, dep, per]) => setOptions({
+        jabatan: jab.success ? jab.data : [],
+        satelit: sat.success ? sat.data : [],
+        komisi: kom.success ? kom.data : [],
+        departemen: dep.success ? dep.data : [],
+        periode: per.success ? per.data : [],
+      }));
+    }
+  }, [isReadOnly, userData]);
 
   const formatDate = (d: string | null) => {
     if (!d) return '-';
@@ -60,8 +97,72 @@ export default function PengurusDetailPage() {
   const auditIcon = (aksi: string) => {
     if (aksi === 'CREATE') return { icon: 'person_add', cls: 'bg-emerald-100 text-emerald-600' };
     if (aksi === 'UPDATE') return { icon: 'edit', cls: 'bg-blue-100 text-blue-600' };
+    if (aksi === 'ADD_JABATAN') return { icon: 'post_add', cls: 'bg-indigo-100 text-indigo-600' };
     if (aksi === 'DEACTIVATE') return { icon: 'person_off', cls: 'bg-amber-100 text-amber-600' };
     return { icon: 'info', cls: 'bg-slate-100 text-slate-500' };
+  };
+
+  const handleAddJabatanSubmit = async () => {
+    if (!newJabatan.jabatan_id || !newJabatan.periode_id || !newJabatan.tanggal_mulai) {
+      alert('Jabatan, Periode, dan Tanggal Mulai wajib diisi.');
+      return;
+    }
+    setSubmitState({ status: 'loading', message: '' });
+    try {
+      const payload = {
+        ...newJabatan,
+        satelit_id: newJabatan.lingkup === 'Pusat' ? 1 : newJabatan.lokasi_satelit_id,
+        komisi_id: newJabatan.komisi_id || null,
+        departemen_id: newJabatan.departemen_id || null,
+      };
+      const res = await fetch(`/api/pengurus/${id}/jabatan`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSubmitState({ status: 'success', message: 'Jabatan baru berhasil ditambahkan' });
+        setIsAddJabatanOpen(false);
+        setNewJabatan(defaultJabatanEntry());
+        fetchAll(); // Refresh data
+      } else {
+        setSubmitState({ status: 'error', message: data.message });
+      }
+    } catch (e: any) {
+      setSubmitState({ status: 'error', message: e.message || 'Terjadi kesalahan' });
+    }
+  };
+
+  const handleDeactivateClick = (detailId: number) => {
+    setSelectedDetailId(detailId);
+    setDeactivateForm({ status_jabatan: 'Demisioner', tanggal_akhir_menjabat: '', catatan: '' });
+    setIsDeactivateOpen(true);
+  };
+
+  const handleDeactivateSubmit = async () => {
+    if (!deactivateForm.tanggal_akhir_menjabat) {
+      alert('Tanggal Akhir Menjabat wajib diisi');
+      return;
+    }
+    setSubmitState({ status: 'loading', message: '' });
+    try {
+      const res = await fetch(`/api/pengurus/${id}/jabatan/${selectedDetailId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(deactivateForm)
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSubmitState({ status: 'success', message: data.message });
+        setIsDeactivateOpen(false);
+        fetchAll(); // Refresh
+      } else {
+        setSubmitState({ status: 'error', message: data.message });
+      }
+    } catch (e: any) {
+      setSubmitState({ status: 'error', message: e.message || 'Terjadi kesalahan' });
+    }
   };
 
   if (isLoadingData) {
@@ -85,6 +186,7 @@ export default function PengurusDetailPage() {
   }
 
   const latestJabatan = pengurus.jabatan?.[0];
+  const canManage = !isReadOnly && hasPermission('pengurus_manage');
 
   return (
     <div className="w-full flex flex-col gap-6 pb-10">
@@ -175,11 +277,8 @@ export default function PengurusDetailPage() {
         {/* ==================== TAB 1: DATA PENGURUS ==================== */}
         {activeTab === 'data_pengurus' && (
           <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-
             {/* KOLOM KIRI */}
             <div className="flex flex-col gap-8">
-
-              {/* Informasi Personal */}
               <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-start items-start gap-6">
                 <div className="w-full inline-flex justify-start items-center gap-2">
                   <span className="material-icons-round text-slate-700 text-[18px]">badge</span>
@@ -209,7 +308,6 @@ export default function PengurusDetailPage() {
                 </div>
               </div>
 
-              {/* Kontak */}
               <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-start items-start gap-6">
                 <div className="w-full inline-flex justify-start items-center gap-2">
                   <span className="material-icons-round text-slate-700 text-[18px]">contact_phone</span>
@@ -232,8 +330,6 @@ export default function PengurusDetailPage() {
 
             {/* KOLOM KANAN */}
             <div className="flex flex-col gap-8">
-
-              {/* Status Baptis & Gereja */}
               <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-start items-start gap-6">
                 <div className="w-full inline-flex justify-start items-center gap-2">
                   <span className="material-icons-round text-slate-700 text-[20px]">how_to_reg</span>
@@ -257,7 +353,6 @@ export default function PengurusDetailPage() {
                 </div>
               </div>
 
-              {/* Link ke Profil Jemaat */}
               <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-start items-start gap-4">
                 <div className="w-full inline-flex justify-start items-center gap-2">
                   <span className="material-icons-round text-slate-700 text-[18px]">link</span>
@@ -282,6 +377,24 @@ export default function PengurusDetailPage() {
         {/* ==================== TAB 2: RIWAYAT JABATAN ==================== */}
         {activeTab === 'riwayat_jabatan' && (
           <div className="w-full flex flex-col gap-4">
+            
+            {/* Header / Actions for Riwayat Jabatan */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
+              <div className="text-slate-700 font-['Inter'] font-semibold text-sm">
+                Daftar posisi/jabatan yang pernah atau sedang diemban.
+              </div>
+              {canManage && (
+                <button
+                  type="button"
+                  onClick={() => setIsAddJabatanOpen(true)}
+                  className="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg flex items-center gap-2 font-bold text-sm shadow-sm transition-colors whitespace-nowrap w-fit"
+                >
+                  <span className="material-icons-round text-[18px]">add</span>
+                  Tambah Jabatan Baru
+                </button>
+              )}
+            </div>
+
             {pengurus.jabatan?.length === 0 ? (
               <div className="w-full py-16 bg-white rounded-xl border border-slate-200 flex flex-col items-center gap-3 text-slate-400">
                 <span className="material-icons-round text-5xl opacity-40">workspace_premium</span>
@@ -289,41 +402,60 @@ export default function PengurusDetailPage() {
               </div>
             ) : (
               pengurus.jabatan?.map((jab: any) => (
-                <div key={jab.id} className="w-full p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col gap-4">
-                  <div className="flex items-start justify-between gap-3">
+                <div key={jab.id} className="w-full bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden">
+                  {/* Card Header */}
+                  <div className="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-violet-100 rounded-xl flex items-center justify-center shrink-0">
                         <span className="material-icons-round text-violet-700 text-[20px]">workspace_premium</span>
                       </div>
                       <div>
-                        <div className="text-slate-900 font-black text-lg font-['Inter']">{jab.nama_jabatan}</div>
+                        <div className="text-slate-900 font-black text-lg font-['Inter'] flex items-center gap-2">
+                          {jab.nama_jabatan}
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase shrink-0 font-['Inter'] ${statusBadge(jab.status_jabatan)}`}>
+                            {jab.status_jabatan}
+                          </span>
+                        </div>
                         <div className="text-slate-500 text-sm font-['Public_Sans'] mt-0.5">
-                          {jab.lingkup} — {jab.nama_satelit || jab.nama_komisi || jab.nama_departemen || 'Umum'}
+                          {jab.lingkup} — <span className="font-semibold text-slate-700">{jab.nama_satelit || jab.nama_komisi || jab.nama_departemen || 'Umum'}</span>
                         </div>
                       </div>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase shrink-0 font-['Inter'] ${statusBadge(jab.status_jabatan)}`}>
-                      {jab.status_jabatan}
-                    </span>
+
+                    {/* ACTION BUTTON: Berhentikan / Ubah Status */}
+                    {canManage && jab.status_jabatan === 'Aktif' && (
+                      <button
+                        onClick={() => handleDeactivateClick(jab.id)}
+                        className="px-4 py-2 bg-white hover:bg-rose-50 border border-slate-200 hover:border-rose-200 text-rose-600 rounded-lg text-sm font-bold shadow-sm transition-colors flex items-center gap-2 shrink-0"
+                      >
+                        <span className="material-icons-round text-[16px]">cancel</span>
+                        <span>Berhentikan / Ubah Status</span>
+                      </button>
+                    )}
                   </div>
-                  <div className="w-full grid grid-cols-2 md:grid-cols-4 gap-4 pt-2 border-t border-slate-100">
-                    {[
-                      { label: 'Periode', value: `${jab.nama_periode} (${jab.tahun_mulai}–${jab.tahun_akhir})` },
-                      { label: 'Jalur Pengangkatan', value: jab.jalur_pengangkatan || '-' },
-                      { label: 'Mulai Menjabat', value: formatDate(jab.tanggal_mulai) },
-                      { label: 'Akhir Menjabat', value: jab.tanggal_akhir_menjabat ? formatDate(jab.tanggal_akhir_menjabat) : 'Belum Berakhir' },
-                    ].map(item => (
-                      <div key={item.label} className="flex flex-col gap-0.5">
-                        <span className="text-slate-400 text-[10px] font-bold font-['Inter'] uppercase tracking-wider">{item.label}</span>
-                        <span className="text-slate-700 text-sm font-semibold font-['Public_Sans']">{item.value}</span>
-                      </div>
-                    ))}
-                  </div>
-                  {jab.catatan && (
-                    <div className="px-4 py-3 bg-slate-50 rounded-lg border border-slate-100 text-sm text-slate-600 font-['Public_Sans'] italic">
-                      📝 {jab.catatan}
+                  
+                  {/* Card Body */}
+                  <div className="px-6 py-5">
+                    <div className="w-full grid grid-cols-2 lg:grid-cols-4 gap-6">
+                      {[
+                        { label: 'Periode', value: `${jab.nama_periode} (${jab.tahun_mulai}–${jab.tahun_akhir})` },
+                        { label: 'Jalur Pengangkatan', value: jab.jalur_pengangkatan || '-' },
+                        { label: 'Mulai Menjabat', value: formatDate(jab.tanggal_mulai) },
+                        { label: 'Akhir Menjabat', value: jab.tanggal_akhir_menjabat ? formatDate(jab.tanggal_akhir_menjabat) : 'Belum Berakhir' },
+                      ].map(item => (
+                        <div key={item.label} className="flex flex-col gap-0.5">
+                          <span className="text-slate-400 text-[10px] font-bold font-['Inter'] uppercase tracking-wider">{item.label}</span>
+                          <span className="text-slate-700 text-sm font-semibold font-['Public_Sans']">{item.value}</span>
+                        </div>
+                      ))}
                     </div>
-                  )}
+                    {jab.catatan && (
+                      <div className="mt-4 px-4 py-3 bg-slate-50 rounded-lg border border-slate-100 text-sm text-slate-600 font-['Public_Sans'] italic flex items-start gap-2">
+                        <span className="material-icons-round text-[16px] text-slate-400 mt-0.5">sticky_note_2</span>
+                        {jab.catatan}
+                      </div>
+                    )}
+                  </div>
                 </div>
               ))
             )}
@@ -350,6 +482,7 @@ export default function PengurusDetailPage() {
                       <div className="flex items-center gap-2 mb-0.5">
                         <span className="text-slate-800 font-bold text-sm font-['Inter']">{log.aksi}</span>
                         <span className="text-slate-400 text-xs font-['Public_Sans']">oleh {log.user_email || 'Sistem'}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] bg-slate-100 text-slate-600 uppercase font-bold`}>{log.nama_role}</span>
                       </div>
                       <div className="text-slate-600 text-sm font-['Public_Sans']">{log.keterangan}</div>
                     </div>
@@ -366,11 +499,108 @@ export default function PengurusDetailPage() {
 
       </div>
 
-      <SubmitOverlay
-        status={submitState.status}
-        message={submitState.message}
-        onClose={() => setSubmitState({ status: 'idle', message: '' })}
-      />
+      <SubmitOverlay status={submitState.status} message={submitState.message} onClose={() => setSubmitState({ status: 'idle', message: '' })} />
+
+      {/* ======================== MODALS ======================== */}
+      
+      {/* 1. Modal Tambah Jabatan Baru */}
+      {isAddJabatanOpen && (
+        <div className="fixed inset-0 z-50 flex justify-center items-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="w-full max-w-2xl bg-white rounded-xl shadow-2xl flex flex-col overflow-hidden my-auto max-h-[90vh]">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between flex-shrink-0 bg-white">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-violet-100 text-violet-600 flex items-center justify-center">
+                  <span className="material-icons-round text-[20px]">add_circle</span>
+                </div>
+                <div>
+                  <h2 className="text-lg font-black text-slate-900 font-['Inter'] leading-tight">Tambah Jabatan Baru</h2>
+                  <p className="text-xs text-slate-500 font-medium">Bpk/Ibu {pengurus.nama_lengkap}</p>
+                </div>
+              </div>
+              <button onClick={() => setIsAddJabatanOpen(false)} className="text-slate-400 hover:text-red-500 transition-colors">
+                <span className="material-icons-round">close</span>
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto bg-slate-50/50">
+              <div className="bg-white p-5 rounded-xl border border-slate-200">
+                <FormDetailKepengurusan
+                  data={newJabatan}
+                  onChange={setNewJabatan}
+                  jabatanOptions={options.jabatan}
+                  satelitOptions={options.satelit}
+                  komisiOptions={options.komisi}
+                  departemenOptions={options.departemen}
+                  periodeOptions={options.periode}
+                />
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 flex-shrink-0 bg-white">
+              <button onClick={() => setIsAddJabatanOpen(false)} className="px-6 py-2 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-100 transition-colors">
+                Batal
+              </button>
+              <button onClick={handleAddJabatanSubmit} className="px-6 py-2 rounded-lg text-sm font-bold text-white bg-violet-600 hover:bg-violet-700 transition-colors flex items-center gap-2 shadow-sm">
+                <span className="material-icons-round text-[18px]">save</span> Simpan Jabatan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 2. Modal Berhentikan / Ubah Status */}
+      {isDeactivateOpen && (
+        <div className="fixed inset-0 z-50 flex justify-center items-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md bg-white rounded-xl shadow-2xl flex flex-col overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3 bg-rose-50">
+              <span className="material-icons-round text-rose-600">cancel</span>
+              <h2 className="text-lg font-black text-rose-900 font-['Inter']">Berhentikan Jabatan</h2>
+            </div>
+            <div className="p-6 flex flex-col gap-5">
+              <p className="text-sm text-slate-600 mb-2">Anda akan memberhentikan jabatan ini. Catatan sejarah akan tetap disimpan dan tidak dapat diedit lagi.</p>
+              
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase">Status Baru</label>
+                <select
+                  value={deactivateForm.status_jabatan}
+                  onChange={e => setDeactivateForm({...deactivateForm, status_jabatan: e.target.value})}
+                  className="px-3 py-2 bg-white rounded-lg border border-slate-300 focus:ring-2 focus:ring-rose-500 focus:border-rose-500 text-sm font-semibold outline-none"
+                >
+                  <option value="Demisioner">Demisioner (Selesai Masa Jabatan)</option>
+                  <option value="Non-Aktif">Non-Aktif (Diberhentikan / Resign)</option>
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase">Tanggal Akhir Menjabat</label>
+                <input
+                  type="date"
+                  value={deactivateForm.tanggal_akhir_menjabat}
+                  onChange={e => setDeactivateForm({...deactivateForm, tanggal_akhir_menjabat: e.target.value})}
+                  className="px-3 py-2 bg-white rounded-lg border border-slate-300 focus:ring-2 focus:ring-rose-500 text-sm outline-none"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase">Alasan / Catatan Berhenti</label>
+                <textarea
+                  value={deactivateForm.catatan}
+                  onChange={e => setDeactivateForm({...deactivateForm, catatan: e.target.value})}
+                  placeholder="Misal: Masa jabatan selesai, atau mengundurkan diri karena kesehatan..."
+                  className="px-3 py-2 bg-white rounded-lg border border-slate-300 focus:ring-2 focus:ring-rose-500 text-sm outline-none min-h-[80px]"
+                />
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50">
+              <button onClick={() => setIsDeactivateOpen(false)} className="px-5 py-2 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-200 transition-colors">
+                Batal
+              </button>
+              <button onClick={handleDeactivateSubmit} className="px-5 py-2 rounded-lg text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 shadow-sm transition-colors">
+                Konfirmasi Berhenti
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
