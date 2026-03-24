@@ -117,6 +117,14 @@ export default function DashboardLayout({
     );
   }
 
+  // Selama data pengguna belum termuat, tampilkan layar kosong blank
+  // agar sidebar admin tidak "flash" sesaat sebelum redirect ke PWA Jemaat
+  if (!userData) {
+    return (
+      <div className="w-full min-h-screen bg-slate-50 flex items-center justify-center" />
+    );
+  }
+
   return (
     <div className="w-full min-h-screen bg-neutral-100 inline-flex flex-col justify-start items-center overflow-auto font-sans">
       <div className="w-full h-screen inline-flex justify-start items-start overflow-hidden">
