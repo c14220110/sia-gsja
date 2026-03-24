@@ -41,6 +41,7 @@ export async function GET(request: NextRequest) {
         email: user?.nama_lengkap || user?.email || `User ${decoded.user_id}`,
         foto_url: user?.foto_url || null,
         jemaat_id: user?.jemaat_id || null,
+        jemaat_nomor: user?.jemaat_nomor || null,
         available_roles: roles,
         permissions,
       },

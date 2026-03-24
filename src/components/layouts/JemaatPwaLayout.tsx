@@ -219,7 +219,7 @@ export default function JemaatPwaLayout({
             {/* Kotak QR Code yang sangat kontras/terang */}
             <div className="w-64 h-64 bg-white p-4 rounded-3xl outline outline-1 outline-offset-[10px] outline-slate-200 shadow-2xl shadow-blue-900/10 flex items-center justify-center mb-8">
               <QRCode 
-                value={userData?.jemaat_id || userData?.user_id?.toString() || 'NO-ID'} 
+                value={userData?.jemaat_nomor || userData?.jemaat_id?.toString() || userData?.user_id?.toString() || 'NO-ID'} 
                 size={220}
                 level="H"
                 fgColor="#0f172a" /* slate-900 */
@@ -229,7 +229,7 @@ export default function JemaatPwaLayout({
             <h3 className="text-xl font-bold text-slate-800 mb-1">{userData?.email || userData?.nama_lengkap || 'Jemaat GSJA'}</h3>
             <div className="flex items-center gap-1.5 px-4 py-1.5 bg-blue-50 text-blue-700 font-mono font-bold tracking-widest rounded-lg border border-blue-100">
               <span className="material-icons-round text-[16px]">badge</span>
-              {userData?.jemaat_id || 'ID TIDAK DITEMUKAN'}
+              {userData?.jemaat_nomor || 'ID TIDAK DITEMUKAN'}
             </div>
 
           </div>
