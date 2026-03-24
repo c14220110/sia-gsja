@@ -196,33 +196,32 @@ export default function DashboardHome() {
            <div className="w-full flex flex-col gap-3">
               <h3 className="text-slate-800 font-black text-lg tracking-tight px-1">Menu Jemaat</h3>
               <div className="grid grid-cols-4 sm:grid-cols-4 gap-y-6 gap-x-2 w-full p-5 bg-white rounded-3xl shadow-sm border border-slate-100">
+                                <Link href="/dashboard/kegiatan" className="flex flex-col items-center gap-3 group">
+                    <div className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center group-hover:shadow-md group-hover:-translate-y-1 transition-all text-blue-600">
+                       <span className="material-icons-round text-3xl">event</span>
+                    </div>
+                    <span className="text-[11px] font-bold text-slate-600 text-center leading-tight">Jadwal &<br/>Acara</span>
+                 </Link>
                  
-                 <Link href="/dashboard/kegiatan" className="flex flex-col items-center gap-2 group">
-                    <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors duration-300 shadow-sm border border-blue-100/50">
-                       <span className="material-icons-round text-[26px]">event</span>
+                 <Link href="/dashboard/pelayan" className="flex flex-col items-center gap-3 group">
+                    <div className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center group-hover:shadow-md group-hover:-translate-y-1 transition-all text-emerald-600">
+                       <span className="material-icons-round text-3xl">assignment_ind</span>
                     </div>
-                    <span className="text-[10px] sm:text-xs font-semibold text-slate-600 text-center leading-tight">Jadwal &<br/>Acara</span>
+                    <span className="text-[11px] font-bold text-slate-600 text-center leading-tight">Jadwal<br/>Pelayanan</span>
                  </Link>
 
-                 <div className="flex flex-col items-center gap-2 group cursor-not-allowed opacity-50 relative">
-                    <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center shadow-sm border border-amber-100/50">
-                       <span className="material-icons-round text-[26px]">music_note</span>
+                 <Link href="/dashboard/kehadiran" className="flex flex-col items-center gap-3 group">
+                    <div className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center group-hover:shadow-md group-hover:-translate-y-1 transition-all text-amber-600">
+                       <span className="material-icons-round text-3xl">history</span>
                     </div>
-                    <span className="text-[10px] sm:text-xs font-semibold text-slate-600 text-center leading-tight">Jadwal<br/>Pelayanan</span>
-                 </div>
-
-                 <Link href={`/dashboard/members/${userData.jemaat_id}?mode=edit`} className="flex flex-col items-center gap-2 group">
-                    <div className="w-12 h-12 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center group-hover:bg-teal-600 group-hover:text-white transition-colors duration-300 shadow-sm border border-teal-100/50">
-                       <span className="material-icons-round text-[26px]">manage_accounts</span>
-                    </div>
-                    <span className="text-[10px] sm:text-xs font-semibold text-slate-600 text-center leading-tight">Data<br/>Diri</span>
+                    <span className="text-[11px] font-bold text-slate-600 text-center leading-tight">Riwayat<br/>Kehadiran</span>
                  </Link>
 
-                 <Link href="/dashboard/family-tree" className="flex flex-col items-center gap-2 group">
-                    <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center group-hover:bg-rose-600 group-hover:text-white transition-colors duration-300 shadow-sm border border-rose-100/50">
-                       <span className="material-icons-round text-[26px]">family_restroom</span>
+                 <Link href="/dashboard/tiket" className="flex flex-col items-center gap-3 group">
+                    <div className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center group-hover:shadow-md group-hover:-translate-y-1 transition-all text-violet-600">
+                       <span className="material-icons-round text-3xl">local_activity</span>
                     </div>
-                    <span className="text-[10px] sm:text-xs font-semibold text-slate-600 text-center leading-tight">Relasi<br/>Keluarga</span>
+                    <span className="text-[11px] font-bold text-slate-600 text-center leading-tight">Tiket Saya &<br/>Kupon</span>
                  </Link>
 
               </div>
