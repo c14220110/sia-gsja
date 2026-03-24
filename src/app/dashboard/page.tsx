@@ -180,9 +180,9 @@ export default function DashboardHome() {
                  </div>
               </div>
 
-              <div className="w-28 h-28 bg-white/20 backdrop-blur-md border border-white/40 p-1 rounded-3xl shadow-inner z-10 mb-4 flex items-center justify-center group-hover:bg-white/30 transition-colors pointer-events-none">
+              <div className="w-36 h-36 bg-white/20 backdrop-blur-md border border-white/40 p-1 rounded-3xl shadow-inner z-10 mb-4 flex items-center justify-center group-hover:bg-white/30 transition-colors pointer-events-none">
                  <div className="w-full h-full text-white pointer-events-none mix-blend-plus-lighter opacity-90 group-hover:scale-110 transition-transform">
-                   <DotLottieReact src="/assets/scan-qr-mobile.lottie" loop autoplay />
+                   <DotLottieReact src="/assets/qr-scan.lottie" loop autoplay />
                  </div>
               </div>
 
