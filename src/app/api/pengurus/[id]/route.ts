@@ -76,7 +76,7 @@ export async function GET(
         j.jemaat_id       AS jemaat_nomor,
         j.nama_lengkap, j.foto_url, j.nik, j.tempat_lahir, j.tanggal_lahir,
         j.jenis_kelamin, j.status_pernikahan, j.alamat, j.no_hp, j.email,
-        j.tanggal_baptis, j.tanggal_sidi,
+        j.tanggal_baptis, j.status_baptis,
         js.nama_satelit   AS nama_satelit_jemaat
       FROM pengurus p
       JOIN jemaat j       ON p.jemaat_id = j.id
@@ -91,7 +91,9 @@ export async function GET(
     // Fetch riwayat jabatan
     const jabatanRes = await pool.query(`
       SELECT
-        dk.id, dk.status_jabatan, dk.lingkup, dk.tanggal_mulai, dk.tanggal_akhir_menjabat,
+        dk.id, dk.status_jabatan, dk.lingkup,
+        dk.tanggal_mulai_menjabat AS tanggal_mulai,
+        dk.tanggal_akhir_menjabat,
         dk.jalur_pengangkatan, dk.catatan,
         jab.nama_jabatan,
         per.nama_periode, per.tahun_mulai, per.tahun_akhir,

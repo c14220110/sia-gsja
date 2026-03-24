@@ -246,8 +246,8 @@ export default function PengurusDetailPage() {
                       <div className="text-slate-900 text-sm font-semibold font-['Public_Sans']">{formatDate(pengurus.tanggal_baptis)}</div>
                     </div>
                     <div className="flex-1 flex-col gap-1 flex">
-                      <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Tanggal Sidi</label>
-                      <div className="text-slate-900 text-sm font-semibold font-['Public_Sans']">{formatDate(pengurus.tanggal_sidi)}</div>
+                      <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Status Baptis</label>
+                      <div className="text-slate-900 text-sm font-semibold font-['Public_Sans']">{pengurus.status_baptis ? 'Sudah Baptis' : 'Belum Baptis'}</div>
                     </div>
                   </div>
                   <div className="w-full flex-col gap-1 flex">
