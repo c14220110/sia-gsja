@@ -547,12 +547,15 @@ export default function KegiatanPage() {
                     const eventDate = new Date(kegiatan.tanggal_selesai || kegiatan.tanggal_mulai);
                     eventDate.setHours(0, 0, 0, 0);
                     
-                    if (today > eventDate) {
+                    if (today > eventDate && displayStatus !== 'Selesai') {
                       displayStatus = 'Menunggu LPJ';
-                    } else if (today.getTime() === eventDate.getTime()) {
+                    } else if (today.getTime() === eventDate.getTime() && displayStatus !== 'Menunggu LPJ') {
                       displayStatus = 'Ongoing';
                     } else if (today < eventDate) {
-                      displayStatus = 'Akan Datang';
+                      // Hindari menimpa status yang sengaja di-Override manual lebih awal
+                      if (displayStatus !== 'Ongoing' && displayStatus !== 'Menunggu LPJ') {
+                         displayStatus = 'Akan Datang';
+                      }
                     }
                   }
 
