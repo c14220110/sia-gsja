@@ -12,6 +12,22 @@ export default function DashboardHome() {
   const [scanFeedback, setScanFeedback] = useState<{ isVisible: boolean, type: 'success' | 'error', message: string }>({ isVisible: false, type: 'success', message: '' });
   const { showLoader, hideLoader } = useLoader();
 
+  const [isOnline, setIsOnline] = useState(true);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsOnline(navigator.onLine);
+      const handleOnline = () => setIsOnline(true);
+      const handleOffline = () => setIsOnline(false);
+      window.addEventListener('online', handleOnline);
+      window.addEventListener('offline', handleOffline);
+      return () => {
+        window.removeEventListener('online', handleOnline);
+        window.removeEventListener('offline', handleOffline);
+      };
+    }
+  }, []);
+
   useEffect(() => {
     const initData = async () => {
        showLoader();
@@ -167,6 +183,17 @@ export default function DashboardHome() {
            </Link>
 
         </div>
+
+        {/* PITA PERINGATAN OFFLINE (Biar elegan dinonaktifkan / warning fitur jika tdk ada sinyal) */}
+        {!isOnline && (
+          <div className="mx-6 mt-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3 shadow-sm">
+             <span className="material-icons-round text-amber-500 mt-0.5">signal_wifi_off</span>
+             <p className="text-xs text-amber-700 font-medium leading-relaxed">
+               <strong className="block mb-0.5">Anda sedang Offline.</strong>
+               Menampilkan data terakhir (cached). Fitur pemindai dan pembaruan akan dinonaktifkan, namun fitur ganti role, lihat riwayat, dan lihat/scan kartu QR Anda (tombol tengah bawah) dijamin 100% tetap bisa berjalan!
+             </p>
+          </div>
+        )}
 
         <div className="w-full px-6 flex flex-col gap-8 pb-12 mt-6">
            
