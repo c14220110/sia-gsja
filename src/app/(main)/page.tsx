@@ -204,14 +204,14 @@ export default function DashboardHome() {
                     <span className="text-[11px] font-bold text-slate-600 text-center leading-tight">Jadwal<br/>Pelayanan</span>
                  </Link>
 
-                 <Link href="/dashboard/kehadiran" className="flex flex-col items-center gap-3 group">
+                 <Link href="/kehadiran" className="flex flex-col items-center gap-3 group">
                     <div className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center group-hover:shadow-md group-hover:-translate-y-1 transition-all text-amber-600">
                        <span className="material-icons-round text-3xl">history</span>
                     </div>
                     <span className="text-[11px] font-bold text-slate-600 text-center leading-tight">Riwayat<br/>Kehadiran</span>
                  </Link>
 
-                 <Link href="/dashboard/tiket" className="flex flex-col items-center gap-3 group">
+                 <Link href="/tiket" className="flex flex-col items-center gap-3 group">
                     <div className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center group-hover:shadow-md group-hover:-translate-y-1 transition-all text-violet-600">
                        <span className="material-icons-round text-3xl">local_activity</span>
                     </div>

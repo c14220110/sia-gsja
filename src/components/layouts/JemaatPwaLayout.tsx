@@ -49,7 +49,7 @@ export default function JemaatPwaLayout({
     {
       label: 'Warta',
       icon: 'newspaper',
-      href: '/dashboard/warta',
+      href: '/warta',
       active: pathname.includes('/warta')
     }
   ];
