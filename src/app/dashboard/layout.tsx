@@ -4,6 +4,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useLoader } from '@/components/ui/GlobalLoader';
+import JemaatPwaLayout from '@/components/layouts/JemaatPwaLayout';
 
 export default function DashboardLayout({
   children,
@@ -107,6 +108,14 @@ export default function DashboardLayout({
     topbarIcon  = 'account_tree';
   }
 
+
+  if (userData?.role_name?.toLowerCase() === 'jemaat') {
+    return (
+      <JemaatPwaLayout userData={userData}>
+        {children}
+      </JemaatPwaLayout>
+    );
+  }
 
   return (
     <div className="w-full min-h-screen bg-neutral-100 inline-flex flex-col justify-start items-center overflow-auto font-sans">
