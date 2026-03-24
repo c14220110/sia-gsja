@@ -2,7 +2,7 @@ import pool from '@/lib/db';
 
 export interface PengurusFilterParams {
   search?: string;
-  satelit_id?: string;    // filter berdasarkan lokasi jabatan (dk.satelit_id)
+  satelit_id?: string;
   jabatan_id?: string;
   periode_id?: string;
   komisi_id?: string;
@@ -20,18 +20,12 @@ export class PengurusRepository {
     pengurus_demisioner: number;
   }> {
     const {
-      search,
-      satelit_id,
-      jabatan_id,
-      periode_id,
-      komisi_id,
-      departemen_id,
-      status,
-      limit = 10,
-      offset = 0,
+      search, satelit_id, jabatan_id, periode_id,
+      komisi_id, departemen_id, status,
+      limit = 10, offset = 0,
     } = params;
 
-    const conditions: string[] = ['p.id IS NOT NULL'];
+    const conditions: string[] = [];
     const values: any[] = [];
     let idx = 1;
 
@@ -40,89 +34,87 @@ export class PengurusRepository {
       values.push(`%${search}%`);
       idx++;
     }
-    if (satelit_id) {
-      // Filter berdasarkan lokasi jabatan, bukan satelit asal jemaat
-      conditions.push(`dk.satelit_id = $${idx++}`);
-      values.push(parseInt(satelit_id));
-    }
-    if (jabatan_id) {
-      conditions.push(`dk.jabatan_id = $${idx++}`);
-      values.push(parseInt(jabatan_id));
-    }
-    if (periode_id) {
-      conditions.push(`dk.periode_id = $${idx++}`);
-      values.push(parseInt(periode_id));
-    }
-    if (komisi_id) {
-      conditions.push(`dk.komisi_id = $${idx++}`);
-      values.push(parseInt(komisi_id));
-    }
-    if (departemen_id) {
-      conditions.push(`dk.departemen_id = $${idx++}`);
-      values.push(parseInt(departemen_id));
-    }
-    if (status) {
-      conditions.push(`dk.status_jabatan = $${idx++}`);
-      values.push(status);
+
+    // Jabatan-level filters via EXISTS — so 1 row per person is maintained
+    const jabatanConds: string[] = [];
+    if (satelit_id)    { jabatanConds.push(`dk.satelit_id    = $${idx++}`); values.push(parseInt(satelit_id)); }
+    if (jabatan_id)    { jabatanConds.push(`dk.jabatan_id    = $${idx++}`); values.push(parseInt(jabatan_id)); }
+    if (periode_id)    { jabatanConds.push(`dk.periode_id    = $${idx++}`); values.push(parseInt(periode_id)); }
+    if (komisi_id)     { jabatanConds.push(`dk.komisi_id     = $${idx++}`); values.push(parseInt(komisi_id)); }
+    if (departemen_id) { jabatanConds.push(`dk.departemen_id = $${idx++}`); values.push(parseInt(departemen_id)); }
+    if (status)        { jabatanConds.push(`dk.status_jabatan= $${idx++}`); values.push(status); }
+
+    if (jabatanConds.length > 0) {
+      conditions.push(`EXISTS (
+        SELECT 1 FROM detail_kepengurusan dk
+        WHERE dk.pengurus_id = p.id AND ${jabatanConds.join(' AND ')}
+      )`);
     }
 
     const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-
-    // s  = satelit lokasi jabatan (dari detail_kepengurusan.satelit_id)
-    // js = satelit asal jemaat   (dari jemaat.satelit_id)
-    const fromJoin = `
+    const baseFrom = `
       FROM pengurus p
       JOIN jemaat j ON p.jemaat_id = j.id
-      JOIN detail_kepengurusan dk ON dk.pengurus_id = p.id
-      JOIN jabatan jab ON dk.jabatan_id = jab.id
-      JOIN periode_kepengurusan per ON dk.periode_id = per.id
-      LEFT JOIN satelit s  ON dk.satelit_id = s.id
-      LEFT JOIN satelit js ON j.satelit_id  = js.id
-      LEFT JOIN komisi kom ON dk.komisi_id = kom.id
-      LEFT JOIN departemen dep ON dk.departemen_id = dep.id
+      LEFT JOIN satelit js ON j.satelit_id = js.id
+    `;
+
+    const dataQuery = `
+      SELECT
+        p.id,
+        p.id_pengurus,
+        p.is_active,
+        j.nama_lengkap,
+        j.foto_url,
+        js.nama_satelit AS nama_satelit_asal,
+        -- nama jabatan aktif pertama (primer display)
+        (
+          SELECT jab2.nama_jabatan
+          FROM detail_kepengurusan dk2
+          JOIN jabatan jab2 ON dk2.jabatan_id = jab2.id
+          WHERE dk2.pengurus_id = p.id AND dk2.status_jabatan = 'Aktif'
+          ORDER BY dk2.id ASC LIMIT 1
+        ) AS jabatan_aktif_pertama,
+        -- lingkup jabatan aktif pertama (Satelit · Air Hidup)
+        (
+          SELECT CONCAT(dk2.lingkup,
+            CASE
+              WHEN s2.nama_satelit IS NOT NULL THEN CONCAT(' · ', s2.nama_satelit)
+              WHEN kom2.nama_komisi IS NOT NULL THEN CONCAT(' · ', kom2.nama_komisi)
+              WHEN dep2.nama_departemen IS NOT NULL THEN CONCAT(' · ', dep2.nama_departemen)
+              ELSE '' END
+          )
+          FROM detail_kepengurusan dk2
+          LEFT JOIN satelit s2 ON dk2.satelit_id = s2.id
+          LEFT JOIN komisi kom2 ON dk2.komisi_id = kom2.id
+          LEFT JOIN departemen dep2 ON dk2.departemen_id = dep2.id
+          WHERE dk2.pengurus_id = p.id AND dk2.status_jabatan = 'Aktif'
+          ORDER BY dk2.id ASC LIMIT 1
+        ) AS jabatan_aktif_lingkup,
+        -- jumlah semua jabatan aktif (untuk badge +N)
+        (
+          SELECT COUNT(*)::int
+          FROM detail_kepengurusan dk3
+          WHERE dk3.pengurus_id = p.id AND dk3.status_jabatan = 'Aktif'
+        ) AS jabatan_aktif_count,
+        p.created_at
+      ${baseFrom}
+      ${where}
+      ORDER BY p.id DESC
+      LIMIT $${idx} OFFSET $${idx + 1}
     `;
 
     const [countRes, dataRes, newRes, demisionerRes] = await Promise.all([
-      pool.query(`SELECT COUNT(*) AS count ${fromJoin} ${where}`, values),
-      pool.query(`
-        SELECT
-          p.id,
-          p.id_pengurus,
-          j.nama_lengkap,
-          j.foto_url,
-          s.nama_satelit  AS nama_satelit_jabatan,
-          js.nama_satelit AS nama_satelit_jemaat,
-          dk.id           AS detail_id,
-          dk.satelit_id,
-          dk.lingkup,
-          dk.status_jabatan,
-          jab.nama_jabatan,
-          per.nama_periode,
-          kom.nama_komisi,
-          dep.nama_departemen,
-          p.created_at
-        ${fromJoin}
-        ${where}
-        ORDER BY dk.id DESC
-        LIMIT $${idx} OFFSET $${idx + 1}
-      `, [...values, limit, offset]),
-      pool.query(`
-        SELECT COUNT(DISTINCT p.id) AS count 
-        FROM pengurus p 
-        WHERE DATE_TRUNC('month', p.created_at) = DATE_TRUNC('month', NOW())
-      `),
-      pool.query(`
-        SELECT COUNT(*) AS count 
-        FROM detail_kepengurusan 
-        WHERE status_jabatan = 'Demisioner'
-      `)
+      pool.query(`SELECT COUNT(DISTINCT p.id) AS count ${baseFrom} ${where}`, values),
+      pool.query(dataQuery, [...values, limit, offset]),
+      pool.query(`SELECT COUNT(DISTINCT p.id) AS count FROM pengurus p WHERE DATE_TRUNC('month', p.created_at) = DATE_TRUNC('month', NOW())`),
+      pool.query(`SELECT COUNT(*) AS count FROM detail_kepengurusan WHERE status_jabatan = 'Demisioner'`),
     ]);
 
     return {
       data: dataRes.rows,
       total: parseInt(countRes.rows[0].count, 10),
       pengurus_baru: parseInt(newRes.rows[0].count, 10),
-      pengurus_demisioner: parseInt(demisionerRes.rows[0].count, 10)
+      pengurus_demisioner: parseInt(demisionerRes.rows[0].count, 10),
     };
   }
 
@@ -133,7 +125,7 @@ export class PengurusRepository {
    */
   async createPengurus(params: {
     jemaat_id:          number;
-    satelit_id:         number;  // lokasi jabatan
+    satelit_id:         number;
     jabatan_id:         number;
     lingkup:            string;
     komisi_id:          number | null;
@@ -200,13 +192,13 @@ export class PengurusRepository {
       await client.query(`
         INSERT INTO detail_kepengurusan
           (pengurus_id, jabatan_id, lingkup, satelit_id, komisi_id, departemen_id,
-           periode_id, tanggal_mulai, jalur_pengangkatan, catatan, status_jabatan)
+           periode_id, tanggal_mulai_menjabat, jalur_pengangkatan, catatan, status_jabatan)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'Aktif')
       `, [
         pengurus_id,
         params.jabatan_id,
         params.lingkup,
-        params.satelit_id,    // lokasi jabatan (bisa beda dengan jemaat asal)
+        params.satelit_id,
         params.komisi_id,
         params.departemen_id,
         params.periode_id,
@@ -215,7 +207,7 @@ export class PengurusRepository {
         params.catatan || null,
       ]);
 
-      // 5. Audit log — gunakan satelit ASAL JEMAAT
+      // 5. Audit log
       await client.query(`
         INSERT INTO pengurus_audit_log (pengurus_id, aksi, user_id, role_id, satelit_id, keterangan)
         VALUES ($1, 'CREATE', $2, $3, $4, $5)

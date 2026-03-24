@@ -435,16 +435,13 @@ export default function PengurusPage() {
       {/* Data Table */}
       <div className="w-full bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col relative z-0">
         <div className="w-full overflow-x-auto pb-4">
-          <div className="min-w-[1200px] flex flex-col">
+          <div className="min-w-[900px] flex flex-col">
             {/* Table Header */}
             <div className="w-full bg-slate-50 border-b border-slate-200 flex items-center px-6 py-4">
               <div className="w-32 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">ID Pengurus</div>
-              <div className="w-56 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Nama Jemaat</div>
-              <div className="w-32 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Satelit</div>
-              <div className="flex-1 min-w-[150px] text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Jabatan</div>
-              <div className="flex-1 min-w-[150px] text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Dpt / Komisi</div>
-              <div className="w-32 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Periode</div>
-              <div className="w-28 shrink-0 text-center text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Status</div>
+              <div className="w-64 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Profil Pengurus</div>
+              <div className="flex-1 min-w-[200px] text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Jabatan Aktif</div>
+              <div className="w-32 shrink-0 text-center text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Status Global</div>
               <div className="w-20 shrink-0 text-right text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Aksi</div>
             </div>
 
@@ -458,28 +455,59 @@ export default function PengurusPage() {
               ) : (
                 data.map((pengurus, idx) => {
                   const isLastRows = data.length > 2 && idx >= data.length - 2;
-                  const periodeName = pengurus.nama_periode ? `${pengurus.nama_periode} (${pengurus.tahun_mulai}-${pengurus.tahun_akhir})` : '-';
-                  const dptKms = pengurus.nama_departemen || pengurus.nama_komisi || '-';
+                  const jabatanAktifCount = parseInt(pengurus.jabatan_aktif_count ?? '0', 10);
                   return (
                     <div key={pengurus.id || idx} className={`w-full flex items-center px-6 py-4 border-b border-slate-100 hover:bg-slate-50 transition-colors relative ${openMenuId === pengurus.id ? 'z-50' : 'z-10'}`}>
-                      <div className="w-32 shrink-0 text-slate-500 text-sm font-['Liberation_Mono']">{pengurus.id_pengurus}</div>
-                      <div className="w-56 shrink-0 flex items-center gap-3">
+
+                      {/* ID */}
+                      <div className="w-32 shrink-0">
+                        <span className="text-slate-500 text-sm font-mono">{pengurus.id_pengurus}</span>
+                      </div>
+
+                      {/* Profil: Nama + Satelit Asal */}
+                      <div className="w-64 shrink-0 flex items-center gap-3">
                         <img
                           className="w-9 h-9 rounded-full object-cover border border-slate-200 flex-shrink-0"
                           src={pengurus.foto_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(pengurus.nama_lengkap)}&background=random`}
                           alt="avatar"
                         />
-                        <span className="text-slate-900 text-sm font-semibold font-['Public_Sans'] w-full truncate pr-2">{pengurus.nama_lengkap}</span>
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-slate-900 text-sm font-bold font-['Inter'] truncate">{pengurus.nama_lengkap}</span>
+                          <span className="text-slate-400 text-xs font-['Public_Sans'] truncate">
+                            📍 {pengurus.nama_satelit_asal || 'Belum ada satelit asal'}
+                          </span>
+                        </div>
                       </div>
-                      <div className="w-32 shrink-0 text-slate-600 text-sm font-['Public_Sans'] truncate pr-2">{pengurus.nama_satelit || '-'}</div>
-                      <div className="flex-1 min-w-[150px] text-slate-600 text-sm font-['Public_Sans'] truncate pr-2">{pengurus.nama_jabatan || '-'}</div>
-                      <div className="flex-1 min-w-[150px] text-slate-600 text-sm font-['Public_Sans'] truncate pr-2">{dptKms}</div>
-                      <div className="w-32 shrink-0 text-slate-500 text-sm font-['Public_Sans'] truncate pr-2">{periodeName}</div>
-                      <div className="w-28 shrink-0 flex justify-center">
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold font-['Public_Sans'] uppercase ${pengurus.status_jabatan === 'Aktif' ? 'bg-emerald-100 text-emerald-700' : pengurus.status_jabatan === 'Demisioner' ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'}`}>
-                          {pengurus.status_jabatan}
+
+                      {/* Jabatan Aktif + Badge */}
+                      <div className="flex-1 min-w-[200px] flex items-center gap-2 pr-4">
+                        {jabatanAktifCount === 0 ? (
+                          <span className="text-slate-400 text-sm italic">Tidak ada jabatan aktif</span>
+                        ) : (
+                          <>
+                            <div className="flex flex-col min-w-0">
+                              <span className="text-slate-800 text-sm font-semibold font-['Inter'] truncate">{pengurus.jabatan_aktif_pertama}</span>
+                              <span className="text-slate-400 text-xs font-['Public_Sans'] truncate">{pengurus.jabatan_aktif_lingkup}</span>
+                            </div>
+                            {jabatanAktifCount > 1 && (
+                              <span className="shrink-0 px-2 py-0.5 bg-violet-100 text-violet-700 text-[11px] font-black rounded-full border border-violet-200">
+                                +{jabatanAktifCount - 1} lainnya
+                              </span>
+                            )}
+                          </>
+                        )}
+                      </div>
+
+                      {/* Status Global (pengurus.is_active) */}
+                      <div className="w-32 shrink-0 flex justify-center">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold font-['Public_Sans'] uppercase ${
+                          pengurus.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                        }`}>
+                          {pengurus.is_active ? 'Aktif' : 'Non-Aktif'}
                         </span>
                       </div>
+
+                      {/* Aksi */}
                       <div className="w-20 shrink-0 flex justify-end gap-2 text-slate-400 relative">
                         <button
                           onClick={() => setOpenMenuId(openMenuId === pengurus.id ? null : pengurus.id)}
@@ -499,24 +527,12 @@ export default function PengurusPage() {
                                 <span className="material-icons-round text-[18px] text-slate-400">visibility</span> Lihat Detail
                               </Link>
                               {hasPermission('pengurus_manage') && (
-                                <>
-                                  <Link
-                                    href={`/pengurus/${pengurus.id}?mode=edit`}
-                                    className="w-full text-left px-4 py-2 hover:bg-slate-50 transition-colors flex items-center gap-3 text-sm text-slate-700 font-['Public_Sans']"
-                                  >
-                                    <span className="material-icons-round text-[18px] text-slate-400">edit</span> Edit Data
-                                  </Link>
-                                  <div className="w-full h-px bg-slate-100 my-1"></div>
-                                  {pengurus.status_jabatan === 'Aktif' ? (
-                                    <button onClick={() => { setOpenMenuId(null); handleToggleStatus(pengurus.id, pengurus.status_jabatan); }} className="w-full text-left px-4 py-2 hover:bg-amber-50 hover:text-amber-700 transition-colors flex items-center gap-3 text-sm text-amber-600 font-['Public_Sans']">
-                                      <span className="material-icons-round text-[18px] text-amber-400">person_off</span> Demisioner
-                                    </button>
-                                  ) : (
-                                    <button onClick={() => { setOpenMenuId(null); handleToggleStatus(pengurus.id, pengurus.status_jabatan); }} className="w-full text-left px-4 py-2 hover:bg-emerald-50 hover:text-emerald-700 transition-colors flex items-center gap-3 text-sm text-emerald-600 font-['Public_Sans']">
-                                      <span className="material-icons-round text-[18px] text-emerald-400">person_add</span> Aktifkan
-                                    </button>
-                                  )}
-                                </>
+                                <Link
+                                  href={`/pengurus/${pengurus.id}?mode=edit`}
+                                  className="w-full text-left px-4 py-2 hover:bg-slate-50 transition-colors flex items-center gap-3 text-sm text-slate-700 font-['Public_Sans']"
+                                >
+                                  <span className="material-icons-round text-[18px] text-slate-400">edit</span> Edit / Kelola Jabatan
+                                </Link>
                               )}
                             </div>
                           </>
@@ -526,9 +542,11 @@ export default function PengurusPage() {
                   );
                 })
               )}
+
             </div>
           </div>
         </div>
+
 
         {/* Pagination Footer */}
         <div className="w-full px-6 py-4 bg-white border-t border-slate-200 flex flex-col md:flex-row justify-between items-center text-sm gap-4">
