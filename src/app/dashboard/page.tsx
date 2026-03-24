@@ -174,12 +174,6 @@ export default function DashboardHome() {
               <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
               <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-sky-300/20 rounded-full blur-2xl pointer-events-none"></div>
               
-              <div className="w-full flex justify-between items-start mb-2 z-10">
-                 <div className="flex flex-col">
-                    <span className="text-blue-100 text-xs font-bold uppercase tracking-widest mb-0.5">Sistem Presensi GSJA</span>
-                 </div>
-              </div>
-
               <div className="w-36 h-36 bg-white/20 backdrop-blur-md border border-white/40 p-1 rounded-3xl shadow-inner z-10 mb-4 flex items-center justify-center group-hover:bg-white/30 transition-colors pointer-events-none">
                  <div className="w-full h-full text-white pointer-events-none mix-blend-plus-lighter opacity-90 group-hover:scale-110 transition-transform">
                    <DotLottieReact src="/assets/qr-code-scan.lottie" loop autoplay />
