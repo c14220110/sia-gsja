@@ -59,7 +59,7 @@ export default function SelectRolePage() {
       // Bersihkan session storage
       sessionStorage.removeItem('temp_auth_data');
       hideLoader();
-      router.push('/dashboard');
+      router.push('/');
     } catch (err: any) {
       setError(err.message);
       hideLoader(); 

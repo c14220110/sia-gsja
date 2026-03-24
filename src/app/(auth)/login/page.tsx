@@ -47,7 +47,7 @@ export default function LoginPage() {
         router.push('/select-role');
       } else {
         hideLoader();
-        router.push('/dashboard');
+        router.push('/');
       }
     } catch (err: any) { setError(err.message); hideLoader(); } 
     finally { setLoading(false); }
