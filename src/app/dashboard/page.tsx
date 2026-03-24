@@ -1,13 +1,14 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import QRCode from 'react-qr-code';
+import { Scanner } from '@yudiel/react-qr-scanner';
 import { useLoader } from '@/components/ui/GlobalLoader';
 
 export default function DashboardHome() {
   const [userData, setUserData] = useState<any>(null);
   const [nearestEvent, setNearestEvent] = useState<any>(null);
   const [isFullscreenQR, setIsFullscreenQR] = useState(false);
+  const [scanFeedback, setScanFeedback] = useState<{ isVisible: boolean, type: 'success' | 'error', message: string }>({ isVisible: false, type: 'success', message: '' });
   const { showLoader, hideLoader } = useLoader();
 
   useEffect(() => {
@@ -46,6 +47,58 @@ export default function DashboardHome() {
     return new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(dateString));
   };
 
+  const handleScan = async (detectedCodes: any[]) => {
+    if (!detectedCodes || detectedCodes.length === 0) return;
+    const rawValue = detectedCodes[0].rawValue;
+    if (!rawValue) return;
+
+    // Hindari scan berkali-kali jika loader/feedback sedang aktif
+    if (scanFeedback.isVisible) return; 
+
+    try {
+      showLoader();
+      const decodedStr = atob(rawValue);
+      const payload = JSON.parse(decodedStr);
+
+      if (!payload.k || !payload.exp) throw new Error('Format QR tidak valid');
+      
+      if (Date.now() > payload.exp) {
+         setScanFeedback({ isVisible: true, type: 'error', message: 'QR Code Kadaluarsa! Mohon Usher memperbarui layar.' });
+         hideLoader();
+         setTimeout(() => setScanFeedback(prev => ({ ...prev, isVisible: false })), 4000);
+         return;
+      }
+
+      // Hit API Absensi
+      const res = await fetch(`/api/kegiatan/${payload.k}/absensi`, {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({
+            action_type: 'qr_scan',
+            id_jemaat: userData.jemaat_id
+         })
+      });
+
+      const result = await res.json();
+      
+      if (res.ok && result.success) {
+         setScanFeedback({ isVisible: true, type: 'success', message: result.message || 'Presensi Berhasil Dicatat!' });
+         setTimeout(() => {
+            setScanFeedback(prev => ({ ...prev, isVisible: false }));
+            setIsFullscreenQR(false); // Otomatis tutup scanner setelah sukses 2 detik
+         }, 3000);
+      } else {
+         setScanFeedback({ isVisible: true, type: 'error', message: result.message || 'Gagal memproses absensi.' });
+         setTimeout(() => setScanFeedback(prev => ({ ...prev, isVisible: false })), 4000);
+      }
+    } catch (err) {
+      setScanFeedback({ isVisible: true, type: 'error', message: 'QR Code Rusak Ditolak: Bukan milik Acara GSJA.' });
+      setTimeout(() => setScanFeedback(prev => ({ ...prev, isVisible: false })), 4000);
+    } finally {
+      hideLoader();
+    }
+  };
+
   // --- TAMPILAN JEMAAT (PWA SUPER APP) ---
   if (userData?.role_name?.toLowerCase() === 'jemaat') {
     const jemaatName = userData.email?.split('@')[0] || 'Jemaat';
@@ -54,21 +107,43 @@ export default function DashboardHome() {
     return (
       <div className="w-full h-full flex flex-col bg-slate-50 overflow-y-auto">
         
-        {/* Fullscreen QR Toggle Context */}
+        {/* Fullscreen Camera Scanner Context */}
         {isFullscreenQR && (
-          <div 
-            className="fixed inset-0 bg-white z-[9999] flex flex-col items-center justify-center p-8 animate-in zoom-in-95 duration-200"
-            onClick={() => setIsFullscreenQR(false)}
-          >
-             <div className="text-center mb-8 flex flex-col items-center">
-                <span className="material-icons-round text-blue-500 text-6xl mb-2">check_circle</span>
-                <h2 className="text-2xl font-black text-slate-800">Scan QR Presensi</h2>
-                <p className="text-slate-500 mt-2 text-sm max-w-xs">Arahkan layar HP Anda ke perangkat Kiosk Usher di pintu masuk.</p>
+          <div className="fixed inset-0 bg-slate-900 z-[9999] flex flex-col items-center justify-center animate-in zoom-in-95 duration-200">
+             
+             {/* Header Scanner */}
+             <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-center z-10 bg-gradient-to-b from-slate-900/80 to-transparent">
+               <button onClick={() => setIsFullscreenQR(false)} className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-white backdrop-blur-sm border border-white/20">
+                 <span className="material-icons-round">close</span>
+               </button>
+               <h2 className="text-white font-bold text-lg tracking-wider">Scan Kehadiran</h2>
+               <div className="w-10"></div>
              </div>
-             <div className="bg-white p-6 rounded-3xl shadow-2xl border border-slate-100 flex items-center justify-center">
-                <QRCode value={qrPayload} size={280} level="H" />
+
+             {/* Feedback Overlay */}
+             {scanFeedback.isVisible && (
+                <div className="absolute top-24 left-6 right-6 z-20 animate-in slide-in-from-top-4">
+                  <div className={`p-4 rounded-2xl flex items-center gap-3 shadow-2xl border ${scanFeedback.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'}`}>
+                    <span className="material-icons-round text-3xl">{scanFeedback.type === 'success' ? 'check_circle' : 'error'}</span>
+                    <span className="font-bold text-sm leading-tight">{scanFeedback.message}</span>
+                  </div>
+                </div>
+             )}
+
+             {/* Scanner Area */}
+             <div className="w-full h-full flex items-center justify-center relative overflow-hidden bg-black">
+                <Scanner 
+                  onScan={handleScan}
+                  formats={['qr_code']}
+                  styles={{ container: { width: '100%', height: '100%' } }}
+                  components={{ finder: true }}
+                />
              </div>
-             <p className="fixed bottom-12 text-slate-400 font-bold tracking-widest text-xs uppercase animate-pulse">Ketuk Layar Untuk Menutup</p>
+             
+             {/* Footer Scanner */}
+             <div className="absolute bottom-0 left-0 right-0 p-8 text-center bg-gradient-to-t from-slate-900/90 to-transparent pointer-events-none">
+                <p className="text-white/80 font-medium text-sm">Arahkan layar ke QR Code Acara yang ditampilkan oleh Usher di pintu.</p>
+             </div>
           </div>
         )}
 
@@ -89,29 +164,28 @@ export default function DashboardHome() {
 
         <div className="w-full px-6 flex flex-col gap-8 pb-12 mt-6">
            
-           {/* 2. HERO CARD (DIGITAL IDENTITY & QR) */}
+           {/* 2. HERO CARD (SCANNER TRIGGER) */}
            <div 
              onClick={() => setIsFullscreenQR(true)}
-             className="w-full bg-gradient-to-br from-blue-600 to-indigo-700 rounded-3xl p-6 flex flex-col items-center shadow-lg shadow-blue-500/30 relative overflow-hidden cursor-pointer group transition-transform active:scale-95"
+             className="w-full bg-gradient-to-br from-indigo-600 via-blue-600 to-sky-500 rounded-3xl p-6 flex flex-col items-center shadow-lg shadow-blue-500/30 relative overflow-hidden cursor-pointer group transition-transform active:scale-95"
            >
               {/* Ornaments */}
-              <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
-              <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+              <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+              <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-sky-300/20 rounded-full blur-2xl pointer-events-none"></div>
               
-              <div className="w-full flex justify-between items-start mb-4 z-10">
+              <div className="w-full flex justify-between items-start mb-2 z-10">
                  <div className="flex flex-col">
-                    <span className="text-blue-100 text-xs font-bold uppercase tracking-widest mb-0.5">ID Jemaat Valid</span>
-                    <span className="text-white font-black text-lg tracking-wider font-mono">{String(userData.jemaat_id).padStart(6, '0')}</span>
+                    <span className="text-blue-100 text-xs font-bold uppercase tracking-widest mb-0.5">Sistem Presensi GSJA</span>
                  </div>
-                 <span className="material-icons-round text-white/40 text-4xl group-hover:rotate-12 transition-transform">qr_code_scanner</span>
               </div>
 
-              <div className="bg-white p-4 rounded-2xl shadow-inner z-10 mb-4 inline-flex">
-                 <QRCode value={qrPayload} size={130} level="M" />
+              <div className="w-24 h-24 bg-white/20 backdrop-blur-md border border-white/40 p-4 rounded-3xl shadow-inner z-10 mb-5 flex items-center justify-center group-hover:bg-white/30 transition-colors">
+                 <span className="material-icons-round text-white text-6xl group-hover:scale-110 transition-transform">qr_code_scanner</span>
               </div>
 
-              <p className="text-center text-blue-50 text-xs font-medium max-w-[250px] z-10 leading-relaxed">
-                 Tunjukkan QR ini ke Usher di pintu, atau <span className="font-bold underline">ketuk kartu</span> untuk perbesar (*Fullscreen*).
+              <h2 className="text-white font-black text-2xl tracking-tight mb-1 z-10">Pindai Kehadiran</h2>
+              <p className="text-center text-blue-50 text-xs font-medium max-w-[250px] z-10 leading-relaxed mb-2 opacity-90">
+                 Ketuk layar ini untuk mengaktifkan kamera dan memindai QR Usher.
               </p>
            </div>
 
