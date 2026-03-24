@@ -182,7 +182,7 @@ export default function DashboardHome() {
 
               <div className="w-36 h-36 bg-white/20 backdrop-blur-md border border-white/40 p-1 rounded-3xl shadow-inner z-10 mb-4 flex items-center justify-center group-hover:bg-white/30 transition-colors pointer-events-none">
                  <div className="w-full h-full text-white pointer-events-none mix-blend-plus-lighter opacity-90 group-hover:scale-110 transition-transform">
-                   <DotLottieReact src="/assets/qr-scan.lottie" loop autoplay />
+                   <DotLottieReact src="/assets/qr-code-scan.lottie" loop autoplay />
                  </div>
               </div>
 
@@ -221,7 +221,7 @@ export default function DashboardHome() {
                     <div className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center group-hover:shadow-md group-hover:-translate-y-1 transition-all text-violet-600">
                        <span className="material-icons-round text-3xl">local_activity</span>
                     </div>
-                    <span className="text-[11px] font-bold text-slate-600 text-center leading-tight">Tiket Saya &<br/>Kupon</span>
+                    <span className="text-[11px] font-bold text-slate-600 text-center leading-tight">Tiket Saya /<br/>Pendaftaran</span>
                  </Link>
 
               </div>
