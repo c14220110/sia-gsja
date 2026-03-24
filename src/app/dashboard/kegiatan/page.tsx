@@ -648,7 +648,7 @@ export default function KegiatanPage() {
                           {displayStatus === 'Menunggu LPJ' && (
                             <>
                               <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Detail</button>
-                              <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">how_to_reg</span>Absensi Susulan</button>
+                              <Link href={`/dashboard/kegiatan/${kegiatan.id}/absensi-susulan`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">how_to_reg</span>Absensi Susulan</Link>
                               <div className="w-full h-px bg-slate-100 my-1"></div>
                               <button className="w-full text-left px-4 py-2 hover:bg-amber-50 text-amber-700 text-sm flex items-center gap-2 font-bold"><span className="material-icons-round text-[18px] text-amber-600">description</span>Input LPJ</button>
                             </>

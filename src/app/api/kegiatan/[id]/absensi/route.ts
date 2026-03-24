@@ -7,6 +7,9 @@ const pool = new Pool({
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const { searchParams } = new URL(request.url);
+  const limit = searchParams.get('limit');
+  const isAll = limit === 'all';
 
   try {
     // 1. Dapatkan Statistik (Total, Jemaat, Tamu, Pelayan)
@@ -21,7 +24,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     `;
     const statsResult = await pool.query(statsQuery, [id]);
 
-    // 2. Dapatkan 10 Log Terakhir
+    // 2. Dapatkan Log Terakhir (10 atau All)
     const logQuery = `
       SELECT 
         ka.id, 
@@ -35,7 +38,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       LEFT JOIN public.jemaat j ON ka.jemaat_id = j.id
       WHERE ka.kegiatan_id = $1 AND ka.status_kehadiran = 'Hadir'
       ORDER BY ka.waktu_hadir DESC
-      LIMIT 10
+      ${isAll ? '' : 'LIMIT 10'}
     `;
     const logResult = await pool.query(logQuery, [id]);
 
@@ -94,19 +97,21 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
           return NextResponse.json({ success: false, message: 'Jemaat ini sudah melakukan absensi (Sudah Hadir)!', is_alert: true }, { status: 409 });
         } else {
           // UPDATE (Skenario Pelayan/WL dsb yang status_kehadirannya = 'Belum Hadir')
+          const updateRole = body.role_kehadiran || record.role_kehadiran;
           await pool.query(
-            "UPDATE public.kegiatan_absensi SET status_kehadiran = 'Hadir', metode_absensi = $1, waktu_hadir = CURRENT_TIMESTAMP WHERE id = $2",
-            [mode, record.id]
+            "UPDATE public.kegiatan_absensi SET status_kehadiran = 'Hadir', metode_absensi = $1, waktu_hadir = CURRENT_TIMESTAMP, role_kehadiran = $2 WHERE id = $3",
+            [mode, updateRole, record.id]
           );
-          return NextResponse.json({ success: true, message: `SELAMAT MELAYANI, ${namaAsli.toUpperCase()}!`, nama_lengkap: namaAsli, tipe: record.role_kehadiran });
+          return NextResponse.json({ success: true, message: `SELAMAT MELAYANI, ${namaAsli.toUpperCase()}!`, nama_lengkap: namaAsli, tipe: updateRole });
         }
       } else {
-        // INSERT Baru (Skenario Jemaat biasa)
+        // INSERT Baru (Skenario Jemaat biasa / Kustom Role)
+        const newRole = body.role_kehadiran || 'Jemaat';
         await pool.query(
-          "INSERT INTO public.kegiatan_absensi (kegiatan_id, jemaat_id, role_kehadiran, metode_absensi, status_kehadiran) VALUES ($1, $2, 'Jemaat', $3, 'Hadir')",
-          [id, id_jemaat, mode]
+          "INSERT INTO public.kegiatan_absensi (kegiatan_id, jemaat_id, role_kehadiran, metode_absensi, status_kehadiran) VALUES ($1, $2, $3, $4, 'Hadir')",
+          [id, id_jemaat, newRole, mode]
         );
-        return NextResponse.json({ success: true, message: `SHALOM, ${namaAsli.toUpperCase()}!`, nama_lengkap: namaAsli, tipe: 'Jemaat' });
+        return NextResponse.json({ success: true, message: `SHALOM, ${namaAsli.toUpperCase()}!`, nama_lengkap: namaAsli, tipe: newRole });
       }
     }
 
