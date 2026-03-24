@@ -59,7 +59,7 @@ export class AuthController {
         value: result.token!,
         httpOnly: true,
         path: '/',
-        maxAge: 60 * 60 * 2, // 2 hours
+        maxAge: result.cookieMaxAge!,
         sameSite: 'strict',
         secure: process.env.NODE_ENV === 'production',
       });

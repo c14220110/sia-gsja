@@ -51,6 +51,10 @@ export class AuthService {
     const is_super_admin = singleRole.nama_role === 'SUPER_ADMIN';
     const permissions = await userRepository.getRolePermissionNames(singleRole.role_id);
 
+    const isJemaat = singleRole.nama_role === 'JEMAAT';
+    const expiresInString = isJemaat ? '180d' : '1d';
+    const cookieMaxAge = isJemaat ? 60 * 60 * 24 * 180 : 60 * 60 * 24;
+
     const tokenPayload = {
       user_id: user.id,
       role_id: singleRole.role_id,
@@ -60,7 +64,7 @@ export class AuthService {
       permissions
     };
 
-    const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '2h' });
+    const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: expiresInString });
 
     // Update login timestamp
     await userRepository.updateLastLogin(user.id);
@@ -68,7 +72,8 @@ export class AuthService {
     return { 
       requires_role_selection: false,
       token, 
-      user: tokenPayload 
+      user: tokenPayload,
+      cookieMaxAge
     };
   }
 
@@ -84,6 +89,10 @@ export class AuthService {
     const is_super_admin = selectedRole.nama_role === 'SUPER_ADMIN';
     const permissions = await userRepository.getRolePermissionNames(selectedRole.role_id);
 
+    const isJemaat = selectedRole.nama_role === 'JEMAAT';
+    const expiresInString = isJemaat ? '180d' : '1d';
+    const cookieMaxAge = isJemaat ? 60 * 60 * 24 * 180 : 60 * 60 * 24;
+
     const tokenPayload = {
       user_id: userId,
       role_id: selectedRole.role_id,
@@ -93,10 +102,10 @@ export class AuthService {
       permissions
     };
 
-    const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '2h' });
+    const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: expiresInString });
     await userRepository.updateLastLogin(userId);
 
-    return { token, user: tokenPayload };
+    return { token, user: tokenPayload, cookieMaxAge };
   }
 }
 
