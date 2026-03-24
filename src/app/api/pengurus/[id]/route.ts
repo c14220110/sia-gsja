@@ -68,10 +68,68 @@ export async function GET(
       return NextResponse.json({ success: false, message: 'Invalid ID' }, { status: 400 });
     }
 
-    // Since we don't have getPengurusById implemented yet, returning 404
-    // return NextResponse.json({ success: true, data: pengurus });
-    console.log("Not implemented fully yet, requested ID: ", id);
-    return NextResponse.json({ success: false, message: 'Not Implemented' }, { status: 501 });
+    // Fetch data pengurus + profil jemaat
+    const pengurusRes = await pool.query(`
+      SELECT
+        p.id, p.id_pengurus, p.created_at,
+        j.id              AS jemaat_id,
+        j.jemaat_id       AS jemaat_nomor,
+        j.nama_lengkap, j.foto_url, j.nik, j.tempat_lahir, j.tanggal_lahir,
+        j.jenis_kelamin, j.status_pernikahan, j.alamat, j.no_hp, j.email,
+        j.tanggal_baptis, j.tanggal_sidi,
+        js.nama_satelit   AS nama_satelit_jemaat
+      FROM pengurus p
+      JOIN jemaat j       ON p.jemaat_id = j.id
+      LEFT JOIN satelit js ON j.satelit_id = js.id
+      WHERE p.id = $1
+    `, [id]);
+
+    if (pengurusRes.rowCount === 0) {
+      return NextResponse.json({ success: false, message: 'Pengurus tidak ditemukan' }, { status: 404 });
+    }
+
+    // Fetch riwayat jabatan
+    const jabatanRes = await pool.query(`
+      SELECT
+        dk.id, dk.status_jabatan, dk.lingkup, dk.tanggal_mulai, dk.tanggal_akhir_menjabat,
+        dk.jalur_pengangkatan, dk.catatan,
+        jab.nama_jabatan,
+        per.nama_periode, per.tahun_mulai, per.tahun_akhir,
+        s.nama_satelit,
+        kom.nama_komisi,
+        dep.nama_departemen
+      FROM detail_kepengurusan dk
+      JOIN jabatan jab ON dk.jabatan_id = jab.id
+      JOIN periode_kepengurusan per ON dk.periode_id = per.id
+      LEFT JOIN satelit s ON dk.satelit_id = s.id
+      LEFT JOIN komisi kom ON dk.komisi_id = kom.id
+      LEFT JOIN departemen dep ON dk.departemen_id = dep.id
+      WHERE dk.pengurus_id = $1
+      ORDER BY dk.id DESC
+    `, [id]);
+
+    // Fetch audit log
+    const auditRes = await pool.query(`
+      SELECT
+        al.id, al.aksi, al.keterangan, al.created_at,
+        u.email AS user_email,
+        r.nama_role
+      FROM pengurus_audit_log al
+      LEFT JOIN pengguna u ON al.user_id = u.id
+      LEFT JOIN role r ON al.role_id = r.id
+      WHERE al.pengurus_id = $1
+      ORDER BY al.created_at DESC
+      LIMIT 30
+    `, [id]);
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        ...pengurusRes.rows[0],
+        jabatan: jabatanRes.rows,
+        audit_log: auditRes.rows,
+      }
+    });
   } catch (error: any) {
     console.error('GET Pengurus Details error:', error.message);
     return NextResponse.json({ success: false, message: 'Internal Server Error' }, { status: 500 });
