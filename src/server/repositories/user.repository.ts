@@ -11,6 +11,7 @@ export interface Pengguna {
   jemaat_id: number | null;
   jemaat_nomor?: string | null;
   nama_lengkap?: string | null;
+  foto_url?: string | null;
   requires_password_change?: boolean;
 }
 
@@ -26,7 +27,7 @@ export class UserRepository {
     const query = `
       SELECT 
         p.id, p.email, p.password_hash, p.is_active, p.last_login_at, p.created_at, p.updated_at, p.jemaat_id, p.requires_password_change,
-        j.jemaat_id as jemaat_nomor, j.nama_lengkap
+        j.jemaat_id as jemaat_nomor, j.nama_lengkap, j.foto_url
       FROM pengguna p
       LEFT JOIN jemaat j ON p.jemaat_id = j.id
       WHERE p.id = $1;

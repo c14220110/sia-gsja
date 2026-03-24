@@ -79,6 +79,18 @@ export default function ProfilJemaatPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'data' | 'keluarga' | 'pohon'>('data');
 
+  // Baca query parameter tab jika ada (misal dari menu "Kartu Keluarga")
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get('tab');
+      if (tab === 'keluarga' || tab === 'pohon' || tab === 'data') {
+        setActiveTab(tab);
+      }
+    }
+  }, []);
+
+
   // Data state
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);

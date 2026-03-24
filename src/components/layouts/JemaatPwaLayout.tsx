@@ -85,21 +85,21 @@ export default function JemaatPwaLayout({
                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Manajemen Profil</h4>
                
                {/* Data Diri Link */}
-               <Link href={`/jemaat/${userData?.jemaat_id}?mode=edit`} onClick={() => setIsSettingsOpen(false)} className="w-full flex items-center justify-between p-3 hover:bg-slate-50 rounded-2xl transition-colors">
+               <Link href={`/profil`} onClick={() => setIsSettingsOpen(false)} className="w-full flex items-center justify-between p-3 hover:bg-slate-50 rounded-2xl transition-colors">
                   <div className="flex items-center gap-4">
                      <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center">
                         <span className="material-icons-round text-[20px]">badge</span>
                      </div>
                      <div>
                         <div className="font-bold text-slate-800 text-sm">Data Diri & NIK</div>
-                        <div className="text-xs text-slate-500">Perbarui identitas kependudukan</div>
+                        <div className="text-xs text-slate-500">Lihat identitas kependudukan</div>
                      </div>
                   </div>
                   <span className="material-icons-round text-slate-300">chevron_right</span>
                </Link>
 
                {/* Relasi Keluarga Link */}
-               <Link href="/family-tree" onClick={() => setIsSettingsOpen(false)} className="w-full flex items-center justify-between p-3 hover:bg-slate-50 rounded-2xl transition-colors">
+               <Link href="/profil?tab=keluarga" onClick={() => setIsSettingsOpen(false)} className="w-full flex items-center justify-between p-3 hover:bg-slate-50 rounded-2xl transition-colors">
                   <div className="flex items-center gap-4">
                      <div className="w-10 h-10 bg-teal-50 text-teal-600 rounded-full flex items-center justify-center">
                         <span className="material-icons-round text-[20px]">family_restroom</span>

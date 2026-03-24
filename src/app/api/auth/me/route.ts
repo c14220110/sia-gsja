@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
         role_name: activeRole?.nama_role.replace(/_/g, ' ') || decoded.role_name?.replace(/_/g, ' ') || 'Unknown Role',
         satelit_name: activeRole?.nama_satelit || 'Unknown Satelit',
         email: user?.nama_lengkap || user?.email || `User ${decoded.user_id}`,
+        foto_url: user?.foto_url || null,
         jemaat_id: user?.jemaat_id || null,
         available_roles: roles,
         permissions,
