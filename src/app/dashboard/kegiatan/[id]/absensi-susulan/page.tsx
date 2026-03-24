@@ -144,10 +144,10 @@ export default function AbsensiSusulanPage({ params }: { params: Promise<{ id: s
     return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth()+1).toString().padStart(2, '0')} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
   };
 
-  if (isLoadingHeader) return <div className="h-screen flex items-center justify-center bg-slate-50 text-slate-800"><span className="material-icons-round text-5xl animate-spin text-blue-600">refresh</span></div>;
+  if (isLoadingHeader) return <div className="h-[70vh] flex items-center justify-center text-slate-800"><span className="material-icons-round text-5xl animate-spin text-blue-600">refresh</span></div>;
 
   return (
-    <div className="w-full min-h-screen bg-slate-50 flex flex-col font-['Inter'] relative pb-20">
+    <div className="w-full flex flex-col gap-6 pb-10 font-['Inter']">
       
       <SubmitOverlay 
         status={submitState.status} 
@@ -155,41 +155,48 @@ export default function AbsensiSusulanPage({ params }: { params: Promise<{ id: s
         onClose={() => setSubmitState({ status: 'idle', message: '' })} 
       />
 
-      {/* HEADER BREADCRUMB */}
-      <div className="w-full bg-white border-b border-slate-200 flex flex-col justify-center px-4 md:px-8 py-4 md:py-6 shadow-sm gap-2">
-        <div className="flex flex-wrap items-center gap-1 md:gap-2 text-[10px] md:text-sm font-medium font-['Inter'] leading-4">
-           <span className="text-slate-500">Modul Kegiatan</span>
-           <span className="text-slate-400 material-icons-round text-[14px]">chevron_right</span>
-           <Link href="/dashboard/kegiatan" className="text-slate-500 hover:text-blue-600 transition-colors">Daftar Kegiatan</Link>
-           <span className="text-slate-400 material-icons-round text-[14px]">chevron_right</span>
-           <span className="text-slate-800 font-bold">Absensi Susulan (Back-Office)</span>
-        </div>
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-3 mt-1">
-           <div className="flex flex-col gap-1 items-start">
-              <h1 className="text-slate-900 text-2xl md:text-3xl font-black font-['Inter'] max-w-full break-words tracking-tight">
-                {kegiatan?.nama_kegiatan || 'Acara GSJA'}
-              </h1>
-              <div className="text-slate-500 text-sm font-medium flex items-center gap-2 mt-1">
-                 <span className="material-icons-round text-[18px]">how_to_reg</span> <span className="uppercase tracking-widest text-xs font-bold">Input Kehadiran Manual</span>
+      {/* Breadcrumb & Title Area */}
+      <div className="w-full flex flex-col justify-start items-start gap-4">
+          <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-['Inter'] leading-4">
+            <Link href="/dashboard/kegiatan" className="text-slate-500 hover:text-blue-600">Modul Kegiatan</Link>
+            <span className="text-slate-500 material-icons-round text-[14px]">chevron_right</span>
+            <Link href="/dashboard/kegiatan" className="text-slate-500 hover:text-blue-600">Daftar Kegiatan</Link>
+            <span className="text-slate-500 material-icons-round text-[14px]">chevron_right</span>
+            <span className="text-slate-700 font-bold">Absensi Susulan (Back-Office)</span>
+          </div>
+          <div className="self-stretch flex flex-col md:flex-row md:justify-between items-start md:items-end gap-4">
+            <div className="inline-flex flex-col justify-start items-start">
+              <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">{kegiatan?.nama_kegiatan || 'Acara GSJA'}</h1>
+              <div className="text-slate-500 text-base font-medium font-['Inter'] leading-6 flex gap-1">
+                <span className="material-icons-round text-[18px]">how_to_reg</span>
+                <span className="uppercase tracking-widest text-xs font-bold my-auto ml-1">Input Kehadiran Manual</span>
               </div>
-           </div>
-           
-           <div className="flex gap-2 text-xs font-bold font-['Public_Sans'] px-4 py-2 bg-slate-100 rounded-xl border border-slate-200">
-              <span className="text-slate-500 uppercase tracking-widest mr-2 my-auto text-[10px]">TOTAL KEHADIRAN:</span>
-              <div className="px-3 py-1 bg-white text-slate-800 rounded-md shadow-sm border border-slate-200">{stats.total_hadir} Jiwa</div>
-           </div>
-        </div>
+            </div>
+            
+            <div className="flex gap-2 text-xs font-bold font-['Public_Sans'] px-4 py-3 bg-slate-100/50 rounded-xl border border-slate-200/60 shadow-sm shrink-0">
+               <span className="text-slate-500 uppercase tracking-widest mr-2 my-auto text-[10px]">TOTAL KEHADIRAN:</span>
+               <div className="px-3 py-1 bg-white text-slate-800 rounded-md shadow-sm border border-slate-200/60">{stats.total_hadir} Jiwa</div>
+            </div>
+          </div>
       </div>
 
-      <div className="px-4 md:px-8 py-8 w-full mx-auto flex flex-col gap-8 max-w-[1400px]">
+      {/* Tabs / Separator Indicator */}
+      <div className="w-full border-b border-slate-200 inline-flex justify-start items-start gap-8 px-1">
+          <div className="px-2 py-3 border-b-2 border-slate-700 inline-flex flex-col justify-center items-center cursor-default">
+            <span className="text-sm font-bold font-['Inter'] leading-5 text-slate-700">Form Absensi & Daftar Hadir</span>
+          </div>
+      </div>
+
+      {/* Content Area */}
+      <div className="w-full flex flex-col justify-start items-start gap-8 mt-2">
          
          {/* DUAL PANELS GRID (50:50) */}
          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
             
             {/* PANEL KIRI: JEMAAT GSJA */}
-            <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200 flex flex-col gap-6 relative overflow-visible">
+            <div className="p-6 md:p-8 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col gap-6 relative overflow-visible">
                <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
-                  <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+                  <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
                      <span className="material-icons-round">contact_mail</span>
                   </div>
                   <div>
@@ -200,13 +207,13 @@ export default function AbsensiSusulanPage({ params }: { params: Promise<{ id: s
 
                {selectedJemaat ? (
                  <div className="flex flex-col gap-4">
-                    <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                    <div className="flex items-center justify-between p-4 bg-blue-50/50 border border-blue-100 rounded-xl">
                        <div className="flex flex-col">
-                          <span className="text-xs text-blue-500 font-bold uppercase tracking-wider mb-1">Jemaat Terpilih:</span>
+                          <span className="text-[10px] text-blue-500 font-bold uppercase tracking-wider mb-1">Jemaat Terpilih:</span>
                           <span className="text-sm font-black text-slate-800">{selectedJemaat.nama}</span>
                           <span className="text-xs text-slate-500">{selectedJemaat.satelit}</span>
                        </div>
-                       <button onClick={() => setSelectedJemaat(null)} className="w-8 h-8 rounded-full bg-white text-rose-500 shadow hover:bg-rose-50 flex items-center justify-center transition-colors">
+                       <button onClick={() => setSelectedJemaat(null)} className="w-8 h-8 rounded-full bg-white text-rose-500 shadow-sm border border-rose-100 hover:bg-rose-50 flex items-center justify-center transition-colors">
                           <span className="material-icons-round text-lg">close</span>
                        </button>
                     </div>
@@ -216,7 +223,7 @@ export default function AbsensiSusulanPage({ params }: { params: Promise<{ id: s
                       <select 
                         value={roleManual}
                         onChange={(e) => setRoleManual(e.target.value)}
-                        className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-800 font-medium focus:ring-4 focus:border-blue-500 focus:ring-blue-500/10 outline-none transition-all shadow-sm appearance-none cursor-pointer"
+                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 font-medium focus:ring-2 focus:border-blue-500 focus:ring-blue-500/20 outline-none transition-all shadow-sm appearance-none cursor-pointer"
                         style={{ backgroundImage: `url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2364748b%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 16px center', backgroundSize: '16px' }}
                       >
                          <option value="Jemaat">Jemaat (Peserta Umum)</option>
@@ -231,7 +238,7 @@ export default function AbsensiSusulanPage({ params }: { params: Promise<{ id: s
                       </select>
                     </div>
 
-                    <button onClick={submitInternalJemaat} disabled={submitState.status === 'loading'} className="w-full mt-2 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2 text-sm uppercase tracking-wider group disabled:opacity-70 disabled:cursor-not-allowed">
+                    <button onClick={submitInternalJemaat} disabled={submitState.status === 'loading'} className="w-full mt-2 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 text-sm uppercase tracking-wider group disabled:opacity-70 disabled:cursor-not-allowed">
                        <span className="material-icons-round text-lg group-hover:scale-110 transition-transform">add_circle</span> Simpan Kehadiran Jemaat
                     </button>
                  </div>
@@ -246,18 +253,18 @@ export default function AbsensiSusulanPage({ params }: { params: Promise<{ id: s
                            placeholder="Ketik sebagian nama jemaat terdaftar..." 
                            value={manualSearch}
                            onChange={(e) => setManualSearch(e.target.value)}
-                           className="w-full pl-12 pr-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-800 text-sm font-medium focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-slate-400 shadow-sm"
+                           className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm font-medium focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-slate-400"
                          />
                       </div>
                     </div>
                     
                     {(searchResults.length > 0 || isSearching) && (
-                      <div className="absolute top-[76px] left-0 right-0 max-h-56 overflow-y-auto border border-slate-200 rounded-xl shadow-xl bg-white z-[60]">
+                      <div className="absolute top-[76px] left-0 right-0 max-h-56 overflow-y-auto border border-slate-200 rounded-xl shadow-lg bg-white z-[60]">
                         {isSearching ? (
                            <div className="p-4 text-slate-500 text-center text-xs font-medium bg-slate-50/50">Memuat silang data jemaat...</div>
                         ) : (
                           searchResults.map((jem) => (
-                            <div key={jem.id} className="w-full p-3 flex justify-between items-center hover:bg-blue-50 border-b border-slate-100 transition-colors cursor-pointer group" onClick={() => setSelectedJemaat({ id: jem.id, nama: jem.nama_lengkap, satelit: jem.nama_satelit })}>
+                            <div key={jem.id} className="w-full p-3 flex justify-between items-center hover:bg-slate-50 border-b border-slate-100 transition-colors cursor-pointer group" onClick={() => setSelectedJemaat({ id: jem.id, nama: jem.nama_lengkap, satelit: jem.nama_satelit })}>
                               <div className="flex flex-col">
                                 <span className="text-slate-800 font-bold text-sm tracking-tight">{jem.nama_lengkap}</span>
                                 <span className="text-slate-500 text-xs font-medium">{jem.nama_satelit}</span>
@@ -278,9 +285,9 @@ export default function AbsensiSusulanPage({ params }: { params: Promise<{ id: s
             </div>
 
             {/* PANEL KANAN: TAMU BARU */}
-            <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200 flex flex-col gap-6">
+            <div className="p-6 md:p-8 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col gap-6">
                <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
-                  <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center text-amber-600">
+                  <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
                      <span className="material-icons-round">edit_document</span>
                   </div>
                   <div>
@@ -298,7 +305,7 @@ export default function AbsensiSusulanPage({ params }: { params: Promise<{ id: s
                        onChange={e => setFormTamu({...formTamu, nama: e.target.value})} 
                        placeholder="Sesuai formulir/buku tamu..." 
                        required 
-                       className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-800 text-sm font-medium focus:outline-none focus:bg-white focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 transition-all shadow-sm" 
+                       className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm font-medium focus:outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all" 
                      />
                   </div>
 
@@ -310,7 +317,7 @@ export default function AbsensiSusulanPage({ params }: { params: Promise<{ id: s
                           value={formTamu.hp} 
                           onChange={e => setFormTamu({...formTamu, hp: e.target.value})} 
                           placeholder="Opsional (Untuk Follow-up)" 
-                          className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-800 text-sm font-medium focus:outline-none focus:bg-white focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 transition-all shadow-sm" 
+                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm font-medium focus:outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all" 
                         />
                      </div>
                      <div className="flex flex-col gap-1.5">
@@ -320,7 +327,7 @@ export default function AbsensiSusulanPage({ params }: { params: Promise<{ id: s
                           value={formTamu.asal} 
                           onChange={e => setFormTamu({...formTamu, asal: e.target.value})} 
                           placeholder="Opsional (Luar GSJA)" 
-                          className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-800 text-sm font-medium focus:outline-none focus:bg-white focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 transition-all shadow-sm" 
+                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm font-medium focus:outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all" 
                         />
                      </div>
                   </div>
@@ -341,24 +348,23 @@ export default function AbsensiSusulanPage({ params }: { params: Promise<{ id: s
          </div>
 
          {/* DATA GRID PENUH */}
-         <div className="w-full bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col overflow-hidden">
+         <div className="w-full bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden">
             <div className="p-5 md:p-6 border-b border-slate-200 bg-white flex flex-col md:flex-row md:items-center justify-between gap-4">
                <div>
                  <h2 className="text-lg font-black text-slate-800">Tabel Daftar Kehadiran ({logs.length})</h2>
                  <p className="text-slate-500 text-xs mt-0.5">Mencakup kehadiran via Kiosk QR & manual.</p>
                </div>
-               {/* Could add a simple client side table filter here if desired */}
             </div>
 
             <div className="w-full overflow-x-auto">
                <table className="w-full text-left border-collapse min-w-[700px]">
                   <thead>
-                     <tr className="bg-slate-50 border-b border-slate-200">
-                        <th className="py-3 px-6 text-xs font-bold text-slate-500 uppercase tracking-widest bg-slate-50 w-16 text-center">No</th>
-                        <th className="py-3 px-6 text-xs font-bold text-slate-500 uppercase tracking-widest bg-slate-50">Nama Peserta / Tamu</th>
-                        <th className="py-3 px-6 text-xs font-bold text-slate-500 uppercase tracking-widest bg-slate-50">Kategori Role</th>
-                        <th className="py-3 px-6 text-xs font-bold text-slate-500 uppercase tracking-widest bg-slate-50">Metode Integrasi</th>
-                        <th className="py-3 px-6 text-xs font-bold text-slate-500 uppercase tracking-widest bg-slate-50 text-right">Waktu Absen</th>
+                     <tr className="bg-slate-50/50 border-b border-slate-200">
+                        <th className="py-3 px-6 text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-50/50 w-16 text-center">No</th>
+                        <th className="py-3 px-6 text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-50/50">Nama Peserta / Tamu</th>
+                        <th className="py-3 px-6 text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-50/50">Kategori Role</th>
+                        <th className="py-3 px-6 text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-50/50">Metode Integrasi</th>
+                        <th className="py-3 px-6 text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-50/50 text-right">Waktu Absen</th>
                      </tr>
                   </thead>
                   <tbody>
@@ -366,7 +372,7 @@ export default function AbsensiSusulanPage({ params }: { params: Promise<{ id: s
                         <tr>
                            <td colSpan={5} className="py-12 text-center">
                               <span className="material-icons-round text-5xl text-slate-200 mb-3 block">assignment_ind</span>
-                              <p className="text-slate-500 font-medium">Belum ada data absensi untuk kegiatan ini.</p>
+                              <p className="text-slate-500 font-medium text-sm">Belum ada data absensi untuk kegiatan ini.</p>
                            </td>
                         </tr>
                      ) : (
