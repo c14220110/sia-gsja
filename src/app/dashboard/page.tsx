@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Scanner } from '@yudiel/react-qr-scanner';
 import { useLoader } from '@/components/ui/GlobalLoader';
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 
 export default function DashboardHome() {
   const [userData, setUserData] = useState<any>(null);
@@ -179,13 +180,15 @@ export default function DashboardHome() {
                  </div>
               </div>
 
-              <div className="w-24 h-24 bg-white/20 backdrop-blur-md border border-white/40 p-4 rounded-3xl shadow-inner z-10 mb-5 flex items-center justify-center group-hover:bg-white/30 transition-colors">
-                 <span className="material-icons-round text-white text-6xl group-hover:scale-110 transition-transform">qr_code_scanner</span>
+              <div className="w-28 h-28 bg-white/20 backdrop-blur-md border border-white/40 p-1 rounded-3xl shadow-inner z-10 mb-4 flex items-center justify-center group-hover:bg-white/30 transition-colors pointer-events-none">
+                 <div className="w-full h-full text-white pointer-events-none mix-blend-plus-lighter opacity-90 group-hover:scale-110 transition-transform">
+                   <DotLottieReact src="/assets/scan-qr-mobile.lottie" loop autoplay />
+                 </div>
               </div>
 
               <h2 className="text-white font-black text-2xl tracking-tight mb-1 z-10">Pindai Kehadiran</h2>
-              <p className="text-center text-blue-50 text-xs font-medium max-w-[250px] z-10 leading-relaxed mb-2 opacity-90">
-                 Ketuk layar ini untuk mengaktifkan kamera dan memindai QR Usher.
+              <p className="text-center text-blue-50 text-xs font-medium max-w-[270px] z-10 leading-relaxed mb-1 opacity-90">
+                 Ketuk layar ini untuk mengaktifkan kamera belakang dan memindai QR ibadah/kegiatan!
               </p>
            </div>
 
