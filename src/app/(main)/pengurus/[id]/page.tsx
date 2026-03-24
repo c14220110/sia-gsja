@@ -12,9 +12,9 @@ export default function PengurusDetailPage() {
   const id = typeof params.id === 'string' ? params.id : '';
   const isReadOnly = searchParams.get('mode') !== 'edit';
 
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingData, setIsLoadingData] = useState(true);
   const [pengurus, setPengurus] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'profil' | 'jabatan' | 'audit'>('profil');
+  const [activeTab, setActiveTab] = useState<'data_pengurus' | 'riwayat_jabatan' | 'audit_log'>('data_pengurus');
   const [submitState, setSubmitState] = useState<{ status: 'idle'|'loading'|'success'|'error', message: string }>({ status: 'idle', message: '' });
 
   const [userData, setUserData] = useState<any>(null);
@@ -26,7 +26,7 @@ export default function PengurusDetailPage() {
 
   useEffect(() => {
     const fetchAll = async () => {
-      setIsLoading(true);
+      setIsLoadingData(true);
       try {
         const [resPengurus, resUser] = await Promise.all([
           fetch(`/api/pengurus/${id}`),
@@ -35,12 +35,12 @@ export default function PengurusDetailPage() {
         if (resUser.ok) setUserData(await resUser.json());
         if (resPengurus.ok) {
           const json = await resPengurus.json();
-          if (json.success) setPengurus(json.data);
+          if (json.success && json.data) setPengurus(json.data);
         }
       } catch (err) {
         console.error(err);
       } finally {
-        setIsLoading(false);
+        setIsLoadingData(false);
       }
     };
     if (id) fetchAll();
@@ -64,10 +64,10 @@ export default function PengurusDetailPage() {
     return { icon: 'info', cls: 'bg-slate-100 text-slate-500' };
   };
 
-  if (isLoading) {
+  if (isLoadingData) {
     return (
-      <div className="flex items-center justify-center p-20">
-        <div className="w-8 h-8 rounded-full border-4 border-slate-200 border-t-violet-600 animate-spin"></div>
+      <div className="w-full flex justify-center items-center py-20">
+        <span className="material-icons-round animate-spin text-4xl text-slate-400">sync</span>
       </div>
     );
   }
@@ -76,7 +76,7 @@ export default function PengurusDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center p-12 gap-4">
         <span className="material-icons-round text-5xl text-slate-300">error_outline</span>
-        <p className="text-slate-500">Data pengurus tidak ditemukan.</p>
+        <p className="text-slate-500 font-['Inter']">Data pengurus tidak ditemukan.</p>
         <Link href="/pengurus" className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-semibold transition-colors">
           Kembali ke Daftar Pengurus
         </Link>
@@ -87,21 +87,21 @@ export default function PengurusDetailPage() {
   const latestJabatan = pengurus.jabatan?.[0];
 
   return (
-    <div className="w-full flex flex-col gap-6 pb-12">
+    <div className="w-full flex flex-col gap-6 pb-10">
 
-      {/* Breadcrumb */}
-      <div className="w-full flex flex-col gap-4">
-        <div className="inline-flex items-center gap-2 text-xs font-medium text-slate-500">
-          <Link href="/pengurus" className="hover:text-violet-600">Database Pengurus</Link>
-          <span className="material-icons-round text-[14px]">chevron_right</span>
-          <span className="text-slate-700 font-bold">{pengurus.nama_lengkap}</span>
+      {/* Breadcrumb & Title Area */}
+      <div className="w-full flex flex-col justify-start items-start gap-4">
+        <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-['Inter'] leading-4">
+          <Link href="/pengurus" className="text-slate-500 hover:text-violet-600">Database Pengurus</Link>
+          <span className="text-slate-500 material-icons-round text-[14px]">chevron_right</span>
+          <span className="text-slate-700 font-bold">{isReadOnly ? 'Detail Pengurus' : 'Edit Pengurus'}</span>
         </div>
-        <div className="flex justify-between items-end">
-          <div>
-            <h1 className="text-slate-900 text-3xl font-black leading-9 mb-1">
-              {isReadOnly ? 'Detail Pengurus' : 'Edit Pengurus'}
+        <div className="self-stretch inline-flex justify-between items-end">
+          <div className="inline-flex flex-col justify-start items-start">
+            <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">
+              {isReadOnly ? 'Detail Data Pengurus' : 'Edit Data Pengurus'}
             </h1>
-            <div className="text-slate-500 text-base font-medium flex gap-1">
+            <div className="text-slate-500 text-base font-medium font-['Inter'] leading-6 flex gap-1">
               <span>ID Pengurus:</span>
               <span className="text-slate-700 font-bold font-mono">{pengurus.id_pengurus}</span>
             </div>
@@ -117,221 +117,253 @@ export default function PengurusDetailPage() {
         </div>
       </div>
 
-      {/* 2-Column Layout */}
-      <div className="w-full flex flex-col lg:flex-row gap-6 items-start">
+      {/* Tabs */}
+      <div className="w-full border-b border-slate-200 inline-flex justify-start items-start gap-8">
+        {([
+          { key: 'data_pengurus', label: 'Data Pengurus' },
+          { key: 'riwayat_jabatan', label: `Riwayat Jabatan${pengurus.jabatan?.length ? ` (${pengurus.jabatan.length})` : ''}` },
+          { key: 'audit_log', label: 'Audit Log' },
+        ] as { key: 'data_pengurus'|'riwayat_jabatan'|'audit_log', label: string }[]).map(tab => (
+          <div
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`px-2 py-3 border-b-2 inline-flex flex-col justify-center items-center cursor-pointer transition-colors ${activeTab === tab.key ? 'border-slate-700' : 'border-transparent'}`}
+          >
+            <span className={`text-sm font-bold font-['Inter'] leading-5 ${activeTab === tab.key ? 'text-slate-700' : 'text-slate-400'}`}>
+              {tab.label}
+            </span>
+          </div>
+        ))}
+      </div>
 
-        {/* === KOLOM KIRI: PROFILE CARD === */}
-        <div className="w-full lg:w-72 shrink-0 flex flex-col gap-4">
+      {/* Content Area */}
+      <div className="w-full flex flex-col justify-start items-start gap-8 mt-2">
 
-          {/* Avatar + Nama */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col items-center gap-4">
-            <div className="relative">
-              <img
-                src={pengurus.foto_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(pengurus.nama_lengkap)}&background=random&size=128`}
-                alt="avatar"
-                className="w-28 h-28 rounded-2xl object-cover border-2 border-white shadow-md"
-              />
-              <span className={`absolute -bottom-2 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${statusBadge(latestJabatan?.status_jabatan || 'non-aktif')}`}>
-                {latestJabatan?.status_jabatan || 'Non-Aktif'}
-              </span>
-            </div>
-            <div className="text-center mt-2">
-              <div className="text-slate-900 text-xl font-black leading-tight">{pengurus.nama_lengkap}</div>
-              <div className="text-slate-500 text-sm mt-1 font-mono">{pengurus.id_pengurus}</div>
+        {/* Top Identity Card */}
+        <div className="w-full p-6 bg-white rounded-xl shadow-sm border border-slate-200 inline-flex justify-start items-center gap-6">
+          <div className="relative inline-flex flex-col justify-start items-start">
+            <div className="w-32 h-32 bg-slate-100 rounded-xl border-2 border-slate-200 inline-flex justify-center items-center overflow-hidden">
+              {pengurus.foto_url ? (
+                <img src={pengurus.foto_url} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                <span className="material-icons-round text-slate-300 text-[64px]">person</span>
+              )}
             </div>
           </div>
-
-          {/* Info Jabatan Aktif */}
-          {latestJabatan && (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col gap-3">
-              <h3 className="text-slate-400 text-[10px] uppercase font-black tracking-wider">Jabatan Terakhir</h3>
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 bg-violet-100 text-violet-700 rounded-xl flex items-center justify-center shrink-0 mt-0.5">
-                  <span className="material-icons-round text-[20px]">workspace_premium</span>
-                </div>
-                <div>
-                  <div className="text-slate-800 font-bold text-sm">{latestJabatan.nama_jabatan}</div>
-                  <div className="text-slate-500 text-xs mt-0.5">{latestJabatan.nama_satelit || latestJabatan.nama_komisi || latestJabatan.nama_departemen || '-'}</div>
-                  <div className="text-slate-400 text-xs mt-1">{latestJabatan.nama_periode}</div>
+          <div className="inline-flex flex-col justify-start items-start w-full">
+            <div className="text-slate-900 text-2xl font-bold font-['Inter'] leading-8 mb-1">{pengurus.nama_lengkap}</div>
+            <div className="text-slate-500 text-base font-medium font-['Inter'] leading-6 mb-3">
+              {isReadOnly ? 'Arsip detail informasi pengurus gereja.' : 'Silakan perbarui data pengurus yang relevan.'}
+            </div>
+            <div className="self-stretch pt-2 inline-flex justify-start items-start gap-2">
+              <div className="px-3 py-1 bg-slate-100 rounded-full inline-flex">
+                <div className="text-slate-700 text-[10px] font-bold font-['Inter'] uppercase leading-4 tracking-wide">
+                  {isReadOnly ? 'Mode Lihat Data' : 'Mode Edit Data'}
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* Info Satelit & Bergabung */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col gap-3">
-            <h3 className="text-slate-400 text-[10px] uppercase font-black tracking-wider">Informasi Dasar</h3>
-            <div className="flex flex-col gap-2">
-              {[
-                { icon: 'satellite_alt', label: 'Satelit Asal', value: pengurus.nama_satelit_jemaat || '-' },
-                { icon: 'calendar_today', label: 'Terdaftar', value: formatDate(pengurus.created_at) },
-                { icon: 'badge', label: 'NIK', value: pengurus.nik || '-' },
-              ].map(item => (
-                <div key={item.label} className="flex items-center gap-3">
-                  <span className="material-icons-round text-slate-400 text-[16px] w-5 shrink-0">{item.icon}</span>
-                  <div>
-                    <div className="text-slate-400 text-[10px] uppercase">{item.label}</div>
-                    <div className="text-slate-700 text-xs font-semibold">{item.value}</div>
+              {latestJabatan && (
+                <div className={`px-3 py-1 rounded-full inline-flex ${statusBadge(latestJabatan.status_jabatan)}`}>
+                  <div className="text-[10px] font-bold font-['Inter'] uppercase leading-4 tracking-wide">
+                    {latestJabatan.status_jabatan} — {latestJabatan.nama_jabatan}
                   </div>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>
 
-        {/* === KOLOM KANAN: TABS === */}
-        <div className="flex-1 flex flex-col gap-0">
+        {/* ==================== TAB 1: DATA PENGURUS ==================== */}
+        {activeTab === 'data_pengurus' && (
+          <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
 
-          {/* Tab Header */}
-          <div className="w-full border-b border-slate-200 flex gap-6 bg-white rounded-t-2xl px-6 pt-4">
-            {([
-              { key: 'profil', label: 'Informasi Profil', icon: 'person' },
-              { key: 'jabatan', label: 'Riwayat Jabatan', icon: 'workspace_premium' },
-              { key: 'audit', label: 'Audit Log', icon: 'history' },
-            ] as { key: 'profil'|'jabatan'|'audit', label: string, icon: string }[]).map(tab => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`flex items-center gap-1.5 pb-4 text-sm font-bold transition-colors border-b-2 ${
-                  activeTab === tab.key
-                    ? 'border-violet-600 text-violet-700'
-                    : 'border-transparent text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                <span className="material-icons-round text-[16px]">{tab.icon}</span>
-                {tab.label}
-                {tab.key === 'jabatan' && pengurus.jabatan?.length > 0 && (
-                  <span className="ml-1 w-5 h-5 rounded-full bg-violet-100 text-violet-700 text-[10px] font-black flex items-center justify-center">
-                    {pengurus.jabatan.length}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
+            {/* KOLOM KIRI */}
+            <div className="flex flex-col gap-8">
 
-          {/* Tab Content */}
-          <div className="bg-white rounded-b-2xl shadow-sm border border-slate-200 border-t-0 p-6">
-
-            {/* ---- TAB 1: PROFIL ---- */}
-            {activeTab === 'profil' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {[
-                  { label: 'Nama Lengkap', value: pengurus.nama_lengkap },
-                  { label: 'NIK', value: pengurus.nik || '-' },
-                  { label: 'Jenis Kelamin', value: pengurus.jenis_kelamin || '-' },
-                  { label: 'Tempat, Tanggal Lahir', value: `${pengurus.tempat_lahir || '-'}, ${formatDate(pengurus.tanggal_lahir)}` },
-                  { label: 'Status Pernikahan', value: pengurus.status_pernikahan || '-' },
-                  { label: 'Alamat', value: pengurus.alamat || '-' },
-                  { label: 'No. HP', value: pengurus.no_hp || '-' },
-                  { label: 'Email', value: pengurus.email || '-' },
-                  { label: 'Tanggal Baptis', value: formatDate(pengurus.tanggal_baptis) },
-                  { label: 'Tanggal Sidi', value: formatDate(pengurus.tanggal_sidi) },
-                ].map(item => (
-                  <div key={item.label} className="flex flex-col gap-1">
-                    <span className="text-slate-400 text-[10px] font-black uppercase tracking-wider">{item.label}</span>
-                    <span className="text-slate-800 text-sm font-semibold">{item.value}</span>
-                  </div>
-                ))}
-                <div className="col-span-full">
-                  <Link
-                    href={`/jemaat/${pengurus.jemaat_id}?mode=view`}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-sm text-slate-700 font-semibold transition-colors"
-                  >
-                    <span className="material-icons-round text-[16px] text-slate-500">open_in_new</span>
-                    Lihat Profil Jemaat Lengkap
-                  </Link>
+              {/* Informasi Personal */}
+              <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-start items-start gap-6">
+                <div className="w-full inline-flex justify-start items-center gap-2">
+                  <span className="material-icons-round text-slate-700 text-[18px]">badge</span>
+                  <span className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Informasi Personal</span>
                 </div>
-              </div>
-            )}
-
-            {/* ---- TAB 2: RIWAYAT JABATAN ---- */}
-            {activeTab === 'jabatan' && (
-              <div className="flex flex-col gap-4">
-                {pengurus.jabatan?.length === 0 ? (
-                  <div className="py-12 flex flex-col items-center gap-3 text-slate-400">
-                    <span className="material-icons-round text-5xl opacity-40">workspace_premium</span>
-                    <span className="text-sm">Belum ada riwayat jabatan.</span>
-                  </div>
-                ) : (
-                  pengurus.jabatan.map((jab: any) => (
-                    <div key={jab.id} className="w-full p-5 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col gap-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center shadow-sm shrink-0">
-                            <span className="material-icons-round text-violet-600 text-[20px]">workspace_premium</span>
-                          </div>
-                          <div>
-                            <div className="text-slate-900 font-black text-base">{jab.nama_jabatan}</div>
-                            <div className="text-slate-500 text-xs mt-0.5">
-                              {jab.lingkup} — {jab.nama_satelit || jab.nama_komisi || jab.nama_departemen || 'Umum'}
-                            </div>
-                          </div>
-                        </div>
-                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase shrink-0 ${statusBadge(jab.status_jabatan)}`}>
-                          {jab.status_jabatan}
-                        </span>
-                      </div>
-
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                        {[
-                          { label: 'Periode', value: `${jab.nama_periode} (${jab.tahun_mulai}–${jab.tahun_akhir})` },
-                          { label: 'Jalur', value: jab.jalur_pengangkatan || '-' },
-                          { label: 'Mulai Menjabat', value: formatDate(jab.tanggal_mulai) },
-                          { label: 'Akhir Menjabat', value: jab.tanggal_akhir_menjabat ? formatDate(jab.tanggal_akhir_menjabat) : '(Belum Berakhir)' },
-                        ].map(i => (
-                          <div key={i.label} className="flex flex-col gap-0.5">
-                            <span className="text-slate-400 text-[10px] uppercase font-black">{i.label}</span>
-                            <span className="text-slate-700 text-xs font-semibold">{i.value}</span>
-                          </div>
-                        ))}
-                      </div>
-
-                      {jab.catatan && (
-                        <div className="px-3 py-2 bg-white rounded-lg border border-slate-200 text-xs text-slate-600 italic">
-                          📝 {jab.catatan}
-                        </div>
-                      )}
+                <div className="w-full flex-col gap-4 flex">
+                  {[
+                    { label: 'NIK', value: pengurus.nik || '-' },
+                    { label: 'Jenis Kelamin', value: pengurus.jenis_kelamin || '-' },
+                    { label: 'Status Pernikahan', value: pengurus.status_pernikahan || '-' },
+                  ].map(item => (
+                    <div key={item.label} className="w-full flex-col gap-1 flex">
+                      <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">{item.label}</label>
+                      <div className="text-slate-900 text-sm font-semibold font-['Public_Sans']">{item.value}</div>
                     </div>
-                  ))
-                )}
-              </div>
-            )}
-
-            {/* ---- TAB 3: AUDIT LOG ---- */}
-            {activeTab === 'audit' && (
-              <div className="flex flex-col gap-3">
-                {pengurus.audit_log?.length === 0 ? (
-                  <div className="py-12 flex flex-col items-center gap-3 text-slate-400">
-                    <span className="material-icons-round text-5xl opacity-40">history</span>
-                    <span className="text-sm">Belum ada catatan aktivitas.</span>
+                  ))}
+                  <div className="w-full flex gap-4">
+                    <div className="flex-1 flex-col gap-1 flex">
+                      <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Kota Lahir</label>
+                      <div className="text-slate-900 text-sm font-semibold font-['Public_Sans']">{pengurus.tempat_lahir || '-'}</div>
+                    </div>
+                    <div className="flex-1 flex-col gap-1 flex">
+                      <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Tanggal Lahir</label>
+                      <div className="text-slate-900 text-sm font-semibold font-['Public_Sans']">{formatDate(pengurus.tanggal_lahir)}</div>
+                    </div>
                   </div>
-                ) : (
-                  pengurus.audit_log.map((log: any) => {
-                    const { icon, cls } = auditIcon(log.aksi);
-                    return (
-                      <div key={log.id} className="flex items-start gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
-                        <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${cls}`}>
-                          <span className="material-icons-round text-[18px]">{icon}</span>
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <span className="text-slate-800 font-bold text-sm">{log.aksi}</span>
-                            <span className="text-slate-400 text-xs">oleh {log.user_email || 'Sistem'}</span>
-                          </div>
-                          <div className="text-slate-600 text-xs">{log.keterangan}</div>
-                        </div>
-                        <div className="text-slate-400 text-[10px] shrink-0 text-right">
-                          {formatDate(log.created_at)}<br />
-                          {new Date(log.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                </div>
+              </div>
+
+              {/* Kontak */}
+              <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-start items-start gap-6">
+                <div className="w-full inline-flex justify-start items-center gap-2">
+                  <span className="material-icons-round text-slate-700 text-[18px]">contact_phone</span>
+                  <span className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Kontak</span>
+                </div>
+                <div className="w-full flex-col gap-4 flex">
+                  {[
+                    { label: 'No. HP', value: pengurus.no_hp || '-' },
+                    { label: 'Email', value: pengurus.email || '-' },
+                    { label: 'Alamat', value: pengurus.alamat || '-' },
+                  ].map(item => (
+                    <div key={item.label} className="w-full flex-col gap-1 flex">
+                      <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">{item.label}</label>
+                      <div className="text-slate-900 text-sm font-semibold font-['Public_Sans']">{item.value}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* KOLOM KANAN */}
+            <div className="flex flex-col gap-8">
+
+              {/* Status Baptis & Gereja */}
+              <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-start items-start gap-6">
+                <div className="w-full inline-flex justify-start items-center gap-2">
+                  <span className="material-icons-round text-slate-700 text-[20px]">how_to_reg</span>
+                  <span className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Status Gereja</span>
+                </div>
+                <div className="w-full flex-col gap-4 flex">
+                  <div className="w-full flex gap-4">
+                    <div className="flex-1 flex-col gap-1 flex">
+                      <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Tanggal Baptis</label>
+                      <div className="text-slate-900 text-sm font-semibold font-['Public_Sans']">{formatDate(pengurus.tanggal_baptis)}</div>
+                    </div>
+                    <div className="flex-1 flex-col gap-1 flex">
+                      <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Tanggal Sidi</label>
+                      <div className="text-slate-900 text-sm font-semibold font-['Public_Sans']">{formatDate(pengurus.tanggal_sidi)}</div>
+                    </div>
+                  </div>
+                  <div className="w-full flex-col gap-1 flex">
+                    <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Satelit Asal</label>
+                    <div className="text-slate-900 text-sm font-semibold font-['Public_Sans']">{pengurus.nama_satelit_jemaat || '-'}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Link ke Profil Jemaat */}
+              <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-start items-start gap-4">
+                <div className="w-full inline-flex justify-start items-center gap-2">
+                  <span className="material-icons-round text-slate-700 text-[18px]">link</span>
+                  <span className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Profil Jemaat Terhubung</span>
+                </div>
+                <div className="w-full flex-col gap-1 flex">
+                  <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Nomor Jemaat</label>
+                  <div className="text-slate-900 text-sm font-bold font-mono">{pengurus.jemaat_nomor || '-'}</div>
+                </div>
+                <Link
+                  href={`/jemaat/${pengurus.jemaat_id}?mode=view`}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-sm text-slate-700 font-semibold transition-colors font-['Inter']"
+                >
+                  <span className="material-icons-round text-[16px] text-slate-500">open_in_new</span>
+                  Lihat Profil Jemaat Lengkap
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ==================== TAB 2: RIWAYAT JABATAN ==================== */}
+        {activeTab === 'riwayat_jabatan' && (
+          <div className="w-full flex flex-col gap-4">
+            {pengurus.jabatan?.length === 0 ? (
+              <div className="w-full py-16 bg-white rounded-xl border border-slate-200 flex flex-col items-center gap-3 text-slate-400">
+                <span className="material-icons-round text-5xl opacity-40">workspace_premium</span>
+                <span className="text-sm font-['Public_Sans']">Belum ada riwayat jabatan.</span>
+              </div>
+            ) : (
+              pengurus.jabatan?.map((jab: any) => (
+                <div key={jab.id} className="w-full p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col gap-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-violet-100 rounded-xl flex items-center justify-center shrink-0">
+                        <span className="material-icons-round text-violet-700 text-[20px]">workspace_premium</span>
+                      </div>
+                      <div>
+                        <div className="text-slate-900 font-black text-lg font-['Inter']">{jab.nama_jabatan}</div>
+                        <div className="text-slate-500 text-sm font-['Public_Sans'] mt-0.5">
+                          {jab.lingkup} — {jab.nama_satelit || jab.nama_komisi || jab.nama_departemen || 'Umum'}
                         </div>
                       </div>
-                    );
-                  })
-                )}
-              </div>
+                    </div>
+                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase shrink-0 font-['Inter'] ${statusBadge(jab.status_jabatan)}`}>
+                      {jab.status_jabatan}
+                    </span>
+                  </div>
+                  <div className="w-full grid grid-cols-2 md:grid-cols-4 gap-4 pt-2 border-t border-slate-100">
+                    {[
+                      { label: 'Periode', value: `${jab.nama_periode} (${jab.tahun_mulai}–${jab.tahun_akhir})` },
+                      { label: 'Jalur Pengangkatan', value: jab.jalur_pengangkatan || '-' },
+                      { label: 'Mulai Menjabat', value: formatDate(jab.tanggal_mulai) },
+                      { label: 'Akhir Menjabat', value: jab.tanggal_akhir_menjabat ? formatDate(jab.tanggal_akhir_menjabat) : 'Belum Berakhir' },
+                    ].map(item => (
+                      <div key={item.label} className="flex flex-col gap-0.5">
+                        <span className="text-slate-400 text-[10px] font-bold font-['Inter'] uppercase tracking-wider">{item.label}</span>
+                        <span className="text-slate-700 text-sm font-semibold font-['Public_Sans']">{item.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {jab.catatan && (
+                    <div className="px-4 py-3 bg-slate-50 rounded-lg border border-slate-100 text-sm text-slate-600 font-['Public_Sans'] italic">
+                      📝 {jab.catatan}
+                    </div>
+                  )}
+                </div>
+              ))
             )}
           </div>
-        </div>
+        )}
+
+        {/* ==================== TAB 3: AUDIT LOG ==================== */}
+        {activeTab === 'audit_log' && (
+          <div className="w-full bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col">
+            {pengurus.audit_log?.length === 0 ? (
+              <div className="py-16 flex flex-col items-center gap-3 text-slate-400">
+                <span className="material-icons-round text-5xl opacity-40">history</span>
+                <span className="text-sm font-['Public_Sans']">Belum ada catatan aktivitas.</span>
+              </div>
+            ) : (
+              pengurus.audit_log?.map((log: any, idx: number) => {
+                const { icon, cls } = auditIcon(log.aksi);
+                return (
+                  <div key={log.id} className={`flex items-start gap-4 p-5 ${idx !== 0 ? 'border-t border-slate-100' : ''}`}>
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${cls}`}>
+                      <span className="material-icons-round text-[20px]">{icon}</span>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="text-slate-800 font-bold text-sm font-['Inter']">{log.aksi}</span>
+                        <span className="text-slate-400 text-xs font-['Public_Sans']">oleh {log.user_email || 'Sistem'}</span>
+                      </div>
+                      <div className="text-slate-600 text-sm font-['Public_Sans']">{log.keterangan}</div>
+                    </div>
+                    <div className="text-slate-400 text-xs font-['Public_Sans'] shrink-0 text-right">
+                      {formatDate(log.created_at)}<br />
+                      <span className="text-[10px]">{new Date(log.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
+
       </div>
 
       <SubmitOverlay

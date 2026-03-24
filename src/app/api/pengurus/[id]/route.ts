@@ -84,7 +84,7 @@ export async function GET(
       WHERE p.id = $1
     `, [id]);
 
-    if (pengurusRes.rowCount === 0) {
+    if (pengurusRes.rows.length === 0) {
       return NextResponse.json({ success: false, message: 'Pengurus tidak ditemukan' }, { status: 404 });
     }
 
