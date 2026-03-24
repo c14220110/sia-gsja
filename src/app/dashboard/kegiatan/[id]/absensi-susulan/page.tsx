@@ -288,7 +288,7 @@ export default function AbsensiSusulanPage({ params }: { params: Promise<{ id: s
             <div className="p-6 md:p-8 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col gap-6">
                <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
                   <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
-                     <span className="material-icons-round">edit_document</span>
+                     <span className="material-icons-round">person_add</span>
                   </div>
                   <div>
                     <h2 className="text-lg font-black text-slate-800 tracking-tight">Input Tamu / Jiwa Baru</h2>
