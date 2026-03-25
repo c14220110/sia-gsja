@@ -47,11 +47,17 @@ export default function DashboardLayout({
         if (res.ok) {
           const data = await res.json();
           setUserData(data);
+          localStorage.setItem('gsja_user_data', JSON.stringify(data)); // Simpan ke brankas HP
         } else {
           router.push('/login');
         }
       } catch (err) {
-        console.error('Failed to fetch user', err);
+        console.error('Offline / Failed to fetch user', err);
+        // BONGKAR CACHE SAAT OFFLINE AGAR TIDAK BLANK PUTIH
+        const cachedUser = localStorage.getItem('gsja_user_data');
+        if (cachedUser) {
+           setUserData(JSON.parse(cachedUser));
+        }
       } finally {
         hideLoader();
       }
