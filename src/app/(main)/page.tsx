@@ -32,10 +32,12 @@ export default function DashboardHome() {
     const initData = async () => {
        showLoader();
        try {
+         // Coba ambil data terbaru saat online
          const resAuth = await fetch('/api/auth/me');
          if (resAuth.ok) {
            const uData = await resAuth.json();
            setUserData(uData);
+           localStorage.setItem('gsja_user_data', JSON.stringify(uData)); // Simpan Cache
 
            if (uData?.role_name?.toLowerCase() === 'jemaat') {
              const q = new URLSearchParams({ limit: '1', status: 'Akan Datang' });
@@ -46,12 +48,24 @@ export default function DashboardHome() {
                 const reqData = await resEv.json();
                 if (reqData.success && reqData.data.length > 0) {
                    setNearestEvent(reqData.data[0]);
+                   localStorage.setItem('gsja_nearest_event', JSON.stringify(reqData.data[0])); // Simpan Cache Kasar Kegiatan
                 }
              }
            }
          }
        } catch (err) {
-          console.error(err);
+          console.error('Mode Offline terdeteksi:', err);
+          
+          // JIKA OFFLINE (Fetch Gagal), BONGKAR CACHE DARI LOCAL STORAGE
+          const cachedUser = localStorage.getItem('gsja_user_data');
+          if (cachedUser) {
+             setUserData(JSON.parse(cachedUser));
+          }
+          
+          const cachedEvent = localStorage.getItem('gsja_nearest_event');
+          if (cachedEvent) {
+             setNearestEvent(JSON.parse(cachedEvent));
+          }
        } finally {
           hideLoader();
        }
