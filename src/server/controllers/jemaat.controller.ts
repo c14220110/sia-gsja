@@ -25,27 +25,20 @@ export async function getJemaatController(request: Request) {
       offset: searchParams.has('offset') ? parseInt(searchParams.get('offset')!) : 0,
     };
 
-    // RBAC Security Check
-    const cookieHeader = request.headers.get('cookie') || '';
-    const match = cookieHeader.match(/access_token=([^;]+)/);
-    const token = match ? match[1] : null;
+    // RBAC Security Check: MUTLAK WAJIB PUNYA JWT DAN PERMISSION
+    const caller = await getCallerFromRequest(request);
 
-    if (token) {
-      try {
-        const decoded = jwt.verify(token, getJwtSecret()) as any;
-        const roles = await userRepository.getUserRoles(decoded.user_id);
-        const activeRole = roles.find(r => r.role_id === decoded.role_id && r.satelit_id === decoded.satelit_id);
-        
-        if (activeRole && activeRole.nama_role?.toUpperCase().includes('SATELIT')) {
-          // Forcefully restrict the search to their own satelit regardless of frontend param
-          params.satelit_id = decoded.satelit_id.toString();
-        }
-      } catch (err) {
-        console.warn('Invalid token on jemaat controller validation', err);
-      }
+    if (!caller || (!caller.is_super_admin && !caller.permissions.includes('jemaat_view'))) {
+      return NextResponse.json({
+        success: false,
+        message: 'Akses Ditolak: Anda tidak memiliki izin untuk melihat data jemaat (jemaat_view) atau token Anda kadaluarsa/tidak valid.',
+      }, { status: 403 });
     }
 
-    // Important: In a real app we might validate 'params' here against a Zod schema.
+    // Jika dia adalah Admin Cabang/Satelit, paksa filter berdasarkan satelit miliknya saja
+    if (caller.role_name?.toUpperCase().includes('SATELIT')) {
+       params.satelit_id = caller.satelit_id.toString();
+    }
     
     const result = await getJemaatPaginationService(params);
     
