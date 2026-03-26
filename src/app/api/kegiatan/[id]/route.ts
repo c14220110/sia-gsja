@@ -70,6 +70,81 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 }
 
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const client = await pool.connect();
+
+  try {
+    const body = await request.json();
+    await client.query('BEGIN');
+
+    // 1. Update Tabel Utama Kegiatan
+    const updateKegiatan = `
+      UPDATE public.kegiatan SET 
+        nama_kegiatan = $1,
+        jenis_kegiatan_id = $2,
+        satelit_id = $3,
+        departemen_id = $4,
+        komisi_id = $5,
+        tanggal_mulai = $6,
+        tanggal_selesai = $7,
+        waktu_mulai = $8,
+        waktu_selesai = $9,
+        lokasi_kegiatan = $10,
+        keterangan = $11,
+        pic_pengurus_id = $12,
+        status_kegiatan = $13
+      WHERE id = $14
+    `;
+    
+    await client.query(updateKegiatan, [
+      body.nama_kegiatan,
+      body.jenis_kegiatan_id || null,
+      body.satelit_id || null,
+      body.departemen_id || null,
+      body.komisi_id || null,
+      body.tanggal_mulai,
+      body.tanggal_selesai || null,
+      body.waktu_mulai || null,
+      body.waktu_selesai || null,
+      body.lokasi_kegiatan || null,
+      body.keterangan || null,
+      body.pic_pengurus_id || null,
+      body.status_kegiatan,
+      id
+    ]);
+
+    // 2. Update atau Insert Detail Ibadah (Tema & Pengkhotbah)
+    if (body.tema_khotbah || body.nama_pengkhotbah_1 || body.nama_pengkhotbah_2) {
+      // Upsert logic
+      const checkDetail = await client.query('SELECT id FROM public.kegiatan_detail_ibadah WHERE kegiatan_id = $1', [id]);
+      if (checkDetail.rowCount && checkDetail.rowCount > 0) {
+        await client.query(`
+          UPDATE public.kegiatan_detail_ibadah SET
+            tema_khotbah = $1,
+            nama_pengkhotbah_1 = $2,
+            nama_pengkhotbah_2 = $3
+          WHERE kegiatan_id = $4
+        `, [body.tema_khotbah || null, body.nama_pengkhotbah_1 || null, body.nama_pengkhotbah_2 || null, id]);
+      } else {
+         await client.query(`
+          INSERT INTO public.kegiatan_detail_ibadah (kegiatan_id, tema_khotbah, nama_pengkhotbah_1, nama_pengkhotbah_2)
+          VALUES ($1, $2, $3, $4)
+        `, [id, body.tema_khotbah || null, body.nama_pengkhotbah_1 || null, body.nama_pengkhotbah_2 || null]);
+      }
+    }
+
+    await client.query('COMMIT');
+    return NextResponse.json({ success: true, message: 'Kegiatan berhasil diperbarui' });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error updating full kegiatan:', error);
+    return NextResponse.json({ success: false, message: 'Gagal memperbarui kegiatan' }, { status: 500 });
+  } finally {
+    client.release();
+  }
+}
+
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const client = await pool.connect();
