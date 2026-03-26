@@ -617,7 +617,7 @@ export default function KegiatanPage() {
                           {/* DRAFT */}
                           {displayStatus === 'Draft' && (
                             <>
-                              <Link href={`/kegiatan/${kegiatan.id}`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Detail</Link>
+                              <Link href={`/kegiatan/${kegiatan.id}/edit`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Detail Draft</Link>
                               <Link href={`/kegiatan/${kegiatan.id}/edit`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">edit</span>Edit Kegiatan</Link>
                               <button onClick={() => handleUpdateStatus(kegiatan.id, 'Akan Datang')} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-blue-500">rocket_launch</span>Publish Acara</button>
                               <div className="w-full h-px bg-slate-100 my-1"></div>
