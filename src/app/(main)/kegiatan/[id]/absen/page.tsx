@@ -290,6 +290,7 @@ export default function KioskAbsensiPage({ params }: { params: Promise<{ id: str
            </button>
            
            <div className="text-center mb-6 md:mb-10 flex flex-col items-center max-w-3xl mt-12 md:mt-0">
+              {kegiatan?.nama_kegiatan && <div className="px-4 py-1.5 md:py-2 bg-blue-50/80 backdrop-blur-sm border border-blue-200 text-blue-700 rounded-full text-sm md:text-lg font-bold tracking-widest uppercase mb-4 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-500">{kegiatan.nama_kegiatan}</div>}
               <h2 className="text-3xl sm:text-4xl md:text-[54px] font-black text-slate-900 mb-3 md:mb-5 tracking-tight leading-tight">PINDAI UNTUK HADIR</h2>
               <p className="text-slate-500 text-lg md:text-2xl font-medium">Gunakan fitur Kamera / Scan di Aplikasi GSJA Smartphone Anda</p>
            </div>
@@ -459,6 +460,7 @@ export default function KioskAbsensiPage({ params }: { params: Promise<{ id: str
                  </div>
 
                  <div className="text-center mb-6 mt-14 md:mt-2 md:mb-8 flex flex-col items-center max-w-[90%] mx-auto">
+                    {kegiatan?.nama_kegiatan && <div className="px-3 py-1 bg-blue-50/80 backdrop-blur-sm border border-blue-200 text-blue-700 rounded-full text-[10px] md:text-sm font-bold tracking-widest uppercase mb-3 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-500">{kegiatan.nama_kegiatan}</div>}
                     <h2 className="text-2xl md:text-4xl font-black text-slate-800 mb-1 md:mb-2 tracking-tight line-clamp-2 md:line-clamp-none">PINDAI UNTUK HADIR</h2>
                     <p className="text-slate-500 text-xs md:text-lg">Gunakan Kamera / Scan di Aplikasi GSJA</p>
                  </div>
