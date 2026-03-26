@@ -236,35 +236,34 @@ export default function DashboardHome() {
            <div className="w-full flex flex-col gap-3">
               <h3 className="text-slate-800 font-black text-lg tracking-tight px-1">Menu Jemaat</h3>
               <div className="grid grid-cols-4 sm:grid-cols-4 gap-y-6 gap-x-2 w-full p-5 bg-white rounded-3xl shadow-sm border border-slate-100">
-                                <Link href="/kegiatan" className="flex flex-col items-center gap-3 group">
-                    <div className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center group-hover:shadow-md group-hover:-translate-y-1 transition-all text-blue-600">
+                 <div onClick={() => alert('Fitur Jadwal Acara sedang dalam pengembangan.')} className="flex flex-col items-center gap-3 group cursor-pointer opacity-80">
+                    <div className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center group-hover:shadow-md transition-all text-blue-600">
                        <span className="material-icons-round text-3xl">event</span>
                     </div>
                     <span className="text-[11px] font-bold text-slate-600 text-center leading-tight">Jadwal &<br/>Acara</span>
-                 </Link>
+                 </div>
                  
-                 <Link href="/pelayan" className="flex flex-col items-center gap-3 group">
-                    <div className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center group-hover:shadow-md group-hover:-translate-y-1 transition-all text-emerald-600">
+                 <div onClick={() => alert('Fitur Jadwal Pelayanan sedang dalam pengembangan.')} className="flex flex-col items-center gap-3 group cursor-pointer opacity-80">
+                    <div className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center group-hover:shadow-md transition-all text-emerald-600">
                        <span className="material-icons-round text-3xl">assignment_ind</span>
                     </div>
                     <span className="text-[11px] font-bold text-slate-600 text-center leading-tight">Jadwal<br/>Pelayanan</span>
-                 </Link>
+                 </div>
 
-                 <Link href="/kehadiran" className="flex flex-col items-center gap-3 group">
-                    <div className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center group-hover:shadow-md group-hover:-translate-y-1 transition-all text-amber-600">
+                 <div onClick={() => alert('Fitur Riwayat Kehadiran sedang dalam pengembangan.')} className="flex flex-col items-center gap-3 group cursor-pointer opacity-80">
+                    <div className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center group-hover:shadow-md transition-all text-amber-600">
                        <span className="material-icons-round text-3xl">history</span>
                     </div>
                     <span className="text-[11px] font-bold text-slate-600 text-center leading-tight">Riwayat<br/>Kehadiran</span>
-                 </Link>
+                 </div>
 
-                 <Link href="/tiket" className="flex flex-col items-center gap-3 group">
-                    <div className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center group-hover:shadow-md group-hover:-translate-y-1 transition-all text-violet-600">
+                 <div onClick={() => alert('Fitur Tiket & Pendaftaran sedang dalam pengembangan.')} className="flex flex-col items-center gap-3 group cursor-pointer opacity-80">
+                    <div className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center group-hover:shadow-md transition-all text-violet-600">
                        <span className="material-icons-round text-3xl">local_activity</span>
                     </div>
                     <span className="text-[11px] font-bold text-slate-600 text-center leading-tight">Tiket Saya /<br/>Pendaftaran</span>
-                 </Link>
-
-              </div>
+                 </div>
+               </div>
            </div>
 
            {/* 4. DYNAMIC WIDGET (Nearest Event) */}
