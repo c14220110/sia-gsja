@@ -311,7 +311,8 @@ export default function EditKegiatanPage({ params }: { params: Promise<{ id: str
                berbayar: k.berbayar || false,
                harga_tiket_rp: k.harga_tiket_rp?.toString() || '',
                kuota_peserta: k.kuota_peserta?.toString() || '',
-               status_kegiatan: k.status_kegiatan || 'Draft'
+               status_kegiatan: k.status_kegiatan || 'Draft',
+               url_banner: k.url_banner || ''
              });
           }
        } catch (err) {
