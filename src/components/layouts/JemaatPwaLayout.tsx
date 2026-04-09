@@ -15,12 +15,18 @@ export default function JemaatPwaLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { showLoader, hideLoader } = useLoader();
+  const { showLoader, hideLoader, setLoaderVariant } = useLoader();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [displayPath, setDisplayPath] = useState(pathname);
   const prevPathRef = useRef(pathname);
+
+  // Set loader menjadi minimal eksklusif hanya untuk PWA Jemaat 
+  useEffect(() => {
+    setLoaderVariant('minimal');
+    return () => setLoaderVariant('sandy');
+  }, [setLoaderVariant]);
 
   useEffect(() => {
     if (pathname !== prevPathRef.current) {

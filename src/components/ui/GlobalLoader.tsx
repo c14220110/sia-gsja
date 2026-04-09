@@ -1,11 +1,20 @@
 'use client';
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
+import dynamic from 'next/dynamic';
+import { useRouter, usePathname } from 'next/navigation';
+
+// Dynamically import Lottie to avoid SSR issues
+const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
+import loadingAnimation from '../../../public/assets/Sandy Loading.json';
+
+type LoaderVariant = 'sandy' | 'minimal';
 
 interface LoaderContextType {
   isLoading: boolean;
   showLoader: () => void;
   hideLoader: () => void;
+  setLoaderVariant: (variant: LoaderVariant) => void;
 }
 
 const LoaderContext = createContext<LoaderContextType | undefined>(undefined);
@@ -20,18 +29,27 @@ export const useLoader = () => {
 
 export const LoaderProvider = ({ children }: { children: ReactNode }) => {
   const [activeRequests, setActiveRequests] = useState(0);
+  const [variant, setVariant] = useState<LoaderVariant>('sandy');
 
   const showLoader = () => setActiveRequests(prev => prev + 1);
   const hideLoader = () => setActiveRequests(prev => Math.max(0, prev - 1));
+  const setLoaderVariant = (newVariant: LoaderVariant) => setVariant(newVariant);
 
   const isLoading = activeRequests > 0;
 
   return (
-    <LoaderContext.Provider value={{ isLoading, showLoader, hideLoader }}>
+    <LoaderContext.Provider value={{ isLoading, showLoader, hideLoader, setLoaderVariant }}>
       {children}
+      
+      {isLoading && variant === 'sandy' && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 animate-in fade-in duration-200">
+          <div className="w-56 h-56 flex items-center justify-center">
+             <Lottie animationData={loadingAnimation} loop={true} />
+          </div>
+        </div>
+      )}
 
-      {/* Minimal Premium Loader — tidak heboh, tidak ganggu */}
-      {isLoading && (
+      {isLoading && variant === 'minimal' && (
         <div
           className="fixed inset-0 z-[9999] flex items-center justify-center"
           style={{
@@ -42,7 +60,6 @@ export const LoaderProvider = ({ children }: { children: ReactNode }) => {
           }}
         >
           <div className="flex flex-col items-center gap-4">
-            {/* Triple dot pulse */}
             <div className="flex items-center gap-2">
               <div className="w-2.5 h-2.5 rounded-full bg-indigo-500" style={{ animation: 'gsja-bounce 1.2s ease-in-out infinite 0s' }} />
               <div className="w-2.5 h-2.5 rounded-full bg-indigo-400" style={{ animation: 'gsja-bounce 1.2s ease-in-out infinite 0.2s' }} />
