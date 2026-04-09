@@ -86,12 +86,20 @@ export default function JemaatPwaLayout({
         .pwa-page-enter {
           opacity: 1;
           transform: translateY(0) scale(1);
-          transition: opacity 0.22s cubic-bezier(.4,0,.2,1), transform 0.22s cubic-bezier(.4,0,.2,1);
+          transform-origin: top center;
+          /* Kurva spring lembut seperti SwiftUI (Apple App) */
+          transition: 
+            opacity 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), 
+            transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .pwa-page-exit {
           opacity: 0;
-          transform: translateY(8px) scale(0.98);
-          transition: opacity 0.12s cubic-bezier(.4,0,.2,1), transform 0.12s cubic-bezier(.4,0,.2,1);
+          transform: translateY(16px) scale(0.96);
+          transform-origin: top center;
+          /* Sinking backwards, fade utuh keluar */
+          transition: 
+            opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+            transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
       `}</style>
       
