@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useLoader } from '@/components/ui/GlobalLoader';
@@ -18,6 +18,22 @@ export default function JemaatPwaLayout({
   const { showLoader, hideLoader } = useLoader();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [displayPath, setDisplayPath] = useState(pathname);
+  const prevPathRef = useRef(pathname);
+
+  useEffect(() => {
+    if (pathname !== prevPathRef.current) {
+      // Trigger exit animation
+      setIsTransitioning(true);
+      const t = setTimeout(() => {
+        setDisplayPath(pathname);
+        setIsTransitioning(false);
+        prevPathRef.current = pathname;
+      }, 120);
+      return () => clearTimeout(t);
+    }
+  }, [pathname]);
 
   const handleLogout = async () => {
     showLoader();
@@ -58,9 +74,27 @@ export default function JemaatPwaLayout({
 
   return (
     <div className="w-full min-h-screen bg-slate-50 flex flex-col font-['Inter'] relative selection:bg-blue-100 selection:text-blue-900 overflow-hidden">
+
+      {/* PAGE TRANSITION STYLES */}
+      <style>{`
+        .pwa-page-enter {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+          transition: opacity 0.22s cubic-bezier(.4,0,.2,1), transform 0.22s cubic-bezier(.4,0,.2,1);
+        }
+        .pwa-page-exit {
+          opacity: 0;
+          transform: translateY(8px) scale(0.98);
+          transition: opacity 0.12s cubic-bezier(.4,0,.2,1), transform 0.12s cubic-bezier(.4,0,.2,1);
+        }
+      `}</style>
       
       {/* AREA KONTEN UTAMA */}
-      <main className="flex-1 w-full pb-24 overflow-y-auto">
+      <main
+        className={`flex-1 w-full pb-24 overflow-y-auto ${
+          isTransitioning ? 'pwa-page-exit' : 'pwa-page-enter'
+        }`}
+      >
         {children}
       </main>
 
