@@ -93,8 +93,13 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         lokasi_kegiatan = $10,
         keterangan = $11,
         pic_pengurus_id = $12,
-        status_kegiatan = $13
-      WHERE id = $14
+        status_kegiatan = $13,
+        is_published = $14,
+        butuh_registrasi = $15,
+        url_banner = $16,
+        harga_tiket_rp = $17,
+        kuota_peserta = $18
+      WHERE id = $19
     `;
     
     await client.query(updateKegiatan, [
@@ -111,6 +116,11 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       body.keterangan || null,
       body.pic_pengurus_id || null,
       body.status_kegiatan,
+      body.is_published ?? true,
+      body.butuh_registrasi ?? false,
+      body.url_banner || null,
+      body.harga_tiket_rp ? parseFloat(body.harga_tiket_rp) : 0,
+      body.kuota_peserta && body.kuota_peserta !== '' ? parseInt(body.kuota_peserta, 10) : null,
       id
     ]);
 

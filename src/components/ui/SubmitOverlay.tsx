@@ -31,7 +31,7 @@ export function SubmitOverlay({ status, message, errors, onClose }: SubmitOverla
         {status === 'success' && (
           <div className="flex flex-col items-center w-full">
             <div className="w-40 h-40">
-              <DotLottieReact src="/assets/success-check-fill-FPiuzFU9Hy.lottie" autoplay loop={false} />
+              <DotLottieReact id="lottie-success" src="/assets/success-check-fill-FPiuzFU9Hy.lottie" autoplay loop={false} />
             </div>
             <p className="mt-2 text-slate-800 font-bold text-center text-lg">{message}</p>
             <button onClick={onClose} className="mt-8 w-full py-2.5 bg-slate-800 text-white font-medium rounded-xl hover:bg-slate-700 transition-colors focus:ring-4 focus:ring-slate-200">
@@ -43,7 +43,7 @@ export function SubmitOverlay({ status, message, errors, onClose }: SubmitOverla
         {status === 'error' && (
           <div className="flex flex-col items-center w-full">
             <div className="w-32 h-32">
-              <DotLottieReact src="/assets/error-animation.lottie" autoplay loop={false} />
+              <DotLottieReact id="lottie-error" src="/assets/error-animation.lottie" autoplay loop={false} />
             </div>
             <p className="mt-4 text-rose-600 font-bold text-center text-lg">{message}</p>
             {errors && Object.keys(errors).length > 0 && (
