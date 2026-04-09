@@ -37,6 +37,7 @@ export default function KioskAbsensiPage({ params }: { params: Promise<{ id: str
   // Scanner Usher State
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isProcessingScan, setIsProcessingScan] = useState(false);
+  const [usherToast, setUsherToast] = useState<{ visible: boolean, type: 'success' | 'error', message: string }>({ visible: false, type: 'success', message: '' });
 
   // ==========================================
   // KIOSK DYNAMIC QR STATE
@@ -255,14 +256,14 @@ export default function KioskAbsensiPage({ params }: { params: Promise<{ id: str
       
       setIsScannerOpen(false); // Tutup scanner otomatis jika scan dibaca
 
-      if (data.success) {
-        triggerFeedback('success', data.message);
-        fetchLogs();
-      } else {
-        triggerFeedback('error', 'Gagal', data.message);
-      }
+      const toastType = data.success ? 'success' : 'error';
+      const toastMsg = data.success ? data.message : (data.message || 'Gagal memindai');
+      setUsherToast({ visible: true, type: toastType, message: toastMsg });
+      setTimeout(() => setUsherToast(prev => ({ ...prev, visible: false })), 3000);
+      if (data.success) fetchLogs();
     } catch (e) {
-      triggerFeedback('error', 'Koneksi Error', 'Gagal memindai.');
+      setUsherToast({ visible: true, type: 'error', message: 'Koneksi Error' });
+      setTimeout(() => setUsherToast(prev => ({ ...prev, visible: false })), 3000);
     } finally {
       setTimeout(() => setIsProcessingScan(false), 2000); // cooldown 2 detik
     }
@@ -553,6 +554,16 @@ export default function KioskAbsensiPage({ params }: { params: Promise<{ id: str
               Tamu Baru
             </button>
           </div>
+
+          {/* USHER TOAST (Non-intrusive) */}
+          {usherToast.visible && (
+            <div className={`w-full px-4 py-3 flex items-center gap-2 text-sm font-bold animate-in slide-in-from-top-2 fade-in duration-200 ${
+              usherToast.type === 'success' ? 'bg-emerald-50 text-emerald-700 border-b border-emerald-200' : 'bg-red-50 text-red-700 border-b border-red-200'
+            }`}>
+              <span className="material-icons-round text-[18px]">{usherToast.type === 'success' ? 'check_circle' : 'error'}</span>
+              <span className="truncate">{usherToast.message}</span>
+            </div>
+          )}
 
           {/* TAB CONTENTS */}
           <div className="w-full p-4 md:p-6 bg-white shrink-0 shadow-sm z-20">
