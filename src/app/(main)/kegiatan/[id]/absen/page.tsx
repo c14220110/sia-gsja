@@ -668,7 +668,7 @@ export default function KioskAbsensiPage({ params }: { params: Promise<{ id: str
               <Scanner
                 onScan={handleUsherScan}
                 formats={['qr_code']}
-                components={{ audio: false, finder: false }}
+                components={{ finder: false }}
                 styles={{ container: { width: '100%', height: '100%', borderRadius: '32px' } }}
               />
               <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-0.5 bg-blue-500 shadow-[0_0_15px_3px_rgba(59,130,246,0.5)] z-20 animate-pulse"></div>
