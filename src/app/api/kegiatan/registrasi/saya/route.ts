@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     const decoded = jwt.verify(token, getJwtSecret()) as any;
     const user = await userRepository.findById(decoded.user_id);
     
-    if (!user || (!user.jemaat_id && !user.is_super_admin)) {
+    if (!user || (!user.jemaat_id && !(user as any).is_super_admin)) {
        return NextResponse.json({ success: true, data: [] }); // User is not linked to any jemaat_id
     }
 
