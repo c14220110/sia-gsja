@@ -82,14 +82,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       const mode = action_type === 'qr_scan' ? 'QR Code' : 'Manual';
 
       // Validasi: Pastikan Jemaat ada
-      const checkJemaat = await pool.query('SELECT id, nama_lengkap FROM public.jemaat WHERE id = $1', [id_jemaat]);
+      const checkJemaat = await pool.query('SELECT id, nama_lengkap FROM public.jemaat WHERE id::text = $1 OR jemaat_nomor = $1', [String(id_jemaat)]);
       if (checkJemaat.rowCount === 0) {
          return NextResponse.json({ success: false, message: 'ID Jemaat tidak ditemukan di database.', is_alert: true }, { status: 404 });
       }
       const namaAsli = checkJemaat.rows[0].nama_lengkap;
+      const verified_jemaat_id = checkJemaat.rows[0].id; // Use real ID for insertion
 
       // Cek ke tabel kegiatan_absensi
-      const checkAbsensi = await pool.query('SELECT id, status_kehadiran, role_kehadiran FROM public.kegiatan_absensi WHERE kegiatan_id = $1 AND jemaat_id = $2', [id, id_jemaat]);
+      const checkAbsensi = await pool.query('SELECT id, status_kehadiran, role_kehadiran FROM public.kegiatan_absensi WHERE kegiatan_id = $1 AND jemaat_id = $2', [id, verified_jemaat_id]);
       
       if (checkAbsensi.rowCount && checkAbsensi.rowCount > 0) {
         const record = checkAbsensi.rows[0];
@@ -109,7 +110,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         const newRole = body.role_kehadiran || 'Jemaat';
         await pool.query(
           "INSERT INTO public.kegiatan_absensi (kegiatan_id, jemaat_id, role_kehadiran, metode_absensi, status_kehadiran) VALUES ($1, $2, $3, $4, 'Hadir')",
-          [id, id_jemaat, newRole, mode]
+          [id, verified_jemaat_id, newRole, mode]
         );
         return NextResponse.json({ success: true, message: `SHALOM, ${namaAsli.toUpperCase()}!`, nama_lengkap: namaAsli, tipe: newRole });
       }

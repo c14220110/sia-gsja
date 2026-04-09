@@ -256,11 +256,20 @@ export default function EditKegiatanPage({ params }: { params: Promise<{ id: str
     pic_pengurus_id: '',
     pic_pengurus_name: '', // Display only tracker
     
-    // Card 5: Biaya
+    // Card 5: Biaya & Akses
+    is_published: true,
+    butuh_registrasi: false,
     berbayar: false,
+    harga_tiket_rp: '',
+    kuota_peserta: '',
     
-    status_kegiatan: 'Draft' 
+    status_kegiatan: 'Draft',
+    url_banner: ''
   });
+
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
   // Fetch Existing Data to Prefill Form
   useEffect(() => {
@@ -297,7 +306,11 @@ export default function EditKegiatanPage({ params }: { params: Promise<{ id: str
                pic_pengurus_id: k.pic_pengurus_id?.toString() || '',
                pic_pengurus_name: k.pic_name || '', // Will be injected by dropdown
                
+               is_published: k.is_published ?? true,
+               butuh_registrasi: k.butuh_registrasi ?? false,
                berbayar: k.berbayar || false,
+               harga_tiket_rp: k.harga_tiket_rp?.toString() || '',
+               kuota_peserta: k.kuota_peserta?.toString() || '',
                status_kegiatan: k.status_kegiatan || 'Draft'
              });
           }
@@ -344,6 +357,19 @@ export default function EditKegiatanPage({ params }: { params: Promise<{ id: str
     fetchOptions();
   }, []);
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      if (file.size > 10 * 1024 * 1024) {
+        alert('Ukuran maksimal banner 10MB');
+        return;
+      }
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+      setFormData(prev => ({ ...prev, url_banner: '' }));
+    }
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
     if (type === 'checkbox') {
@@ -374,7 +400,34 @@ export default function EditKegiatanPage({ params }: { params: Promise<{ id: str
       setIsSubmitting(true);
       setSubmitState({ status: 'loading', message: 'Memperbarui jadwal kegiatan...' });
       
-      const payload = { ...formData, status_kegiatan: statusOverride };
+      let finalBannerUrl = formData.url_banner;
+      if (imageFile) {
+        const fileData = new FormData();
+        fileData.append('file', imageFile);
+        fileData.append('bucket', 'poster-kegiatan');
+        
+        try {
+          const uploadRes = await fetch('/api/upload', {
+            method: 'POST',
+            body: fileData
+          });
+          const uploadJson = await uploadRes.json();
+          if (uploadJson.success) {
+            finalBannerUrl = uploadJson.url;
+          } else {
+            alert('Gagal mengupload banner ke server: ' + uploadJson.message);
+            setIsSubmitting(false);
+            return;
+          }
+        } catch (err) {
+          console.error(err);
+          alert('Terjadi kesalahan jaringan saat mengunggah foto.');
+          setIsSubmitting(false);
+          return;
+        }
+      }
+      
+      const payload = { ...formData, status_kegiatan: statusOverride, url_banner: finalBannerUrl };
 
       const res = await fetch(`/api/kegiatan/${id}`, {
         method: 'PUT',
@@ -477,6 +530,34 @@ export default function EditKegiatanPage({ params }: { params: Promise<{ id: str
                     <option value="Insidental">Insidental (Sekali)</option>
                   </select>
                 </div>
+              </div>
+
+              <div className="w-full flex-col gap-1.5 flex mt-2 border-t border-slate-100 pt-5">
+                <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase">Poster / Banner Kegiatan (Opsional)</label>
+                {imagePreview ? (
+                  <div className="relative w-full h-48 bg-slate-100 rounded-lg border border-slate-200 overflow-hidden group">
+                    <img src={imagePreview} alt="Banner Preview" onClick={() => setIsLightboxOpen(true)} className="w-full h-full object-cover cursor-pointer hover:opacity-95 transition-opacity" />
+                    <button type="button" onClick={() => { setImageFile(null); setImagePreview(null); }} className="absolute top-2 right-2 w-8 h-8 bg-slate-900/50 hover:bg-red-500 text-white rounded-full flex items-center justify-center transition-colors">
+                      <span className="material-icons-round text-[18px]">close</span>
+                    </button>
+                    <div className="absolute font-bold text-xs bottom-2 right-2 bg-slate-900/60 text-white px-2 py-1 rounded">Siap Diunggah (Edit)</div>
+                  </div>
+                ) : formData.url_banner ? (
+                  <div className="relative w-full h-48 bg-slate-100 rounded-lg border border-slate-200 overflow-hidden group">
+                    <img src={formData.url_banner} alt="Current Banner" onClick={() => setIsLightboxOpen(true)} className="w-full h-full object-cover cursor-pointer hover:opacity-95 transition-opacity" />
+                    <button type="button" onClick={() => { setFormData(prev => ({...prev, url_banner: ''})); }} className="absolute top-2 right-2 w-8 h-8 bg-slate-900/50 hover:bg-red-500 text-white rounded-full flex items-center justify-center transition-colors">
+                      <span className="material-icons-round text-[18px]">close</span>
+                    </button>
+                    <div className="absolute font-bold text-xs bottom-2 right-2 bg-slate-900/60 text-white px-2 py-1 rounded">Banner Saat Ini</div>
+                  </div>
+                ) : (
+                  <label className="w-full h-32 border-2 border-dashed border-slate-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 hover:border-blue-400 transition-colors">
+                    <span className="material-icons-round text-slate-400 text-[32px] mb-2">add_photo_alternate</span>
+                    <span className="text-sm font-semibold text-slate-600">Klik untuk unggah banner / poster baru</span>
+                    <span className="text-xs text-slate-400 px-4 text-center mt-1">Rasio lanskap (16:9) disarankan. Maks: 10MB</span>
+                    <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+                  </label>
+                )}
               </div>
             </div>
           </div>
@@ -666,29 +747,75 @@ export default function EditKegiatanPage({ params }: { params: Promise<{ id: str
             </div>
           </div>
 
-          {/* CARD 5: PENGATURAN BIAYA TIKET */}
-          <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col gap-5 animate-in fade-in slide-in-from-right-2 duration-300 delay-100 fill-mode-both">
+          {/* CARD 5: PENGATURAN AKSES & BIAYA */}
+          <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col gap-6 animate-in fade-in slide-in-from-right-2 duration-300 delay-100 fill-mode-both">
             <div className="w-full inline-flex items-center gap-2 border-b border-slate-100 pb-3">
-              <span className="material-icons-round text-slate-700 text-[20px]">local_activity</span>
-              <span className="text-slate-800 text-sm font-bold font-['Inter'] uppercase tracking-wider">Ticketing</span>
+               <div className="w-7 h-7 rounded bg-blue-50 text-blue-600 flex items-center justify-center">
+                 <span className="material-icons-round text-[16px]">settings_accessibility</span>
+               </div>
+              <span className="text-slate-800 text-sm font-bold font-['Inter'] uppercase tracking-wider">Akses & Publikasi</span>
             </div>
             
-            <div className="flex items-center justify-between">
-              <div className="flex flex-col">
-                <span className="text-slate-800 text-sm font-bold">Acara Berbayar?</span>
-                <span className="text-slate-400 text-xs">Pendaftaran butuh bayar/tiket?</span>
+            <div className="flex flex-col gap-5">
+              <div className="flex items-center justify-between">
+                <div className="flex flex-col max-w-[200px]">
+                  <span className="text-slate-800 text-sm font-bold">Publish ke Portal?</span>
+                  <span className="text-slate-500 text-[11px] leading-tight mt-1">Acara akan ditampilkan di Timeline aplikasi Jemaat.</span>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer select-none">
+                  <input type="checkbox" name="is_published" checked={formData.is_published} onChange={handleInputChange} className="sr-only peer" />
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none ring-0 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" name="berbayar" checked={formData.berbayar} onChange={handleInputChange} className="sr-only peer" />
-                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              </label>
+
+              <div className="w-full h-px bg-slate-100"></div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex flex-col max-w-[200px]">
+                  <span className="text-slate-800 text-sm font-bold">Wajib Registrasi?</span>
+                  <span className="text-slate-500 text-[11px] leading-tight mt-1">Jemaat harus mengisi form daftar. Jika off, jemaat langsung datang (Go-Show).</span>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer select-none">
+                  <input type="checkbox" name="butuh_registrasi" checked={formData.butuh_registrasi} onChange={handleInputChange} className="sr-only peer" />
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none ring-0 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+                </label>
+              </div>
+              
+              <div className="w-full h-px bg-slate-100"></div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex flex-col max-w-[200px]">
+                  <span className="text-slate-800 text-sm font-bold">Acara Berbayar?</span>
+                  <span className="text-slate-500 text-[11px] leading-tight mt-1">Tiket pendaftaran memerlukan pembayaran online / manual.</span>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer select-none">
+                  <input type="checkbox" name="berbayar" checked={formData.berbayar} onChange={handleInputChange} className="sr-only peer" />
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none ring-0 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                </label>
+              </div>
             </div>
             
             {formData.berbayar && !isKebaktian && (
               <div className="w-full p-4 bg-blue-50 border border-blue-100 rounded-lg animate-in fade-in slide-in-from-top-2 mt-2">
-                 <span className="text-xs text-blue-700 italic">Pengaturan detail harga tiket akan dibuka setelah kegiatan terbuat.</span>
+                 <div className="w-full flex-col gap-1.5 flex">
+                    <label className="text-blue-800 text-xs font-bold font-['Inter'] uppercase">Harga Tiket (Rp)</label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-3 text-slate-500 text-sm font-bold">Rp</span>
+                      <input type="number" min="0" name="harga_tiket_rp" value={formData.harga_tiket_rp} onChange={handleInputChange} placeholder="0" className="pl-11 pr-4 py-3 bg-white rounded-lg border border-blue-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-['Inter'] text-sm w-full transition-all" />
+                    </div>
+                 </div>
               </div>
             )}
+            
+            {formData.butuh_registrasi && (
+              <div className="w-full p-4 bg-amber-50 border border-amber-100 rounded-lg animate-in fade-in slide-in-from-top-2 mt-2">
+                 <div className="w-full flex-col gap-1.5 flex">
+                    <label className="text-amber-800 text-xs font-bold font-['Inter'] uppercase">Kuota / Batas Peserta (Opsional)</label>
+                    <input type="number" min="1" name="kuota_peserta" value={formData.kuota_peserta} onChange={handleInputChange} placeholder="Biarkan kosong jika tidak berbatas" className="px-4 py-3 bg-white rounded-lg border border-amber-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 font-['Inter'] text-sm w-full transition-all" />
+                 </div>
+              </div>
+            )}
+
             {formData.berbayar && isKebaktian && (
               <div className="w-full p-3 bg-red-50 border border-red-100 rounded-lg flex items-start gap-2 animate-in fade-in slide-in-from-top-2 mt-2">
                  <span className="material-icons-round text-red-500 text-sm mt-0.5">warning</span>
@@ -722,6 +849,14 @@ export default function EditKegiatanPage({ params }: { params: Promise<{ id: str
            )}
          </div>
       </div>
+
+      {/* IMAGE LIGHTBOX MODAL */}
+      {isLightboxOpen && (imagePreview || formData.url_banner) && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 animate-in fade-in duration-200" onClick={() => setIsLightboxOpen(false)}>
+           <span className="absolute top-6 right-8 text-white material-icons-round text-[32px] cursor-pointer hover:scale-110 transition-transform">close</span>
+           <img src={(imagePreview || formData.url_banner) as string} alt="Banner Full" className="max-w-full max-h-full object-contain cursor-default rounded shadow-2xl" onClick={(e) => e.stopPropagation()} />
+        </div>
+      )}
 
     </div>
   );

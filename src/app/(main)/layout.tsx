@@ -109,6 +109,9 @@ export default function DashboardLayout({
   } else if (pathname.includes('/kegiatan')) {
     topbarTitle = 'Modul Kegiatan';
     topbarIcon  = 'event';
+  } else if (pathname.includes('/pegawai')) {
+    topbarTitle = 'Manajemen Pegawai (HRD)';
+    topbarIcon  = 'badge';
   } else if (pathname.includes('/family-tree')) {
     topbarTitle = 'Family Tree';
     topbarIcon  = 'account_tree';
@@ -277,13 +280,31 @@ export default function DashboardLayout({
               </div>
 
               {hasPermission('pelayan_view') && (
-                <div className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer">
-                  <div className="flex justify-start items-center gap-4">
-                    <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
-                      <span className="material-icons-round text-slate-300 text-[20px]">badge</span>
+                <div className="w-full">
+                  <div 
+                    className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer"
+                    onMouseEnter={(e) => handleMouseEnterMenu('pegawai', e)}
+                    onMouseLeave={handleMouseLeaveMenu}
+                    onClick={() => toggleMobileMenu('pegawai')}
+                  >
+                    <div className="flex justify-start items-center gap-4">
+                      <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
+                        <span className="material-icons-round text-slate-300 text-[20px]">badge</span>
+                      </div>
+                      <div className="flex flex-col justify-start items-start opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 w-auto md:w-0 md:group-hover:w-auto overflow-hidden whitespace-nowrap">
+                        <div className="h-5 justify-center text-slate-200 text-sm font-medium font-['Inter'] leading-5 pr-4">Pegawai (HRD)</div>
+                      </div>
                     </div>
-                    <div className="flex flex-col justify-start items-start opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 w-auto md:w-0 md:group-hover:w-auto overflow-hidden whitespace-nowrap">
-                      <div className="h-5 justify-center text-slate-200 text-sm font-medium font-['Inter'] leading-5 pr-4">Pegawai</div>
+                    <div className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">
+                      <span className="material-icons-round text-slate-400 text-[16px]">chevron_right</span>
+                    </div>
+                  </div>
+                  {/* Mobile Accordion */}
+                  <div className={`md:hidden overflow-hidden transition-all duration-300 ${mobileExpandedMenus['pegawai'] ? 'max-h-96 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
+                    <div className="pl-14 pr-4 py-2 flex flex-col gap-4">
+                      <Link href="/pegawai" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Data Pegawai</Link>
+                      <Link href="/pegawai/permohonan" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Permohonan</Link>
+                      <Link href="/pegawai/penggajian" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Penggajian</Link>
                     </div>
                   </div>
                 </div>
@@ -538,6 +559,53 @@ export default function DashboardLayout({
                         </div>
                       </Link>
                     )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeSubmenu === 'pegawai' && (
+              <div 
+                className="absolute pl-2 animate-in fade-in zoom-in-95 duration-200"
+                style={{ top: submenuTop }}
+                onMouseEnter={() => { if (submenuTimeout.current) clearTimeout(submenuTimeout.current) }}
+                onMouseLeave={handleMouseLeaveMenu}
+              >
+                <div className="w-[500px] p-6 bg-white rounded-xl outline outline-1 outline-offset-[-1px] outline-slate-200 shadow-2xl flex flex-col justify-start items-start gap-4">
+                  <div className="self-stretch pb-2 border-b border-slate-100 flex flex-col justify-start items-start">
+                    <div className="justify-center text-slate-800 text-lg font-bold font-['Inter'] leading-7">Pegawai (HRD)</div>
+                  </div>
+                  <div className="self-stretch flex justify-between items-start gap-4">
+                    <Link href="/pegawai" onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-teal-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-teal-200 flex flex-col justify-center items-center cursor-pointer hover:bg-teal-100 transition-colors block text-inherit no-underline">
+                      <div className="pb-2 flex flex-col justify-start items-start">
+                        <div className="flex flex-col justify-start items-center">
+                          <span className="material-icons-round text-teal-600 text-[32px]">badge</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col justify-start items-center">
+                        <div className="text-center justify-center text-teal-900 text-sm font-bold font-['Inter'] leading-5">Data<br/>Pegawai</div>
+                      </div>
+                    </Link>
+                    <Link href="/pegawai/permohonan" onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-orange-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-orange-200 flex flex-col justify-center items-center cursor-pointer hover:bg-orange-100 transition-colors block text-inherit no-underline">
+                      <div className="pb-2 flex flex-col justify-start items-start">
+                        <div className="flex flex-col justify-start items-center">
+                          <span className="material-icons-round text-orange-600 text-[32px]">assignment_turned_in</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col justify-start items-center">
+                        <div className="text-center justify-center text-orange-900 text-sm font-bold font-['Inter'] leading-5">Permohonan<br/>& Approval</div>
+                      </div>
+                    </Link>
+                    <Link href="/pegawai/penggajian" onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-cyan-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-cyan-200 flex flex-col justify-center items-center cursor-pointer hover:bg-cyan-100 transition-colors block text-inherit no-underline">
+                      <div className="pb-2 flex flex-col justify-start items-start">
+                        <div className="flex flex-col justify-start items-center">
+                          <span className="material-icons-round text-cyan-600 text-[32px]">account_balance_wallet</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col justify-start items-center">
+                        <div className="text-center justify-center text-cyan-900 text-sm font-bold font-['Inter'] leading-5">Sistem<br/>Penggajian</div>
+                      </div>
+                    </Link>
                   </div>
                 </div>
               </div>

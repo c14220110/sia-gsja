@@ -20,6 +20,10 @@ export async function getOptionsService(type: string, satelitId?: string, query?
     return await masterRepository.getAllPekerjaan();
   } else if (type === 'jenis_kegiatan') {
     return await masterRepository.getAllJenisKegiatan();
+  } else if (type === 'jabatan_pegawai') {
+    return await masterRepository.getAllJabatanPegawai();
+  } else if (type === 'bank') {
+    return await masterRepository.getAllBank();
   }
   throw new Error('Invalid option type');
 }
@@ -66,4 +70,12 @@ export async function getJabatanOptions(): Promise<any[]> {
 
 export async function getPengurusOptions(): Promise<any[]> {
   return await masterRepository.getAllPengurus();
+}
+
+export async function getJabatanPegawaiOptions(): Promise<any[]> {
+  return await masterRepository.getAllJabatanPegawai();
+}
+
+export async function getBankOptions(): Promise<any[]> {
+  return await masterRepository.getAllBank();
 }

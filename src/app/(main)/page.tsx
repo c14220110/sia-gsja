@@ -7,7 +7,7 @@ import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 
 export default function DashboardHome() {
   const [userData, setUserData] = useState<any>(null);
-  const [nearestEvent, setNearestEvent] = useState<any>(null);
+  const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
   const [isFullscreenQR, setIsFullscreenQR] = useState(false);
   const [scanFeedback, setScanFeedback] = useState<{ isVisible: boolean, type: 'success' | 'error', message: string }>({ isVisible: false, type: 'success', message: '' });
   const { showLoader, hideLoader } = useLoader();
@@ -40,15 +40,16 @@ export default function DashboardHome() {
            localStorage.setItem('gsja_user_data', JSON.stringify(uData)); // Simpan Cache
 
            if (uData?.role_name?.toLowerCase() === 'jemaat') {
-             const q = new URLSearchParams({ limit: '1', status: 'Akan Datang' });
-             if (uData.satelit_id) q.append('satelit_id', uData.satelit_id);
+             const q = new URLSearchParams({ limit: '20', status: 'Akan Datang' });
+             // Dihapus: filter satelit, karena jemaat bebas mendaftar acara satelit manapun
              
              const resEv = await fetch(`/api/kegiatan?${q.toString()}`);
              if (resEv.ok) {
                 const reqData = await resEv.json();
                 if (reqData.success && reqData.data.length > 0) {
-                   setNearestEvent(reqData.data[0]);
-                   localStorage.setItem('gsja_nearest_event', JSON.stringify(reqData.data[0])); // Simpan Cache Kasar Kegiatan
+                   const eventsWithReg = reqData.data.filter((e: any) => e.butuh_registrasi === true).slice(0, 5);
+                   setUpcomingEvents(eventsWithReg);
+                   localStorage.setItem('gsja_upcoming_events', JSON.stringify(eventsWithReg)); // Simpan Cache Kasar Kegiatan
                 }
              }
            }
@@ -62,9 +63,9 @@ export default function DashboardHome() {
              setUserData(JSON.parse(cachedUser));
           }
           
-          const cachedEvent = localStorage.getItem('gsja_nearest_event');
+          const cachedEvent = localStorage.getItem('gsja_upcoming_events');
           if (cachedEvent) {
-             setNearestEvent(JSON.parse(cachedEvent));
+             setUpcomingEvents(JSON.parse(cachedEvent));
           }
        } finally {
           hideLoader();
@@ -236,12 +237,12 @@ export default function DashboardHome() {
            <div className="w-full flex flex-col gap-3">
               <h3 className="text-slate-800 font-black text-lg tracking-tight px-1">Menu Jemaat</h3>
               <div className="grid grid-cols-4 sm:grid-cols-4 gap-y-6 gap-x-2 w-full p-5 bg-white rounded-3xl shadow-sm border border-slate-100">
-                 <div onClick={() => alert('Fitur Jadwal Acara sedang dalam pengembangan.')} className="flex flex-col items-center gap-3 group cursor-pointer opacity-80">
+                 <Link href="/jadwal" className="flex flex-col items-center gap-3 group cursor-pointer">
                     <div className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center group-hover:shadow-md transition-all text-blue-600">
                        <span className="material-icons-round text-3xl">event</span>
                     </div>
                     <span className="text-[11px] font-bold text-slate-600 text-center leading-tight">Jadwal &<br/>Acara</span>
-                 </div>
+                 </Link>
                  
                  <div onClick={() => alert('Fitur Jadwal Pelayanan sedang dalam pengembangan.')} className="flex flex-col items-center gap-3 group cursor-pointer opacity-80">
                     <div className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center group-hover:shadow-md transition-all text-emerald-600">
@@ -257,48 +258,72 @@ export default function DashboardHome() {
                     <span className="text-[11px] font-bold text-slate-600 text-center leading-tight">Riwayat<br/>Kehadiran</span>
                  </div>
 
-                 <div onClick={() => alert('Fitur Tiket & Pendaftaran sedang dalam pengembangan.')} className="flex flex-col items-center gap-3 group cursor-pointer opacity-80">
+                 <Link href="/tiket" className="flex flex-col items-center gap-3 group cursor-pointer">
                     <div className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center group-hover:shadow-md transition-all text-violet-600">
                        <span className="material-icons-round text-3xl">local_activity</span>
                     </div>
-                    <span className="text-[11px] font-bold text-slate-600 text-center leading-tight">Tiket Saya /<br/>Pendaftaran</span>
-                 </div>
+                    <span className="text-[11px] font-bold text-slate-600 text-center leading-tight">Tiket<br/>Saya</span>
+                 </Link>
                </div>
            </div>
 
-           {/* 4. DYNAMIC WIDGET (Nearest Event) */}
+           {/* 4. DYNAMIC WIDGET (Upcoming Events Carousel) */}
            <div className="w-full flex flex-col gap-3">
               <h3 className="text-slate-800 font-black text-lg tracking-tight px-1 flex items-center justify-between">
                  Kegiatan Mendatang
-                 <Link href="/kegiatan" className="text-blue-500 font-bold text-xs">Lihat Semua</Link>
+                 <Link href="/jadwal" className="text-blue-500 font-bold text-xs flex items-center">Lihat Semua <span className="material-icons-round text-[14px]">chevron_right</span></Link>
               </h3>
               
-              {nearestEvent ? (
-                 <Link href={`/kegiatan/${nearestEvent.id}`} className="w-full bg-white rounded-3xl p-5 flex flex-col shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-md transition-all">
-                    <div className="absolute right-0 top-0 w-1 rounded-bl-lg bg-blue-500 h-full"></div>
-                    <span className="px-2.5 py-0.5 bg-blue-50 text-blue-600 font-black uppercase tracking-widest text-[10px] rounded mb-3 w-fit border border-blue-100">{nearestEvent.nama_jenis_kegiatan}</span>
-                    <h4 className="text-slate-900 font-black text-lg leading-tight mb-3 pr-4 group-hover:text-blue-600 transition-colors">{nearestEvent.nama_kegiatan}</h4>
-                    
-                    <div className="flex flex-col gap-2">
-                       <div className="flex items-center gap-2 text-slate-500 text-xs font-semibold">
-                          <span className="material-icons-round text-[16px] text-slate-400">calendar_today</span>
-                          {formatDate(nearestEvent.tanggal_mulai)}
-                       </div>
-                       <div className="flex items-center gap-2 text-slate-500 text-xs font-semibold">
-                          <span className="material-icons-round text-[16px] text-slate-400">schedule</span>
-                          {nearestEvent.waktu_mulai.slice(0,5)} WIB
-                       </div>
-                       <div className="flex items-center gap-2 text-slate-500 text-xs font-semibold">
-                          <span className="material-icons-round text-[16px] text-slate-400">place</span>
-                          {nearestEvent.lokasi_kegiatan || 'Gedung GSJA'}
-                       </div>
-                    </div>
-                 </Link>
+              {upcomingEvents.length > 0 ? (
+                 <div className="w-[calc(100%+3rem)] -ml-6 px-6 pb-4 flex overflow-x-auto snap-x snap-mandatory scrollbar-hide gap-4 items-stretch">
+                   {upcomingEvents.map((evt) => (
+                     <Link key={evt.id} href={`/jadwal/${evt.id}`} className="snap-center shrink-0 w-[280px] bg-white rounded-3xl flex flex-col shadow-sm border border-slate-100 relative overflow-hidden group">
+                        {evt.url_banner ? (
+                          <div className="w-full h-32 bg-slate-100 relative overflow-hidden shrink-0 border-b border-slate-100">
+                            <img src={evt.url_banner} alt="Poster" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                            {evt.butuh_registrasi && (
+                               <span className="absolute top-3 right-3 bg-white/90 backdrop-blur text-blue-600 text-[10px] font-bold px-2 py-1 rounded shadow-sm">Butuh Registrasi</span>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="w-full h-20 bg-gradient-to-r from-blue-500 to-indigo-600 relative overflow-hidden shrink-0 flex items-center px-5">
+                            <span className="material-icons-round text-white/20 text-6xl absolute -right-4 -top-2">event</span>
+                            <span className="bg-white/20 backdrop-blur text-white text-[10px] font-bold px-2.5 py-1 rounded border border-white/20 uppercase tracking-widest">{evt.nama_jenis_kegiatan}</span>
+                          </div>
+                        )}
+                        
+                        <div className="p-5 flex flex-col flex-1">
+                          {!evt.url_banner && (
+                             <div className="mb-2">
+                               {evt.butuh_registrasi && <span className="bg-blue-50 text-blue-600 text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-widest border border-blue-100">REGISTRASI</span>}
+                             </div>
+                          )}
+                          <h4 className="text-slate-900 font-black text-[15px] leading-snug mb-3 group-hover:text-blue-600 transition-colors line-clamp-2">{evt.nama_kegiatan}</h4>
+                          
+                          <div className="flex flex-col gap-1.5 mb-4">
+                             <div className="flex items-center gap-2 text-slate-500 text-[11px] font-medium">
+                                <span className="material-icons-round text-[14px] text-slate-400">calendar_today</span>
+                                <span className="truncate">{formatDate(evt.tanggal_mulai)}</span>
+                             </div>
+                             <div className="flex items-center gap-2 text-slate-500 text-[11px] font-medium">
+                                <span className="material-icons-round text-[14px] text-slate-400">place</span>
+                                <span className="truncate">{evt.lokasi_kegiatan || 'Gedung GSJA'}</span>
+                             </div>
+                          </div>
+
+                          <div className="mt-auto pt-3 border-t border-slate-100/60 flex items-center justify-between pointer-events-none">
+                             <span className="text-[11px] font-bold text-slate-400">{evt.waktu_mulai.slice(0,5)} WIB</span>
+                             <span className="material-icons-round text-slate-300 text-[18px] group-hover:text-blue-500 transition-colors">arrow_forward</span>
+                          </div>
+                        </div>
+                     </Link>
+                   ))}
+                   <div className="w-2 shrink-0"></div> {/* Trailing spacer */}
+                 </div>
               ) : (
                  <div className="w-full bg-slate-100/50 rounded-3xl p-6 flex flex-col items-center justify-center text-center border border-slate-200 border-dashed">
                     <span className="material-icons-round text-4xl text-slate-300 mb-2">event_available</span>
-                    <span className="text-sm font-bold text-slate-500">Belum Ada Agenda Terjadwal</span>
-                    <p className="text-xs text-slate-400 mt-1 max-w-[200px]">Nantikan informasi ibadah dan acara selajutnya.</p>
+                    <span className="text-sm font-bold text-slate-500">Belum Ada Acara Mendatang</span>
                  </div>
               )}
            </div>

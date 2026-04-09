@@ -291,7 +291,7 @@ export default function KegiatanPage() {
              <span className="material-icons-round text-indigo-600 text-3xl">calendar_month</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-slate-500 text-sm font-medium font-['Public_Sans'] uppercase tracking-wide">TOTAL KEGIATAN (BULAN INI)</span>
+            <span className="text-slate-600 text-xs font-bold font-['Public_Sans'] uppercase tracking-wide">TOTAL KEGIATAN (BULAN INI)</span>
             <div className="flex items-end gap-2 mt-1">
               <span className="text-slate-900 text-3xl font-bold font-['Public_Sans'] leading-9">{bulanIni}</span>
             </div>
@@ -304,7 +304,7 @@ export default function KegiatanPage() {
             <span className="material-icons-round text-emerald-600 text-3xl">event_note</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-slate-500 text-sm font-medium font-['Public_Sans'] uppercase tracking-wide leading-tight">
+            <span className="text-slate-600 text-xs font-bold font-['Public_Sans'] uppercase tracking-wide leading-tight">
               KEGIATAN MENDATANG (7 HARI KEDEPAN)
             </span>
             <div className="flex items-end gap-2 mt-1">
@@ -321,7 +321,7 @@ export default function KegiatanPage() {
             <span className="material-icons-round text-amber-600 text-3xl">assignment_late</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-slate-500 text-sm font-medium font-['Public_Sans'] uppercase tracking-wide">MENUNGGU LPJ (LAPORAN)</span>
+            <span className="text-slate-600 text-xs font-bold font-['Public_Sans'] uppercase tracking-wide">MENUNGGU LPJ (LAPORAN)</span>
             <div className="flex items-end gap-2 mt-1">
               <span className="text-amber-600 text-3xl font-bold font-['Public_Sans'] leading-9">{menungguLpj}</span>
             </div>
@@ -518,14 +518,14 @@ export default function KegiatanPage() {
           <div className="min-w-[1050px] flex flex-col">
             {/* Table Header */}
             <div className="w-full bg-slate-50 border-b border-slate-200 flex items-center px-6 py-4">
-              <div className="w-20 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">ID</div>
-              <div className="flex-1 min-w-[180px] text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">NAMA KEGIATAN</div>
-              <div className="w-40 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">JENIS KEGIATAN</div>
-              <div className="w-[170px] shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">WAKTU PELAKSANAAN</div>
-              <div className="flex-1 min-w-[150px] shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">LOKASI</div>
-              <div className="w-[170px] shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">PENYELENGGARA</div>
-              <div className="w-32 shrink-0 text-center text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">STATUS</div>
-              <div className="w-12 shrink-0 text-center text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">AKSI</div>
+              <div className="w-28 shrink-0 text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">ID</div>
+              <div className="flex-1 min-w-[180px] text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">NAMA KEGIATAN</div>
+              <div className="w-40 shrink-0 text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">JENIS KEGIATAN</div>
+              <div className="w-[170px] shrink-0 text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">WAKTU PELAKSANAAN</div>
+              <div className="flex-1 min-w-[150px] shrink-0 text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">LOKASI</div>
+              <div className="w-[170px] shrink-0 text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">PENYELENGGARA</div>
+              <div className="w-32 shrink-0 text-center text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">STATUS</div>
+              <div className="w-12 shrink-0 text-center text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">AKSI</div>
             </div>
 
             {/* Table Body */}
@@ -562,11 +562,11 @@ export default function KegiatanPage() {
                   return (
                 <div key={kegiatan.id || idx} className={`w-full flex items-center px-6 py-4 border-b border-slate-100 hover:bg-slate-50 transition-colors relative ${openMenuId === kegiatan.id ? 'z-50' : 'z-10'}`}>
                   {/* Kolom 1: ID */}
-                  <div className="w-20 shrink-0 text-slate-500 text-xs font-bold font-['Liberation_Mono'] tracking-wide">{kegiatan.kode_kegiatan}</div>
+                  <div className="w-28 shrink-0 text-slate-500 text-xs font-bold font-['Liberation_Mono'] tracking-wide">{kegiatan.kode_kegiatan}</div>
                   
                   {/* Kolom 2: Nama */}
                   <div className="flex-1 min-w-[180px] flex flex-col justify-center pr-4">
-                     <span className="text-slate-900 font-bold text-sm line-clamp-2 leading-tight" title={kegiatan.nama_kegiatan}>{kegiatan.nama_kegiatan}</span>
+                     <span className="text-slate-900 font-bold text-[13px] capitalize line-clamp-2 leading-tight" title={kegiatan.nama_kegiatan}>{kegiatan.nama_kegiatan}</span>
                   </div>
 
                   {/* Kolom 3: Jenis */}

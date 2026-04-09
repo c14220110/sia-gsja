@@ -111,7 +111,11 @@ export async function GET(request: Request) {
         k.waktu_mulai,
         k.lokasi_kegiatan,
         k.status_kegiatan,
+        k.is_published,
+        k.butuh_registrasi,
+        k.url_banner,
         jk.nama_jenis_kegiatan,
+        jk.kategori,
         s.nama_satelit,
         d.nama_departemen,
         kom.nama_komisi,
@@ -170,16 +174,18 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     
-    // Parse Payload
-    const {
-      nama_kegiatan, jenis_kegiatan_id, frekuensi_kegiatan,
-      tanggal_mulai, tanggal_selesai, waktu_mulai, waktu_selesai,
-      lokasi_kegiatan, keterangan, tipe_penyelenggara, satelit_id, departemen_id, komisi_id,
-      pic_pengurus_id, berbayar, status_kegiatan,
-      
-      // Ibadah specific
-      tema_khotbah, nama_pengkhotbah_1, nama_pengkhotbah_2
-    } = body;
+      // Parse Payload
+      const {
+        nama_kegiatan, jenis_kegiatan_id, frekuensi_kegiatan,
+        tanggal_mulai, tanggal_selesai, waktu_mulai, waktu_selesai,
+        lokasi_kegiatan, keterangan, tipe_penyelenggara, satelit_id, departemen_id, komisi_id,
+        pic_pengurus_id, berbayar, status_kegiatan,
+        is_published, butuh_registrasi, url_banner,
+        harga_tiket_rp, kuota_peserta,
+        
+        // Ibadah specific
+        tema_khotbah, nama_pengkhotbah_1, nama_pengkhotbah_2
+      } = body;
 
     // Validation
     if (!nama_kegiatan || !jenis_kegiatan_id || !tanggal_mulai || !waktu_mulai) {
@@ -193,6 +199,8 @@ export async function POST(request: Request) {
     const d_id = tipe_penyelenggara === 'Departemen' && departemen_id ? departemen_id : null;
     const k_id = tipe_penyelenggara === 'Komisi' && komisi_id ? komisi_id : null;
     const pic_id = pic_pengurus_id ? pic_pengurus_id : null;
+    const hk_rp = harga_tiket_rp ? parseFloat(harga_tiket_rp) : 0;
+    const kp = kuota_peserta && kuota_peserta !== '' ? parseInt(kuota_peserta, 10) : null;
 
     // Generate unique code KEG-YYMMDD-RANDOM
     const now = new Date();
@@ -209,15 +217,17 @@ export async function POST(request: Request) {
       INSERT INTO public.kegiatan (
         kode_kegiatan, nama_kegiatan, jenis_kegiatan_id, satelit_id, departemen_id, komisi_id,
         frekuensi_kegiatan, tanggal_mulai, tanggal_selesai, waktu_mulai, waktu_selesai,
-        lokasi_kegiatan, keterangan, pic_pengurus_id, berbayar, status_kegiatan
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+        lokasi_kegiatan, keterangan, pic_pengurus_id, berbayar, status_kegiatan,
+        is_published, butuh_registrasi, url_banner, harga_tiket_rp, kuota_peserta
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
       RETURNING id;
     `;
 
     const kegiatanResult = await client.query(insertKegiatanQuery, [
       kode_kegiatan, nama_kegiatan, jenis_kegiatan_id, s_id, d_id, k_id,
       frekuensi_kegiatan, tanggal_mulai, t_selesai, waktu_mulai, w_selesai,
-      lokasi_kegiatan, keterangan || null, pic_id, berbayar, status_kegiatan
+      lokasi_kegiatan, keterangan || null, pic_id, berbayar, status_kegiatan,
+      is_published ?? true, butuh_registrasi ?? false, url_banner || null, hk_rp, kp
     ]);
 
     const newKegiatanId = kegiatanResult.rows[0].id;

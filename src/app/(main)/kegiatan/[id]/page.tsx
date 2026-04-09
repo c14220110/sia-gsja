@@ -117,7 +117,7 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
   const unwrappedParams = use(params);
   const id = unwrappedParams.id;
 
-  const [activeTab, setActiveTab] = useState<'info'|'jemaat'|'pelayan'>('info');
+  const [activeTab, setActiveTab] = useState<'info'|'registrasi'|'pelayan'>('info');
   const [data, setData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -126,16 +126,34 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
   const [isLoadingPelayan, setIsLoadingPelayan] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   
-  // Modal Form State
+  // Registrasi State
+  const [registrasiList, setRegistrasiList] = useState<any[]>([]);
+  const [isLoadingRegistrasi, setIsLoadingRegistrasi] = useState(false);
+  const [isModalRegistrasiOpen, setIsModalRegistrasiOpen] = useState(false);
+  
+  // Modal Form State (Pelayan)
   const [formPelayan, setFormPelayan] = useState({
     jemaat_id: '',
     role_kehadiran: 'WL'
   });
+  
+  // Modal Form State (Registrasi)
+  const [formRegistrasi, setFormRegistrasi] = useState({
+    jemaat_id: '',
+    catatan_khusus: '',
+    total_biaya: 0,
+    metode_pembayaran: ''
+  });
+
   const [isSavingPelayan, setIsSavingPelayan] = useState(false);
+  const [isSavingRegistrasi, setIsSavingRegistrasi] = useState(false);
+  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
   useEffect(() => {
     fetchDetail();
     fetchPelayan();
+    fetchRegistrasi();
   }, [id]);
 
   const fetchDetail = async () => {
@@ -160,6 +178,19 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
       console.error(err);
     } finally {
       setIsLoadingPelayan(false);
+    }
+  };
+
+  const fetchRegistrasi = async () => {
+    setIsLoadingRegistrasi(true);
+    try {
+      const res = await fetch(`/api/kegiatan/${id}/registrasi`);
+      const json = await res.json();
+      if (json.success) setRegistrasiList(json.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoadingRegistrasi(false);
     }
   };
 
@@ -190,6 +221,101 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
       alert('Terjadi kesalahan server');
     } finally {
       setIsSavingPelayan(false);
+    }
+  };
+
+  const handleSimpanRegistrasi = async () => {
+    if (!formRegistrasi.jemaat_id) {
+      alert('Pilih jemaat yang akan didaftarkan!');
+      return;
+    }
+    
+    setIsSavingRegistrasi(true);
+    try {
+      const res = await fetch(`/api/kegiatan/${id}/registrasi`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formRegistrasi)
+      });
+      const json = await res.json();
+      
+      if (json.success) {
+        setIsModalRegistrasiOpen(false);
+        setFormRegistrasi({ jemaat_id: '', catatan_khusus: '', total_biaya: data?.harga_tiket_rp || 0, metode_pembayaran: '' });
+        fetchRegistrasi(); // refresh list
+      } else {
+        alert(json.message || 'Gagal mendaftar jemaat');
+      }
+    } catch(err) {
+      console.error(err);
+      alert('Terjadi kesalahan server');
+    } finally {
+      setIsSavingRegistrasi(false);
+    }
+  };
+
+  const handleActionRegistrasi = async (action: string, registrasi_ids: string[]) => {
+    try {
+      const res = await fetch(`/api/kegiatan/${id}/registrasi`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, registrasi_ids })
+      });
+      const json = await res.json();
+      if (json.success) {
+        fetchRegistrasi();
+      } else {
+        alert(json.message || 'Gagal memproses aksi');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Terjadi kesalahan koneksi saat memproses pendaftaran.');
+    }
+  };
+
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0]) return;
+    const file = e.target.files[0];
+    
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Ukuran maksimal file banner 10MB');
+      return;
+    }
+
+    setIsUploadingBanner(true);
+    try {
+      const fileData = new FormData();
+      fileData.append('file', file);
+      fileData.append('bucket', 'poster-kegiatan');
+      
+      const uploadRes = await fetch('/api/upload', {
+        method: 'POST',
+        body: fileData
+      });
+      const uploadJson = await uploadRes.json();
+      
+      if (uploadJson.success) {
+        // Update URL ke database
+        const patchRes = await fetch(`/api/kegiatan/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url_banner: uploadJson.url })
+        });
+        const patchJson = await patchRes.json();
+        
+        if (patchJson.success) {
+          setData((prev: any) => ({ ...prev, url_banner: uploadJson.url }));
+        } else {
+          alert('Gagal memperbarui database dengan URL banner: ' + patchJson.message);
+        }
+      } else {
+        alert('Gagal mengupload banner ke server: ' + uploadJson.message);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Terjadi kesalahan jaringan saat mengunggah foto.');
+    } finally {
+      setIsUploadingBanner(false);
     }
   };
 
@@ -251,51 +377,61 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
               <div className="flex items-center gap-2 text-slate-500 text-sm font-medium mt-1">
                  <span className="material-icons-round text-[18px]">category</span> 
                  {data.nama_jenis_kegiatan} &bull; {data.frekuensi_kegiatan}
+                 {data.kuota_peserta && (
+                   <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[11px] font-bold rounded-md ml-2 border border-amber-200 uppercase tracking-widest">
+                     Maks {data.kuota_peserta}
+                   </span>
+                 )}
+                 {Number(data.harga_tiket_rp) > 0 && (
+                   <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[11px] font-bold rounded-md ml-1 border border-emerald-200 uppercase tracking-widest flex items-center gap-1">
+                     <span className="material-icons-round text-[12px]">sell</span> Rp {(Number(data.harga_tiket_rp)).toLocaleString('id-ID')}
+                   </span>
+                 )}
               </div>
             </div>
             
             <div className="flex gap-3">
-               <button className="px-5 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-700 font-bold hover:bg-slate-50 transition flex items-center gap-2 text-sm shadow-sm">
+               <Link href={`/kegiatan/${id}/edit`} className="px-5 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-700 font-bold hover:bg-slate-50 transition flex items-center gap-2 text-sm shadow-sm">
                  <span className="material-icons-round text-[18px]">edit</span> Edit Kegiatan
-               </button>
+               </Link>
             </div>
           </div>
           
           {/* Quick Highlight Bar */}
-          <div className="w-full flex items-center gap-8 bg-slate-50 border border-slate-100 rounded-lg p-4 mt-2 z-10">
-             <div className="flex items-center gap-3">
-               <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
-                 <span className="material-icons-round">calendar_today</span>
+          <div className="w-full flex justify-between items-center px-4 md:px-12 py-5 bg-slate-50 border border-slate-100 rounded-xl mt-2 z-10 shadow-sm">
+             <div className="flex items-center gap-4">
+               <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+                 <span className="material-icons-round text-[22px]">calendar_today</span>
                </div>
                <div className="flex flex-col">
-                 <span className="text-xs text-slate-500 font-bold uppercase">Pelaksanaan</span>
-                 <span className="text-sm font-semibold text-slate-900">{startDate}</span>
+                 <span className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-0.5">Pelaksanaan</span>
+                 <span className="text-[15px] font-bold text-slate-900">{startDate}</span>
                </div>
              </div>
              
-             <div className="w-px h-10 bg-slate-200"></div>
+             <div className="w-px h-12 bg-slate-200/80 hidden md:block"></div>
 
-             <div className="flex items-center gap-3">
-               <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
-                 <span className="material-icons-round">schedule</span>
+             <div className="flex items-center gap-4">
+               <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                 <span className="material-icons-round text-[22px]">schedule</span>
                </div>
                <div className="flex flex-col">
-                 <span className="text-xs text-slate-500 font-bold uppercase">Waktu</span>
-                 <span className="text-sm font-semibold text-slate-900">
+                 <span className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-0.5">Waktu</span>
+                 <span className="text-[15px] font-bold text-slate-900">
                     {data.waktu_mulai.slice(0,5)} {data.waktu_selesai ? `- ${data.waktu_selesai.slice(0,5)}` : ''} WIB
                  </span>
                </div>
              </div>
 
-             <div className="w-px h-10 bg-slate-200"></div>
+             <div className="w-px h-12 bg-slate-200/80 hidden md:block"></div>
 
-             <div className="flex items-center gap-3">
-               <div className="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center">
-                 <span className="material-icons-round">place</span>
+             <div className="flex items-center gap-4">
+               <div className="w-12 h-12 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center shrink-0">
+                 <span className="material-icons-round text-[22px]">place</span>
                </div>
                <div className="flex flex-col">
-                 <span className="text-xs text-slate-500 font-bold uppercase">Lokasi</span>
-                 <span className="text-sm font-semibold text-slate-900">{data.lokasi_kegiatan || '-'}</span>
+                 <span className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-0.5">Lokasi</span>
+                 <span className="text-[15px] font-bold text-slate-900 line-clamp-1 max-w-[200px] hover:max-w-none hover:whitespace-normal transition-all">{data.lokasi_kegiatan || '-'}</span>
                </div>
              </div>
           </div>
@@ -318,82 +454,126 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
               <span className="bg-slate-100 text-slate-600 py-0.5 px-2 rounded-full text-[10px]">{pelayanList.length}</span>
             </button>
             <button 
-              onClick={() => setActiveTab('jemaat')}
-              className={`pb-4 text-sm font-bold uppercase tracking-wide transition-colors border-b-2 flex gap-2 items-center ${activeTab === 'jemaat' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-700'}`}
+              onClick={() => setActiveTab('registrasi')}
+              className={`pb-4 text-sm font-bold uppercase tracking-wide transition-colors border-b-2 flex gap-2 items-center ${activeTab === 'registrasi' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-700'}`}
             >
-              <div className="flex items-center gap-2"><span className="material-icons-round text-[18px]">how_to_reg</span> Pendaftaran / Tiket</div>
-              {data.berbayar && <span className="w-2 h-2 rounded-full bg-amber-500"></span>}
+              <div className="flex items-center gap-2"><span className="material-icons-round text-[18px]">how_to_reg</span> Akses & Pendaftaran</div>
+              {data.berbayar && <span className="w-2 h-2 rounded-full bg-emerald-500"></span>}
             </button>
           </div>
         </div>
 
         {/* TAB 1: INFORMASI UMUM */}
         {activeTab === 'info' && (
-          <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-2">
-             <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col gap-5">
-                <h3 className="text-slate-800 font-bold uppercase tracking-wide border-b border-slate-100 pb-3 flex items-center gap-2">
-                   <span className="material-icons-round text-blue-500">business</span> Entitas Penyelenggara
-                </h3>
-                <div className="flex flex-col gap-4">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-xs text-slate-400 font-bold uppercase">Organisasi Struktural</span>
-                    <span className="text-sm font-semibold text-slate-900 border border-slate-100 bg-slate-50 p-3 rounded-lg flex items-center gap-2">
-                       {data.nama_satelit || data.nama_departemen || data.nama_komisi || 'Pusat Gereja (Master)'}
-                    </span>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="text-xs text-slate-400 font-bold uppercase">Person In Charge (PIC)</span>
-                    <span className="text-sm font-semibold text-slate-900 border border-slate-100 bg-slate-50 p-3 rounded-lg flex items-center gap-2">
-                       <span className="material-icons-round text-slate-400 text-[18px]">person</span>
-                       {data.pic_name || 'Belum diatur'}
-                    </span>
-                  </div>
-                  {data.keterangan && (
-                    <div className="flex flex-col gap-1 mt-1">
-                      <span className="text-xs text-slate-400 font-bold uppercase">Catatan / Instruksi Khusus</span>
-                      <div className="text-sm font-medium text-slate-700 border border-amber-100 bg-amber-50/50 p-4 rounded-lg leading-relaxed whitespace-pre-wrap">
-                         {data.keterangan}
-                      </div>
-                    </div>
-                  )}
-                </div>
-             </div>
-
-             {/* Dynamic Khotbah Info */}
-             {data.nama_jenis_kegiatan?.toLowerCase().includes('kebaktian') && (
-               <div className="p-6 bg-blue-50/50 rounded-xl shadow-sm border border-blue-100 flex flex-col gap-5 relative overflow-hidden">
-                  <div className="absolute right-0 top-0 opacity-[0.03] pointer-events-none">
-                     <span className="material-icons-round text-[150px] text-blue-900">auto_stories</span>
-                  </div>
-                  <h3 className="text-blue-900 font-bold uppercase tracking-wide border-b border-blue-100 pb-3 flex items-center gap-2 z-10">
-                     <span className="material-icons-round text-blue-600">church</span> Modul Ekstra Ibadah
+          <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in fade-in slide-in-from-bottom-2">
+             
+             {/* KOLOM KIRI */}
+             <div className="flex flex-col gap-8">
+               <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col gap-6">
+                  <h3 className="text-slate-800 font-bold uppercase tracking-wide border-b border-slate-100 pb-3 flex items-center gap-2">
+                     <span className="material-icons-round text-blue-500">business</span> Entitas Penyelenggara
                   </h3>
-                  <div className="flex flex-col gap-4 z-10">
+                  <div className="flex flex-col gap-5">
                     <div className="flex flex-col gap-1">
-                      <span className="text-xs text-blue-800 font-bold uppercase">Tema Khotbah</span>
-                      <span className="text-sm font-semibold text-slate-900 bg-white border border-blue-100 p-3 rounded-lg italic">
-                         &quot;{data.tema_khotbah || 'Belum ada tema mingguan'}&quot;
+                      <span className="text-xs text-slate-400 font-bold uppercase">Organisasi Struktural</span>
+                      <span className="text-sm font-semibold text-slate-900 border border-slate-100 bg-slate-50 p-3.5 rounded-lg flex items-center gap-2">
+                         {data.nama_satelit || data.nama_departemen || data.nama_komisi || 'Pusat Gereja (Master)'}
                       </span>
                     </div>
-                    <div className="flex gap-4">
-                      <div className="flex-1 flex flex-col gap-1">
-                        <span className="text-xs text-blue-800 font-bold uppercase">Pengkhotbah Utama</span>
-                        <span className="text-sm font-semibold text-slate-900 bg-white border border-blue-100 p-3 rounded-lg flex items-center gap-2">
-                           <span className="material-icons-round text-blue-400 text-[18px]">interpreter_mode</span>
-                           {data.nama_pengkhotbah_1 || '-'}
-                        </span>
-                      </div>
-                      <div className="flex-1 flex flex-col gap-1">
-                        <span className="text-xs text-blue-800 font-bold uppercase">Pendamping</span>
-                        <span className="text-sm font-semibold text-slate-900 bg-white border border-blue-100 p-3 rounded-lg flex items-center gap-2">
-                           <span className="material-icons-round text-slate-300 text-[18px]">person</span>
-                           {data.nama_pengkhotbah_2 || '-'}
-                        </span>
-                      </div>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-xs text-slate-400 font-bold uppercase">Person In Charge (PIC)</span>
+                      <span className="text-sm font-semibold text-slate-900 border border-slate-100 bg-slate-50 p-3.5 rounded-lg flex items-center gap-2">
+                         <span className="material-icons-round text-slate-400 text-[18px]">person</span>
+                         {data.pic_name || 'Belum diatur'}
+                      </span>
                     </div>
+                    {data.keterangan && (
+                      <div className="flex flex-col gap-1 mt-1">
+                        <span className="text-xs text-slate-400 font-bold uppercase">Catatan / Instruksi Khusus</span>
+                        <div className="text-sm font-medium text-slate-700 border border-amber-100 bg-amber-50/50 p-4 rounded-lg leading-relaxed whitespace-pre-wrap">
+                           {data.keterangan}
+                        </div>
+                      </div>
+                    )}
                   </div>
                </div>
-             )}
+
+               {/* Dynamic Khotbah Info */}
+               {data.nama_jenis_kegiatan?.toLowerCase().includes('kebaktian') && (
+                 <div className="p-6 bg-blue-50/50 rounded-xl shadow-sm border border-blue-100 flex flex-col gap-6 relative overflow-hidden">
+                    <div className="absolute right-0 top-0 opacity-[0.03] pointer-events-none">
+                       <span className="material-icons-round text-[150px] text-blue-900">auto_stories</span>
+                    </div>
+                    <h3 className="text-blue-900 font-bold uppercase tracking-wide border-b border-blue-100 pb-3 flex items-center gap-2 z-10">
+                       <span className="material-icons-round text-blue-600">church</span> Modul Ekstra Ibadah
+                    </h3>
+                    <div className="flex flex-col gap-5 z-10">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs text-blue-800 font-bold uppercase">Tema Khotbah</span>
+                        <span className="text-sm font-semibold text-slate-900 bg-white border border-blue-100 p-3.5 rounded-lg italic">
+                           &quot;{data.tema_khotbah || 'Belum ada tema mingguan'}&quot;
+                        </span>
+                      </div>
+                      <div className="flex gap-4">
+                        <div className="flex-1 flex flex-col gap-1">
+                          <span className="text-xs text-blue-800 font-bold uppercase">Pengkhotbah Utama</span>
+                          <span className="text-sm font-semibold text-slate-900 bg-white border border-blue-100 p-3.5 rounded-lg flex items-center gap-2">
+                             <span className="material-icons-round text-blue-400 text-[18px]">interpreter_mode</span>
+                             {data.nama_pengkhotbah_1 || '-'}
+                          </span>
+                        </div>
+                        <div className="flex-1 flex flex-col gap-1">
+                          <span className="text-xs text-blue-800 font-bold uppercase">Pendamping</span>
+                          <span className="text-sm font-semibold text-slate-900 bg-white border border-blue-100 p-3.5 rounded-lg flex items-center gap-2">
+                             <span className="material-icons-round text-slate-300 text-[18px]">person</span>
+                             {data.nama_pengkhotbah_2 || '-'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                 </div>
+               )}
+             </div>
+
+             {/* KOLOM KANAN */}
+             <div className="flex flex-col gap-8 h-full">
+               <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col gap-5 h-full min-h-[400px]">
+                  <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                    <h3 className="text-slate-800 font-bold uppercase tracking-wide flex items-center gap-2">
+                       <span className="material-icons-round text-amber-500">image</span> Poster / Banner
+                    </h3>
+                    
+                    <label className={`text-xs font-bold transition-all flex items-center gap-1 cursor-pointer px-3 py-1.5 rounded-lg ${isUploadingBanner ? 'bg-slate-100 text-slate-400' : 'bg-blue-50 text-blue-600 hover:text-blue-800 hover:bg-blue-100'}`}>
+                      {isUploadingBanner ? <span className="w-3 h-3 border-2 border-slate-300 border-t-slate-500 rounded-full animate-spin"></span> : <span className="material-icons-round text-[14px]">upload</span>}
+                      {isUploadingBanner ? 'Mengunggah...' : (data.url_banner ? 'Ubah Poster' : 'Unggah Poster')}
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        className="hidden"
+                        onChange={handleBannerUpload}
+                        disabled={isUploadingBanner}
+                      />
+                    </label>
+                  </div>
+                  
+                  <div className="flex-1 flex flex-col items-center justify-center p-2">
+                    {data.url_banner && !isUploadingBanner ? (
+                       <img src={data.url_banner} alt="Banner Acara" onClick={() => setIsLightboxOpen(true)} className="w-full max-h-[450px] object-cover rounded-lg border border-slate-200 shadow-sm cursor-pointer hover:opacity-95 transition-opacity" />
+                    ) : isUploadingBanner ? (
+                       <div className="w-full h-64 border border-slate-100 rounded-xl bg-slate-50/50 flex flex-col items-center justify-center text-slate-400 gap-3">
+                          <span className="material-icons-round text-[48px] animate-pulse">cloud_upload</span>
+                          <span className="text-sm font-semibold">Memproses Poster...</span>
+                       </div>
+                    ) : (
+                       <div className="w-full h-64 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50 flex flex-col items-center justify-center text-slate-400">
+                          <span className="material-icons-round text-[48px] text-slate-300 mb-2">insert_photo</span>
+                          <span className="text-sm font-semibold text-slate-500">Belum ada poster tersedia</span>
+                          <span className="text-xs mt-1 px-8 text-center leading-relaxed">Format JPG/PNG. Rasio lanskap disarankan (16:9). Beban berlebih maksimal 10MB.</span>
+                       </div>
+                    )}
+                  </div>
+               </div>
+             </div>
           </div>
         )}
 
@@ -478,22 +658,144 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
           </div>
         )}
 
-        {/* TAB 2: JEMAAT (CAMP) */}
-        {activeTab === 'jemaat' && (
-           <div className="p-16 bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col items-center justify-center animate-in fade-in text-center">
-             <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mb-4 text-amber-500">
-               <span className="material-icons-round text-[40px]">confirmation_number</span>
-             </div>
-             {data.berbayar ? (
-                <>
-                  <h3 className="text-slate-800 font-bold text-lg mb-1">Tiket Sistem Aktif</h3>
-                  <p className="text-slate-500 text-sm max-w-sm">Data pendaftaran jemaat yang membeli retret/camp akan mengalir ke tabel ini ketika dibuka publik.</p>
-                </>
-             ) : (
-                <>
-                  <h3 className="text-slate-800 font-bold text-lg mb-1">Acara Umum (Gratis)</h3>
-                  <p className="text-slate-500 text-sm max-w-sm">Acara ini terbuka luas tanpa registrasi pembayaran tiket masuk.</p>
-                </>
+        {/* TAB 2: AKSES, PENDAFTARAN & TIKET */}
+        {activeTab === 'registrasi' && (
+           <div className="w-full flex flex-col gap-6 animate-in fade-in">
+             {/* If Go-Show */}
+             {!data.butuh_registrasi && (
+               <div className="p-12 bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col items-center text-center gap-4">
+                 <div className="w-20 h-20 rounded-full bg-slate-50 flex items-center justify-center text-slate-300">
+                   <span className="material-icons-round text-[40px]">sensor_door</span>
+                 </div>
+                 <div>
+                   <h3 className="text-slate-800 font-black text-xl mb-2">Kegiatan Terbuka (Go-Show)</h3>
+                   <p className="text-slate-500 text-sm max-w-md mx-auto">
+                     Acara ini tidak mewajibkan jemaat untuk mendaftar secara online di awal. Rekap kehadiran dilakukan manual pada saat acara (Absensi On-The-Spot).
+                   </p>
+                 </div>
+                 {/* Still show the publish & pricing info */}
+                 <div className="flex gap-4 mt-4">
+                   <div className="px-4 py-2 bg-slate-50 border border-slate-100 rounded-lg flex items-center gap-2">
+                     <span className={`material-icons-round text-[18px] ${data.is_published ? 'text-blue-500' : 'text-slate-400'}`}>{data.is_published ? 'public' : 'visibility_off'}</span>
+                     <span className="text-xs font-bold text-slate-600">{data.is_published ? 'Terpublikasi' : 'Internal'}</span>
+                   </div>
+                   <div className="px-4 py-2 bg-slate-50 border border-slate-100 rounded-lg flex items-center gap-2">
+                     <span className={`material-icons-round text-[18px] ${data.berbayar ? 'text-emerald-500' : 'text-slate-400'}`}>{data.berbayar ? 'confirmation_number' : 'money_off'}</span>
+                     <span className="text-xs font-bold text-slate-600">{data.berbayar ? 'Berbayar' : 'Gratis'}</span>
+                   </div>
+                 </div>
+               </div>
+             )}
+
+             {/* If Registration Needed */}
+             {data.butuh_registrasi && (
+               <>
+                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                   <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-sm justify-center items-center flex flex-col gap-1">
+                     <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">Mendaftar</h4>
+                     <p className="text-3xl font-black text-blue-700">{registrasiList.length}</p>
+                   </div>
+                   <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-sm justify-center items-center flex flex-col gap-1">
+                     <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">Target Kuota</h4>
+                     <p className="text-3xl font-black text-slate-700">{data.kuota_peserta || '∞'}</p>
+                   </div>
+                   <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-sm justify-center items-center flex flex-col gap-1">
+                     <h4 className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest text-center">Verified Paid</h4>
+                     <p className="text-3xl font-black text-emerald-600">{registrasiList.filter(r => r.status_pembayaran === 'Paid').length}</p>
+                   </div>
+                   <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-sm justify-center items-center flex flex-col gap-1">
+                     <h4 className="text-[10px] font-bold text-purple-600 uppercase tracking-widest text-center">Total Hadir</h4>
+                     <p className="text-3xl font-black text-purple-600">{registrasiList.filter(r => r.is_checked_in).length}</p>
+                   </div>
+                 </div>
+
+                 <div className="w-full bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden">
+                    <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                       <h3 className="font-bold text-slate-800">Daftar Peserta Kegiatan</h3>
+                       <button onClick={() => setIsModalRegistrasiOpen(true)} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-blue-700 transition flex items-center gap-2">
+                         <span className="material-icons-round text-[16px]">add</span> Tambah Manual
+                       </button>
+                    </div>
+                    {isLoadingRegistrasi ? (
+                       <div className="p-12 flex justify-center"><div className="w-6 h-6 border-2 border-slate-200 border-t-blue-600 rounded-full animate-spin"></div></div>
+                    ) : registrasiList.length === 0 ? (
+                       <div className="p-12 text-center flex flex-col items-center">
+                         <span className="material-icons-round text-slate-300 text-[48px] mb-2">how_to_reg</span>
+                         <h4 className="text-slate-800 font-bold mb-1">Belum Ada Pendaftar</h4>
+                         <p className="text-slate-500 font-medium text-sm">Jemaat dapat mendaftar mandiri via aplikasi, atau tambahkan manual di sini.</p>
+                       </div>
+                    ) : (
+                       <div className="w-full overflow-x-auto">
+                         <table className="w-full text-left text-sm whitespace-nowrap">
+                           <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+                             <tr>
+                               <th className="py-3 px-5">Peserta</th>
+                               <th className="py-3 px-5">Waktu Mendaftar</th>
+                               {data.berbayar && <th className="py-3 px-5">Status Bayar</th>}
+                               <th className="py-3 px-5">Kehadiran</th>
+                               <th className="py-3 px-5 text-right w-20">Aksi</th>
+                             </tr>
+                           </thead>
+                           <tbody className="divide-y divide-slate-100 text-slate-700">
+                             {registrasiList.map(reg => (
+                               <tr key={reg.id} className="hover:bg-slate-50 transition-colors">
+                                 <td className="py-3 px-5">
+                                    <div className="flex flex-col">
+                                      <span className="font-bold text-slate-800">{reg.nama_peserta}</span>
+                                      <span className="text-[11px] text-slate-400">{reg.no_hp || '-'} &bull; {reg.asal_satelit || 'Gereja Pusat'}</span>
+                                    </div>
+                                 </td>
+                                 <td className="py-3 px-5 text-xs font-medium text-slate-500">
+                                   {new Date(reg.tanggal_daftar).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
+                                 </td>
+                                 {data.berbayar && (
+                                   <td className="py-3 px-5">
+                                      <div className="flex flex-col gap-1 items-start">
+                                        <span className={`px-2.5 py-1 text-[10px] uppercase w-fit font-bold rounded-md border ${reg.status_pembayaran === 'Paid' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                                          {reg.status_pembayaran}
+                                        </span>
+                                        {reg.url_bukti_bayar && (
+                                          <a href={reg.url_bukti_bayar} target="_blank" className="text-[10px] font-bold bg-blue-50 text-blue-700 px-2.5 py-1 rounded flex items-center gap-1 border border-blue-100/50 hover:bg-blue-100 transition-colors mt-1">
+                                            <span className="material-icons-round text-[12px]">receipt_long</span> Bukti
+                                          </a>
+                                        )}
+                                      </div>
+                                   </td>
+                                 )}
+                                 <td className="py-3 px-5">
+                                    <span className={`px-2.5 py-1 text-[10px] uppercase font-bold rounded-md border ${reg.is_checked_in ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>
+                                      {reg.is_checked_in ? 'Checked In' : 'Belum Hadir'}
+                                    </span>
+                                 </td>
+                                 <td className="py-3 px-5 text-right flex items-center justify-end gap-1">
+                                    {data.berbayar && reg.status_pembayaran !== 'Paid' && (
+                                      <button onClick={() => {
+                                        if(confirm('Verifikasi pembayaran tiket ini?')) handleActionRegistrasi('VERIFY_PAYMENT', [reg.id]);
+                                      }} className="w-8 h-8 rounded-full hover:bg-emerald-50 inline-flex items-center justify-center text-emerald-400 hover:text-emerald-600 transition-colors" title="Verifikasi Pembayaran">
+                                        <span className="material-icons-round text-[18px]">price_check</span>
+                                      </button>
+                                    )}
+                                    {!reg.is_checked_in && (
+                                      <button onClick={() => {
+                                        if(confirm('Lakukan Check-In untuk peserta ini?')) handleActionRegistrasi('CHECK_IN', [reg.id]);
+                                      }} className="w-8 h-8 rounded-full hover:bg-purple-50 inline-flex items-center justify-center text-purple-400 hover:text-purple-600 transition-colors" title="Check-In Manual">
+                                        <span className="material-icons-round text-[18px]">how_to_reg</span>
+                                      </button>
+                                    )}
+                                    <button onClick={() => {
+                                      if(confirm('Batalkan dan hapus pendaftaran ini?')) handleActionRegistrasi('CANCEL', [reg.id]);
+                                    }} className="w-8 h-8 rounded-full hover:bg-red-50 inline-flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors" title="Hapus Registrasi">
+                                      <span className="material-icons-round text-[18px]">delete</span>
+                                    </button>
+                                 </td>
+                               </tr>
+                             ))}
+                           </tbody>
+                         </table>
+                       </div>
+                    )}
+                 </div>
+               </>
              )}
            </div>
         )}
@@ -559,6 +861,77 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
           </div>
         </div>
       )}
+
+      {/* POPUP MODAL TAMBAH REGISTRASI MANUAL */}
+      {isModalRegistrasiOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center animate-in fade-in bg-slate-900/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+               <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                 <span className="material-icons-round text-blue-600">person_add</span> Form Tiket / Pendaftaran
+               </h3>
+               <button onClick={() => setIsModalRegistrasiOpen(false)} className="w-8 h-8 rounded-full text-slate-400 hover:bg-slate-200 hover:text-slate-600 flex items-center justify-center transition">
+                 <span className="material-icons-round text-[20px]">close</span>
+               </button>
+            </div>
+            
+            <div className="p-6 flex flex-col gap-5">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-slate-700 uppercase">Jemaat <span className="text-red-500">*</span></label>
+                <AsyncAutocomplete 
+                  label=""
+                  onSelect={(id, name) => setFormRegistrasi(prev => ({...prev, jemaat_id: id}))}
+                  placeholder="Ketik minimal 3 huruf nama jemaat..."
+                />
+              </div>
+
+              {data?.berbayar && (
+                <div className="flex flex-col gap-1.5 animate-in fade-in slide-in-from-top-2">
+                  <label className="text-xs font-bold text-slate-700 uppercase">Pembayaran (Opsional jika Cash H-Hari)</label>
+                  <select 
+                    value={formRegistrasi.metode_pembayaran} 
+                    onChange={(e) => setFormRegistrasi(prev => ({...prev, metode_pembayaran: e.target.value}))}
+                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  >
+                    <option value="">Belum Membayar</option>
+                    <option value="Bayar Lunas (Manual/OTS)">Bayar Lunas (Manual/Langsung)</option>
+                  </select>
+                </div>
+              )}
+              
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-slate-700 uppercase">Catatan Khusus (Opsional)</label>
+                <textarea 
+                  value={formRegistrasi.catatan_khusus} 
+                  onChange={(e) => setFormRegistrasi(prev => ({...prev, catatan_khusus: e.target.value}))}
+                  placeholder="Contoh: Alergi makanan udang / tiket dibayarkan oleh Bapak X"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 min-h-[80px]"
+                ></textarea>
+              </div>
+            </div>
+            
+            <div className="p-5 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+               <button onClick={() => setIsModalRegistrasiOpen(false)} className="px-5 py-2 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-200 transition">Batal</button>
+               <button 
+                 onClick={handleSimpanRegistrasi} 
+                 disabled={isSavingRegistrasi || !formRegistrasi.jemaat_id}
+                 className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+               >
+                 {isSavingRegistrasi ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span> : 'Daftarkan Peserta'}
+               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* IMAGE LIGHTBOX MODAL */}
+      {isLightboxOpen && data?.url_banner && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 animate-in fade-in duration-200" onClick={() => setIsLightboxOpen(false)}>
+           <span className="absolute top-6 right-8 text-white material-icons-round text-[32px] cursor-pointer hover:scale-110 transition-transform">close</span>
+           <img src={data.url_banner} alt="Banner Full" className="max-w-full max-h-full object-contain cursor-default rounded shadow-2xl" onClick={(e) => e.stopPropagation()} />
+        </div>
+      )}
+
     </div>
   );
 }

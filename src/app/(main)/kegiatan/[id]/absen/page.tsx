@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import QRCode from 'react-qr-code';
+import { Scanner } from '@yudiel/react-qr-scanner';
 import { AlertModal } from '@/components/ui/AlertModal';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
 
@@ -32,6 +33,10 @@ export default function KioskAbsensiPage({ params }: { params: Promise<{ id: str
   // Tamu Form State
   const [formTamu, setFormTamu] = useState({ nama: '', hp: '', asal: '' });
   const [isSubmittingManual, setIsSubmittingManual] = useState(false);
+
+  // Scanner Usher State
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [isProcessingScan, setIsProcessingScan] = useState(false);
 
   // ==========================================
   // KIOSK DYNAMIC QR STATE
@@ -211,7 +216,7 @@ export default function KioskAbsensiPage({ params }: { params: Promise<{ id: str
     return () => clearTimeout(timer);
   }, [manualSearch]);
 
-  const submitManualAbsen = async (jemaat_id: number, nama: string) => {
+  const submitManualAbsen = async (jemaat_id: number | string, nama: string = 'Jemaat') => {
     setIsSubmittingManual(true);
     setManualSearch('');
     setSearchResults([]);
@@ -230,6 +235,36 @@ export default function KioskAbsensiPage({ params }: { params: Promise<{ id: str
       }
     } catch(e) { alert('Internal Error'); } finally {
       setIsSubmittingManual(false);
+    }
+  };
+
+  const handleUsherScan = async (detectedCodes: any[]) => {
+    if (!detectedCodes || detectedCodes.length === 0 || isProcessingScan) return;
+    const rawValue = detectedCodes[0].rawValue;
+    if (!rawValue) return;
+
+    setIsProcessingScan(true);
+    try {
+      // Jemaat QR code payload is either a number (jemaat_nomor) or jemaat_id
+      const res = await fetch(`/api/kegiatan/${id}/absensi`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action_type: 'manual_jemaat', id_jemaat: rawValue })
+      });
+      const data = await res.json();
+      
+      setIsScannerOpen(false); // Tutup scanner otomatis jika scan dibaca
+
+      if (data.success) {
+        triggerFeedback('success', data.message);
+        fetchLogs();
+      } else {
+        triggerFeedback('error', 'Gagal', data.message);
+      }
+    } catch (e) {
+      triggerFeedback('error', 'Koneksi Error', 'Gagal memindai.');
+    } finally {
+      setTimeout(() => setIsProcessingScan(false), 2000); // cooldown 2 detik
     }
   };
 
@@ -343,7 +378,7 @@ export default function KioskAbsensiPage({ params }: { params: Promise<{ id: str
            <span className="text-slate-400 material-icons-round text-[14px] hidden sm:inline">chevron_right</span>
            <Link href="/kegiatan" className="text-slate-500 hover:text-blue-600 transition-colors">Daftar Kegiatan</Link>
            <span className="text-slate-400 material-icons-round text-[14px]">chevron_right</span>
-           <span className="text-slate-700 font-bold">Kiosk Absensi Dinamis</span>
+           <span className="text-slate-700 font-bold">Absensi Terpusat</span>
         </div>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-3 mt-1">
            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 items-start sm:items-center">
@@ -358,7 +393,7 @@ export default function KioskAbsensiPage({ params }: { params: Promise<{ id: str
               )}
            </div>
            <div className="text-slate-500 text-[10px] md:text-sm font-medium font-['Inter'] flex gap-1.5 md:gap-2 items-center">
-              <span className="material-icons-round text-base md:text-lg text-slate-400">qr_code_scanner</span> <span className="uppercase tracking-wider font-bold">Mode Kiosk Terpusat</span>
+              <span className="material-icons-round text-base md:text-lg text-slate-400">qr_code_scanner</span> <span className="uppercase tracking-wider font-bold">Absensi Terpusat</span>
            </div>
         </div>
       </div>
@@ -523,15 +558,22 @@ export default function KioskAbsensiPage({ params }: { params: Promise<{ id: str
           <div className="w-full p-4 md:p-6 bg-white shrink-0 shadow-sm z-20">
              {activeTab === 'cari' && (
                <div className="flex flex-col gap-3 md:gap-4 text-sm">
-                 <div className="relative">
-                   <span className="material-icons-round absolute left-3 md:left-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+                 <div className="relative flex items-center">
+                   <span className="material-icons-round absolute left-3 md:left-4 text-slate-400 text-lg pointer-events-none">search</span>
                    <input 
                      type="text" 
                      placeholder="Ketik minimal 3 huruf nama jemaat..." 
                      value={manualSearch}
                      onChange={(e) => setManualSearch(e.target.value)}
-                     className="w-full pl-10 md:pl-12 pr-4 py-2.5 md:py-3 bg-white border border-slate-300 rounded-xl text-slate-800 text-xs md:text-sm font-medium focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-slate-400"
+                     className="w-full pl-10 md:pl-12 pr-12 md:pr-14 py-2.5 md:py-3 bg-white border border-slate-300 rounded-xl text-slate-800 text-xs md:text-sm font-medium focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-slate-400"
                    />
+                   <button 
+                     onClick={() => setIsScannerOpen(true)}
+                     className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 md:w-10 md:h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center hover:bg-blue-100 hover:text-blue-700 transition-colors shadow-sm cursor-pointer"
+                     title="Scan QR Jemaat"
+                   >
+                     <span className="material-icons-round text-[18px] md:text-[20px]">qr_code_scanner</span>
+                   </button>
                  </div>
                  
                  {/* Hasil Search Box */}
@@ -608,6 +650,32 @@ export default function KioskAbsensiPage({ params }: { params: Promise<{ id: str
         </div>
 
       </div>
+
+      {/* MODAL SCANNER JEMAAT (USHER SIDE) */}
+      {isScannerOpen && (
+        <div className="fixed inset-0 z-[9999] bg-black/90 flex flex-col items-center justify-center animate-in fade-in zoom-in-95 duration-200">
+           <button onClick={() => setIsScannerOpen(false)} className="absolute top-8 right-8 w-12 h-12 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center backdrop-blur-md transition-colors">
+              <span className="material-icons-round text-[28px]">close</span>
+           </button>
+           
+           <div className="text-center mb-8 px-6">
+              <span className="material-icons-round text-blue-500 text-[48px] mb-2">qr_code_scanner</span>
+              <h3 className="text-2xl font-black text-white tracking-wide">Pindai QR Jemaat</h3>
+              <p className="text-white/60 font-medium text-sm mt-2 max-w-sm mx-auto">Arahkan kamera ke layar HP Jemaat (menu "QR Saya").</p>
+           </div>
+           
+           <div className="w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 rounded-[40px] overflow-hidden relative shadow-[0_0_50px_-10px_rgba(59,130,246,0.3)] border-[8px] border-white/10">
+              <Scanner
+                onScan={handleUsherScan}
+                formats={['qr_code']}
+                components={{ audio: false, finder: false }}
+                styles={{ container: { width: '100%', height: '100%', borderRadius: '32px' } }}
+              />
+              <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-0.5 bg-blue-500 shadow-[0_0_15px_3px_rgba(59,130,246,0.5)] z-20 animate-pulse"></div>
+           </div>
+        </div>
+      )}
+
     </div>
   );
 }

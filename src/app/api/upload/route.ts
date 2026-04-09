@@ -36,8 +36,8 @@ export async function POST(request: Request) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    const bucketName = 'jemaat-photos';
-    const uploadUrl = `${supabaseUrl}/storage/v1/object/${bucketName}/${filename}`;
+    const targetBucket = (data.get('bucket') as string) || 'jemaat-photos';
+    const uploadUrl = `${supabaseUrl}/storage/v1/object/${targetBucket}/${filename}`;
 
     // Upload ke Supabase menggunakan REST API standar
     const response = await fetch(uploadUrl, {
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
     }
 
     // Mendapatkan bentuk URL public dari Supabase
-    const publicUrl = `${supabaseUrl}/storage/v1/object/public/${bucketName}/${filename}`;
+    const publicUrl = `${supabaseUrl}/storage/v1/object/public/${targetBucket}/${filename}`;
     
     return NextResponse.json({ success: true, url: publicUrl });
   } catch (error: any) {
