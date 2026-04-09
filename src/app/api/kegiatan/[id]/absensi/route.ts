@@ -81,8 +81,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       
       const mode = action_type === 'qr_scan' ? 'QR Code' : 'Manual';
 
-      // Validasi: Pastikan Jemaat ada
-      const checkJemaat = await pool.query('SELECT id, nama_lengkap FROM public.jemaat WHERE id::text = $1 OR jemaat_nomor = $1', [String(id_jemaat)]);
+      // Validasi: Pastikan Jemaat ada (jemaat_id di tabel jemaat = nomor induk seperti '00000006')
+      const checkJemaat = await pool.query('SELECT id, nama_lengkap FROM public.jemaat WHERE id::text = $1 OR jemaat_id = $1', [String(id_jemaat)]);
       if (checkJemaat.rowCount === 0) {
          return NextResponse.json({ success: false, message: 'ID Jemaat tidak ditemukan di database.', is_alert: true }, { status: 404 });
       }
