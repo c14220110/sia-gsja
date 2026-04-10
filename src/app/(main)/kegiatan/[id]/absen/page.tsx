@@ -547,10 +547,10 @@ export default function KioskAbsensiPage({ params }: { params: Promise<{ id: str
 
           {/* TAB NAVS */}
           <div className="w-full flex border-b border-slate-200 shrink-0 bg-white">
-            <button onClick={() => setActiveTab('cari')} className={`flex-1 py-3 md:py-4 text-[11px] md:text-sm font-bold uppercase tracking-wider border-b-4 transition-colors ${activeTab === 'cari' ? 'border-blue-600 text-blue-700 bg-blue-50/50' : 'border-transparent text-slate-500 hover:bg-slate-50'}`}>
+            <button onClick={() => { setActiveTab('cari'); setIsScannerOpen(false); }} className={`flex-1 py-3 md:py-4 text-[11px] md:text-sm font-bold uppercase tracking-wider border-b-4 transition-colors ${activeTab === 'cari' && !isScannerOpen ? 'border-blue-600 text-blue-700 bg-blue-50/50' : 'border-transparent text-slate-500 hover:bg-slate-50'}`}>
               Cari Jemaat GSJA
             </button>
-            <button onClick={() => setActiveTab('tamu')} className={`flex-1 py-3 md:py-4 text-[11px] md:text-sm font-bold uppercase tracking-wider border-b-4 transition-colors ${activeTab === 'tamu' ? 'border-amber-500 text-amber-700 bg-amber-50/50' : 'border-transparent text-slate-500 hover:bg-slate-50'}`}>
+            <button onClick={() => { setActiveTab('tamu'); setIsScannerOpen(false); }} className={`flex-1 py-3 md:py-4 text-[11px] md:text-sm font-bold uppercase tracking-wider border-b-4 transition-colors ${activeTab === 'tamu' && !isScannerOpen ? 'border-amber-500 text-amber-700 bg-amber-50/50' : 'border-transparent text-slate-500 hover:bg-slate-50'}`}>
               Tamu Baru
             </button>
           </div>
@@ -567,62 +567,87 @@ export default function KioskAbsensiPage({ params }: { params: Promise<{ id: str
 
           {/* TAB CONTENTS */}
           <div className="w-full p-4 md:p-6 bg-white shrink-0 shadow-sm z-20">
-             {activeTab === 'cari' && (
-               <div className="flex flex-col gap-3 md:gap-4 text-sm">
-                 <div className="relative flex items-center">
-                   <span className="material-icons-round absolute left-3 md:left-4 text-slate-400 text-lg pointer-events-none">search</span>
-                   <input 
-                     type="text" 
-                     placeholder="Ketik minimal 3 huruf nama jemaat..." 
-                     value={manualSearch}
-                     onChange={(e) => setManualSearch(e.target.value)}
-                     className="w-full pl-10 md:pl-12 pr-12 md:pr-14 py-2.5 md:py-3 bg-white border border-slate-300 rounded-xl text-slate-800 text-xs md:text-sm font-medium focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-slate-400"
-                   />
-                   <button 
-                     onClick={() => setIsScannerOpen(true)}
-                     className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 md:w-10 md:h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center hover:bg-blue-100 hover:text-blue-700 transition-colors shadow-sm cursor-pointer"
-                     title="Scan QR Jemaat"
-                   >
-                     <span className="material-icons-round text-[18px] md:text-[20px]">qr_code_scanner</span>
+             {isScannerOpen ? (
+               <div className="flex flex-col w-full animate-in fade-in zoom-in-95 duration-200">
+                 <div className="w-full flex justify-between items-center mb-4">
+                   <div className="flex items-center gap-2">
+                     <span className="material-icons-round text-blue-600">qr_code_scanner</span>
+                     <span className="text-sm font-bold text-slate-800">Arahkan Ke QR Jemaat</span>
+                   </div>
+                   <button onClick={() => setIsScannerOpen(false)} className="w-8 h-8 rounded-full bg-slate-100 hover:bg-red-50 text-slate-500 hover:text-red-500 flex items-center justify-center transition-colors">
+                     <span className="material-icons-round text-[18px]">close</span>
                    </button>
                  </div>
-                 
-                 {/* Hasil Search Box */}
-                 {(searchResults.length > 0 || isSearching) && (
-                   <div className="w-full max-h-48 md:max-h-60 overflow-y-auto border border-blue-200 rounded-xl mt-1 shadow-lg bg-white relative z-50">
-                     {isSearching ? (
-                        <div className="p-4 text-slate-500 text-center text-xs md:text-sm font-medium">Mencari...</div>
-                     ) : (
-                       searchResults.map((jem) => (
-                         <div key={jem.id} className="w-full p-2.5 md:p-3 flex justify-between items-center hover:bg-blue-50 border-b border-slate-100 last:border-0 transition-colors cursor-pointer" onClick={() => submitManualAbsen(jem.id, jem.nama_lengkap)}>
-                           <div className="flex flex-col">
-                             <span className="text-slate-800 font-bold text-xs md:text-sm tracking-tight line-clamp-1">{jem.nama_lengkap}</span>
-                             <span className="text-slate-500 text-[10px] md:text-xs font-medium">{jem.nama_satelit}</span>
-                           </div>
-                           <button className="px-2 md:px-3 py-1 md:py-1.5 bg-blue-100 hover:bg-blue-600 hover:text-white text-blue-700 text-[10px] md:text-xs font-bold rounded-lg transition-colors shadow-sm whitespace-nowrap ml-2 shrink-0">
-                             Hadirkan
-                           </button>
-                         </div>
-                       ))
+                 <div className="w-full aspect-square max-h-[300px] rounded-2xl overflow-hidden relative border-4 border-slate-100 shadow-inner bg-slate-900 mx-auto">
+                    <Scanner
+                      onScan={handleUsherScan}
+                      formats={['qr_code']}
+                      components={{ finder: false }}
+                      styles={{ container: { width: '100%', height: '100%', objectFit: 'cover' } }}
+                    />
+                    <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-0.5 bg-blue-500 shadow-[0_0_15px_3px_rgba(59,130,246,0.5)] z-20 animate-pulse"></div>
+                 </div>
+               </div>
+             ) : (
+               <>
+                 {activeTab === 'cari' && (
+                   <div className="flex flex-col gap-3 md:gap-4 text-sm animate-in fade-in duration-200">
+                     <div className="relative flex items-center">
+                       <span className="material-icons-round absolute left-3 md:left-4 text-slate-400 text-lg pointer-events-none">search</span>
+                       <input 
+                         type="text" 
+                         placeholder="Ketik minimal 3 huruf nama jemaat..." 
+                         value={manualSearch}
+                         onChange={(e) => setManualSearch(e.target.value)}
+                         className="w-full pl-10 md:pl-12 pr-12 md:pr-14 py-2.5 md:py-3 bg-white border border-slate-300 rounded-xl text-slate-800 text-xs md:text-sm font-medium focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-slate-400"
+                       />
+                       <button 
+                         onClick={() => setIsScannerOpen(true)}
+                         className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 md:w-10 md:h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center hover:bg-blue-100 hover:text-blue-700 transition-colors shadow-sm cursor-pointer"
+                         title="Memindai QR Jemaat"
+                       >
+                         <span className="material-icons-round text-[18px] md:text-[20px]">qr_code_scanner</span>
+                       </button>
+                     </div>
+                     
+                     {/* Hasil Search Box */}
+                     {(searchResults.length > 0 || isSearching) && (
+                       <div className="w-full max-h-48 md:max-h-60 overflow-y-auto border border-blue-200 rounded-xl mt-1 shadow-lg bg-white relative z-50">
+                         {isSearching ? (
+                            <div className="p-4 text-slate-500 text-center text-xs md:text-sm font-medium">Mencari...</div>
+                         ) : (
+                           searchResults.map((jem) => (
+                             <div key={jem.id} className="w-full p-2.5 md:p-3 flex justify-between items-center hover:bg-blue-50 border-b border-slate-100 last:border-0 transition-colors cursor-pointer" onClick={() => submitManualAbsen(jem.id, jem.nama_lengkap)}>
+                               <div className="flex flex-col">
+                                 <span className="text-slate-800 font-bold text-xs md:text-sm tracking-tight line-clamp-1">{jem.nama_lengkap}</span>
+                                 <span className="text-slate-500 text-[10px] md:text-xs font-medium">{jem.nama_satelit}</span>
+                               </div>
+                               <button className="px-2 md:px-3 py-1 md:py-1.5 bg-blue-100 hover:bg-blue-600 hover:text-white text-blue-700 text-[10px] md:text-xs font-bold rounded-lg transition-colors shadow-sm whitespace-nowrap ml-2 shrink-0">
+                                 Hadirkan
+                               </button>
+                             </div>
+                           ))
+                         )}
+                       </div>
                      )}
                    </div>
                  )}
-               </div>
-             )}
 
-             {activeTab === 'tamu' && (
-               <form onSubmit={submitTamu} className="flex flex-col gap-2.5 md:gap-3 text-sm">
-                 <div className="flex flex-col gap-1.5">
-                   <input type="text" value={formTamu.nama} onChange={e => setFormTamu({...formTamu, nama: e.target.value})} placeholder="Nama Lengkap (Wajib)" required className="w-full px-3 md:px-4 py-2 md:py-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 text-xs md:text-sm font-medium focus:outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 transition-all" />
-                 </div>
-                 <div className="flex flex-col sm:flex-row gap-2.5 md:gap-3">
-                    <input type="text" value={formTamu.hp} onChange={e => setFormTamu({...formTamu, hp: e.target.value})} placeholder="No Hanphone" className="flex-1 px-3 md:px-4 py-2 md:py-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 text-xs md:text-sm font-medium focus:outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 transition-all" />
-                    <input type="text" value={formTamu.asal} onChange={e => setFormTamu({...formTamu, asal: e.target.value})} placeholder="Gereja Asal" className="flex-1 px-3 md:px-4 py-2 md:py-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 text-xs md:text-sm font-medium focus:outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 transition-all" />
-                 </div>
-                 <button type="submit" disabled={isSubmittingManual || !formTamu.nama} className="w-full py-2.5 mt-2 bg-slate-800 hover:bg-slate-900 focus:ring-4 focus:ring-slate-300 disabled:opacity-50 text-white font-bold rounded-lg transition-all text-xs md:text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm">
-                   <span className="material-icons-round text-[16px] md:text-[18px]">how_to_reg</span> Kehadiran Tamu
-                 </button>
-               </form>
+                 {activeTab === 'tamu' && (
+                   <form onSubmit={submitTamu} className="flex flex-col gap-2.5 md:gap-3 text-sm animate-in fade-in duration-200">
+                     <div className="flex flex-col gap-1.5">
+                       <input type="text" value={formTamu.nama} onChange={e => setFormTamu({...formTamu, nama: e.target.value})} placeholder="Nama Lengkap (Wajib)" required className="w-full px-3 md:px-4 py-2 md:py-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 text-xs md:text-sm font-medium focus:outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 transition-all" />
+                     </div>
+                     <div className="flex flex-col sm:flex-row gap-2.5 md:gap-3">
+                        <input type="text" value={formTamu.hp} onChange={e => setFormTamu({...formTamu, hp: e.target.value})} placeholder="No Hanphone" className="flex-1 px-3 md:px-4 py-2 md:py-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 text-xs md:text-sm font-medium focus:outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 transition-all" />
+                        <input type="text" value={formTamu.asal} onChange={e => setFormTamu({...formTamu, asal: e.target.value})} placeholder="Gereja Asal" className="flex-1 px-3 md:px-4 py-2 md:py-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 text-xs md:text-sm font-medium focus:outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 transition-all" />
+                     </div>
+                     <button type="submit" disabled={isSubmittingManual || !formTamu.nama} className="w-full py-2.5 mt-2 bg-slate-800 hover:bg-slate-900 focus:ring-4 focus:ring-slate-300 disabled:opacity-50 text-white font-bold rounded-lg transition-all text-xs md:text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm">
+                       <span className="material-icons-round text-[16px] md:text-[18px]">how_to_reg</span> Kehadiran Tamu
+                     </button>
+                   </form>
+                 )}
+               </>
              )}
           </div>
 
@@ -662,30 +687,7 @@ export default function KioskAbsensiPage({ params }: { params: Promise<{ id: str
 
       </div>
 
-      {/* MODAL SCANNER JEMAAT (USHER SIDE) */}
-      {isScannerOpen && (
-        <div className="fixed inset-0 z-[9999] bg-black/90 flex flex-col items-center justify-center animate-in fade-in zoom-in-95 duration-200">
-           <button onClick={() => setIsScannerOpen(false)} className="absolute top-8 right-8 w-12 h-12 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center backdrop-blur-md transition-colors">
-              <span className="material-icons-round text-[28px]">close</span>
-           </button>
-           
-           <div className="text-center mb-8 px-6">
-              <span className="material-icons-round text-blue-500 text-[48px] mb-2">qr_code_scanner</span>
-              <h3 className="text-2xl font-black text-white tracking-wide">Pindai QR Jemaat</h3>
-              <p className="text-white/60 font-medium text-sm mt-2 max-w-sm mx-auto">Arahkan kamera ke layar HP Jemaat (menu "QR Saya").</p>
-           </div>
-           
-           <div className="w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 rounded-[40px] overflow-hidden relative shadow-[0_0_50px_-10px_rgba(59,130,246,0.3)] border-[8px] border-white/10">
-              <Scanner
-                onScan={handleUsherScan}
-                formats={['qr_code']}
-                components={{ finder: false }}
-                styles={{ container: { width: '100%', height: '100%', borderRadius: '32px' } }}
-              />
-              <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-0.5 bg-blue-500 shadow-[0_0_15px_3px_rgba(59,130,246,0.5)] z-20 animate-pulse"></div>
-           </div>
-        </div>
-      )}
+      {/* MODAL SCANNER JEMAAT (USHER SIDE) - REMOVED (NOW INLINE) */}
 
     </div>
   );
