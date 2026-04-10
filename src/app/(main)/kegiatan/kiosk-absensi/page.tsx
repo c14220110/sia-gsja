@@ -1,1 +1,5 @@
-// This page has been removed per user instructions
+import { notFound } from 'next/navigation';
+
+export default function DeprecatedKioskPage() {
+  notFound();
+}
