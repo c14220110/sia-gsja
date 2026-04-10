@@ -255,7 +255,7 @@ export default function DetailJadwalJemaatPage() {
          {/* Modal Registrasi / Bottom Sheet */}
          {isRegModalOpen && (
             <div className="fixed inset-0 z-[60] bg-slate-900/40 backdrop-blur-sm flex flex-col justify-end animate-in fade-in" onClick={() => setIsRegModalOpen(false)}>
-               <div className="w-full bg-white rounded-t-3xl p-6 flex flex-col animate-in slide-in-from-bottom max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+               <div className="w-full bg-white rounded-t-3xl p-6 pb-32 flex flex-col animate-in slide-in-from-bottom max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
                   <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-6"></div>
                   <h3 className="text-2xl font-black text-slate-800 tracking-tight mb-2">Formulir Pendaftaran</h3>
                   <p className="text-sm text-slate-500 mb-6">Mohon lengkapi formulir pendaftaran ini untuk {data.nama_kegiatan}.</p>

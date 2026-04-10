@@ -269,17 +269,23 @@ export default function KegiatanPage() {
 
       {/* Header Section */}
       <div className="w-full flex justify-between items-start">
-        <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1">
             <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Daftar Kegiatan</h1>
             <div className="text-slate-500 text-base font-medium font-['Inter'] leading-6">Sistem Informasi Manajemen Jadwal & Kegiatan Gereja</div>
           </div>
-          {/* TODO: Add proper permission check for kegiatan_create */}
-          {(hasPermission('jemaat_create') || true) && (
-            <Link href="/kegiatan/new" className="px-5 py-2.5 bg-slate-700 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none">
-              <span className="material-icons-round text-white text-[20px]">add</span>
-              <span className="text-white text-sm font-bold font-['Inter'] leading-5">Tambah Kegiatan Baru</span>
+          <div className="flex items-center gap-3">
+            <Link href="/kegiatan/validasi-pembayaran" className="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-lg flex justify-center items-center gap-2 hover:bg-slate-50 transition-colors shadow-sm focus:ring-2 focus:ring-slate-400 focus:outline-none">
+              <span className="material-icons-round text-sky-600 text-[20px]">price_check</span>
+              <span className="text-sm font-bold font-['Inter'] leading-5">Validasi Pembayaran</span>
             </Link>
-          )}
+            {/* TODO: Add proper permission check for kegiatan_create */}
+            {(hasPermission('jemaat_create') || true) && (
+              <Link href="/kegiatan/new" className="px-5 py-2.5 bg-slate-700 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none">
+                <span className="material-icons-round text-white text-[20px]">add</span>
+                <span className="text-white text-sm font-bold font-['Inter'] leading-5">Tambah Kegiatan Baru</span>
+              </Link>
+            )}
+          </div>
         </div>
 
       {/* Statistic Cards */}
@@ -514,7 +520,7 @@ export default function KegiatanPage() {
 
       {/* Data Table */}
       <div className="w-full bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col relative z-0">
-        <div className="w-full overflow-x-auto pb-44 min-h-[350px]">
+        <div className="w-full overflow-x-auto pb-32 min-h-[480px]">
           <div className="min-w-[1050px] flex flex-col">
             {/* Table Header */}
             <div className="w-full bg-slate-50 border-b border-slate-200 flex items-center px-6 py-4">
@@ -537,7 +543,7 @@ export default function KegiatanPage() {
                 </div>
               ) : (
                 data.map((kegiatan, idx) => {
-                  const isLastRows = data.length > 2 && idx >= data.length - 2;
+                  const isLastRows = data.length > 5 && idx >= data.length - 2;
                   
                   // State Machine Logic: Auto-Status calculation
                   let displayStatus = kegiatan.status_kegiatan;
