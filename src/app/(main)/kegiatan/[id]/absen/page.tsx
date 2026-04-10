@@ -578,14 +578,26 @@ export default function KioskAbsensiPage({ params }: { params: Promise<{ id: str
                      <span className="material-icons-round text-[18px]">close</span>
                    </button>
                  </div>
-                 <div className="w-full aspect-square max-h-[300px] rounded-2xl overflow-hidden relative border-4 border-slate-100 shadow-inner bg-slate-900 mx-auto">
+                 <div className="w-full rounded-2xl overflow-hidden relative border-4 border-slate-100 shadow-inner bg-slate-900 mx-auto">
                     <Scanner
-                      onScan={handleUsherScan}
+                      onScan={(detectedCodes) => {
+                         // Play beep immediately when anything is scanned (success)
+                         try {
+                           const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+                           const oscillator = audioContext.createOscillator();
+                           oscillator.type = 'sine';
+                           oscillator.frequency.value = 800;
+                           oscillator.connect(audioContext.destination);
+                           oscillator.start();
+                           setTimeout(() => oscillator.stop(), 150);
+                         } catch (e) {}
+                         handleUsherScan(detectedCodes);
+                      }}
                       formats={['qr_code']}
                       components={{ finder: false }}
-                      styles={{ container: { width: '100%', height: '100%', objectFit: 'cover' } }}
+                      styles={{ container: { width: '100%', borderRadius: '12px' } }}
                     />
-                    <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-0.5 bg-blue-500 shadow-[0_0_15px_3px_rgba(59,130,246,0.5)] z-20 animate-pulse"></div>
+                    <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-0.5 bg-blue-500 shadow-[0_0_15px_3px_rgba(59,130,246,0.5)] z-20 animate-pulse pointer-events-none"></div>
                  </div>
                </div>
              ) : (
