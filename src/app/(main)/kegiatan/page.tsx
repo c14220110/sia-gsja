@@ -514,7 +514,7 @@ export default function KegiatanPage() {
 
       {/* Data Table */}
       <div className="w-full bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col relative z-0">
-        <div className="w-full overflow-x-auto pb-4 min-h-64">
+        <div className="w-full overflow-x-auto pb-44 min-h-[350px]">
           <div className="min-w-[1050px] flex flex-col">
             {/* Table Header */}
             <div className="w-full bg-slate-50 border-b border-slate-200 flex items-center px-6 py-4">
@@ -640,17 +640,17 @@ export default function KegiatanPage() {
                           {/* ONGOING */}
                           {displayStatus === 'Ongoing' && (
                             <>
-                              <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Detail</button>
+                              <Link href={`/kegiatan/${kegiatan.id}`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Detail</Link>
                               <Link href={`/kegiatan/${kegiatan.id}/absen`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-emerald-500">how_to_reg</span>Input Absensi</Link>
                               <div className="w-full h-px bg-slate-100 my-1"></div>
-                              <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">flag</span>Akhiri Kegiatan</button>
+                              <button onClick={() => setCancelModal({ isOpen: true, kegiatanId: kegiatan.id, reason: '' })} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">flag</span>Akhiri Kegiatan</button>
                             </>
                           )}
 
                           {/* MENUNGGU LPJ */}
                           {displayStatus === 'Menunggu LPJ' && (
                             <>
-                              <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Detail</button>
+                              <Link href={`/kegiatan/${kegiatan.id}`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Detail</Link>
                               <Link href={`/kegiatan/${kegiatan.id}/absensi-susulan`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">how_to_reg</span>Absensi Susulan</Link>
                               <div className="w-full h-px bg-slate-100 my-1"></div>
                               <button className="w-full text-left px-4 py-2 hover:bg-amber-50 text-amber-700 text-sm flex items-center gap-2 font-bold"><span className="material-icons-round text-[18px] text-amber-600">description</span>Input LPJ</button>
@@ -660,7 +660,7 @@ export default function KegiatanPage() {
                           {/* SELESAI */}
                           {displayStatus === 'Selesai' && (
                             <>
-                              <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Detail</button>
+                              <Link href={`/kegiatan/${kegiatan.id}`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Detail</Link>
                               <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">print</span>Cetak Daftar Hadir</button>
                               <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">article</span>Lihat / Cetak LPJ</button>
                             </>
@@ -669,7 +669,7 @@ export default function KegiatanPage() {
                           {/* DIBATALKAN */}
                           {displayStatus === 'Dibatalkan' && (
                             <>
-                              <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Detail</button>
+                              <Link href={`/kegiatan/${kegiatan.id}`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Detail</Link>
                             </>
                           )}
 
