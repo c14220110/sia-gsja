@@ -93,6 +93,8 @@ export async function GET(request: Request) {
       LEFT JOIN public.departemen d ON k.departemen_id = d.id
       LEFT JOIN public.komisi kom ON k.komisi_id = kom.id
       LEFT JOIN public.kegiatan_lpj lpj ON k.id = lpj.kegiatan_id
+      LEFT JOIN public.pengurus pengurus ON k.pic_pengurus_id = pengurus.id
+      LEFT JOIN public.jemaat pic_person ON pengurus.jemaat_id = pic_person.id
     `;
 
     const countResult = await pool.query(
@@ -108,17 +110,21 @@ export async function GET(request: Request) {
         k.kode_kegiatan,
         k.nama_kegiatan,
         k.tanggal_mulai,
+        k.tanggal_selesai,
         k.waktu_mulai,
+        k.waktu_selesai,
         k.lokasi_kegiatan,
         k.status_kegiatan,
         k.is_published,
         k.butuh_registrasi,
         k.url_banner,
+        k.frekuensi_kegiatan,
         jk.nama_jenis_kegiatan,
         jk.kategori,
         s.nama_satelit,
         d.nama_departemen,
         kom.nama_komisi,
+        pic_person.nama_lengkap AS pic_name,
         lpj.kegiatan_id AS is_lpj_submitted
       FROM public.kegiatan k
       ${joinClauses}
@@ -183,8 +189,17 @@ export async function POST(request: Request) {
         is_published, butuh_registrasi, url_banner,
         harga_tiket_rp, kuota_peserta,
         
-        // Ibadah specific
-        tema_khotbah, nama_pengkhotbah_1, nama_pengkhotbah_2
+        // Ibadah specific (3A)
+        tema_khotbah, nama_pengkhotbah_1, nama_pengkhotbah_2,
+
+        // Eksternal / Akomodasi (3B)
+        akomodasi,
+
+        // Sakramen (3C)
+        nama_pendeta_pelayan, keterangan_sakramen,
+
+        // Layanan Personal (3D)
+        jemaat_target_1_id, jemaat_target_2_id, keterangan_layanan
       } = body;
 
     // Validation
@@ -195,7 +210,7 @@ export async function POST(request: Request) {
     const t_selesai = (tanggal_selesai && tanggal_selesai.trim() !== '') ? tanggal_selesai : null;
     const w_selesai = (waktu_selesai && waktu_selesai.trim() !== '') ? waktu_selesai : null;
     
-    const s_id = tipe_penyelenggara === 'Satelit' && satelit_id ? satelit_id : null;
+    const s_id = satelit_id ? satelit_id : null;
     const d_id = tipe_penyelenggara === 'Departemen' && departemen_id ? departemen_id : null;
     const k_id = tipe_penyelenggara === 'Komisi' && komisi_id ? komisi_id : null;
     const pic_id = pic_pengurus_id ? pic_pengurus_id : null;
@@ -232,19 +247,45 @@ export async function POST(request: Request) {
 
     const newKegiatanId = kegiatanResult.rows[0].id;
 
-    // Conditionally Insert to kegiatan_detail_ibadah
+    // [3A] Conditionally Insert to kegiatan_detail_ibadah
     if (tema_khotbah || nama_pengkhotbah_1 || nama_pengkhotbah_2) {
-      const insertDetailQuery = `
-        INSERT INTO public.kegiatan_detail_ibadah (
-          kegiatan_id, tema_khotbah, nama_pengkhotbah_1, nama_pengkhotbah_2
-        ) VALUES ($1, $2, $3, $4)
-      `;
-      await client.query(insertDetailQuery, [
-        newKegiatanId, 
-        tema_khotbah || null, 
-        nama_pengkhotbah_1 || null, 
-        nama_pengkhotbah_2 || null
-      ]);
+      await client.query(
+        `INSERT INTO public.kegiatan_detail_ibadah (kegiatan_id, tema_khotbah, nama_pengkhotbah_1, nama_pengkhotbah_2)
+         VALUES ($1, $2, $3, $4)`,
+        [newKegiatanId, tema_khotbah || null, nama_pengkhotbah_1 || null, nama_pengkhotbah_2 || null]
+      );
+    }
+
+    // [3B] Conditionally Insert to kegiatan_detail_eksternal
+    if (akomodasi && akomodasi.trim() !== '') {
+      await client.query(
+        `INSERT INTO public.kegiatan_detail_eksternal (kegiatan_id, akomodasi)
+         VALUES ($1, $2)`,
+        [newKegiatanId, akomodasi.trim()]
+      );
+    }
+
+    // [3C] Conditionally Insert to kegiatan_detail_sakramen
+    if (nama_pendeta_pelayan || keterangan_sakramen) {
+      await client.query(
+        `INSERT INTO public.kegiatan_detail_sakramen (kegiatan_id, nama_pendeta_pelayan, keterangan_sakramen)
+         VALUES ($1, $2, $3)`,
+        [newKegiatanId, nama_pendeta_pelayan || null, keterangan_sakramen || null]
+      );
+    }
+
+    // [3D] Conditionally Insert to kegiatan_detail_layanan_personal
+    if (jemaat_target_1_id || keterangan_layanan) {
+      await client.query(
+        `INSERT INTO public.kegiatan_detail_layanan_personal (kegiatan_id, jemaat_target_1_id, jemaat_target_2_id, keterangan_layanan)
+         VALUES ($1, $2, $3, $4)`,
+        [
+          newKegiatanId,
+          jemaat_target_1_id ? parseInt(jemaat_target_1_id) : null,
+          jemaat_target_2_id ? parseInt(jemaat_target_2_id) : null,
+          keterangan_layanan || null
+        ]
+      );
     }
 
     await client.query('COMMIT'); // Finish Transaction successful

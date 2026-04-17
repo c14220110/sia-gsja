@@ -270,9 +270,17 @@ export default function EditKegiatanPage({ params }: { params: Promise<{ id: str
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [isViewOnly, setIsViewOnly] = useState(false);
 
   // Fetch Existing Data to Prefill Form
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+       const wParams = new URLSearchParams(window.location.search);
+       if (wParams.get('mode') === 'view') {
+           setIsViewOnly(true);
+       }
+    }
+
     const fetchExistingData = async () => {
        try {
           const res = await fetch(`/api/kegiatan/${id}`);
@@ -287,7 +295,7 @@ export default function EditKegiatanPage({ params }: { params: Promise<{ id: str
              setFormData({
                nama_kegiatan: k.nama_kegiatan || '',
                jenis_kegiatan_id: k.jenis_kegiatan_id?.toString() || '',
-               frekuensi_kegiatan: 'Mingguan', // Tidak ada di DB get yet
+               frekuensi_kegiatan: k.frekuensi_kegiatan || 'Insidental - Tahunan',
                tanggal_mulai: k.tanggal_mulai ? new Date(k.tanggal_mulai).toISOString().split('T')[0] : '',
                tanggal_selesai: k.tanggal_selesai ? new Date(k.tanggal_selesai).toISOString().split('T')[0] : '',
                waktu_mulai: k.waktu_mulai?.substring(0, 5) || '',
@@ -397,6 +405,14 @@ export default function EditKegiatanPage({ params }: { params: Promise<{ id: str
         alert("Nama Kegiatan wajib diisi!");
         return;
       }
+      if (!formData.tanggal_mulai) {
+        alert("Tanggal pelaksanaan acara wajib diisi!");
+        return;
+      }
+      if (!formData.waktu_mulai.trim()) {
+        alert("Jam mulai acara wajib diisi!");
+        return;
+      }
       
       setIsSubmitting(true);
       setSubmitState({ status: 'loading', message: 'Memperbarui jadwal kegiatan...' });
@@ -448,12 +464,12 @@ export default function EditKegiatanPage({ params }: { params: Promise<{ id: str
         }, 1500);
       } else {
         setSubmitState({ status: 'error', message: data.message || 'Gagal memperbarui kegiatan', errors: data.errors });
-        setIsSubmitting(false);
+        setTimeout(() => setIsSubmitting(false), 3000);
       }
     } catch(err) {
       console.error(err);
       setSubmitState({ status: 'error', message: 'Terjadi kesalahan pada server saat mengeksekusi.' });
-      setIsSubmitting(false);
+      setTimeout(() => setIsSubmitting(false), 3000);
     }
   };
 
@@ -472,16 +488,32 @@ export default function EditKegiatanPage({ params }: { params: Promise<{ id: str
           <span className="text-slate-500 material-icons-round text-[14px]">chevron_right</span>
           <Link href="/kegiatan" className="text-slate-500 hover:text-blue-600">Daftar Kegiatan</Link>
           <span className="text-slate-500 material-icons-round text-[14px]">chevron_right</span>
-          <span className="text-slate-700 font-bold">Edit Kegiatan</span>
+          <span className="text-slate-700 font-bold">{isViewOnly ? 'Lihat Proposal' : 'Edit Kegiatan'}</span>
         </div>
         
         <div className="self-stretch inline-flex justify-between items-end">
           <div className="inline-flex gap-4 items-center">
-            <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Edit Konfigurasi Kegiatan</h1>
-            <div className="px-3 py-1 bg-amber-100 rounded border border-amber-300 flex items-center gap-1 mt-1">
-               <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
-               <span className="text-amber-800 text-xs font-bold uppercase tracking-wide">DRAFT</span>
-            </div>
+            <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">{isViewOnly ? 'Proposal Konfigurasi Kegiatan' : 'Edit Konfigurasi Kegiatan'}</h1>
+            {(() => {
+              const status = formData.status_kegiatan || 'Draft';
+              let colorClass = "bg-slate-100 text-slate-700 border-slate-200 mt-1";
+              let dotClass = "bg-slate-500";
+              
+              if (status === 'Draft') { colorClass = "bg-amber-100 text-amber-800 border-amber-300 mt-1"; dotClass = "bg-amber-500 animate-pulse"; }
+              else if (status === 'Menunggu Persetujuan') { colorClass = "bg-orange-100 text-orange-800 border-orange-300 mt-1"; dotClass = "bg-orange-500"; }
+              else if (status === 'Ditolak' || status === 'Dibatalkan') { colorClass = "bg-red-100 text-red-800 border-red-300 mt-1"; dotClass = "bg-red-500"; }
+              else if (status === 'Akan Datang') { colorClass = "bg-indigo-100 text-indigo-800 border-indigo-300 mt-1"; dotClass = "bg-indigo-500"; }
+              else if (status === 'Ongoing') { colorClass = "bg-blue-100 text-blue-800 border-blue-300 mt-1"; dotClass = "bg-blue-500 animate-pulse"; }
+              else if (status === 'Selesai') { colorClass = "bg-emerald-100 text-emerald-800 border-emerald-300 mt-1"; dotClass = "bg-emerald-500"; }
+              else if (status === 'Menunggu LPJ') { colorClass = "bg-amber-100 text-amber-800 border-amber-300 mt-1"; dotClass = "bg-amber-500"; }
+
+              return (
+                <div className={`px-3 py-1 rounded border flex items-center gap-1.5 ${colorClass}`}>
+                  <div className={`w-2 h-2 rounded-full ${dotClass}`}></div>
+                  <span className="text-xs font-bold uppercase tracking-wide">{status}</span>
+                </div>
+              );
+            })()}
           </div>
           <div className="text-slate-500 text-sm font-medium font-['Inter'] flex gap-1 items-center">
             <span className="material-icons-round text-lg text-slate-400">qr_code</span> ID: <span className="text-slate-700 font-bold">Otomatis Terbuat</span>
@@ -489,7 +521,12 @@ export default function EditKegiatanPage({ params }: { params: Promise<{ id: str
         </div>
       </div>
 
-      <div className="w-full grid grid-cols-1 md:grid-cols-[70%_30%] gap-8 items-start mt-2">
+      {isViewOnly && (
+        <div className="w-full p-3 bg-indigo-50 border border-indigo-200 text-indigo-700 text-sm font-bold rounded-lg flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
+          <span className="material-icons-round text-indigo-500">lock</span> Mode Pratinjau Proposal Berlangsung. Seluruh pengisian formulir bersifat Read-Only.
+        </div>
+      )}
+      <div className={`w-full grid grid-cols-1 md:grid-cols-[70%_30%] gap-8 items-start mt-2 ${isViewOnly ? 'pointer-events-none opacity-90' : ''}`}>
         {/* KOLOM KIRI (70% - Form Utama) */}
         <div className="flex flex-col gap-8">
           
@@ -537,7 +574,7 @@ export default function EditKegiatanPage({ params }: { params: Promise<{ id: str
                 <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase">Poster / Banner Kegiatan (Opsional)</label>
                 {imagePreview ? (
                   <div className="relative w-full h-48 bg-slate-100 rounded-lg border border-slate-200 overflow-hidden group">
-                    <img src={imagePreview} alt="Banner Preview" onClick={() => setIsLightboxOpen(true)} className="w-full h-full object-cover cursor-pointer hover:opacity-95 transition-opacity" />
+                    <img src={imagePreview} alt="Banner Preview" onClick={() => setIsLightboxOpen(true)} className="w-full h-full object-cover cursor-pointer hover:opacity-95 transition-opacity pointer-events-auto" />
                     <button type="button" onClick={() => { setImageFile(null); setImagePreview(null); }} className="absolute top-2 right-2 w-8 h-8 bg-slate-900/50 hover:bg-red-500 text-white rounded-full flex items-center justify-center transition-colors">
                       <span className="material-icons-round text-[18px]">close</span>
                     </button>
@@ -545,7 +582,7 @@ export default function EditKegiatanPage({ params }: { params: Promise<{ id: str
                   </div>
                 ) : formData.url_banner ? (
                   <div className="relative w-full h-48 bg-slate-100 rounded-lg border border-slate-200 overflow-hidden group">
-                    <img src={formData.url_banner} alt="Current Banner" onClick={() => setIsLightboxOpen(true)} className="w-full h-full object-cover cursor-pointer hover:opacity-95 transition-opacity" />
+                    <img src={formData.url_banner} alt="Current Banner" onClick={() => setIsLightboxOpen(true)} className="w-full h-full object-cover cursor-pointer hover:opacity-95 transition-opacity pointer-events-auto" />
                     <button type="button" onClick={() => { setFormData(prev => ({...prev, url_banner: ''})); }} className="absolute top-2 right-2 w-8 h-8 bg-slate-900/50 hover:bg-red-500 text-white rounded-full flex items-center justify-center transition-colors">
                       <span className="material-icons-round text-[18px]">close</span>
                     </button>
@@ -672,8 +709,8 @@ export default function EditKegiatanPage({ params }: { params: Promise<{ id: str
 
         </div>
 
-        {/* KOLOM KANAN (30% - Sticky Sidebar) */}
-        <div className="flex flex-col gap-6 sticky top-20">
+        {/* KOLOM KANAN (30% - Sidebar) */}
+        <div className="flex flex-col gap-6">
           
           {/* CARD 4: PENYELENGGARA & PIC */}
           <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col gap-5 animate-in fade-in slide-in-from-right-2 duration-300">
@@ -829,27 +866,29 @@ export default function EditKegiatanPage({ params }: { params: Promise<{ id: str
       </div>
 
       {/* FLOAT ACTION BAR */}
-      <div className="fixed bottom-0 left-[260px] right-0 p-4 bg-white/80 backdrop-blur-md border-t border-slate-200 shadow-[0_-10px_30px_rgba(0,0,0,0.05)] flex items-center justify-between z-40 transition-all md:w-[calc(100%-260px)] w-full ml-[-260px] md:ml-0">
-         <button onClick={() => router.back()} className="px-6 py-2.5 rounded-lg border border-slate-300 text-slate-700 font-bold hover:bg-slate-50 transition-colors text-sm">
-           Batalkan
-         </button>
-         <div className="flex gap-3">
-           {formData.status_kegiatan === 'Draft' ? (
-             <>
-               <button onClick={() => handleUpdate('Draft')} className="px-6 py-2.5 rounded-lg bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 transition-colors text-sm border border-slate-200">
-                 Simpan sebagai Draft
+      {!isViewOnly && (
+        <div className="fixed bottom-0 left-[260px] right-0 p-4 bg-white/80 backdrop-blur-md border-t border-slate-200 shadow-[0_-10px_30px_rgba(0,0,0,0.05)] flex items-center justify-between z-40 transition-all md:w-[calc(100%-260px)] w-full ml-[-260px] md:ml-0">
+           <button onClick={() => router.back()} className="px-6 py-2.5 rounded-lg border border-slate-300 text-slate-700 font-bold hover:bg-slate-50 transition-colors text-sm">
+             Batalkan
+           </button>
+           <div className="flex gap-3">
+             {formData.status_kegiatan === 'Draft' ? (
+               <>
+                 <button onClick={() => handleUpdate('Draft')} className="px-6 py-2.5 rounded-lg bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 transition-colors text-sm border border-slate-200">
+                   Simpan sebagai Draft
+                 </button>
+                 <button onClick={() => handleUpdate('Menunggu Persetujuan')} className="px-8 py-2.5 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/30 text-sm flex gap-2 items-center">
+                   <span className="material-icons-round text-[18px]">send</span> Ajukan Jadwal Acara
+                 </button>
+               </>
+             ) : (
+               <button onClick={() => handleUpdate(formData.status_kegiatan)} className="px-8 py-2.5 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/30 text-sm flex gap-2 items-center">
+                 <span className="material-icons-round text-[18px]">save</span> Simpan Perubahan
                </button>
-               <button onClick={() => handleUpdate('Akan Datang')} className="px-8 py-2.5 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/30 text-sm flex gap-2 items-center">
-                 <span className="material-icons-round text-[18px]">publish</span> Publish Jadwal Acara
-               </button>
-             </>
-           ) : (
-             <button onClick={() => handleUpdate(formData.status_kegiatan)} className="px-8 py-2.5 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/30 text-sm flex gap-2 items-center">
-               <span className="material-icons-round text-[18px]">save</span> Simpan Perubahan
-             </button>
-           )}
-         </div>
-      </div>
+             )}
+           </div>
+        </div>
+      )}
 
       {/* IMAGE LIGHTBOX MODAL */}
       {isLightboxOpen && (imagePreview || formData.url_banner) && (

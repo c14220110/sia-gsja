@@ -22,6 +22,65 @@ export default function JemaatPwaLayout({
   const [displayPath, setDisplayPath] = useState(pathname);
   const prevPathRef = useRef(pathname);
 
+  // Install Prompt States
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+  const [showIOSInstructions, setShowIOSInstructions] = useState(false);
+
+  useEffect(() => {
+    // Deteksi jika pengguna sudah menutup card
+    const isDismissed = localStorage.getItem('gsja_hide_install') === 'true';
+    
+    // Deteksi kalau dia sudah buka lewat ikon di HP (Bukan Browser)
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+    
+    // Cek OS (Apakah iPhone/iPad)
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    const isIOSDevice = /iphone|ipad|ipod/.test(userAgent);
+    setIsIOS(isIOSDevice);
+
+    if (isDismissed || isStandalone) {
+      return; 
+    }
+
+    // Untuk iPhone (karena Apple tidak ada otomatis prompt)
+    if (isIOSDevice) {
+       setShowInstallPrompt(true);
+    }
+
+    // Untuk Android / Desktop Chrome (nangkap event otomatis)
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault(); // Tahan dulu bawaan HP
+      setDeferredPrompt(e); // Simpan untuk dipanggil lewat tombol
+      setShowInstallPrompt(true); // Tampilkan card buatan kita
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setShowInstallPrompt(false);
+      }
+      setDeferredPrompt(null);
+    } else if (isIOS) {
+       setShowIOSInstructions(true);
+    }
+  };
+
+  const handleDismissInstall = () => {
+    localStorage.setItem('gsja_hide_install', 'true');
+    setShowInstallPrompt(false);
+  };
+
   // Set loader menjadi minimal eksklusif hanya untuk PWA Jemaat 
   useEffect(() => {
     setLoaderVariant('minimal');
@@ -111,6 +170,51 @@ export default function JemaatPwaLayout({
       >
         {children}
       </main>
+
+      {/* CARD INSTALASI APLIKASI (Hanya di mode browser) */}
+      {showInstallPrompt && (
+         <div className="fixed bottom-[90px] left-4 right-4 z-40 animate-in slide-in-from-bottom fade-in duration-500">
+            <div className="bg-gradient-to-br from-blue-600 to-indigo-800 rounded-2xl p-4 shadow-2xl shadow-blue-900/30 text-white relative overflow-hidden border border-white/10 max-w-lg mx-auto">
+               {/* Ornamen Desain */}
+               <div className="absolute -top-12 -right-12 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+               
+               <div className="flex items-start justify-between relative z-10">
+                  <div className="flex gap-3">
+                     <div className="w-12 h-12 bg-white rounded-xl shadow-inner flex items-center justify-center shrink-0">
+                        <img src="/icons/icon-192x192.png" alt="GSJA" className="w-8 h-8 object-contain" onError={(e) => { e.currentTarget.style.display='none'; }}/>
+                        <span className="material-icons-round text-blue-600 absolute" style={{zIndex: -1}}>church</span>
+                     </div>
+                     <div className="flex flex-col">
+                        <h4 className="font-bold text-sm tracking-wide">Akses Lebih Cepat</h4>
+                        <p className="text-blue-100 text-[11px] leading-relaxed mt-0.5">
+                           Pasang aplikasi Gereja ke layar utama HP Anda agar tidak perlu repot mengetik link lagi!
+                        </p>
+                     </div>
+                  </div>
+                  <button onClick={handleDismissInstall} className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center shrink-0 hover:bg-white/20 ml-2">
+                     <span className="material-icons-round text-[14px]">close</span>
+                  </button>
+               </div>
+
+               {showIOSInstructions ? (
+                  <div className="mt-4 p-3 bg-white/10 rounded-xl border border-white/20 animate-in fade-in zoom-in-95">
+                     <p className="text-[11px] font-medium leading-relaxed">
+                        <strong className="text-white block mb-1">Panduan Khusus iPhone/iPad:</strong>
+                        1. Ketuk ikon <strong>Bagikan 📤</strong> (Share) di bagian bawah browser Safari Anda.<br/>
+                        2. Gulir ke bawah, lalu pilih <strong>Tambah ke Layar Utama ➕</strong> (Add to Home Screen).
+                     </p>
+                  </div>
+               ) : (
+                  <button 
+                     onClick={handleInstallClick} 
+                     className="w-full mt-4 py-2 bg-white text-blue-700 font-bold rounded-xl text-xs hover:bg-blue-50 active:scale-95 transition-all shadow-lg"
+                  >
+                     Pasang Aplikasi Sekarang
+                  </button>
+               )}
+            </div>
+         </div>
+      )}
 
       {/* DRAWER PENGATURAN BAWAH */}
       {isSettingsOpen && (

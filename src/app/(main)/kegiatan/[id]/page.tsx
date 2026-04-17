@@ -117,7 +117,7 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
   const unwrappedParams = use(params);
   const id = unwrappedParams.id;
 
-  const [activeTab, setActiveTab] = useState<'info'|'registrasi'|'pelayan'>('info');
+  const [activeTab, setActiveTab] = useState<'info'|'registrasi'|'pelayan'|'pasien'>('info');
   const [data, setData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -145,15 +145,50 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
     metode_pembayaran: ''
   });
 
+  // Pasien State (Specific for Pemeriksaan Kesehatan)
+  const [pasienList, setPasienList] = useState<any[]>([]);
+  const [isLoadingPasien, setIsLoadingPasien] = useState(false);
+  const [isModalPasienOpen, setIsModalPasienOpen] = useState(false);
+  const [formPasien, setFormPasien] = useState({
+    is_pasien_luar: false,
+    jemaat_id: '',
+    nama_pasien_luar: '',
+    no_hp_pasien_luar: '',
+    is_pelayan_luar: false,
+    pelayan_medis_id: '',
+    nama_pelayan_luar: '',
+    keluhan_simptom: '',
+    diagnosa: '',
+    tindakan_obat: '',
+    tensi_darah: '',
+    gula_darah: '',
+    asam_urat: '',
+    kolesterol: ''
+  });
+  const [isSavingPasien, setIsSavingPasien] = useState(false);
+
   const [isSavingPelayan, setIsSavingPelayan] = useState(false);
   const [isSavingRegistrasi, setIsSavingRegistrasi] = useState(false);
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [isManagerMode, setIsManagerMode] = useState(false);
 
   useEffect(() => {
     fetchDetail();
     fetchPelayan();
     fetchRegistrasi();
+    fetchPasien();
+    
+    if (typeof window !== 'undefined') {
+       const uParams = new URLSearchParams(window.location.search);
+       const tabQuery = uParams.get('tab');
+       if (tabQuery === 'pelayan' || tabQuery === 'registrasi' || tabQuery === 'pasien') {
+           setActiveTab(tabQuery as any);
+       }
+       if (uParams.get('mode') === 'manage') {
+           setIsManagerMode(true);
+       }
+    }
   }, [id]);
 
   const fetchDetail = async () => {
@@ -191,6 +226,19 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
       console.error(err);
     } finally {
       setIsLoadingRegistrasi(false);
+    }
+  };
+
+  const fetchPasien = async () => {
+    setIsLoadingPasien(true);
+    try {
+      const res = await fetch(`/api/kegiatan/${id}/pasien`);
+      const json = await res.json();
+      if (json.success) setPasienList(json.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoadingPasien(false);
     }
   };
 
@@ -251,6 +299,40 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
       alert('Terjadi kesalahan server');
     } finally {
       setIsSavingRegistrasi(false);
+    }
+  };
+
+  const handleSimpanPasien = async () => {
+    if (!formPasien.is_pasien_luar && !formPasien.jemaat_id) {
+      alert('Pilih jemaat (pasien) terlebih dahulu!');
+      return;
+    }
+    if (formPasien.is_pasien_luar && !formPasien.nama_pasien_luar) {
+      alert('Nama pasien luar wajib diisi!');
+      return;
+    }
+    
+    setIsSavingPasien(true);
+    try {
+      const res = await fetch(`/api/kegiatan/${id}/pasien`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formPasien)
+      });
+      const json = await res.json();
+      
+      if (json.success) {
+        setIsModalPasienOpen(false);
+        setFormPasien({ is_pasien_luar: false, jemaat_id: '', nama_pasien_luar: '', no_hp_pasien_luar: '', is_pelayan_luar: false, pelayan_medis_id: '', nama_pelayan_luar: '', keluhan_simptom: '', diagnosa: '', tindakan_obat: '', tensi_darah: '', gula_darah: '', asam_urat: '', kolesterol: '' });
+        fetchPasien(); // refresh list
+      } else {
+        alert(json.message || 'Gagal menyimpan pasien');
+      }
+    } catch(err) {
+      console.error(err);
+      alert('Terjadi kesalahan server');
+    } finally {
+      setIsSavingPasien(false);
     }
   };
 
@@ -329,6 +411,8 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
 
   // Format Dates
   const startDate = new Date(data.tanggal_mulai).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const isEditable = ['Draft', 'Menunggu Persetujuan', 'Ditolak'].includes(data.status_kegiatan);
+  const isPelayanManager = isEditable || isManagerMode;
   
   const getRoleColor = (role: string) => {
     if(role === 'WL' || role === 'Singer') return 'bg-purple-100 text-purple-700 border-purple-200';
@@ -362,11 +446,13 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
                 </span>
                 <span className={`px-3 py-1 rounded text-xs font-bold uppercase tracking-wide border ${
                   data.status_kegiatan === 'Draft' ? 'bg-slate-100 text-slate-600 border-slate-200' :
-                  data.status_kegiatan === 'Akan Datang' ? 'bg-amber-100 text-amber-700 border-amber-200' :
-                  data.status_kegiatan === 'Ongoing' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
-                  data.status_kegiatan === 'Menunggu LPJ' ? 'bg-indigo-100 text-indigo-700 border-indigo-200' :
-                  data.status_kegiatan === 'Selesai' ? 'bg-blue-100 text-blue-700 border-blue-200' :
-                  'bg-red-100 text-red-700 border-red-200'
+                  data.status_kegiatan === 'Menunggu Persetujuan' ? 'bg-orange-100 text-orange-700 border-orange-200' :
+                  data.status_kegiatan === 'Ditolak' || data.status_kegiatan === 'Dibatalkan' ? 'bg-red-100 text-red-700 border-red-200' :
+                  data.status_kegiatan === 'Akan Datang' ? 'bg-indigo-100 text-indigo-700 border-indigo-200' :
+                  data.status_kegiatan === 'Ongoing' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                  data.status_kegiatan === 'Menunggu LPJ' ? 'bg-amber-100 text-amber-700 border-amber-200' :
+                  data.status_kegiatan === 'Selesai' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
+                  'bg-slate-100 text-slate-600 border-slate-200'
                 }`}>
                   {data.status_kegiatan}
                 </span>
@@ -391,9 +477,11 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
             </div>
             
             <div className="flex gap-3">
-               <Link href={`/kegiatan/${id}/edit`} className="px-5 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-700 font-bold hover:bg-slate-50 transition flex items-center gap-2 text-sm shadow-sm">
-                 <span className="material-icons-round text-[18px]">edit</span> Edit Kegiatan
-               </Link>
+               {isEditable && (
+                 <Link href={`/kegiatan/${id}/edit`} className="px-5 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-700 font-bold hover:bg-slate-50 transition flex items-center gap-2 text-sm shadow-sm">
+                   <span className="material-icons-round text-[18px]">edit</span> Edit Kegiatan
+                 </Link>
+               )}
             </div>
           </div>
           
@@ -460,6 +548,15 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
               <div className="flex items-center gap-2"><span className="material-icons-round text-[18px]">how_to_reg</span> Akses & Pendaftaran</div>
               {data.berbayar && <span className="w-2 h-2 rounded-full bg-emerald-500"></span>}
             </button>
+            {data.nama_jenis_kegiatan === 'Pemeriksaan Kesehatan' && (
+              <button 
+                onClick={() => setActiveTab('pasien')}
+                className={`pb-4 text-sm font-bold uppercase tracking-wide transition-colors border-b-2 flex gap-2 items-center ${activeTab === 'pasien' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-700'}`}
+              >
+                <div className="flex items-center gap-2"><span className="material-icons-round text-[18px]">medical_services</span> Data Pasien Medis</div>
+                <span className="bg-slate-100 text-slate-600 py-0.5 px-2 rounded-full text-[10px]">{pasienList.length}</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -543,17 +640,19 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
                        <span className="material-icons-round text-amber-500">image</span> Poster / Banner
                     </h3>
                     
-                    <label className={`text-xs font-bold transition-all flex items-center gap-1 cursor-pointer px-3 py-1.5 rounded-lg ${isUploadingBanner ? 'bg-slate-100 text-slate-400' : 'bg-blue-50 text-blue-600 hover:text-blue-800 hover:bg-blue-100'}`}>
-                      {isUploadingBanner ? <span className="w-3 h-3 border-2 border-slate-300 border-t-slate-500 rounded-full animate-spin"></span> : <span className="material-icons-round text-[14px]">upload</span>}
-                      {isUploadingBanner ? 'Mengunggah...' : (data.url_banner ? 'Ubah Poster' : 'Unggah Poster')}
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        className="hidden"
-                        onChange={handleBannerUpload}
-                        disabled={isUploadingBanner}
-                      />
-                    </label>
+                    {isEditable && (
+                      <label className={`text-xs font-bold transition-all flex items-center gap-1 cursor-pointer px-3 py-1.5 rounded-lg ${isUploadingBanner ? 'bg-slate-100 text-slate-400' : 'bg-blue-50 text-blue-600 hover:text-blue-800 hover:bg-blue-100'}`}>
+                        {isUploadingBanner ? <span className="w-3 h-3 border-2 border-slate-300 border-t-slate-500 rounded-full animate-spin"></span> : <span className="material-icons-round text-[14px]">upload</span>}
+                        {isUploadingBanner ? 'Mengunggah...' : (data.url_banner ? 'Ubah Poster' : 'Unggah Poster')}
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          className="hidden"
+                          onChange={handleBannerUpload}
+                          disabled={isUploadingBanner}
+                        />
+                      </label>
+                    )}
                   </div>
                   
                   <div className="flex-1 flex flex-col items-center justify-center p-2">
@@ -585,12 +684,14 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
                  <h2 className="text-lg font-black text-slate-900">Roster Tim Pelayan Acara</h2>
                  <p className="text-xs text-slate-500 mt-1">Kelola peranan teknis (WL, singer, usher, dsb) untuk mengawal eksekusi jadwal.</p>
                </div>
-               <button 
-                 onClick={() => setIsModalOpen(true)}
-                 className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-sm flex items-center gap-2 text-sm transition-all"
-               >
-                 <span className="material-icons-round text-[18px]">person_add</span> Tambah Pelayan Baru
-               </button>
+               {isPelayanManager && (
+                 <button 
+                   onClick={() => setIsModalOpen(true)}
+                   className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-sm flex items-center gap-2 text-sm transition-all"
+                 >
+                   <span className="material-icons-round text-[18px]">person_add</span> Tambah Pelayan Baru
+                 </button>
+               )}
             </div>
 
             <div className="p-0 flex flex-col">
@@ -644,9 +745,11 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
                              </div>
                           </td>
                           <td className="py-4 px-6 text-right">
-                             <button className="w-8 h-8 rounded-full hover:bg-red-50 text-red-400 hover:text-red-600 inline-flex items-center justify-center transition-colors">
-                                <span className="material-icons-round text-[18px]">delete_outline</span>
-                             </button>
+                             {isPelayanManager && (
+                               <button className="w-8 h-8 rounded-full hover:bg-red-50 text-red-400 hover:text-red-600 inline-flex items-center justify-center transition-colors">
+                                  <span className="material-icons-round text-[18px]">delete_outline</span>
+                               </button>
+                             )}
                           </td>
                         </tr>
                       ))}
@@ -800,6 +903,103 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
            </div>
         )}
 
+        {/* TAB 4: PASIEN MEDIS (KHUSUS PEMERIKSAAN KESEHATAN) */}
+        {activeTab === 'pasien' && data.nama_jenis_kegiatan === 'Pemeriksaan Kesehatan' && (
+          <div className="w-full bg-white rounded-xl shadow-sm border border-slate-200 animate-in fade-in flex flex-col">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-t-xl">
+               <div className="flex flex-col">
+                 <h2 className="text-lg font-black text-slate-900">Rekam Medis Pasien</h2>
+                 <p className="text-xs text-slate-500 mt-1">Kelola data pemeriksaan, keluhan, diagnosa, dan tindakan medis untuk jemaat/pasien yang diperiksa.</p>
+               </div>
+               {isPelayanManager && (
+                 <button 
+                   onClick={() => setIsModalPasienOpen(true)}
+                   className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-sm flex items-center gap-2 text-sm transition-all"
+                 >
+                   <span className="material-icons-round text-[18px]">add_circle</span> Tambah Pasien
+                 </button>
+               )}
+            </div>
+
+            <div className="p-0 flex flex-col">
+              {isLoadingPasien ? (
+                <div className="p-12 flex justify-center items-center"><div className="w-6 h-6 border-2 border-slate-200 border-t-blue-600 rounded-full animate-spin"></div></div>
+              ) : pasienList.length === 0 ? (
+                <div className="p-16 flex flex-col items-center justify-center text-center">
+                  <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                    <span className="material-icons-round text-[40px] text-slate-300">healing</span>
+                  </div>
+                  <h3 className="text-slate-700 font-bold text-lg mb-1">Daftar Pasien Kosong</h3>
+                  <p className="text-slate-500 text-sm max-w-[300px]">Belum ada tindakan medis yang dicatat. Klik 'Tambah Pasien' untuk mencatat keluhan dan diagnosa medis.</p>
+                </div>
+              ) : (
+                <div className="w-full overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-wider border-b border-slate-200">
+                        <th className="py-4 px-6 font-semibold w-12">No</th>
+                        <th className="py-4 px-6 font-semibold">Nama Pasien</th>
+                        <th className="py-4 px-6 font-semibold">Keluhan & Diagnosa</th>
+                        <th className="py-4 px-6 font-semibold">Tindakan / Obat</th>
+                        <th className="py-4 px-6 font-semibold text-right">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {pasienList.map((p, index) => (
+                        <tr key={p.id} className="hover:bg-slate-50/50 transition-colors group">
+                          <td className="py-4 px-6 text-sm text-slate-500 align-top">{index + 1}</td>
+                          <td className="py-4 px-6 align-top">
+                            <div className="flex items-start gap-3">
+                              {p.foto_pasien ? (
+                                <img src={p.foto_pasien} alt="" className="w-8 h-8 rounded-full border border-slate-200 object-cover mt-0.5" />
+                              ) : (
+                                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-xs uppercase shrink-0 mt-0.5">
+                                  {p.nama_pasien?.charAt(0) || '?'}
+                                </div>
+                              )}
+                              <div className="flex flex-col gap-0.5">
+                                 <div className="flex items-center gap-1.5">
+                                   <span className="text-sm font-semibold text-slate-900 leading-tight group-hover:text-blue-600 transition-colors">{p.nama_pasien}</span>
+                                   {!p.jemaat_id && <span className="bg-amber-100 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider font-bold">Luar</span>}
+                                 </div>
+                                 <span className="text-[10px] text-slate-400 font-medium">Dietangani: {p.nama_dokter || '-'} {!p.pelayan_medis_id && p.nama_pelayan_luar && '(Luar)'}</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-4 px-6 align-top">
+                             <div className="flex flex-col gap-1 max-w-[200px]">
+                               <p className="text-xs text-slate-700 line-clamp-2" title={p.keluhan_simptom}><span className="font-semibold text-slate-500">K:</span> {p.keluhan_simptom || 'Tidak ada'}</p>
+                               <p className="text-xs text-blue-700 bg-blue-50/50 p-1.5 rounded line-clamp-2 border border-blue-100" title={p.diagnosa}><span className="font-semibold text-blue-800">Dx:</span> {p.diagnosa || '-'}</p>
+                             </div>
+                          </td>
+                          <td className="py-4 px-6 align-top">
+                             <div className="flex flex-col gap-1.5">
+                               <div className="text-xs text-slate-700 line-clamp-2 bg-slate-50 p-2 rounded border border-slate-100 max-w-[200px]" title={p.tindakan_obat}>
+                                 {p.tindakan_obat || '-'}
+                               </div>
+                               <div className="flex flex-wrap gap-1 mt-0.5 max-w-[200px]">
+                                 {p.tensi_darah && <span className="px-1 py-0.5 bg-rose-50 text-rose-600 rounded text-[9px] font-bold border border-rose-100" title="Tensi Darah">BP: {p.tensi_darah}</span>}
+                                 {p.gula_darah && <span className="px-1 py-0.5 bg-blue-50 text-blue-600 rounded text-[9px] font-bold border border-blue-100" title="Gula Darah">GL: {p.gula_darah}</span>}
+                                 {p.asam_urat && <span className="px-1 py-0.5 bg-purple-50 text-purple-600 rounded text-[9px] font-bold border border-purple-100" title="Asam Urat">AU: {p.asam_urat}</span>}
+                                 {p.kolesterol && <span className="px-1 py-0.5 bg-amber-50 text-amber-600 rounded text-[9px] font-bold border border-amber-100" title="Kolesterol">KL: {p.kolesterol}</span>}
+                               </div>
+                             </div>
+                          </td>
+                          <td className="py-4 px-6 text-right align-top">
+                             <button className="w-8 h-8 rounded-full hover:bg-red-50 text-slate-400 hover:text-red-500 inline-flex items-center justify-center transition-colors">
+                                <span className="material-icons-round text-[18px]">delete_outline</span>
+                             </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
       </div>
 
       {/* POPUP MODAL TAMBAH PELAYAN TAMU/LOKAL */}
@@ -918,6 +1118,135 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                >
                  {isSavingRegistrasi ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span> : 'Daftarkan Peserta'}
+               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* POPUP MODAL TAMBAH PASIEN MEDIS */}
+      {isModalPasienOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => !isSavingPasien && setIsModalPasienOpen(false)}></div>
+          <div className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
+            <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 shrink-0">
+              <h3 className="text-slate-900 font-black text-lg flex items-center gap-2">
+                <span className="material-icons-round text-blue-600">medical_services</span> Rekam Tindakan Medis Pasien
+              </h3>
+              <button onClick={() => setIsModalPasienOpen(false)} className="text-slate-400 hover:text-slate-700 w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-200">
+                <span className="material-icons-round text-[20px]">close</span>
+              </button>
+            </div>
+            
+            <div className="p-6 flex flex-col gap-5 overflow-y-auto w-full">
+               
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 z-20">
+                 <div className="flex flex-col gap-2 w-full relative z-20">
+                   <div className="flex justify-between items-center">
+                     <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase">Data Pasien <span className="text-red-500">*</span></label>
+                     <label className="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 px-2 py-0.5 rounded transition">
+                       <input type="checkbox" checked={formPasien.is_pasien_luar} onChange={(e) => setFormPasien(prev => ({...prev, is_pasien_luar: e.target.checked, jemaat_id: '', nama_pasien_luar: '', no_hp_pasien_luar: ''}))} className="w-3.5 h-3.5 text-blue-600 rounded border-slate-300" />
+                       <span className="text-[10px] font-bold text-slate-500 uppercase">Pasien Eksternal (Umum)</span>
+                     </label>
+                   </div>
+                   {!formPasien.is_pasien_luar ? (
+                     <AsyncAutocomplete 
+                       label="" 
+                       onSelect={(id, name) => setFormPasien(prev => ({ ...prev, jemaat_id: id }))}
+                       placeholder="Cari pasien (Jemaat)..."
+                     />
+                   ) : (
+                     <div className="flex flex-col gap-2">
+                       <input type="text" value={formPasien.nama_pasien_luar} onChange={(e) => setFormPasien(prev => ({...prev, nama_pasien_luar: e.target.value}))} placeholder="Ketik nama lengkap pasien umum..." className="px-4 py-3 bg-white border border-slate-200 rounded-lg text-sm w-full focus:ring-2 focus:ring-blue-500/20 outline-none transition-all" />
+                       <input type="text" value={formPasien.no_hp_pasien_luar} onChange={(e) => setFormPasien(prev => ({...prev, no_hp_pasien_luar: e.target.value}))} placeholder="No. HP / WhatsApp (opsional)..." className="px-4 py-3 bg-white border border-slate-200 rounded-lg text-sm w-full focus:ring-2 focus:ring-blue-500/20 outline-none transition-all" />
+                     </div>
+                   )}
+                 </div>
+                 <div className="flex flex-col gap-2 w-full relative z-10">
+                   <div className="flex justify-between items-center">
+                     <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase">Dokter / Petugas</label>
+                     <label className="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 px-2 py-0.5 rounded transition">
+                       <input type="checkbox" checked={formPasien.is_pelayan_luar} onChange={(e) => setFormPasien(prev => ({...prev, is_pelayan_luar: e.target.checked, pelayan_medis_id: '', nama_pelayan_luar: ''}))} className="w-3.5 h-3.5 text-blue-600 rounded border-slate-300" />
+                       <span className="text-[10px] font-bold text-slate-500 uppercase">Petugas Luar</span>
+                     </label>
+                   </div>
+                   {!formPasien.is_pelayan_luar ? (
+                     <AsyncAutocomplete 
+                       label="" 
+                       onSelect={(id, name) => setFormPasien(prev => ({ ...prev, pelayan_medis_id: id }))}
+                       placeholder="Cari dokter / suster bertugas..."
+                     />
+                   ) : (
+                     <input type="text" value={formPasien.nama_pelayan_luar} onChange={(e) => setFormPasien(prev => ({...prev, nama_pelayan_luar: e.target.value}))} placeholder="Ketik nama petugas medis..." className="px-4 py-3 bg-white border border-slate-200 rounded-lg text-sm w-full focus:ring-2 focus:ring-blue-500/20 outline-none transition-all" />
+                   )}
+                 </div>
+               </div>
+
+               <div className="w-full h-px bg-slate-100 my-1"></div>
+
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                 <div className="flex flex-col gap-4">
+                   <div className="w-full grid grid-cols-2 gap-3 mb-2">
+                     <div className="flex flex-col gap-1.5">
+                       <label className="text-slate-500 text-[10px] font-bold uppercase">Tensi Darah</label>
+                       <input type="text" value={formPasien.tensi_darah} onChange={(e) => setFormPasien(prev => ({...prev, tensi_darah: e.target.value}))} placeholder="120/80" className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-xs w-full focus:outline-none focus:ring-1 focus:ring-blue-500/50" />
+                     </div>
+                     <div className="flex flex-col gap-1.5">
+                       <label className="text-slate-500 text-[10px] font-bold uppercase">Gula Darah (mg/dL)</label>
+                       <input type="number" value={formPasien.gula_darah} onChange={(e) => setFormPasien(prev => ({...prev, gula_darah: e.target.value}))} placeholder="110" className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-xs w-full focus:outline-none focus:ring-1 focus:ring-blue-500/50" />
+                     </div>
+                     <div className="flex flex-col gap-1.5">
+                       <label className="text-slate-500 text-[10px] font-bold uppercase">Asam Urat (mg/dL)</label>
+                       <input type="number" step="0.1" value={formPasien.asam_urat} onChange={(e) => setFormPasien(prev => ({...prev, asam_urat: e.target.value}))} placeholder="5.5" className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-xs w-full focus:outline-none focus:ring-1 focus:ring-blue-500/50" />
+                     </div>
+                     <div className="flex flex-col gap-1.5">
+                       <label className="text-slate-500 text-[10px] font-bold uppercase">Kolesterol (mg/dL)</label>
+                       <input type="number" value={formPasien.kolesterol} onChange={(e) => setFormPasien(prev => ({...prev, kolesterol: e.target.value}))} placeholder="180" className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-xs w-full focus:outline-none focus:ring-1 focus:ring-blue-500/50" />
+                     </div>
+                   </div>
+                   
+                   <div className="w-full flex flex-col gap-1.5">
+                     <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase flex items-center gap-1.5"><span className="material-icons-round text-[14px]">sick</span> Keluhan / Simptom</label>
+                     <textarea 
+                       value={formPasien.keluhan_simptom} 
+                       onChange={(e) => setFormPasien(prev => ({ ...prev, keluhan_simptom: e.target.value }))}
+                       placeholder="Sakit kepala, demam..."
+                       className="px-4 py-3 bg-slate-50 rounded-lg border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-sm w-full transition-all min-h-[70px]"
+                     ></textarea>
+                   </div>
+                   <div className="w-full flex flex-col gap-1.5">
+                     <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase flex items-center gap-1.5"><span className="material-icons-round text-[14px] text-blue-500">biotech</span> Diagnosa Utama</label>
+                     <textarea 
+                       value={formPasien.diagnosa} 
+                       onChange={(e) => setFormPasien(prev => ({ ...prev, diagnosa: e.target.value }))}
+                       placeholder="Misal: Hipertensi, ISPA"
+                       className="px-4 py-3 bg-white rounded-lg border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-sm w-full transition-all min-h-[70px]"
+                     ></textarea>
+                   </div>
+                 </div>
+
+                 <div className="flex flex-col gap-4">
+                   <div className="w-full flex flex-col gap-1.5">
+                     <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase flex items-center gap-1.5"><span className="material-icons-round text-[14px] text-emerald-500">medication</span> Tindakan & Obat</label>
+                     <textarea 
+                       value={formPasien.tindakan_obat} 
+                       onChange={(e) => setFormPasien(prev => ({ ...prev, tindakan_obat: e.target.value }))}
+                       placeholder="Amlodipine 5mg, Paracetamol 500mg, dsb"
+                       className="px-4 py-3 bg-white rounded-lg border border-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-sm w-full transition-all flex-1 min-h-[140px]"
+                     ></textarea>
+                   </div>
+                 </div>
+               </div>
+
+            </div>
+
+            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3 shrink-0">
+               <button onClick={() => setIsModalPasienOpen(false)} disabled={isSavingPasien} className="px-5 py-2.5 rounded-lg text-slate-600 font-semibold hover:bg-slate-200 text-sm">
+                 Batal
+               </button>
+               <button onClick={handleSimpanPasien} disabled={isSavingPasien || (!formPasien.is_pasien_luar && !formPasien.jemaat_id)} className="px-6 py-2.5 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 flex items-center gap-2 text-sm shadow-sm disabled:opacity-50 transition-all">
+                 {isSavingPasien ? <span className="material-icons-round animate-spin text-[18px]">refresh</span> : <span className="material-icons-round text-[18px]">check_circle</span>}
+                 Simpan Rekam Medis
                </button>
             </div>
           </div>

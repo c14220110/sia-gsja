@@ -35,7 +35,8 @@ export default function KegiatanPage() {
   
   // Filters
   const [filterSatelit, setFilterSatelit] = useState('');
-  const [filterPenyelenggara, setFilterPenyelenggara] = useState('');
+  const [filterKomisi, setFilterKomisi] = useState('');
+  const [filterDepartemen, setFilterDepartemen] = useState('');
   const [filterTanggal, setFilterTanggal] = useState('Bulan Ini');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
@@ -149,9 +150,9 @@ export default function KegiatanPage() {
   useEffect(() => {
     const fetchKomisi = async () => {
       try {
-        // Reset penyelenggara if it's currently a Komisi, to prevent orphaned selection
-        if (filterPenyelenggara.startsWith('komisi_')) {
-          setFilterPenyelenggara('');
+        // Reset komisi if satelit changes
+        if (!filterSatelit) {
+           setFilterKomisi('');
         }
         const query = filterSatelit ? `?type=komisi&satelit_id=${filterSatelit}` : `?type=komisi`;
         const res = await fetch(`/api/options${query}`);
@@ -184,7 +185,7 @@ export default function KegiatanPage() {
   // Reset page to 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, filterSatelit, filterPenyelenggara, filterTanggal, customStartDate, customEndDate, filterJenis, filterStatus]);
+  }, [debouncedSearch, filterSatelit, filterKomisi, filterDepartemen, filterTanggal, customStartDate, customEndDate, filterJenis, filterStatus]);
 
   // Fetch Data
   useEffect(() => {
@@ -194,7 +195,8 @@ export default function KegiatanPage() {
         const queryParams = new URLSearchParams();
         if (debouncedSearch) queryParams.append('search', debouncedSearch);
         if (filterSatelit) queryParams.append('satelit_id', filterSatelit);
-        if (filterPenyelenggara) queryParams.append('penyelenggara', filterPenyelenggara);
+        if (filterKomisi) queryParams.append('penyelenggara', `komisi_${filterKomisi}`);
+        else if (filterDepartemen) queryParams.append('penyelenggara', `dept_${filterDepartemen}`);
         if (filterTanggal) queryParams.append('tanggal', filterTanggal);
         if (filterTanggal === 'Custom' && customStartDate && customEndDate) {
           queryParams.append('start_date', customStartDate);
@@ -224,14 +226,18 @@ export default function KegiatanPage() {
     };
 
     fetchData();
-  }, [debouncedSearch, filterSatelit, filterPenyelenggara, filterTanggal, customStartDate, customEndDate, filterJenis, filterStatus, currentPage, refreshTrigger]);
+  }, [debouncedSearch, filterSatelit, filterKomisi, filterDepartemen, filterTanggal, customStartDate, customEndDate, filterJenis, filterStatus, currentPage, refreshTrigger]);
 
   const totalPages = Math.ceil(totalItems / limit) || 1;
 
   // Render Status Badge
   const renderStatusBadge = (status: string) => {
     let colorClass = "bg-slate-100 text-slate-700 border-slate-200"; // Draft
-    if (status === 'Ongoing' || status === 'Registrasi') colorClass = "bg-blue-50 text-blue-700 border-blue-200";
+    
+    if (status === 'Menunggu Persetujuan') colorClass = "bg-orange-50 text-orange-700 border-orange-200";
+    else if (status === 'Ditolak' || status === 'Dibatalkan') colorClass = "bg-red-50 text-red-700 border-red-200";
+    else if (status === 'Akan Datang') colorClass = "bg-indigo-50 text-indigo-700 border-indigo-200";
+    else if (status === 'Ongoing' || status === 'Registrasi') colorClass = "bg-blue-50 text-blue-700 border-blue-200";
     else if (status === 'Selesai') colorClass = "bg-emerald-50 text-emerald-700 border-emerald-200";
     else if (status === 'Menunggu LPJ') colorClass = "bg-amber-50 text-amber-700 border-amber-200";
 
@@ -340,34 +346,54 @@ export default function KegiatanPage() {
       <div className="w-full px-4 py-4 bg-white rounded-xl border border-slate-200 flex flex-wrap items-center gap-4 shadow-sm">
         
         {/* Search Bar */}
-        <div className="flex-1 min-w-[250px] relative flex items-center">
+        <div className="flex-1 min-w-[200px] relative flex items-center">
           <span className="material-icons-round absolute left-4 text-slate-400 text-[20px]">search</span>
           <input 
             type="text" 
-            placeholder="Cari ID, Nama, atau Tema..."
+            placeholder="Cari Acara..."
             className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
 
-        {/* Jenis Kegiatan Dropdown */}
-        <div className="relative min-w-[180px]">
+        {/* Rentang Waktu Dropdown */}
+        <div className="relative min-w-[140px]">
           <select 
-            value={filterJenis}
-            onChange={(e) => setFilterJenis(e.target.value)}
+            value={filterTanggal}
+            onChange={(e) => setFilterTanggal(e.target.value)}
+            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer font-bold text-blue-700"
+          >
+            <option value="Hari Ini">Hari Ini</option>
+            <option value="Minggu Ini">Minggu Ini</option>
+            <option value="Bulan Ini">Bulan Ini</option>
+            <option value="Custom">Custom...</option>
+          </select>
+          <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">calendar_today</span>
+        </div>
+
+        {/* Status Dropdown */}
+        <div className="relative min-w-[150px]">
+          <select 
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
             className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
           >
-            <option value="">Semua Jenis Kegiatan</option>
-            {jenisKegiatanOptions.map((jenis) => (
-              <option key={jenis.id} value={jenis.id}>{jenis.nama_jenis_kegiatan}</option>
-            ))}
+            <option value="">Semua Status</option>
+            <option value="Draft">Draft (Konsep)</option>
+            <option value="Menunggu Persetujuan">Menunggu ACC</option>
+            <option value="Akan Datang">Akan Datang</option>
+            <option value="Ongoing">Sedang Berjalan</option>
+            <option value="Menunggu LPJ">Menunggu LPJ</option>
+            <option value="Selesai">Selesai</option>
+            <option value="Dibatalkan">Dibatalkan</option>
+            <option value="Ditolak">Ditolak</option>
           </select>
-          <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
+          <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">flag</span>
         </div>
 
         {/* Satelit Dropdown */}
-        <div className="relative min-w-[170px]">
+        <div className="relative min-w-[150px]">
           <select 
             value={filterSatelit}
             onChange={(e) => setFilterSatelit(e.target.value)}
@@ -383,25 +409,41 @@ export default function KegiatanPage() {
           </select>
           <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
         </div>
-
-        {/* Penyelenggara Dropdown (Gabungan Komisi & Departemen) */}
-        <div className="relative min-w-[200px]">
+        
+        {/* Jenis Kegiatan Dropdown */}
+        <div className="relative min-w-[180px]">
           <select 
-            value={filterPenyelenggara}
-            onChange={(e) => setFilterPenyelenggara(e.target.value)}
+            value={filterJenis}
+            onChange={(e) => setFilterJenis(e.target.value)}
             className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
           >
-            <option value="">Semua Penyelenggara</option>
-            <optgroup label="-- KOMISI --">
-              {komisiOptions.map((komisi) => (
-                  <option key={`komisi_${komisi.id}`} value={`komisi_${komisi.id}`}>{komisi.nama_komisi}</option>
-              ))}
-            </optgroup>
-            <optgroup label="-- DEPARTEMEN --">
-              {departemenOptions.map((dept) => (
-                  <option key={`dept_${dept.id}`} value={`dept_${dept.id}`}>{dept.nama_departemen}</option>
-              ))}
-            </optgroup>
+            <option value="">Semua Kategori</option>
+            {(() => {
+              const KATEGORI_ORDER = [
+                'Ibadah Rutin',
+                'Sosial & Diakonia',
+                'Sakramen & Layanan',
+                'Event & Perayaan',
+                'Edukasi & Pelatihan',
+              ];
+              const grouped: Record<string, typeof jenisKegiatanOptions> = {};
+              jenisKegiatanOptions.forEach(jk => {
+                const k = jk.kategori || 'Lainnya';
+                if (!grouped[k]) grouped[k] = [];
+                grouped[k].push(jk);
+              });
+              const orderedKeys = [
+                ...KATEGORI_ORDER.filter(k => grouped[k]),
+                ...Object.keys(grouped).filter(k => !KATEGORI_ORDER.includes(k))
+              ];
+              return orderedKeys.map(kat => (
+                <optgroup key={kat} label={`— ${kat.toUpperCase()} —`}>
+                  {grouped[kat].map(jk => (
+                    <option key={jk.id} value={jk.id}>{jk.nama_jenis_kegiatan}</option>
+                  ))}
+                </optgroup>
+              ));
+            })()}
           </select>
           <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
         </div>
@@ -418,44 +460,42 @@ export default function KegiatanPage() {
 
       {/* Advanced Filter Collapse Layer */}
       {showAdvancedFilters && (
-        <div className={`w-full p-6 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in slide-in-from-top-2 duration-200 grid gap-6 ${filterTanggal === 'Custom' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4'}`}>
+        <div className={`w-full p-6 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in slide-in-from-top-2 duration-200 grid gap-6 ${filterTanggal === 'Custom' ? 'grid-cols-1 md:grid-cols-4' : 'grid-cols-1 md:grid-cols-2'}`}>
           
-          {/* Status Dropdown */}
+          {/* Komisi Dropdown */}
           <div className="flex flex-col gap-2">
-            <label className="text-slate-700 text-sm font-bold font-['Public_Sans']">Status Kegiatan</label>
-            <div className="relative w-full">
+            <label className="text-slate-700 text-sm font-bold font-['Public_Sans']">Komisi (Satelit Spesifik)</label>
+            <div className="relative">
               <select 
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
+                value={filterKomisi}
+                onChange={(e) => { setFilterKomisi(e.target.value); setFilterDepartemen(''); }}
+                disabled={!filterSatelit}
+                className={`appearance-none w-full pl-4 pr-10 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm ${!filterSatelit ? 'bg-slate-200 cursor-not-allowed opacity-70' : 'bg-slate-50 cursor-pointer'}`}
               >
-                <option value="">Semua Status</option>
-                <option value="Draft">Draft (Konsep)</option>
-                <option value="Akan Datang">Akan Datang</option>
-                <option value="Ongoing">Ongoing</option>
-                <option value="Menunggu LPJ">Menunggu LPJ</option>
-                <option value="Selesai">Selesai</option>
-                <option value="Dibatalkan">Dibatalkan</option>
+                <option value="">Semua Komisi</option>
+                {komisiOptions.map((komisi) => (
+                    <option key={`komisi_${komisi.id}`} value={komisi.id}>{komisi.nama_komisi}</option>
+                ))}
               </select>
               <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
             </div>
           </div>
-
-          {/* Tanggal Dropdown */}
+          
+          {/* Departemen Dropdown */}
           <div className="flex flex-col gap-2">
-            <label className="text-slate-700 text-sm font-bold font-['Public_Sans']">Rentang Waktu</label>
-            <div className="relative w-full">
+            <label className="text-slate-700 text-sm font-bold font-['Public_Sans']">Departemen Pusat (Global)</label>
+            <div className="relative">
               <select 
-                value={filterTanggal}
-                onChange={(e) => setFilterTanggal(e.target.value)}
+                value={filterDepartemen}
+                onChange={(e) => { setFilterDepartemen(e.target.value); setFilterKomisi(''); }}
                 className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
               >
-                <option value="Hari Ini">Hari Ini</option>
-                <option value="Minggu Ini">Minggu Ini</option>
-                <option value="Bulan Ini">Bulan Ini</option>
-                <option value="Custom">Custom Date (Rentang)</option>
+                <option value="">Semua Departemen</option>
+                {departemenOptions.map((dept) => (
+                    <option key={`dept_${dept.id}`} value={dept.id}>{dept.nama_departemen}</option>
+                ))}
               </select>
-              <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">calendar_today</span>
+              <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
             </div>
           </div>
 
@@ -482,55 +522,20 @@ export default function KegiatanPage() {
             </>
           )}
 
-          <div className="flex flex-col gap-2">
-            <label className="text-slate-700 text-sm font-bold font-['Public_Sans']">Jenis Kegiatan</label>
-            <div className="relative">
-              <select 
-                value={filterJenis}
-                onChange={(e) => setFilterJenis(e.target.value)}
-                className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
-              >
-                <option value="">Semua Jenis</option>
-                {jenisKegiatanOptions.map((jenis) => (
-                  <option key={jenis.id} value={jenis.id}>{jenis.nama_jenis_kegiatan}</option>
-                ))}
-              </select>
-              <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
-            </div>
-          </div>
-          <div className="flex flex-col gap-2">
-            <label className="text-slate-700 text-sm font-bold font-['Public_Sans']">Status Kegiatan</label>
-            <div className="relative">
-              <select 
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
-              >
-                <option value="">Semua Status</option>
-                <option value="Draft">Draft</option>
-                <option value="Ongoing">Ongoing</option>
-                <option value="Menunggu LPJ">Menunggu LPJ</option>
-                <option value="Selesai">Selesai</option>
-              </select>
-              <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
-            </div>
-          </div>
         </div>
       )}
 
       {/* Data Table */}
       <div className="w-full bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col relative z-0">
         <div className="w-full overflow-x-auto pb-32 min-h-[480px]">
-          <div className="min-w-[1050px] flex flex-col">
+          <div className="min-w-[1200px] flex flex-col">
             {/* Table Header */}
             <div className="w-full bg-slate-50 border-b border-slate-200 flex items-center px-6 py-4">
-              <div className="w-28 shrink-0 text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">ID</div>
-              <div className="flex-1 min-w-[180px] text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">NAMA KEGIATAN</div>
-              <div className="w-40 shrink-0 text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">JENIS KEGIATAN</div>
-              <div className="w-[170px] shrink-0 text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">WAKTU PELAKSANAAN</div>
-              <div className="flex-1 min-w-[150px] shrink-0 text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">LOKASI</div>
-              <div className="w-[170px] shrink-0 text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">PENYELENGGARA</div>
-              <div className="w-32 shrink-0 text-center text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">STATUS</div>
+              <div className="w-[180px] shrink-0 text-left pr-4 text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">TANGGAL & WAKTU</div>
+              <div className="w-[170px] shrink-0 text-left pr-4 text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">STATUS</div>
+              <div className="flex-1 min-w-[200px] text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">INFORMASI KEGIATAN</div>
+              <div className="w-56 shrink-0 text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">JENIS KEGIATAN</div>
+              <div className="w-[180px] shrink-0 text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">PELAKSANA</div>
               <div className="w-12 shrink-0 text-center text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">AKSI</div>
             </div>
 
@@ -547,7 +552,7 @@ export default function KegiatanPage() {
                   
                   // State Machine Logic: Auto-Status calculation
                   let displayStatus = kegiatan.status_kegiatan;
-                  if (displayStatus !== 'Draft' && displayStatus !== 'Dibatalkan' && displayStatus !== 'Selesai' && !kegiatan.is_lpj_submitted) {
+                  if (displayStatus !== 'Draft' && displayStatus !== 'Menunggu Persetujuan' && displayStatus !== 'Ditolak' && displayStatus !== 'Dibatalkan' && displayStatus !== 'Selesai' && !kegiatan.is_lpj_submitted) {
                     const today = new Date();
                     today.setHours(0, 0, 0, 0); // Reset time to midnight for pure date comparison
                     const eventDate = new Date(kegiatan.tanggal_selesai || kegiatan.tanggal_mulai);
@@ -566,48 +571,53 @@ export default function KegiatanPage() {
                   }
 
                   return (
-                <div key={kegiatan.id || idx} className={`w-full flex items-center px-6 py-4 border-b border-slate-100 hover:bg-slate-50 transition-colors relative ${openMenuId === kegiatan.id ? 'z-50' : 'z-10'}`}>
-                  {/* Kolom 1: ID */}
-                  <div className="w-28 shrink-0 text-slate-500 text-xs font-bold font-['Liberation_Mono'] tracking-wide">{kegiatan.kode_kegiatan}</div>
-                  
-                  {/* Kolom 2: Nama */}
-                  <div className="flex-1 min-w-[180px] flex flex-col justify-center pr-4">
-                     <span className="text-slate-900 font-bold text-[13px] capitalize line-clamp-2 leading-tight" title={kegiatan.nama_kegiatan}>{kegiatan.nama_kegiatan}</span>
-                  </div>
-
-                  {/* Kolom 3: Jenis */}
-                  <div className="w-40 shrink-0 flex flex-col justify-center pr-4">
-                     <span className="text-slate-600 font-medium text-sm line-clamp-2 leading-tight">{kegiatan.nama_jenis_kegiatan || 'Tidak Diatur'}</span>
-                  </div>
-
-                  {/* Kolom 4: Waktu */}
-                  <div className="w-[170px] shrink-0 flex flex-col justify-center pr-4">
-                     <div className="text-slate-700 text-sm font-bold truncate flex items-center gap-1.5">
-                        <span className="material-icons-round text-[16px] text-slate-400">event</span>
-                        {formatDate(kegiatan.tanggal_mulai)}
-                     </div>
-                     <div className="text-slate-500 text-sm font-medium mt-0.5 ml-5 truncate">
-                        Pkl. {formatTime(kegiatan.waktu_mulai)} WIB
+                <div key={kegiatan.id || idx} className={`w-full flex items-center px-6 py-4 border-b border-slate-100 hover:bg-blue-50/40 hover:shadow-[inset_4px_0_0_0_#3b82f6] transition-all relative ${openMenuId === kegiatan.id ? 'z-50' : 'z-10'}`}>
+                  {/* Kolom 1: Tanggal & Waktu */}
+                  <div className="w-[180px] shrink-0 flex flex-col items-start justify-center pr-4 gap-1.5">
+                     <div className="text-slate-700 text-sm font-bold flex flex-col items-start leading-tight">
+                        <span className="flex items-center gap-1.5 whitespace-nowrap"><span className="material-icons-round text-[16px] text-slate-400">event</span> {formatDate(kegiatan.tanggal_mulai)}</span>
+                        <span className="text-slate-500 font-medium ml-6 text-xs whitespace-nowrap">Pkl. {formatTime(kegiatan.waktu_mulai)} WIB</span>
                      </div>
                   </div>
                   
-                  {/* Kolom 5: Lokasi */}
-                  <div className="flex-1 min-w-[150px] shrink-0 flex flex-col justify-center pr-4">
-                     <span className="text-slate-600 text-sm font-medium line-clamp-2 leading-tight">{kegiatan.lokasi_kegiatan || '-'}</span>
+                  {/* Kolom 2: Status */}
+                  <div className="w-[170px] shrink-0 flex items-center justify-start pr-4">
+                     {renderStatusBadge(displayStatus)}
+                  </div>
+                  
+                  {/* Kolom 3: Informasi Kegiatan (Nama + ID + Lokasi) */}
+                  <div className="flex-1 min-w-[200px] flex flex-col justify-center pr-4">
+                     <span className="text-slate-900 font-bold text-sm capitalize mb-1" title={kegiatan.nama_kegiatan}>{kegiatan.nama_kegiatan}</span>
+                     <div className="flex flex-col gap-0.5">
+                       <span className="text-slate-400 text-[11px] font-['Liberation_Mono'] tracking-wide">ID: {kegiatan.kode_kegiatan}</span>
+                       <span className="text-slate-500 text-xs font-medium line-clamp-1 mt-1 flex items-center gap-1"><span className="material-icons-round text-[14px]">place</span> {kegiatan.lokasi_kegiatan || '-'}</span>
+                     </div>
                   </div>
 
-                  {/* Kolom 6: Penyelenggara */}
-                  <div className="w-[170px] shrink-0 flex flex-col justify-center pr-4">
-                     <span className="text-slate-700 text-sm font-medium truncate">{kegiatan.nama_satelit || 'Pusat'}</span>
-                     <span className="text-slate-500 text-xs truncate mt-0.5">{kegiatan.nama_komisi || kegiatan.nama_departemen || 'Umum'}</span>
+                  {/* Kolom 3: Jenis Kegiatan */}
+                  <div className="w-56 shrink-0 flex flex-col items-start justify-center pr-6 gap-1">
+                     <span className="text-slate-700 font-bold text-[11px] bg-slate-100 px-2 py-1 rounded inline-block max-w-full truncate border border-slate-200" title={kegiatan.nama_jenis_kegiatan}>{kegiatan.nama_jenis_kegiatan || 'Tidak Diatur'}</span>
+                     {(kegiatan.kategori || kegiatan.frekuensi_kegiatan) && (
+                       <span className="text-slate-500 text-[10px] uppercase font-bold tracking-wider">{kegiatan.frekuensi_kegiatan || 'Insidental - Tahunan'}</span>
+                     )}
                   </div>
 
-                  {/* Kolom 7: Status */}
-                  <div className="w-32 shrink-0 flex justify-center">
-                    {renderStatusBadge(displayStatus)}
+                  {/* Kolom 4: Pelaksana */}
+                  <div className="w-[180px] shrink-0 flex flex-col justify-center pr-4">
+                     <span className="text-slate-700 text-sm font-bold truncate flex items-center gap-1.5" title={kegiatan.nama_komisi || kegiatan.nama_departemen || kegiatan.nama_satelit || 'Pusat (Pusat)'}>
+                        <span className="material-icons-round text-[16px] text-indigo-400">
+                           {kegiatan.nama_komisi || kegiatan.nama_departemen ? 'groups' : 'account_balance'}
+                        </span> 
+                        {kegiatan.nama_komisi || kegiatan.nama_departemen || kegiatan.nama_satelit || 'Pusat (Pusat)'}
+                     </span>
+                     <span className="text-slate-500 text-[11px] truncate mt-1 flex items-center gap-1" title={kegiatan.pic_name ? `${kegiatan.nama_komisi || kegiatan.nama_departemen ? (kegiatan.nama_satelit || 'Pusat (Pusat)') : 'Panitia Umum'} (PIC: ${kegiatan.pic_name})` : (kegiatan.nama_komisi || kegiatan.nama_departemen ? (kegiatan.nama_satelit || 'Pusat (Pusat)') : 'Panitia Umum')}>
+                        <span className="material-icons-round text-[14px] text-slate-400">{kegiatan.pic_name ? 'assignment_ind' : 'location_city'}</span> 
+                        <span className="truncate">{kegiatan.nama_komisi || kegiatan.nama_departemen ? (kegiatan.nama_satelit || 'Pusat (Pusat)') : 'Panitia Umum'}</span>
+                        {kegiatan.pic_name && <span className="text-slate-400 ml-0.5 shrink-0 font-normal">({kegiatan.pic_name.split(' ')[0]})</span>}
+                     </span>
                   </div>
 
-                  {/* Kolom 8: Aksi */}
+                  {/* Kolom 5: Aksi */}
                   <div className="w-12 shrink-0 flex justify-center items-center">
                     <div className="relative">
                       <button 
@@ -625,8 +635,27 @@ export default function KegiatanPage() {
                             <>
                               <Link href={`/kegiatan/${kegiatan.id}/edit`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Detail Draft</Link>
                               <Link href={`/kegiatan/${kegiatan.id}/edit`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">edit</span>Edit Kegiatan</Link>
-                              <button onClick={() => handleUpdateStatus(kegiatan.id, 'Akan Datang')} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-blue-500">rocket_launch</span>Publish Acara</button>
+                              <button onClick={() => handleUpdateStatus(kegiatan.id, 'Menunggu Persetujuan')} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-blue-500">send</span>Ajukan Jadwal Acara</button>
                               <div className="w-full h-px bg-slate-100 my-1"></div>
+                              <button onClick={() => handleDeleteDraft(kegiatan.id)} className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-red-400">delete</span>Hapus Data</button>
+                            </>
+                          )}
+
+                          {/* MENUNGGU PERSETUJUAN */}
+                          {displayStatus === 'Menunggu Persetujuan' && (
+                            <>
+                              <Link href={`/kegiatan/${kegiatan.id}/edit?mode=view`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Proposal Acara</Link>
+                              <Link href={`/kegiatan/${kegiatan.id}/edit`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">edit</span>Edit Kegiatan</Link>
+                              <div className="w-full h-px bg-slate-100 my-1"></div>
+                              <button onClick={() => handleUpdateStatus(kegiatan.id, 'Akan Datang')} className="w-full text-left px-4 py-2 hover:bg-emerald-50 text-emerald-700 text-sm flex items-center gap-2 font-bold"><span className="material-icons-round text-[18px] text-emerald-600">check_circle</span>Terima & Publish (ACC)</button>
+                              <button onClick={() => handleUpdateStatus(kegiatan.id, 'Ditolak')} className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 text-sm flex items-center gap-2 font-bold"><span className="material-icons-round text-[18px] text-red-600">cancel</span>Tolak Pengajuan</button>
+                            </>
+                          )}
+
+                          {/* DITOLAK */}
+                          {displayStatus === 'Ditolak' && (
+                            <>
+                              <Link href={`/kegiatan/${kegiatan.id}`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Acara</Link>
                               <button onClick={() => handleDeleteDraft(kegiatan.id)} className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-red-400">delete</span>Hapus Data</button>
                             </>
                           )}
@@ -634,9 +663,8 @@ export default function KegiatanPage() {
                           {/* AKAN DATANG */}
                           {displayStatus === 'Akan Datang' && (
                             <>
-                              <Link href={`/kegiatan/${kegiatan.id}`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Detail / Kelola Acara</Link>
-                              <Link href={`/kegiatan/${kegiatan.id}/edit`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-amber-500">edit_note</span>Edit Terbatas</Link>
-                              <Link href={`/kegiatan/${kegiatan.id}?tab=pelayan`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-indigo-400">groups</span>Kelola Pelayan & Peserta</Link>
+                              <Link href={`/kegiatan/${kegiatan.id}`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Detail</Link>
+                              <Link href={`/kegiatan/${kegiatan.id}?tab=pelayan&mode=manage`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-indigo-400">groups</span>Kelola Pelayan & Peserta</Link>
                               <div className="w-full h-px bg-slate-100 my-1"></div>
                               <button onClick={() => handleUpdateStatus(kegiatan.id, 'Ongoing')} className="w-full text-left px-4 py-2 hover:bg-emerald-50 text-emerald-700 text-sm flex items-center gap-2 font-bold"><span className="material-icons-round text-[18px] text-emerald-600">play_circle</span>Mulai Acara (Buka Absensi)</button>
                               <button onClick={() => setCancelModal({ isOpen: true, kegiatanId: kegiatan.id, reason: '' })} className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-red-400">block</span>Batalkan Kegiatan</button>

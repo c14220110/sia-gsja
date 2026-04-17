@@ -217,6 +217,98 @@ const HybridAsyncAutocomplete = ({
   );
 };
 
+// Helper: Strict Jemaat Search (wajib pilih dari DB, mengembalikan id integer + nama)
+const JemaatIDAutocomplete = ({
+  label, valueId, valueName, onSelect,
+  placeholder = 'Ketik minimal 3 huruf...'
+}: {
+  label: string;
+  valueId: string;
+  valueName: string;
+  onSelect: (id: string, name: string) => void;
+  placeholder?: string;
+}) => {
+  const [query, setQuery] = useState(valueName);
+  const [results, setResults] = useState<any[]>([]);
+  const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => { setQuery(valueName); }, [valueName]);
+
+  useEffect(() => {
+    const h = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) setIsOpen(false);
+    };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, []);
+
+  const fetchResults = async (term: string) => {
+    if (term.length < 3) { setResults([]); setIsOpen(false); return; }
+    setIsLoading(true);
+    try {
+      const res = await fetch(`/api/options?type=jemaat_search&q=${encodeURIComponent(term)}`);
+      const data = await res.json();
+      if (data.success && data.data.length > 0) { setResults(data.data); setIsOpen(true); }
+      else { setResults([]); setIsOpen(false); }
+    } catch { /* silent */ } finally { setIsLoading(false); }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setQuery(val);
+    if (!val) onSelect('', '');
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => fetchResults(val), 400);
+  };
+
+  return (
+    <div className="w-full flex-col gap-1 flex relative" ref={wrapperRef}>
+      <label className="text-rose-700 text-xs font-bold font-['Inter'] uppercase leading-4">{label}</label>
+      <div className="relative">
+        <input
+          type="text"
+          value={query}
+          onChange={handleChange}
+          onFocus={() => { if (query.length >= 3 && results.length > 0) setIsOpen(true); }}
+          placeholder={placeholder}
+          className="px-4 py-3 pr-10 bg-white rounded-lg border border-rose-200 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 text-slate-900 text-sm font-['Inter'] w-full transition-all"
+        />
+        {isLoading && <div className="absolute right-3 top-3 w-4 h-4 rounded-full border-2 border-slate-200 border-t-rose-500 animate-spin" />}
+        {valueId && !isOpen && (
+          <span className="absolute right-3 top-3 material-icons-round text-rose-500 text-[16px]">check_circle</span>
+        )}
+      </div>
+      {isOpen && results.length > 0 && (
+        <div className="absolute z-20 top-full mt-1 w-full bg-white rounded-lg border border-rose-200 shadow-xl max-h-56 overflow-y-auto">
+          <div className="px-3 py-2 bg-slate-50 border-b border-slate-100 text-[10px] uppercase font-bold text-slate-400">Pilih dari Database Jemaat</div>
+          {results.map((r, i) => (
+            <div
+              key={i}
+              className="p-3 hover:bg-rose-50 cursor-pointer border-b border-slate-100 last:border-0 flex items-center gap-3"
+              onClick={() => { onSelect(r.id.toString(), r.nama_lengkap); setQuery(r.nama_lengkap); setIsOpen(false); }}
+            >
+              {r.foto_url ? (
+                <img src={r.foto_url} alt={r.nama_lengkap} className="w-8 h-8 rounded-full object-cover border border-slate-200" />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-rose-50 flex items-center justify-center text-rose-600 font-bold text-xs uppercase">
+                  {r.nama_lengkap.charAt(0)}
+                </div>
+              )}
+              <div className="flex flex-col">
+                <div className="text-sm font-bold text-slate-900">{r.nama_lengkap}</div>
+                <div className="text-[10px] text-slate-500">{r.jemaat_id} — {r.nama_satelit || 'Gereja'}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function NewKegiatanPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -241,10 +333,24 @@ export default function NewKegiatanPage() {
     lokasi_kegiatan: '',
     keterangan: '',
     
-    // Card 3: Ibadah Detail
+    // Card 3A: Ibadah Detail
     tema_khotbah: '',
     nama_pengkhotbah_1: '',
     nama_pengkhotbah_2: '',
+
+    // Card 3B: Akomodasi & Fasilitas (Event & Perayaan / Edukasi & Pelatihan)
+    akomodasi: '',
+
+    // Card 3C: Sakramen (Baptisan Air, Pernikahan, Penyerahan Anak)
+    nama_pendeta_pelayan: '',
+    keterangan_sakramen: '',
+
+    // Card 3D: Penerima Layanan (Sosial & Diakonia, Pernikahan, Penyerahan Anak)
+    jemaat_target_1_id: '',
+    jemaat_target_1_name: '',
+    jemaat_target_2_id: '',
+    jemaat_target_2_name: '',
+    keterangan_layanan: '',
     
     // Card 4: Penyelenggara Tracker
     tipe_penyelenggara: 'Satelit',
@@ -411,9 +517,33 @@ export default function NewKegiatanPage() {
     }
   };
 
-  // Determine if the selected event is Worship (Kebaktian Umum/Ibadah Raya)
+  // Category-based dynamic card logic (berdasarkan kolom `kategori` dari jenis_kegiatan)
   const selectedJenis = jenisKegiatanOptions.find(jk => jk.id.toString() === formData.jenis_kegiatan_id);
-  const isKebaktian = selectedJenis && selectedJenis.nama_jenis_kegiatan.toLowerCase().includes('kebaktian');
+  const kategori  = selectedJenis?.kategori || '';
+  const jenisNama = selectedJenis?.nama_jenis_kegiatan || '';
+
+  // Camp/Retreat & Outing dikecualikan dari Card 3A: bersifat multi-sesi, tidak bisa satu tema/pengkhotbah di level master
+  const isMultiSesiEvent  = jenisNama === 'Camp / Retreat' || jenisNama === 'Ibadah Padang (Outing)';
+  const showCardIbadah    = kategori === 'Ibadah Rutin'
+                          || kategori === 'Edukasi & Pelatihan'
+                          || (kategori === 'Event & Perayaan' && !isMultiSesiEvent);
+  const showCardEksternal = ['Event & Perayaan', 'Edukasi & Pelatihan'].includes(kategori);
+  const showCardSakramen  = kategori === 'Sakramen & Layanan';
+  const showCardLayanan   = (kategori === 'Sosial & Diakonia' && jenisNama !== 'Pemeriksaan Kesehatan')
+                          || jenisNama === 'Pernikahan';
+                          // Penyerahan Anak & Baptisan Air DIKECUALIKAN:
+                          // data peserta (anak/jemaat) masuk via kegiatan_registrasi, bukan di form create.
+                          // 1 acara bisa untuk banyak anak — tidak bisa dipaksakan 1 field di master kegiatan.
+
+  const isKomsel  = jenisNama === 'Komsel';
+  const isEdukasi = kategori === 'Edukasi & Pelatihan';
+
+  // Label dinamis per jenis kegiatan
+  const labelTema = isEdukasi ? 'Topik / Tema Seminar' : isKomsel ? 'Tema Renungan' : 'Tema / Judul Khotbah';
+  const labelP1   = isEdukasi ? 'Pembicara / Narasumber Utama' : isKomsel ? 'Pembawa Renungan' : 'Pengkhotbah Utama';
+  const labelP2   = isEdukasi ? 'Pembicara / Narasumber Kedua (Opsional)' : isKomsel ? 'Worship Leader' : 'Pengkhotbah Pendamping (Opsional)';
+  const labelTarget1 = jenisNama === 'Pernikahan' ? 'Mempelai Pria' : jenisNama === 'Penyerahan Anak' ? 'Anak yang Diserahkan' : 'Jemaat yang Dikunjungi / Dilayani';
+  const labelTarget2 = jenisNama === 'Pernikahan' ? 'Mempelai Wanita' : jenisNama === 'Penyerahan Anak' ? 'Orang Tua / Wali' : 'Anggota Keluarga Terkait (Opsional)';
 
   return (
     <div className="w-full flex flex-col gap-6 pb-36 relative">
@@ -471,9 +601,32 @@ export default function NewKegiatanPage() {
                   <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase">Jenis Kegiatan <span className="text-red-500">*</span></label>
                   <select name="jenis_kegiatan_id" value={formData.jenis_kegiatan_id} onChange={handleInputChange} className="px-4 py-2.5 bg-slate-50 rounded-lg border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all cursor-pointer">
                     <option value="">-- Pilih Spesifikasi --</option>
-                    {jenisKegiatanOptions.map((jk) => (
-                      <option key={jk.id} value={jk.id}>{jk.nama_jenis_kegiatan}</option>
-                    ))}
+                    {(() => {
+                      const KATEGORI_ORDER = [
+                        'Ibadah Rutin',
+                        'Sosial & Diakonia',
+                        'Sakramen & Layanan',
+                        'Event & Perayaan',
+                        'Edukasi & Pelatihan',
+                      ];
+                      const grouped: Record<string, typeof jenisKegiatanOptions> = {};
+                      jenisKegiatanOptions.forEach(jk => {
+                        const k = jk.kategori || 'Lainnya';
+                        if (!grouped[k]) grouped[k] = [];
+                        grouped[k].push(jk);
+                      });
+                      const orderedKeys = [
+                        ...KATEGORI_ORDER.filter(k => grouped[k]),
+                        ...Object.keys(grouped).filter(k => !KATEGORI_ORDER.includes(k))
+                      ];
+                      return orderedKeys.map(kat => (
+                        <optgroup key={kat} label={`— ${kat.toUpperCase()} —`}>
+                          {grouped[kat].map(jk => (
+                            <option key={jk.id} value={jk.id}>{jk.nama_jenis_kegiatan}</option>
+                          ))}
+                        </optgroup>
+                      ));
+                    })()}
                   </select>
                 </div>
                 <div className="flex-1 flex-col gap-1.5 flex">
@@ -569,48 +722,174 @@ export default function NewKegiatanPage() {
             </div>
           </div>
 
-          {/* CARD 3: DETAIL KHUSUS IBADAH (DYNAMIC 🔥) */}
-          {isKebaktian && (
+          {/* CARD 3A: DETAIL IBADAH / PEMBICARA (Ibadah Rutin, Event & Perayaan, Edukasi) */}
+          {showCardIbadah && (
             <div className="relative p-6 bg-blue-50/50 rounded-xl shadow-sm border border-blue-100 flex flex-col gap-6 animate-in slide-in-from-top-4 fade-in duration-500">
               <div className="absolute right-0 top-0 w-48 h-48 overflow-hidden pointer-events-none rounded-tr-xl">
-                 <span className="material-icons-round text-[150px] text-blue-900 absolute -top-4 -right-4 opacity-[0.03]">auto_stories</span>
+                <span className="material-icons-round text-[150px] text-blue-900 absolute -top-4 -right-4 opacity-[0.03]">auto_stories</span>
               </div>
               <div className="w-full inline-flex items-center justify-between border-b border-blue-100 pb-3 z-10">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center">
-                    <span className="material-icons-round text-[18px]">church</span>
+                    <span className="material-icons-round text-[18px]">{isEdukasi ? 'school' : 'church'}</span>
                   </div>
-                  <span className="text-blue-900 text-sm font-bold font-['Inter'] uppercase tracking-wider">Detail Ibadah (*Auto-Triggered*)</span>
+                  <span className="text-blue-900 text-sm font-bold font-['Inter'] uppercase tracking-wider">
+                    {isEdukasi ? 'Detail Pembicara & Topik' : isKomsel ? 'Detail Komsel' : 'Detail Ibadah'}
+                  </span>
                 </div>
                 <div className="px-2 py-0.5 bg-blue-100 text-blue-700 border border-blue-200 rounded text-[10px] font-bold tracking-wide">
-                  MODE KHOTBAH
+                  {isEdukasi ? 'MODE EDUKASI' : isKomsel ? 'MODE KOMSEL' : 'MODE KHOTBAH'}
                 </div>
               </div>
-              
+
               <div className="w-full flex-col gap-5 flex z-10">
                 <div className="w-full flex-col gap-1.5 flex">
-                  <label className="text-blue-800 text-xs font-bold font-['Inter'] uppercase">Tema / Judul Khotbah Mingguan</label>
-                  <input type="text" name="tema_khotbah" value={formData.tema_khotbah} onChange={handleInputChange} placeholder="Garam dan Terang Dunia..." className="px-4 py-3 bg-white rounded-lg border border-blue-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-['Inter'] text-sm w-full placeholder-slate-400 transition-all" />
+                  <label className="text-blue-800 text-xs font-bold font-['Inter'] uppercase">{labelTema}</label>
+                  <input
+                    type="text" name="tema_khotbah" value={formData.tema_khotbah} onChange={handleInputChange}
+                    placeholder={isEdukasi ? 'Contoh: Strategi Digital Marketing untuk UMKM...' : isKomsel ? 'Contoh: Hidup dalam Anugerah Tuhan...' : 'Contoh: Garam dan Terang Dunia...'}
+                    className="px-4 py-3 bg-white rounded-lg border border-blue-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-['Inter'] text-sm w-full placeholder-slate-400 transition-all"
+                  />
                 </div>
 
                 <div className="w-full flex gap-5">
                   <div className="flex-1 flex-col gap-1.5 flex">
-                    <HybridAsyncAutocomplete 
-                      label="Pengkhotbah Utama" 
-                      valueName={formData.nama_pengkhotbah_1} 
-                      placeholder="Cari jemaat atau ketik nama tamu..." 
+                    <HybridAsyncAutocomplete
+                      label={labelP1}
+                      valueName={formData.nama_pengkhotbah_1}
+                      placeholder={isEdukasi ? 'Cari atau ketik nama narasumber...' : 'Cari jemaat atau ketik nama tamu...'}
                       onSelect={(name) => setFormData(prev => ({ ...prev, nama_pengkhotbah_1: name }))}
                     />
-                    <span className="text-[10px] text-blue-600 mt-0.5 ml-1">Mendukung nama pendeta tamu dari luar gereja.</span>
+                    <span className="text-[10px] text-blue-600 mt-0.5 ml-1">Mendukung nama {isEdukasi ? 'narasumber / pakar' : 'pendeta tamu'} dari luar gereja.</span>
                   </div>
                   <div className="flex-1 flex-col gap-1.5 flex">
-                    <HybridAsyncAutocomplete 
-                      label="Pengkhotbah Pendamping (Opsional)" 
-                      valueName={formData.nama_pengkhotbah_2} 
-                      placeholder="Cari/Ketik nama tandeman atau penerjemah..." 
+                    <HybridAsyncAutocomplete
+                      label={labelP2}
+                      valueName={formData.nama_pengkhotbah_2}
+                      placeholder={isKomsel ? 'Cari atau ketik nama WL...' : 'Cari/Ketik nama pendamping...'}
                       onSelect={(name) => setFormData(prev => ({ ...prev, nama_pengkhotbah_2: name }))}
                     />
                   </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* CARD 3B: AKOMODASI & FASILITAS (Event & Perayaan, Edukasi & Pelatihan) */}
+          {showCardEksternal && (
+            <div className="p-6 bg-teal-50/50 rounded-xl shadow-sm border border-teal-100 flex flex-col gap-5 animate-in slide-in-from-top-4 fade-in duration-500">
+              <div className="w-full inline-flex items-center justify-between border-b border-teal-100 pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-teal-100 text-teal-700 flex items-center justify-center">
+                    <span className="material-icons-round text-[18px]">hotel</span>
+                  </div>
+                  <span className="text-teal-900 text-sm font-bold font-['Inter'] uppercase tracking-wider">
+                    {isEdukasi ? 'Fasilitas Peserta' : 'Akomodasi & Fasilitas'}
+                  </span>
+                </div>
+                <div className="px-2 py-0.5 bg-teal-100 text-teal-700 border border-teal-200 rounded text-[10px] font-bold tracking-wide">OPSIONAL</div>
+              </div>
+              <div className="w-full flex-col gap-1.5 flex">
+                <label className="text-teal-800 text-xs font-bold font-['Inter'] uppercase">
+                  {isEdukasi ? 'Fasilitas yang Didapat Peserta' : 'Detail Akomodasi / Fasilitas'}
+                </label>
+                <textarea
+                  name="akomodasi"
+                  value={formData.akomodasi}
+                  onChange={handleInputChange}
+                  placeholder={isEdukasi
+                    ? 'Contoh: Modul materi, sertifikat, snack, makan siang...'
+                    : 'Contoh: Penginapan 2 malam, 3x makan, kaos, tas...\nKosongkan jika tidak ada akomodasi khusus.'}
+                  rows={3}
+                  className="px-4 py-3 bg-white rounded-lg border border-teal-200 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 text-slate-900 text-sm font-['Inter'] w-full transition-all resize-none"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* CARD 3C: DETAIL SAKRAMEN (Baptisan Air, Pernikahan, Penyerahan Anak) */}
+          {showCardSakramen && (
+            <div className="p-6 bg-amber-50/50 rounded-xl shadow-sm border border-amber-100 flex flex-col gap-5 animate-in slide-in-from-top-4 fade-in duration-500">
+              <div className="w-full inline-flex items-center justify-between border-b border-amber-100 pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center">
+                    <span className="material-icons-round text-[18px]">water_drop</span>
+                  </div>
+                  <span className="text-amber-900 text-sm font-bold font-['Inter'] uppercase tracking-wider">Detail Sakramen</span>
+                </div>
+                <div className="px-2 py-0.5 bg-amber-100 text-amber-700 border border-amber-200 rounded text-[10px] font-bold tracking-wide">
+                  {jenisNama.toUpperCase()}
+                </div>
+              </div>
+              <div className="w-full flex-col gap-5 flex">
+                <div className="w-full flex-col gap-1.5 flex">
+                  <label className="text-amber-800 text-xs font-bold font-['Inter'] uppercase">Nama Pendeta / Pelayan Sakramen</label>
+                  <input
+                    type="text" name="nama_pendeta_pelayan" value={formData.nama_pendeta_pelayan} onChange={handleInputChange}
+                    placeholder="Contoh: Pdt. Samuel Hatane, S.Th."
+                    className="px-4 py-3 bg-white rounded-lg border border-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-slate-900 text-sm font-['Inter'] w-full transition-all"
+                  />
+                </div>
+                <div className="w-full flex-col gap-1.5 flex">
+                  <label className="text-amber-800 text-xs font-bold font-['Inter'] uppercase">Keterangan Tambahan (Opsional)</label>
+                  <textarea
+                    name="keterangan_sakramen" value={formData.keterangan_sakramen} onChange={handleInputChange}
+                    placeholder={
+                      jenisNama === 'Baptisan Air' ? 'Contoh: Baptisan batch ke-3 tahun ini, 12 peserta...'
+                      : jenisNama === 'Pernikahan' ? 'Contoh: Pemberkatan nikah setelah konseling pranikah 3 sesi...'
+                      : 'Contoh: Penyerahan anak ke-5 tahun ini...'
+                    }
+                    rows={2}
+                    className="px-4 py-3 bg-white rounded-lg border border-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-slate-900 text-sm font-['Inter'] w-full transition-all resize-none"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* CARD 3D: PENERIMA LAYANAN (Sosial & Diakonia | Pernikahan | Penyerahan Anak) */}
+          {showCardLayanan && (
+            <div className="p-6 bg-rose-50/50 rounded-xl shadow-sm border border-rose-100 flex flex-col gap-5 animate-in slide-in-from-top-4 fade-in duration-500">
+              <div className="w-full inline-flex items-center justify-between border-b border-rose-100 pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center">
+                    <span className="material-icons-round text-[18px]">favorite</span>
+                  </div>
+                  <span className="text-rose-900 text-sm font-bold font-['Inter'] uppercase tracking-wider">
+                    {jenisNama === 'Pernikahan' ? 'Data Mempelai' : jenisNama === 'Penyerahan Anak' ? 'Data Anak & Orang Tua' : 'Penerima Layanan'}
+                  </span>
+                </div>
+                <div className="px-2 py-0.5 bg-rose-100 text-rose-700 border border-rose-200 rounded text-[10px] font-bold tracking-wide">DARI DATABASE</div>
+              </div>
+              <div className="w-full flex-col gap-5 flex">
+                <JemaatIDAutocomplete
+                  label={labelTarget1}
+                  valueId={formData.jemaat_target_1_id}
+                  valueName={formData.jemaat_target_1_name}
+                  onSelect={(id, name) => setFormData(prev => ({ ...prev, jemaat_target_1_id: id, jemaat_target_1_name: name }))}
+                />
+                <JemaatIDAutocomplete
+                  label={labelTarget2}
+                  valueId={formData.jemaat_target_2_id}
+                  valueName={formData.jemaat_target_2_name}
+                  onSelect={(id, name) => setFormData(prev => ({ ...prev, jemaat_target_2_id: id, jemaat_target_2_name: name }))}
+                />
+                <div className="w-full flex-col gap-1.5 flex">
+                  <label className="text-rose-700 text-xs font-bold font-['Inter'] uppercase">
+                    {jenisNama === 'Pernikahan' ? 'Catatan Pemberkatan' : jenisNama === 'Penyerahan Anak' ? 'Catatan Penyerahan' : 'Keterangan / Kondisi / Lokasi Kunjungan'}
+                  </label>
+                  <textarea
+                    name="keterangan_layanan" value={formData.keterangan_layanan} onChange={handleInputChange}
+                    placeholder={
+                      jenisNama === 'Pernikahan' ? 'Contoh: Pasangan menikah setelah konseling pranikah 3 sesi...'
+                      : jenisNama === 'Penyerahan Anak' ? 'Contoh: Anak sudah terdaftar SM. Lahir 10 Jan 2025...'
+                      : jenisNama === 'Besuk Orang Sakit' ? 'Contoh: Sakit jantung, di RS Mitra Keluarga Kamar 302...'
+                      : jenisNama === 'Kunjungan Penjara' ? 'Contoh: Kunjungan ke LP Porong. Koordinasi sudah dilakukan...'
+                      : 'Catatan tambahan mengenai layanan ini...'
+                    }
+                    rows={3}
+                    className="px-4 py-3 bg-white rounded-lg border border-rose-200 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 text-slate-900 text-sm font-['Inter'] w-full transition-all resize-none"
+                  />
                 </div>
               </div>
             </div>
@@ -742,7 +1021,7 @@ export default function NewKegiatanPage() {
               </div>
             </div>
             
-            {formData.berbayar && !isKebaktian && (
+            {formData.berbayar && kategori !== 'Ibadah Rutin' && (
               <div className="w-full p-4 bg-blue-50 border border-blue-100 rounded-lg animate-in fade-in slide-in-from-top-2">
                  <div className="w-full flex-col gap-1.5 flex">
                     <label className="text-blue-800 text-xs font-bold font-['Inter'] uppercase">Harga Tiket (Rp)</label>
@@ -763,7 +1042,7 @@ export default function NewKegiatanPage() {
               </div>
             )}
 
-            {formData.berbayar && isKebaktian && (
+            {formData.berbayar && kategori === 'Ibadah Rutin' && (
               <div className="w-full p-3 bg-red-50 border border-red-100 rounded-lg flex items-start gap-2 animate-in fade-in slide-in-from-top-2 mt-2">
                  <span className="material-icons-round text-red-500 text-sm mt-0.5">warning</span>
                  <span className="text-xs text-red-700">Ibadah rutin sangat tidak disarankan menggunakan mode tiket berbayar.</span>
@@ -782,8 +1061,8 @@ export default function NewKegiatanPage() {
            <button onClick={() => handleCreate('Draft')} className="px-6 py-2.5 rounded-lg bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 transition-colors text-sm border border-slate-200">
              Simpan sebagai Draft
            </button>
-           <button onClick={() => handleCreate('Akan Datang')} className="px-8 py-2.5 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/30 text-sm flex gap-2 items-center">
-             <span className="material-icons-round text-[18px]">publish</span> Publish Jadwal Acara
+           <button onClick={() => handleCreate('Menunggu Persetujuan')} className="px-8 py-2.5 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/30 text-sm flex gap-2 items-center">
+             <span className="material-icons-round text-[18px]">send</span> Ajukan Jadwal Acara
            </button>
          </div>
       </div>

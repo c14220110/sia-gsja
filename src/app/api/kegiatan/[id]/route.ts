@@ -98,7 +98,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         butuh_registrasi = $15,
         url_banner = $16,
         harga_tiket_rp = $17,
-        kuota_peserta = $18
+        kuota_peserta = $18,
+        frekuensi_kegiatan = $20
       WHERE id = $19
     `;
     
@@ -121,13 +122,14 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       body.url_banner || null,
       body.harga_tiket_rp ? parseFloat(body.harga_tiket_rp) : 0,
       body.kuota_peserta && body.kuota_peserta !== '' ? parseInt(body.kuota_peserta, 10) : null,
-      id
+      id,
+      body.frekuensi_kegiatan || 'Insidental - Tahunan'
     ]);
 
     // 2. Update atau Insert Detail Ibadah (Tema & Pengkhotbah)
     if (body.tema_khotbah || body.nama_pengkhotbah_1 || body.nama_pengkhotbah_2) {
       // Upsert logic
-      const checkDetail = await client.query('SELECT id FROM public.kegiatan_detail_ibadah WHERE kegiatan_id = $1', [id]);
+      const checkDetail = await client.query('SELECT kegiatan_id FROM public.kegiatan_detail_ibadah WHERE kegiatan_id = $1', [id]);
       if (checkDetail.rowCount && checkDetail.rowCount > 0) {
         await client.query(`
           UPDATE public.kegiatan_detail_ibadah SET
@@ -146,10 +148,10 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     await client.query('COMMIT');
     return NextResponse.json({ success: true, message: 'Kegiatan berhasil diperbarui' });
-  } catch (error) {
+  } catch (error: any) {
     await client.query('ROLLBACK');
     console.error('Error updating full kegiatan:', error);
-    return NextResponse.json({ success: false, message: 'Gagal memperbarui kegiatan' }, { status: 500 });
+    return NextResponse.json({ success: false, message: `DB Error: ${error.message}` }, { status: 500 });
   } finally {
     client.release();
   }
