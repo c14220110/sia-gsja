@@ -27,6 +27,7 @@ export default function JemaatPwaLayout({
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [showIOSInstructions, setShowIOSInstructions] = useState(false);
+  const [showAndroidInstructions, setShowAndroidInstructions] = useState(false);
 
   useEffect(() => {
     // Deteksi jika pengguna sudah menutup card
@@ -44,16 +45,13 @@ export default function JemaatPwaLayout({
       return; 
     }
 
-    // Untuk iPhone (karena Apple tidak ada otomatis prompt)
-    if (isIOSDevice) {
-       setShowInstallPrompt(true);
-    }
+    // Selalu tampilkan card untuk semua OS sebagai panduan utama
+    setShowInstallPrompt(true);
 
-    // Untuk Android / Desktop Chrome (nangkap event otomatis)
+    // Untuk Android / Desktop Chrome (nangkap event otomatis kalau nyala)
     const handleBeforeInstallPrompt = (e: any) => {
       e.preventDefault(); // Tahan dulu bawaan HP
       setDeferredPrompt(e); // Simpan untuk dipanggil lewat tombol
-      setShowInstallPrompt(true); // Tampilkan card buatan kita
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -73,6 +71,8 @@ export default function JemaatPwaLayout({
       setDeferredPrompt(null);
     } else if (isIOS) {
        setShowIOSInstructions(true);
+    } else {
+       setShowAndroidInstructions(true);
     }
   };
 
@@ -202,6 +202,14 @@ export default function JemaatPwaLayout({
                         <strong className="text-white block mb-1">Panduan Khusus iPhone/iPad:</strong>
                         1. Ketuk ikon <strong>Bagikan 📤</strong> (Share) di bagian bawah browser Safari Anda.<br/>
                         2. Gulir ke bawah, lalu pilih <strong>Tambah ke Layar Utama ➕</strong> (Add to Home Screen).
+                     </p>
+                  </div>
+               ) : showAndroidInstructions ? (
+                  <div className="mt-4 p-3 bg-white/10 rounded-xl border border-white/20 animate-in fade-in zoom-in-95">
+                     <p className="text-[11px] font-medium leading-relaxed">
+                        <strong className="text-white block mb-1">Panduan Khusus Android:</strong>
+                        1. Ketuk ikon <strong>Titik Tiga ⋮</strong> di bagian pojok kanan atas browser.<br/>
+                        2. Pilih opsi <strong>Tambahkan ke Layar Utama</strong> atau <strong>Install App</strong>.
                      </p>
                   </div>
                ) : (
