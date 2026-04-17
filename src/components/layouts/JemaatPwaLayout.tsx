@@ -181,8 +181,7 @@ export default function JemaatPwaLayout({
                <div className="flex items-start justify-between relative z-10">
                   <div className="flex gap-3">
                      <div className="w-12 h-12 bg-white rounded-xl shadow-inner flex items-center justify-center shrink-0">
-                        <img src="/icons/icon-192x192.png" alt="GSJA" className="w-8 h-8 object-contain" onError={(e) => { e.currentTarget.style.display='none'; }}/>
-                        <span className="material-icons-round text-blue-600 absolute" style={{zIndex: -1}}>church</span>
+                        <span className="material-icons-round text-blue-600 text-3xl">add_to_home_screen</span>
                      </div>
                      <div className="flex flex-col">
                         <h4 className="font-bold text-sm tracking-wide">Akses Lebih Cepat</h4>
