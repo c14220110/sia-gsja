@@ -89,31 +89,59 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       const namaAsli = checkJemaat.rows[0].nama_lengkap;
       const verified_jemaat_id = checkJemaat.rows[0].id; // Use real ID for insertion
 
+      // =====================================================
+      // SMART ROUTING: Cek apakah orang ini adalah Pelayan
+      // yang sudah terdaftar di roster kegiatan ini
+      // =====================================================
+      const checkPelayan = await pool.query(
+        `SELECT kjp.id AS roster_id, rp.nama_role AS role_tugas
+         FROM public.kegiatan_jadwal_pelayan kjp
+         JOIN public.pelayan      p  ON kjp.pelayan_id = p.id
+         JOIN public.role_pelayan rp ON kjp.role_id    = rp.id
+         WHERE kjp.kegiatan_id = $1 AND p.jemaat_id = $2
+         LIMIT 1`,
+        [id, verified_jemaat_id]
+      );
+      const isPelayan = (checkPelayan.rowCount ?? 0) > 0;
+      const pelayanRoster = isPelayan ? checkPelayan.rows[0] : null;
+
       // Cek ke tabel kegiatan_absensi
-      const checkAbsensi = await pool.query('SELECT id, status_kehadiran, role_kehadiran FROM public.kegiatan_absensi WHERE kegiatan_id = $1 AND jemaat_id = $2', [id, verified_jemaat_id]);
-      
+      const checkAbsensi = await pool.query(
+        'SELECT id, status_kehadiran, role_kehadiran FROM public.kegiatan_absensi WHERE kegiatan_id = $1 AND jemaat_id = $2',
+        [id, verified_jemaat_id]
+      );
+
+      const finalRole = isPelayan ? 'Pelayan' : (body.role_kehadiran || 'Jemaat');
+      const successMsg = isPelayan
+        ? `SELAMAT MELAYANI, ${namaAsli.toUpperCase()}! (${pelayanRoster.role_tugas})`
+        : `SHALOM, ${namaAsli.toUpperCase()}!`;
+
       if (checkAbsensi.rowCount && checkAbsensi.rowCount > 0) {
         const record = checkAbsensi.rows[0];
         if (record.status_kehadiran === 'Hadir') {
-          return NextResponse.json({ success: false, message: 'Jemaat ini sudah melakukan absensi (Sudah Hadir)!', is_alert: true }, { status: 409 });
+          return NextResponse.json({ success: false, message: `${namaAsli} sudah tercatat hadir!`, is_alert: true }, { status: 409 });
         } else {
-          // UPDATE (Skenario Pelayan/WL dsb yang status_kehadirannya = 'Belum Hadir')
-          const updateRole = body.role_kehadiran || record.role_kehadiran;
           await pool.query(
             "UPDATE public.kegiatan_absensi SET status_kehadiran = 'Hadir', metode_absensi = $1, waktu_hadir = CURRENT_TIMESTAMP, role_kehadiran = $2 WHERE id = $3",
-            [mode, updateRole, record.id]
+            [mode, finalRole, record.id]
           );
-          return NextResponse.json({ success: true, message: `SELAMAT MELAYANI, ${namaAsli.toUpperCase()}!`, nama_lengkap: namaAsli, tipe: updateRole });
         }
       } else {
-        // INSERT Baru (Skenario Jemaat biasa / Kustom Role)
-        const newRole = body.role_kehadiran || 'Jemaat';
         await pool.query(
           "INSERT INTO public.kegiatan_absensi (kegiatan_id, jemaat_id, role_kehadiran, metode_absensi, status_kehadiran) VALUES ($1, $2, $3, $4, 'Hadir')",
-          [id, verified_jemaat_id, newRole, mode]
+          [id, verified_jemaat_id, finalRole, mode]
         );
-        return NextResponse.json({ success: true, message: `SHALOM, ${namaAsli.toUpperCase()}!`, nama_lengkap: namaAsli, tipe: newRole });
       }
+
+      // Jika pelayan: update status_konfirmasi di roster juga
+      if (isPelayan && pelayanRoster) {
+        await pool.query(
+          "UPDATE public.kegiatan_jadwal_pelayan SET status_konfirmasi = 'Hadir' WHERE id = $1",
+          [pelayanRoster.roster_id]
+        );
+      }
+
+      return NextResponse.json({ success: true, message: successMsg, nama_lengkap: namaAsli, tipe: finalRole });
     }
 
     // Skenario 2: Tamu / Jemaat Baru

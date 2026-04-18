@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { useLoader } from '@/components/ui/GlobalLoader';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { AlertModal } from '@/components/ui/AlertModal';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
 
 export default function KegiatanPage() {
   const { showLoader, hideLoader } = useLoader();
+  const router = useRouter();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -232,8 +234,20 @@ export default function KegiatanPage() {
 
   // Render Status Badge
   const renderStatusBadge = (status: string) => {
+    // 'Menunggu Dimulai' = visual-only warning badge (pulsing amber)
+    if (status === 'Menunggu Dimulai') {
+      return (
+        <span className="px-2.5 py-1 text-xs font-black rounded-full border bg-amber-50 text-amber-700 border-amber-300 whitespace-nowrap flex items-center gap-1.5">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+          </span>
+          ⚠️ Menunggu Dimulai
+        </span>
+      );
+    }
+
     let colorClass = "bg-slate-100 text-slate-700 border-slate-200"; // Draft
-    
     if (status === 'Menunggu Persetujuan') colorClass = "bg-orange-50 text-orange-700 border-orange-200";
     else if (status === 'Ditolak' || status === 'Dibatalkan') colorClass = "bg-red-50 text-red-700 border-red-200";
     else if (status === 'Akan Datang') colorClass = "bg-indigo-50 text-indigo-700 border-indigo-200";
@@ -266,6 +280,17 @@ export default function KegiatanPage() {
       setShowAdvancedFilters(true);
     }
   }, [filterTanggal]);
+
+  // Keamanan Route: Redirect jemaat jika membuka link admin
+  useEffect(() => {
+    if (userData?.role_name?.toLowerCase() === 'jemaat') {
+      router.replace('/jadwal');
+    }
+  }, [userData, router]);
+
+  if (userData?.role_name?.toLowerCase() === 'jemaat') {
+    return null; // Tahan render selama dilempar ke /jadwal
+  }
 
   return (
     <div className="w-full flex flex-col gap-8 pb-10 relative">
@@ -532,7 +557,7 @@ export default function KegiatanPage() {
             {/* Table Header */}
             <div className="w-full bg-slate-50 border-b border-slate-200 flex items-center px-6 py-4">
               <div className="w-[180px] shrink-0 text-left pr-4 text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">TANGGAL & WAKTU</div>
-              <div className="w-[170px] shrink-0 text-left pr-4 text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">STATUS</div>
+              <div className="w-[200px] shrink-0 text-left pr-4 text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">STATUS</div>
               <div className="flex-1 min-w-[200px] text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">INFORMASI KEGIATAN</div>
               <div className="w-56 shrink-0 text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">JENIS KEGIATAN</div>
               <div className="w-[180px] shrink-0 text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">PELAKSANA</div>
@@ -550,25 +575,36 @@ export default function KegiatanPage() {
                 data.map((kegiatan, idx) => {
                   const isLastRows = data.length > 5 && idx >= data.length - 2;
                   
-                  // State Machine Logic: Auto-Status calculation
+                  // ─── displayStatus: murni visual, TIDAK menyentuh DB ───────
+                  // Prinsip: status DB hanya berubah lewat tombol manual admin.
+                  // Frontend hanya memberi "toa" visual jika waktunya sudah tiba.
                   let displayStatus = kegiatan.status_kegiatan;
-                  if (displayStatus !== 'Draft' && displayStatus !== 'Menunggu Persetujuan' && displayStatus !== 'Ditolak' && displayStatus !== 'Dibatalkan' && displayStatus !== 'Selesai' && !kegiatan.is_lpj_submitted) {
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0); // Reset time to midnight for pure date comparison
-                    const eventDate = new Date(kegiatan.tanggal_selesai || kegiatan.tanggal_mulai);
-                    eventDate.setHours(0, 0, 0, 0);
-                    
-                    if (today > eventDate && displayStatus !== 'Selesai') {
-                      displayStatus = 'Menunggu LPJ';
-                    } else if (today.getTime() === eventDate.getTime() && displayStatus !== 'Menunggu LPJ') {
-                      displayStatus = 'Ongoing';
-                    } else if (today < eventDate) {
-                      // Hindari menimpa status yang sengaja di-Override manual lebih awal
-                      if (displayStatus !== 'Ongoing' && displayStatus !== 'Menunggu LPJ') {
-                         displayStatus = 'Akan Datang';
+
+                  const isTerminal = ['Draft','Menunggu Persetujuan','Ditolak','Dibatalkan','Selesai','Menunggu LPJ','Ongoing'].includes(displayStatus);
+
+                  if (!isTerminal && displayStatus === 'Akan Datang' && kegiatan.tanggal_mulai && kegiatan.waktu_mulai) {
+                    // Ekstrak tanggal dalam timezone LOKAL browser (bukan UTC)
+                    // tanggal_mulai dari PG bisa datang sebagai "2026-04-17T17:00:00.000Z"
+                    // (= tengah malam WIB), substring(0,10) justru ambil tanggal UTC yang salah
+                    const eventDateObj = new Date(kegiatan.tanggal_mulai);
+                    const y = eventDateObj.getFullYear();
+                    const m = String(eventDateObj.getMonth() + 1).padStart(2, '0');
+                    const d = String(eventDateObj.getDate()).padStart(2, '0');
+                    const jam = (kegiatan.waktu_mulai as string).substring(0, 5); // 'HH:MM'
+
+                    if (jam && jam.includes(':')) {
+                      // Bangun waktu mulai dengan offset WIB eksplisit
+                      const eventStartWIB = new Date(`${y}-${m}-${d}T${jam}:00+07:00`);
+                      const nowWIB = new Date();
+
+                      if (nowWIB >= eventStartWIB) {
+                        // Waktu sudah lewat tapi admin belum klik "Mulai Acara"
+                        displayStatus = 'Menunggu Dimulai';
                       }
+                      // else: masih di masa depan → tetap 'Akan Datang'
                     }
                   }
+
 
                   return (
                 <div key={kegiatan.id || idx} className={`w-full flex items-center px-6 py-4 border-b border-slate-100 hover:bg-blue-50/40 hover:shadow-[inset_4px_0_0_0_#3b82f6] transition-all relative ${openMenuId === kegiatan.id ? 'z-50' : 'z-10'}`}>
@@ -581,7 +617,7 @@ export default function KegiatanPage() {
                   </div>
                   
                   {/* Kolom 2: Status */}
-                  <div className="w-[170px] shrink-0 flex items-center justify-start pr-4">
+                  <div className="w-[200px] shrink-0 flex items-center justify-start pr-4">
                      {renderStatusBadge(displayStatus)}
                   </div>
                   
@@ -660,24 +696,58 @@ export default function KegiatanPage() {
                             </>
                           )}
 
-                          {/* AKAN DATANG */}
-                          {displayStatus === 'Akan Datang' && (
+                          {/* AKAN DATANG + MENUNGGU DIMULAI */}
+                          {(displayStatus === 'Akan Datang' || displayStatus === 'Menunggu Dimulai') && (
                             <>
                               <Link href={`/kegiatan/${kegiatan.id}`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Detail</Link>
-                              <Link href={`/kegiatan/${kegiatan.id}?tab=pelayan&mode=manage`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-indigo-400">groups</span>Kelola Pelayan & Peserta</Link>
+                              <Link href={`/kegiatan/${kegiatan.id}?tab=pelayan&mode=manage`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-indigo-400">groups</span>Kelola Pelayan &amp; Peserta</Link>
                               <div className="w-full h-px bg-slate-100 my-1"></div>
-                              <button onClick={() => handleUpdateStatus(kegiatan.id, 'Ongoing')} className="w-full text-left px-4 py-2 hover:bg-emerald-50 text-emerald-700 text-sm flex items-center gap-2 font-bold"><span className="material-icons-round text-[18px] text-emerald-600">play_circle</span>Mulai Acara (Buka Absensi)</button>
+                              {/* Tombol Mulai Acara — lebih mencolok saat sudah waktunya */}
+                              <button
+                                onClick={() => handleUpdateStatus(kegiatan.id, 'Ongoing')}
+                                className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 font-black transition-colors ${
+                                  displayStatus === 'Menunggu Dimulai'
+                                    ? 'hover:bg-amber-50 text-amber-700 bg-amber-50/50'
+                                    : 'hover:bg-emerald-50 text-emerald-700'
+                                }`}
+                              >
+                                <span className={`material-icons-round text-[18px] ${displayStatus === 'Menunggu Dimulai' ? 'text-amber-600' : 'text-emerald-600'}`}>play_circle</span>
+                                {displayStatus === 'Menunggu Dimulai' ? '⚡ MULAI ACARA SEKARANG!' : 'Mulai Acara (Buka Absensi)'}
+                              </button>
                               <button onClick={() => setCancelModal({ isOpen: true, kegiatanId: kegiatan.id, reason: '' })} className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-red-400">block</span>Batalkan Kegiatan</button>
                             </>
                           )}
 
-                          {/* ONGOING */}
+                          {/* ONGOING — 4 Aksi Hierarkis */}
                           {displayStatus === 'Ongoing' && (
                             <>
-                              <Link href={`/kegiatan/${kegiatan.id}`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Detail</Link>
-                              <Link href={`/kegiatan/${kegiatan.id}/absen`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-emerald-500">how_to_reg</span>Input Absensi</Link>
+                              {/* 1. Lihat Detail */}
+                              <Link href={`/kegiatan/${kegiatan.id}`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2">
+                                <span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Detail
+                              </Link>
+
                               <div className="w-full h-px bg-slate-100 my-1"></div>
-                              <button onClick={() => setCancelModal({ isOpen: true, kegiatanId: kegiatan.id, reason: '' })} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">flag</span>Akhiri Kegiatan</button>
+
+                              {/* 2. INPUT ABSENSI JEMAAT — Primary Action (bold only) */}
+                              <Link href={`/kegiatan/${kegiatan.id}/absen`} className="w-full text-left px-4 py-2.5 hover:bg-blue-50 text-blue-700 text-sm flex items-center gap-2 font-black">
+                                <span className="material-icons-round text-[18px] text-blue-600">qr_code_scanner</span>
+                                <span>INPUT ABSENSI JEMAAT</span>
+                              </Link>
+
+                              {/* 3. Absensi Tim Pelayan — Deep-link ke tab pelayan */}
+                              <Link href={`/kegiatan/${kegiatan.id}?tab=pelayan&mode=manage`} className="w-full text-left px-4 py-2 hover:bg-indigo-50 text-indigo-700 text-sm flex items-center gap-2">
+                                <span className="material-icons-round text-[18px] text-indigo-500">groups</span>Absensi Tim Pelayan
+                              </Link>
+
+                              <div className="w-full h-px bg-slate-100 my-1"></div>
+
+                              {/* 4. Akhiri Kegiatan */}
+                              <button
+                                onClick={() => handleUpdateStatus(kegiatan.id, 'Menunggu LPJ')}
+                                className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 text-sm flex items-center gap-2"
+                              >
+                                <span className="material-icons-round text-[18px] text-red-400">stop_circle</span>Akhiri Kegiatan
+                              </button>
                             </>
                           )}
 

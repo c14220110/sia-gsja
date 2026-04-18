@@ -61,7 +61,8 @@ export class AuthService {
       role_name: singleRole.nama_role,
       satelit_id: singleRole.satelit_id,
       is_super_admin,
-      permissions
+      permissions,
+      jemaat_id: user.jemaat_id ?? null   // ← wajib untuk fitur pelayan di PWA
     };
 
     const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: expiresInString });
@@ -93,13 +94,17 @@ export class AuthService {
     const expiresInString = isJemaat ? '180d' : '1d';
     const cookieMaxAge = isJemaat ? 60 * 60 * 24 * 180 : 60 * 60 * 24;
 
+    // Ambil jemaat_id dari DB karena generateFinalToken hanya punya userId
+    const userRecord = await userRepository.findById(userId);
+
     const tokenPayload = {
       user_id: userId,
       role_id: selectedRole.role_id,
       role_name: selectedRole.nama_role,
       satelit_id: selectedRole.satelit_id,
       is_super_admin,
-      permissions
+      permissions,
+      jemaat_id: userRecord?.jemaat_id ?? null   // ← wajib untuk fitur pelayan di PWA
     };
 
     const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: expiresInString });

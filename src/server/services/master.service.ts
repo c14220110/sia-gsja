@@ -44,6 +44,12 @@ export async function searchJemaatOptions(query: string, onlyActive?: boolean): 
   return await masterRepository.searchJemaat(query, onlyActive);
 }
 
+export async function searchPelayanOptions(query: string, roleId?: string, kegiatanId?: string): Promise<any[]> {
+  // Allow empty query when filtering by roleId (load full list for a role)
+  if (!query && !roleId) return [];
+  return await masterRepository.searchPelayan(query, roleId, kegiatanId);
+}
+
 export async function getDepartemenOptions(): Promise<any[]> {
   return await masterRepository.getAllDepartemen();
 }

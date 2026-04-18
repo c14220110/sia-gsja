@@ -20,6 +20,11 @@ export async function getOptionsController(request: Request) {
       const q = searchParams.get('q') || '';
       const onlyActive = searchParams.get('only_active') === 'true';
       data = await masterService.searchJemaatOptions(q, onlyActive);
+    } else if (type === 'pelayan_search') {
+      const q = searchParams.get('q') || '';
+      const roleId = searchParams.get('role_id') || undefined;
+      const kegiatanId = searchParams.get('kegiatan_id') || undefined;
+      data = await masterService.searchPelayanOptions(q, roleId, kegiatanId);
     } else if (type === 'departemen') {
       data = await masterService.getDepartemenOptions();
     } else if (type === 'pekerjaan') {

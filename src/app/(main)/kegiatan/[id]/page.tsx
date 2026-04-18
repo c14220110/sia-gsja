@@ -1,18 +1,22 @@
 'use client';
 
 import React, { useState, useEffect, useRef, use } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 // Helper component for Async Search (Server-side search)
 const AsyncAutocomplete = ({ 
   label, 
   onSelect,
-  placeholder = "Ketik minimal 3 huruf..." 
+  placeholder = "Ketik minimal 3 huruf...",
+  optionType,
+  extraQuery = ""
 }: { 
   label: string, 
   onSelect: (id: string, name: string) => void,
-  placeholder?: string 
+  placeholder?: string,
+  optionType?: string,
+  extraQuery?: string
 }) => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
@@ -39,7 +43,7 @@ const AsyncAutocomplete = ({
     }
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/options?type=jemaat_search&q=${encodeURIComponent(searchTerm)}`);
+      const res = await fetch(`/api/options?type=${optionType || 'jemaat_search'}&q=${encodeURIComponent(searchTerm)}${extraQuery}`);
       const data = await res.json();
       if (data.success && data.data.length > 0) {
         setResults(data.data);
@@ -112,12 +116,196 @@ const AsyncAutocomplete = ({
   );
 };
 
+// Smart picker: shows full role-filtered list on focus (no typing needed),
+// falls back to type-to-search (min 3 chars) in bypass mode
+const RoleAwareSelect = ({
+  roleId,
+  roleName,
+  bypassMode,
+  onSelect,
+  kegiatanId = '',
+}: {
+  roleId: string;
+  roleName: string;
+  bypassMode: boolean;
+  onSelect: (id: string, name: string) => void;
+  kegiatanId?: string;
+}) => {
+  const [query, setQuery] = useState('');
+  const [allRoleMembers, setAllRoleMembers] = useState<any[]>([]);
+  const [filteredMembers, setFilteredMembers] = useState<any[]>([]);
+  const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Reset when role or bypass changes
+  useEffect(() => {
+    setQuery('');
+    setAllRoleMembers([]);
+    setFilteredMembers([]);
+    setIsOpen(false);
+    setHasLoaded(false);
+  }, [roleId, bypassMode]);
+
+  // Click outside to close
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) setIsOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  // On focus: load all pelayan for role immediately (non-bypass mode)
+  const handleFocus = async () => {
+    if (bypassMode) return;
+    if (hasLoaded) {
+      const filtered = allRoleMembers.filter(m => !query || m.nama_lengkap.toLowerCase().includes(query.toLowerCase()));
+      setFilteredMembers(filtered);
+      setIsOpen(allRoleMembers.length > 0);
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const res = await fetch(`/api/options?type=pelayan_search&q=&role_id=${roleId}&kegiatan_id=${kegiatanId}`);
+      const data = await res.json();
+      const members = data.success ? (data.data || []) : [];
+      setAllRoleMembers(members);
+      setFilteredMembers(members);
+      setHasLoaded(true);
+      if (members.length > 0) setIsOpen(true);
+    } catch (err) { console.error(err); }
+    finally { setIsLoading(false); }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setQuery(val);
+
+    if (bypassMode) {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(async () => {
+        if (val.length < 3) { setFilteredMembers([]); setIsOpen(false); return; }
+        setIsLoading(true);
+        try {
+          const res = await fetch(`/api/options?type=pelayan_search&q=${encodeURIComponent(val)}&kegiatan_id=${kegiatanId}`);
+          const data = await res.json();
+          const members = data.success ? (data.data || []) : [];
+          setFilteredMembers(members);
+          setIsOpen(members.length > 0);
+        } catch (err) { console.error(err); }
+        finally { setIsLoading(false); }
+      }, 400);
+    } else {
+      // Client-side filter on already-loaded list
+      const filtered = allRoleMembers.filter(m => m.nama_lengkap.toLowerCase().includes(val.toLowerCase()));
+      setFilteredMembers(filtered);
+      setIsOpen(filtered.length > 0);
+    }
+  };
+
+  const placeholder = bypassMode
+    ? 'Ketik minimal 3 huruf nama pelayan...'
+    : hasLoaded && allRoleMembers.length === 0
+      ? `Tidak ada pelayan aktif dengan role ${roleName}`
+      : `Klik untuk lihat daftar ${roleName}${hasLoaded ? ` · ${allRoleMembers.length} orang` : '...'}`;
+
+  return (
+    <div className="w-full" ref={wrapperRef}>
+      <div className="relative">
+        <input
+          type="text"
+          value={query}
+          onChange={handleInputChange}
+          onFocus={handleFocus}
+          placeholder={placeholder}
+          className="px-4 py-3 pr-10 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm w-full transition-all placeholder:text-slate-400 placeholder:italic"
+        />
+        {isLoading ? (
+          <div className="absolute right-3 top-3.5 w-4 h-4 rounded-full border-2 border-slate-200 border-t-blue-500 animate-spin" />
+        ) : (
+          <span className="absolute right-3 top-3 material-icons-round text-slate-300 text-[18px]">
+            {isOpen ? 'expand_less' : 'expand_more'}
+          </span>
+        )}
+      </div>
+      {hasLoaded && allRoleMembers.length === 0 && !bypassMode && !isLoading && (
+        <p className="text-[11px] text-amber-600 mt-1.5 ml-1 flex items-center gap-1">
+          <span className="material-icons-round text-[13px]">warning_amber</span>
+          Belum ada pelayan terdaftar di posisi ini. Centang opsi di bawah untuk memilih dari semua pelayan aktif.
+        </p>
+      )}
+      {isOpen && filteredMembers.length > 0 && (
+        <div className="mt-1 w-full bg-white rounded-xl border border-slate-200 shadow-sm">
+          <div className="px-4 py-2 border-b border-slate-100 bg-slate-50 rounded-t-xl">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+              {bypassMode ? `${filteredMembers.length} Pelayan Ditemukan` : `🎯 ${filteredMembers.length} Pelayan · ${roleName}`}
+            </span>
+          </div>
+          {filteredMembers.map((r, i) => (
+            <div
+              key={i}
+              className="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-slate-100 last:border-0 flex items-center gap-3 transition-colors group"
+              onClick={() => {
+                onSelect(r.id.toString(), r.nama_lengkap);
+                setQuery(r.nama_lengkap);
+                setIsOpen(false);
+              }}
+            >
+              {r.foto_url ? (
+                <img src={r.foto_url} alt={r.nama_lengkap} className="w-9 h-9 rounded-full object-cover border-2 border-slate-200 flex-shrink-0" />
+              ) : (
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                  {r.nama_lengkap.charAt(0)}
+                </div>
+              )}
+              <div className="flex flex-col min-w-0 flex-1">
+                <div className="text-sm font-bold text-slate-900 group-hover:text-blue-700 truncate">{r.nama_lengkap}</div>
+                {r.nama_kegiatan_bentrok ? (
+                  <div className="text-[10px] font-bold text-red-500 flex items-center gap-0.5">
+                    <span className="material-icons-round text-[11px]">warning</span>
+                    Bentrok: {r.nama_kegiatan_bentrok}
+                  </div>
+                ) : (
+                  <div className="text-[10px] text-slate-400 flex items-center gap-1">
+                    Pelayan Aktif
+                    {r.jumlah_bulan_ini > 0 && (
+                      <span className={`font-bold ${r.jumlah_bulan_ini >= 8 ? 'text-red-500' : r.jumlah_bulan_ini >= 4 ? 'text-amber-500' : 'text-emerald-600'}`}>
+                        &middot; {r.jumlah_bulan_ini}x bulan ini{r.jumlah_bulan_ini >= 8 ? ' 🔥' : ''}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+              <span className="material-icons-round text-slate-200 group-hover:text-blue-400 text-[16px] flex-shrink-0">chevron_right</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {isOpen && filteredMembers.length === 0 && !isLoading && (
+        <div className="mt-1 w-full bg-white rounded-xl border border-slate-200 shadow-sm p-6 text-center">
+          <span className="material-icons-round text-slate-300 text-[32px]">search_off</span>
+          <p className="text-sm text-slate-500 mt-1">Tidak ada pelayan yang cocok.</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+
 export default function DetailKegiatanPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const unwrappedParams = use(params);
   const id = unwrappedParams.id;
 
-  const [activeTab, setActiveTab] = useState<'info'|'registrasi'|'pelayan'|'pasien'>('info');
+  const searchParamsHook = useSearchParams();
+
+  // Tab state — primed from ?tab= URL param for deep-link support
+  const [activeTab, setActiveTab] = useState<'info' | 'pelayan' | 'registrasi' | 'pasien'>(
+    (searchParamsHook.get('tab') as any) || 'info'
+  );
   const [data, setData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -132,10 +320,17 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
   const [isModalRegistrasiOpen, setIsModalRegistrasiOpen] = useState(false);
   
   // Modal Form State (Pelayan)
+  const [rolePelayanOptions, setRolePelayanOptions] = useState<any[]>([]);
+  const [bypassRoleFilter, setBypassRoleFilter] = useState(false);
   const [formPelayan, setFormPelayan] = useState({
-    jemaat_id: '',
-    role_kehadiran: 'WL'
+    pelayan_id: '',
+    role_id: '',
+    role_kehadiran: ''
   });
+
+  // Roster multi-select state (untuk absensi massal)
+  const [selectedRosterIds, setSelectedRosterIds] = useState<Set<number>>(new Set());
+  const [isBulkMarking, setIsBulkMarking] = useState(false);
   
   // Modal Form State (Registrasi)
   const [formRegistrasi, setFormRegistrasi] = useState({
@@ -178,13 +373,10 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
     fetchPelayan();
     fetchRegistrasi();
     fetchPasien();
+    fetchRolePelayanOptions();
     
     if (typeof window !== 'undefined') {
        const uParams = new URLSearchParams(window.location.search);
-       const tabQuery = uParams.get('tab');
-       if (tabQuery === 'pelayan' || tabQuery === 'registrasi' || tabQuery === 'pasien') {
-           setActiveTab(tabQuery as any);
-       }
        if (uParams.get('mode') === 'manage') {
            setIsManagerMode(true);
        }
@@ -242,24 +434,55 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
     }
   };
 
-  const handleSimpanPelayan = async () => {
-    if (!formPelayan.jemaat_id) {
-      alert('Pilih jemaat terlebih dahulu!');
+  const fetchRolePelayanOptions = async () => {
+    try {
+      const res = await fetch('/api/options?type=role_pelayan');
+      const json = await res.json();
+      if (json.success) setRolePelayanOptions(json.data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleSimpanPelayan = async (forceDouble = false) => {
+    if (!formPelayan.pelayan_id || !formPelayan.role_kehadiran) {
+      alert('Pilih pelayan dan peran/tugas terlebih dahulu!');
       return;
     }
-    
+
+    // Soft Warning: deteksi tugas ganda sebelum kirim ke server
+    if (!forceDouble) {
+      const existingRoles = pelayanList
+        .filter((p: any) => p.pelayan_id?.toString() === formPelayan.pelayan_id)
+        .map((p: any) => p.role_kehadiran);
+
+      if (existingRoles.length > 0) {
+        const existingRoleText = existingRoles.join(', ');
+        const selectedNama = pelayanList.find((p: any) =>
+          p.pelayan_id?.toString() === formPelayan.pelayan_id
+        )?.nama_lengkap || 'Pelayan ini';
+        const confirmed = window.confirm(
+          `⚠️ Tugas Ganda Terdeteksi!\n\n` +
+          `${selectedNama} sudah dijadwalkan sebagai [${existingRoleText}] di kegiatan ini.\n\n` +
+          `Apakah Anda yakin ingin menambahkan tugas tambahan sebagai [${formPelayan.role_kehadiran}]?`
+        );
+        if (!confirmed) return;
+      }
+    }
+
     setIsSavingPelayan(true);
     try {
       const res = await fetch(`/api/kegiatan/${id}/pelayan`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formPelayan)
+        body: JSON.stringify({ pelayan_id: formPelayan.pelayan_id, role_id: formPelayan.role_id, role_kehadiran: formPelayan.role_kehadiran })
       });
       const json = await res.json();
       
       if (json.success) {
         setIsModalOpen(false);
-        setFormPelayan({ jemaat_id: '', role_kehadiran: 'WL' });
+        setFormPelayan({ pelayan_id: '', role_id: '', role_kehadiran: '' });
+        setBypassRoleFilter(false);
         fetchPelayan(); // refresh list
       } else {
         alert(json.message || 'Gagal menyimpan pelayan');
@@ -694,6 +917,49 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
                )}
             </div>
 
+
+            {/* BULK ACTION BAR — hanya muncul saat Ongoing dan ada yang dipilih */}
+            {data.status_kegiatan === 'Ongoing' && isPelayanManager && selectedRosterIds.size > 0 && (
+              <div className="mx-6 my-3 px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between animate-in slide-in-from-top-2 fade-in">
+                <span className="text-sm font-bold text-blue-800">
+                  {selectedRosterIds.size} pelayan dipilih
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setSelectedRosterIds(new Set())}
+                    className="px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                  >
+                    Batal Pilih
+                  </button>
+                  <button
+                    disabled={isBulkMarking}
+                    onClick={async () => {
+                      setIsBulkMarking(true);
+                      try {
+                        await fetch(`/api/kegiatan/${id}/pelayan`, {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            roster_ids: Array.from(selectedRosterIds),
+                            status_konfirmasi: 'Hadir'
+                          })
+                        });
+                        setSelectedRosterIds(new Set());
+                        fetchPelayan();
+                      } catch (e) { console.error(e); } finally {
+                        setIsBulkMarking(false);
+                      }
+                    }}
+                    className="px-4 py-1.5 text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    {isBulkMarking
+                      ? <span className="material-icons-round text-[14px] animate-spin">refresh</span>
+                      : <span className="material-icons-round text-[14px]">done_all</span>}
+                    Tandai {selectedRosterIds.size} Pelayan Hadir
+                  </button>
+                </div>
+              </div>
+            )}
             <div className="p-0 flex flex-col">
               {isLoadingPelayan ? (
                 <div className="p-12 flex justify-center items-center"><div className="w-6 h-6 border-2 border-slate-200 border-t-blue-600 rounded-full animate-spin"></div></div>
@@ -710,17 +976,59 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-wider border-b border-slate-200">
-                        <th className="py-4 px-6 font-semibold w-12">No</th>
-                        <th className="py-4 px-6 font-semibold">Nama Individu</th>
-                        <th className="py-4 px-6 font-semibold">Tugas / Peran Eksklusif</th>
-                        <th className="py-4 px-6 font-semibold">Status Konfirmasi</th>
-                        <th className="py-4 px-6 font-semibold text-right">Aksi</th>
+                        {/* Checkbox all — hanya tampil saat Ongoing */}
+                        {data.status_kegiatan === 'Ongoing' && isPelayanManager && (
+                          <th className="py-4 pl-6 pr-2 w-8">
+                            <input
+                              type="checkbox"
+                              className="w-4 h-4 rounded accent-blue-600 cursor-pointer"
+                              checked={selectedRosterIds.size === pelayanList.filter((p: any) => p.status_konfirmasi !== 'Hadir').length && pelayanList.filter((p: any) => p.status_konfirmasi !== 'Hadir').length > 0}
+                              onChange={e => {
+                                if (e.target.checked) {
+                                  setSelectedRosterIds(new Set(pelayanList.filter((p: any) => p.status_konfirmasi !== 'Hadir').map((p: any) => p.id)));
+                                } else {
+                                  setSelectedRosterIds(new Set());
+                                }
+                              }}
+                              title="Pilih semua yang belum hadir"
+                            />
+                          </th>
+                        )}
+                        <th className="py-4 px-4 font-semibold w-10">No</th>
+                        <th className="py-4 px-4 font-semibold">Nama Individu</th>
+                        <th className="py-4 px-4 font-semibold">Tugas / Peran Eksklusif</th>
+                        <th className="py-4 px-4 font-semibold">Status Konfirmasi</th>
+                        <th className="py-4 px-4 font-semibold text-right">Aksi</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {pelayanList.map((p, index) => (
-                        <tr key={p.id} className="hover:bg-slate-50/50 transition-colors group">
-                          <td className="py-4 px-6 text-sm text-slate-500">{index + 1}</td>
+                        <tr key={p.id} className={`hover:bg-slate-50/50 transition-colors group ${selectedRosterIds.has(p.id) ? 'bg-blue-50/40' : ''}`}>
+                          {/* Checkbox column — hanya saat Ongoing dan belum hadir */}
+                          {data.status_kegiatan === 'Ongoing' && isPelayanManager && (
+                            <td className="py-4 pl-6 pr-2">
+                              {p.status_konfirmasi !== 'Hadir' ? (
+                                <input
+                                  type="checkbox"
+                                  className="w-4 h-4 rounded accent-blue-600 cursor-pointer"
+                                  checked={selectedRosterIds.has(p.id)}
+                                  onChange={e => {
+                                    const next = new Set(selectedRosterIds);
+                                    // Tugas ganda: centang/hapus semua baris milik pelayan yang sama
+                                    const sameIds = pelayanList
+                                      .filter((x: any) => x.pelayan_id === p.pelayan_id && x.status_konfirmasi !== 'Hadir')
+                                      .map((x: any) => x.id);
+                                    if (e.target.checked) sameIds.forEach((rid: number) => next.add(rid));
+                                    else sameIds.forEach((rid: number) => next.delete(rid));
+                                    setSelectedRosterIds(next);
+                                  }}
+                                />
+                              ) : (
+                                <span className="material-icons-round text-emerald-500 text-[18px]">check_circle</span>
+                              )}
+                            </td>
+                          )}
+                          <td className="py-4 px-4 text-sm text-slate-500">{index + 1}</td>
                           <td className="py-4 px-6">
                             <div className="flex items-center gap-3">
                               {p.foto_url ? (
@@ -730,7 +1038,15 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
                                   {p.nama_lengkap.charAt(0)}
                                 </div>
                               )}
-                              <span className="text-sm font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">{p.nama_lengkap}</span>
+                              <div className="flex flex-col">
+                                <span className="text-sm font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">{p.nama_lengkap}</span>
+                                {pelayanList.filter((x: any) => x.pelayan_id === p.pelayan_id).length > 1 && (
+                                  <span className="text-[10px] font-bold text-amber-600 flex items-center gap-0.5 mt-0.5">
+                                    <span className="material-icons-round text-[11px]">repeat</span>
+                                    Tugas Ganda
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </td>
                           <td className="py-4 px-6">
@@ -739,18 +1055,100 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
                              </div>
                           </td>
                           <td className="py-4 px-6">
-                             <div className="flex items-center gap-1.5 opacity-60">
-                               <span className="w-2 h-2 rounded-full border border-slate-400"></span>
-                               <span className="text-xs font-medium text-slate-500">Menunggu Absensi (H-Hari)</span>
-                             </div>
-                          </td>
-                          <td className="py-4 px-6 text-right">
-                             {isPelayanManager && (
-                               <button className="w-8 h-8 rounded-full hover:bg-red-50 text-red-400 hover:text-red-600 inline-flex items-center justify-center transition-colors">
-                                  <span className="material-icons-round text-[18px]">delete_outline</span>
-                               </button>
-                             )}
-                          </td>
+                              {/* ── FASE 2: HARI H (Ongoing/pasca) ── */}
+                              {['Ongoing','Menunggu LPJ','Selesai'].includes(data.status_kegiatan) ? (
+                                p.status_konfirmasi === 'Hadir' ? (
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                    <span className="text-xs font-bold text-emerald-700">Hadir ✓</span>
+                                  </div>
+                                ) : p.status_konfirmasi === 'Tidak Hadir' ? (
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                                    <span className="text-xs font-bold text-red-600">Tidak Hadir</span>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-1.5 opacity-60">
+                                    <span className="w-2 h-2 rounded-full border border-slate-400"></span>
+                                    <span className="text-xs font-medium text-slate-500">Menunggu Absensi</span>
+                                  </div>
+                                )
+                              ) : (
+                                /* ── FASE 1: PRA-ACARA (RSVP) ── */
+                                p.status_konfirmasi === 'Bersedia' ? (
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                    <span className="text-xs font-bold text-emerald-700">✅ Bersedia</span>
+                                  </div>
+                                ) : p.status_konfirmasi === 'Berhalangan' ? (
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                                    <span className="text-xs font-bold text-red-600">❌ Berhalangan</span>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                                    <span className="text-xs font-medium text-amber-700">⏳ Menunggu Konfirmasi</span>
+                                  </div>
+                                )
+                              )}
+                           </td>
+                           <td className="py-4 px-6 text-right">
+                               {isPelayanManager && (
+                                 <div className="flex items-center justify-end gap-1">
+
+                                   {/* Fase 1: Pra-Acara — tombol Ganti Pelayan jika Berhalangan */}
+                                   {!['Ongoing','Menunggu LPJ','Selesai'].includes(data.status_kegiatan) && p.status_konfirmasi === 'Berhalangan' && (
+                                     <button
+                                       onClick={() => {
+                                         setFormPelayan({ pelayan_id: '', role_id: String(p.role_id), role_kehadiran: p.role_kehadiran });
+                                         setIsModalOpen(true);
+                                       }}
+                                       className="px-2.5 py-1 rounded-lg bg-orange-50 hover:bg-orange-100 text-orange-700 text-[11px] font-black transition-colors border border-orange-200 flex items-center gap-1"
+                                       title="Cari pengganti untuk peran ini"
+                                     >
+                                       <span className="material-icons-round text-[14px]">swap_horiz</span>
+                                       Ganti Pelayan
+                                     </button>
+                                   )}
+
+                                   {/* Fase 2: Hari H — tombol Tandai Hadir manual */}
+                                   {p.status_konfirmasi !== 'Hadir' && data.status_kegiatan === 'Ongoing' && (
+                                     <button
+                                       onClick={async () => {
+                                         try {
+                                           await fetch(`/api/kegiatan/${id}/pelayan`, {
+                                             method: 'PATCH',
+                                             headers: { 'Content-Type': 'application/json' },
+                                             body: JSON.stringify({ roster_id: p.id, status_konfirmasi: 'Hadir' })
+                                           });
+                                           fetchPelayan();
+                                         } catch (e) { console.error(e); }
+                                       }}
+                                       className="px-2.5 py-1 rounded-lg bg-white hover:bg-emerald-50 text-slate-500 hover:text-emerald-700 text-[11px] font-bold transition-colors border border-slate-200 hover:border-emerald-200 flex items-center gap-1"
+                                       title="Tandai Hadir Manual"
+                                     >
+                                       <span className="material-icons-round text-[14px]">how_to_reg</span>
+                                       Tandai Hadir
+                                     </button>
+                                   )}
+
+                                   <button
+                                     onClick={async () => {
+                                       if (!confirm(`Hapus ${p.nama_lengkap} (${p.role_kehadiran}) dari roster?`)) return;
+                                       try {
+                                         await fetch(`/api/kegiatan/${id}/pelayan?roster_id=${p.id}`, { method: 'DELETE' });
+                                         fetchPelayan();
+                                       } catch (e) { console.error(e); }
+                                     }}
+                                     className="w-8 h-8 rounded-full hover:bg-red-50 text-red-400 hover:text-red-600 inline-flex items-center justify-center transition-colors"
+                                     title="Hapus dari Roster"
+                                   >
+                                      <span className="material-icons-round text-[18px]">delete_outline</span>
+                                   </button>
+                                 </div>
+                               )}
+                           </td>
                         </tr>
                       ))}
                     </tbody>
@@ -1004,9 +1402,9 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
 
       {/* POPUP MODAL TAMBAH PELAYAN TAMU/LOKAL */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-4 py-6">
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => !isSavingPelayan && setIsModalOpen(false)}></div>
-          <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-200">
+          <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl relative z-10 animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
             <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
               <h3 className="text-slate-900 font-black text-lg flex items-center gap-2">
                 <span className="material-icons-round text-blue-600">person_add</span> Susun Individu Pelayan
@@ -1015,37 +1413,73 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
                 <span className="material-icons-round text-[20px]">close</span>
               </button>
             </div>
-            
-            <div className="p-6 flex flex-col gap-6">
-               
-               <AsyncAutocomplete 
-                 label="1. Relasikan Data Jemaat/Pengurus" 
-                 onSelect={(id, name) => setFormPelayan(prev => ({ ...prev, jemaat_id: id }))}
-                 placeholder="Ketik minimal 3 huruf nama jemaat..."
-               />
-
-               <div className="w-full flex flex-col gap-1.5">
-                 <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase">2. Tugaskan Role <span className="text-red-500">*</span></label>
+                       <div className="p-6 flex flex-col gap-6 overflow-y-auto scrollbar-hide flex-1">
+                
+               <div className="w-full flex flex-col gap-1.5 border border-blue-100 bg-blue-50/50 p-4 rounded-xl relative overflow-hidden">
+                 <div className="absolute top-0 right-0 p-3 opacity-20 pointer-events-none">
+                   <span className="material-icons-round text-6xl text-blue-500">assignment_ind</span>
+                 </div>
+                 <label className="text-blue-900 text-xs font-bold font-['Inter'] uppercase flex items-center gap-2">
+                   1. Tentukan Role/Tugas <span className="text-red-500">*</span>
+                 </label>
                  <select 
-                   value={formPelayan.role_kehadiran} 
-                   onChange={(e) => setFormPelayan(prev => ({ ...prev, role_kehadiran: e.target.value }))}
-                   className="px-4 py-3 bg-slate-50 rounded-lg border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-sm w-full font-semibold text-slate-700"
+                   value={formPelayan.role_id} 
+                   onChange={(e) => {
+                     const selectedId = e.target.value;
+                     const roleObj = rolePelayanOptions.find((r: any) => r.id.toString() === selectedId);
+                     setFormPelayan(prev => ({ 
+                       ...prev, 
+                       role_id: selectedId, 
+                       role_kehadiran: roleObj ? roleObj.nama_role : '',
+                       pelayan_id: '' // Reset pelayan if role changes
+                     }));
+                   }}
+                   className="px-4 py-3 bg-white rounded-lg border border-blue-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-sm w-full font-semibold text-slate-800 relative z-10 shadow-sm mt-1 cursor-pointer"
                  >
-                   <optgroup label="Mimbar Utama">
-                     <option value="WL">Worship Leader (WL)</option>
-                     <option value="Singer">Singer / Vokal</option>
-                   </optgroup>
-                   <optgroup label="Instrumen Musik">
-                     <option value="Pemusik Keyboard">Pemusik - Keyboard</option>
-                     <option value="Pemusik Gitar">Pemusik - Gitar / Bass</option>
-                     <option value="Pemusik Drum">Pemusik - Drum / Perkusi</option>
-                   </optgroup>
-                   <optgroup label="Ibadah Teknis">
-                     <option value="Usher">Usher / Penyambut</option>
-                     <option value="Kolektan">Kolektan / Persembahan</option>
-                     <option value="Multimedia">Kru Multimedia (LCD/Kamera)</option>
-                   </optgroup>
+                   <option value="">-- Pilih Peran / Role Tersedia --</option>
+                   {rolePelayanOptions.map(r => (
+                     <option key={r.id} value={r.id}>{r.nama_role}</option>
+                   ))}
                  </select>
+               </div>
+
+               <div className="w-full flex flex-col gap-2">
+                 <label className={`text-xs font-bold font-['Inter'] uppercase transition-colors ${!formPelayan.role_id ? 'text-slate-400' : 'text-slate-500'}`}>
+                   2. Cari Pelayan Aktif <span className="text-red-500">*</span>
+                 </label>
+                 
+                 {!formPelayan.role_id ? (
+                    <div className="w-full px-4 py-3 bg-slate-50 rounded-lg border border-slate-200 border-dashed text-sm text-slate-400 font-medium italic flex items-center gap-2">
+                       <span className="material-icons-round text-[16px]">lock</span>
+                       Pilih role/tugas terlebih dahulu
+                    </div>
+                 ) : (
+                    <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-top-1">
+                      <RoleAwareSelect
+                        roleId={formPelayan.role_id}
+                        roleName={formPelayan.role_kehadiran}
+                        bypassMode={bypassRoleFilter}
+                        kegiatanId={id}
+                        onSelect={(id, name) => setFormPelayan(prev => ({ ...prev, pelayan_id: id }))}
+                      />
+                    </div>
+                 )}
+
+                 {formPelayan.role_id && (
+                   <label className="flex items-center gap-1.5 cursor-pointer mt-1 self-start ml-1 group w-fit">
+                     <input 
+                       type="checkbox" 
+                       checked={bypassRoleFilter} 
+                       onChange={(e) => {
+                         setBypassRoleFilter(e.target.checked);
+                         setFormPelayan(prev => ({...prev, jemaat_id: ''})); // reset selection 
+                       }} 
+                       className="w-4 h-4 text-amber-500 rounded border-slate-300 focus:ring-amber-500 cursor-pointer" />
+                     <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide group-hover:text-slate-700 transition">
+                       Lihat semua pelayan aktif (tidak terbatas posisi)
+                     </span>
+                   </label>
+                 )}
                </div>
             </div>
 
@@ -1053,7 +1487,7 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
                <button onClick={() => setIsModalOpen(false)} disabled={isSavingPelayan} className="px-5 py-2.5 rounded-lg text-slate-600 font-semibold hover:bg-slate-200 text-sm">
                  Batal
                </button>
-               <button onClick={handleSimpanPelayan} disabled={isSavingPelayan || !formPelayan.jemaat_id} className="px-6 py-2.5 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 flex items-center gap-2 text-sm shadow-sm disabled:opacity-50 transition-all">
+               <button onClick={handleSimpanPelayan} disabled={isSavingPelayan || !formPelayan.pelayan_id || !formPelayan.role_kehadiran} className="px-6 py-2.5 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 flex items-center gap-2 text-sm shadow-sm disabled:opacity-50 transition-all">
                  {isSavingPelayan ? <span className="material-icons-round animate-spin text-[18px]">refresh</span> : <span className="material-icons-round text-[18px]">add_circle</span>}
                  Simpan & Ikat Peran
                </button>

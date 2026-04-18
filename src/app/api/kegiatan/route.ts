@@ -77,7 +77,7 @@ export async function GET(request: Request) {
     } else if (statusKegiatan === 'Ongoing') {
       whereClauses.push(`CURRENT_DATE BETWEEN k.tanggal_mulai AND COALESCE(k.tanggal_selesai, k.tanggal_mulai) AND lpj.kegiatan_id IS NULL AND k.status_kegiatan NOT IN ('Dibatalkan', 'Draft', 'Selesai')`);
     } else if (statusKegiatan === 'Akan Datang') {
-      whereClauses.push(`k.tanggal_mulai > CURRENT_DATE AND k.status_kegiatan NOT IN ('Dibatalkan', 'Draft', 'Selesai')`);
+      whereClauses.push(`k.tanggal_mulai >= CURRENT_DATE AND k.status_kegiatan NOT IN ('Dibatalkan', 'Draft', 'Selesai')`);
     } else if (statusKegiatan) {
       whereClauses.push(`k.status_kegiatan = $${paramIndex}`);
       values.push(statusKegiatan);
