@@ -1487,7 +1487,7 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
                <button onClick={() => setIsModalOpen(false)} disabled={isSavingPelayan} className="px-5 py-2.5 rounded-lg text-slate-600 font-semibold hover:bg-slate-200 text-sm">
                  Batal
                </button>
-               <button onClick={handleSimpanPelayan} disabled={isSavingPelayan || !formPelayan.pelayan_id || !formPelayan.role_kehadiran} className="px-6 py-2.5 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 flex items-center gap-2 text-sm shadow-sm disabled:opacity-50 transition-all">
+               <button onClick={() => handleSimpanPelayan()} disabled={isSavingPelayan || !formPelayan.pelayan_id || !formPelayan.role_kehadiran} className="px-6 py-2.5 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 flex items-center gap-2 text-sm shadow-sm disabled:opacity-50 transition-all">
                  {isSavingPelayan ? <span className="material-icons-round animate-spin text-[18px]">refresh</span> : <span className="material-icons-round text-[18px]">add_circle</span>}
                  Simpan & Ikat Peran
                </button>
