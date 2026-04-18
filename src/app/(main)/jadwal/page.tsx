@@ -139,7 +139,7 @@ export default function JadwalDanAcaraPage() {
 
                       {/* Event Cards Wrapper */}
                       <div className="flex flex-col gap-4 pl-[34px] w-full">
-                        {groupedEvents[dateStr].map(item => (
+                        {groupedEvents[dateStr].map((item: any) => (
                           <div key={item.id} className="bg-white rounded-[20px] p-3.5 border border-slate-200/60 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] flex flex-col gap-3 group relative overflow-hidden transition-all hover:shadow-md">
                              {/* Left Accent line */}
                              <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>

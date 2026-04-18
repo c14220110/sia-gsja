@@ -156,7 +156,7 @@ export default function PelayanJadwalPage() {
           <div className="w-full flex flex-col mb-8 pointer-events-auto">
             <h2 className="px-6 text-[18px] font-black text-slate-900 tracking-tight mb-3">Konfirmasi Jadwal</h2>
             <div className="flex overflow-x-auto gap-4 px-6 pb-4 scrollbar-hide snap-x">
-               {pending.map((item) => (
+               {pending.map((item: any) => (
                   <div key={item.roster_id} className="snap-start shrink-0 w-[260px] bg-white border border-blue-200 rounded-[20px] p-4 flex flex-col shadow-[0_4px_15px_-5px_rgba(59,130,246,0.15)] relative overflow-hidden">
                      <div className="absolute top-0 left-0 w-full h-2 bg-blue-500"></div>
                      <div className="grid grid-cols-[60px_1fr] gap-x-2 gap-y-1 mb-5">
@@ -255,7 +255,7 @@ export default function PelayanJadwalPage() {
                 <div className="absolute top-4 bottom-4 left-[9px] w-[2px] bg-slate-200/80 rounded-full z-0"></div>
 
                 <div className="flex flex-col gap-6 w-full">
-                  {groupedSchedules[activeDate].map(item => (
+                  {groupedSchedules[activeDate].map((item: any) => (
                     <div key={item.roster_id} className="relative z-10 flex flex-col w-full animate-in slide-in-from-bottom-2 fade-in duration-300">
                       
                       {/* Timeline dot header */}

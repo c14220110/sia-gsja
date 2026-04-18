@@ -130,7 +130,7 @@ export default function RiwayatKehadiranPage() {
              <p className="text-sm font-medium">Belum ada riwayat tercatat.</p>
           </div>
         ) : (
-          filteredRecords.map((item) => {
+          filteredRecords.map((item: any) => {
             const isPelayan = item.role_kehadiran && item.role_kehadiran !== 'Jemaat' && item.role_kehadiran !== 'Tamu';
             const iconConfig = getEventIcon(item.kategori || '');
 
