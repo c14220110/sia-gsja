@@ -106,7 +106,7 @@ export default function PelayanJadwalPage() {
   const formatTime = (timeString: string) => timeString ? timeString.substring(0, 5) : '';
 
   return (
-    <div className="w-full min-h-screen bg-slate-50 flex flex-col font-['Public_Sans'] pb-24">
+    <div className="w-full min-h-screen bg-slate-50 flex flex-col font-sans pb-24">
       {/* Reject Modal */}
       {rejectModal.isOpen && (
          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-5 animate-in fade-in duration-200">
@@ -269,10 +269,9 @@ export default function PelayanJadwalPage() {
                       {/* Event Cards Aesthetics borrowed from Jadwal */}
                       <div className="pl-[34px] w-full">
                         <div className="bg-white rounded-[20px] p-4 border border-slate-200/60 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] flex flex-col gap-1 relative overflow-hidden group">
-                           {/* Status label (e.g. jika sudah konfirmasi hadir) */}
                            {item.status_konfirmasi !== 'Menunggu Konfirmasi' && (
                              <div className="absolute top-0 right-0 bg-emerald-100 text-emerald-700 text-[9px] font-black uppercase px-2.5 py-1 rounded-bl-lg tracking-wider">
-                                {item.status_konfirmasi}
+                                {item.status_konfirmasi === 'Hadir' ? 'TERKONFIRMASI' : item.status_konfirmasi}
                              </div>
                            )}
 

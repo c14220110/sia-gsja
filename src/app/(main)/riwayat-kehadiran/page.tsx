@@ -10,6 +10,8 @@ export default function RiwayatKehadiranPage() {
 
   const [records, setRecords] = useState<any[]>([]);
   const [filterChip, setFilterChip] = useState('Semua');
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   useEffect(() => {
     const fetchRiwayat = async () => {
@@ -29,18 +31,14 @@ export default function RiwayatKehadiranPage() {
     fetchRiwayat();
   }, []);
 
-  // Compute Gamification Stats for Current Month
+  // Compute Gamification Stats for Selected Month
   const stats = useMemo(() => {
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-
     let jemaatCount = 0;
     let pelayanCount = 0;
 
     records.forEach(r => {
       const d = new Date(r.waktu_hadir);
-      if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
+      if ((selectedMonth === -1 || d.getMonth() === selectedMonth) && d.getFullYear() === selectedYear) {
         if (r.role_kehadiran === 'Jemaat') {
           jemaatCount++;
         } else if (r.role_kehadiran && r.role_kehadiran !== 'Tamu') {
@@ -50,18 +48,21 @@ export default function RiwayatKehadiranPage() {
     });
 
     return { jemaatCount, pelayanCount };
-  }, [records]);
+  }, [records, selectedMonth, selectedYear]);
 
   // Apply Chip Filters
   const filteredRecords = useMemo(() => {
     return records.filter(item => {
+      const d = new Date(item.waktu_hadir);
+      if ((selectedMonth !== -1 && d.getMonth() !== selectedMonth) || d.getFullYear() !== selectedYear) return false;
+
       if (filterChip === 'Semua') return true;
       if (filterChip === 'Pelayanan') return item.role_kehadiran && item.role_kehadiran !== 'Jemaat' && item.role_kehadiran !== 'Tamu';
       if (filterChip === 'Event') return item.kategori?.includes('Event') || item.kategori?.includes('Perayaan') || item.kategori?.includes('Sosial');
       if (filterChip === 'Ibadah') return item.kategori?.includes('Ibadah');
       return true;
     });
-  }, [records, filterChip]);
+  }, [records, filterChip, selectedMonth, selectedYear]);
 
   // Helpers
   const formatDate = (dateStr: string) => {
@@ -80,7 +81,7 @@ export default function RiwayatKehadiranPage() {
   const chips = ['Semua', 'Ibadah', 'Event', 'Pelayanan'];
 
   return (
-    <div className="w-full min-h-screen bg-slate-50 flex flex-col font-['Public_Sans'] pb-24">
+    <div className="w-full min-h-screen bg-slate-50 flex flex-col font-sans pb-24">
       {/* ── HEADER ── */}
       <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-200/60 pt-6 pb-4 px-5 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)]">
         <div className="flex items-center gap-3 mb-5">
@@ -90,20 +91,47 @@ export default function RiwayatKehadiranPage() {
            <h1 className="text-xl font-black text-slate-800 tracking-tight">Riwayat Kehadiran</h1>
         </div>
 
+        {/* ── FILTER BULAN/TAHUN ── */}
+        <div className="w-full flex justify-between items-center mb-3">
+           <h2 className="text-[11px] font-black text-slate-400 tracking-widest uppercase">Periode Tinjau</h2>
+           <div className="flex gap-2">
+             <select value={selectedMonth} onChange={e => setSelectedMonth(Number(e.target.value))} className="bg-slate-100 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
+               <option value={-1}>Semua Bulan</option>
+               {['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'].map((m, i) => (
+                 <option key={m} value={i}>{m}</option>
+               ))}
+             </select>
+             <select value={selectedYear} onChange={e => setSelectedYear(Number(e.target.value))} className="bg-slate-100 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
+               {[2024, 2025, 2026, 2027].map(y => (
+                 <option key={y} value={y}>{y}</option>
+               ))}
+             </select>
+           </div>
+        </div>
+
         {/* ── STATISTIK (GAMIFIKASI) ── */}
         <div className="w-full grid grid-cols-2 gap-3 mb-4">
-           <div className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-col shadow-sm">
-              <span className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Kehadiran Bulan Ini</span>
-              <div className="flex items-end gap-2">
-                 <h2 className="text-3xl font-black text-slate-800 leading-none">{stats.jemaatCount}x</h2>
-                 <span className="text-xs font-bold text-slate-500 mb-0.5">Jemaat</span>
+           {/* Card Jemaat */}
+           <div className="relative overflow-hidden bg-white border border-slate-200 rounded-2xl p-4 flex flex-col shadow-sm">
+              <span className="material-icons-round absolute -bottom-4 -right-3 text-[70px] text-slate-100 pointer-events-none transform -rotate-12">person_outline</span>
+              <div className="relative z-10 flex flex-col h-full">
+                 <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-2">Hadir (Jemaat)</span>
+                 <div className="flex items-baseline gap-1 mt-auto pt-3">
+                    <h2 className="text-3xl font-black text-slate-800 leading-none">{stats.jemaatCount}</h2>
+                    <span className="text-xs font-bold text-slate-500">kali</span>
+                 </div>
               </div>
            </div>
-           <div className="bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl p-4 flex flex-col shadow-md shadow-blue-500/20">
-              <span className="text-blue-200 text-xs font-bold uppercase tracking-wider mb-1">Pelayanan Bulan Ini</span>
-              <div className="flex items-end gap-2">
-                 <h2 className="text-3xl font-black text-white leading-none">{stats.pelayanCount}x</h2>
-                 <span className="text-xs font-bold text-blue-100 mb-0.5">Tugas</span>
+           
+           {/* Card Pelayanan */}
+           <div className="relative overflow-hidden bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl p-4 flex flex-col shadow-md shadow-blue-500/20">
+              <span className="material-icons-round absolute -bottom-4 -right-3 text-[70px] text-white/10 pointer-events-none transform rotate-12">how_to_reg</span>
+              <div className="relative z-10 flex flex-col h-full">
+                 <span className="text-blue-200 text-[10px] font-bold uppercase tracking-wider mb-2">Hadir (Tugas)</span>
+                 <div className="flex items-baseline gap-1 mt-auto pt-3">
+                    <h2 className="text-3xl font-black text-white leading-none">{stats.pelayanCount}</h2>
+                    <span className="text-xs font-bold text-blue-200">kali</span>
+                 </div>
               </div>
            </div>
         </div>

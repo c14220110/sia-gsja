@@ -81,7 +81,7 @@ export default function JadwalDanAcaraPage() {
     const chips = ['Semua', 'Ibadah Rutin', 'Event & Perayaan', 'Edukasi & Pelatihan', 'Sosial & Diakonia', 'Sakramen & Layanan'];
 
   return (
-    <div className="w-full min-h-screen bg-slate-50 flex flex-col font-['Public_Sans'] -mt-6 pb-20">
+    <div className="w-full min-h-screen bg-slate-50 flex flex-col font-sans -mt-6 pb-20">
       
       {/* Fixed Header & Filters */}
       <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-200/60 pt-6 pb-3 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)]">

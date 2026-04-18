@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLoader } from '@/components/ui/GlobalLoader';
 import Link from 'next/link';
@@ -33,82 +33,130 @@ export default function TiketDanRegistrasiPage() {
     return new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(dateString));
   };
 
+  const formatTime = (timeString: string) => timeString ? timeString.substring(0, 5) : '';
+
+  // 1. Group tickets by date to match the Timeline aesthetic
+  const groupedTickets = useMemo(() => {
+    return tickets.reduce((acc, curr) => {
+      const dateStr = curr.tanggal_mulai?.substring(0, 10) || '0000-00-00';
+      if (!acc[dateStr]) acc[dateStr] = [];
+      acc[dateStr].push(curr);
+      return acc;
+    }, {} as Record<string, any[]>);
+  }, [tickets]);
+
+  const sortedDates = Object.keys(groupedTickets).sort();
+
   return (
-    <div className="w-full h-full flex flex-col bg-slate-50 overflow-y-auto">
+    <div className="w-full min-h-screen flex flex-col bg-slate-50 overflow-y-auto font-sans pb-24">
       
-      {/* Header */}
-      <div className="w-full px-6 pt-8 pb-8 bg-white flex flex-col rounded-b-3xl shadow-sm z-10 mb-6 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-violet-50 rounded-bl-full pointer-events-none"></div>
-        <button onClick={() => router.push('/dashboard')} className="w-10 h-10 bg-slate-50 border border-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100 active:scale-95 transition-all mb-4 relative z-10">
-           <span className="material-icons-round">arrow_back</span>
-        </button>
-        <h1 className="text-2xl font-black text-slate-900 tracking-tight mb-2 relative z-10">Tiket Saya</h1>
-        <p className="text-sm text-slate-500 leading-relaxed relative z-10">Daftar kegiatan yang Anda daftarkan. Ketuk tiket Anda untuk melihat instruksi dan detail penyelesaian.</p>
+      {/* Sticky Glass Header */}
+      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-200/60 pt-6 pb-4 px-5 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)]">
+        <div className="flex items-center gap-3">
+           <Link href="/" className="w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors">
+             <span className="material-icons-round text-xl">arrow_back</span>
+           </Link>
+           <h1 className="text-xl font-black text-slate-800 tracking-tight">Tiket Saya</h1>
+        </div>
       </div>
 
-      <div className="w-full px-6 flex flex-col gap-5 pb-24">
-          {tickets.length > 0 ? tickets.map((t) => (
-             <button key={t.id} onClick={() => setSelectedTicket(t)} className="w-full bg-white rounded-3xl p-5 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)] border border-slate-100 flex gap-4 active:scale-95 transition-transform text-left">
-                
-                {/* Left Date Block */}
-                <div className="w-16 h-20 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col items-center justify-center shrink-0 shadow-inner">
-                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{new Intl.DateTimeFormat('id-ID', { month: 'short' }).format(new Date(t.tanggal_mulai))}</span>
-                   <span className="text-2xl font-black text-slate-800 leading-none">{new Date(t.tanggal_mulai).getDate()}</span>
-                </div>
-                
-                {/* Center Info */}
-                <div className="flex flex-col flex-1 pb-1 justify-center">
-                   <div className="flex items-center gap-2 mb-1.5">
-                      <span className="text-[10px] bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded tracking-widest">{t.kode_kegiatan}</span>
-                   </div>
-                   <h3 className="font-black text-slate-900 text-sm leading-tight mb-1 line-clamp-2">{t.nama_kegiatan}</h3>
-                   <div className="flex flex-col gap-0.5 mt-1">
-                      <div className="flex items-center gap-2 text-[11px] text-slate-500 font-medium">
-                         <span className="material-icons-round text-[13px] text-slate-400">schedule</span>
-                         <span className="truncate">{t.waktu_mulai.slice(0,5)} WIB</span>
+      <div className="w-full px-5 flex flex-col gap-5 pt-6">
+          {sortedDates.length > 0 ? (
+             <div className="flex flex-col relative w-full pt-2">
+               {/* Timeline vertical line */}
+               <div className="absolute top-4 bottom-4 left-[9px] w-[2px] bg-slate-200/80 rounded-full z-0"></div>
+
+               <div className="flex flex-col gap-8 w-full">
+                 {sortedDates.map((dateStr) => {
+                    const dateObj = new Date(dateStr);
+                    const isToday = new Date().toISOString().substring(0,10) === dateStr;
+
+                    return (
+                      <div key={dateStr} className="relative z-10 flex flex-col w-full animate-in slide-in-from-bottom-4 fade-in duration-500">
+                        
+                        {/* Timeline Date Header */}
+                        <div className="flex items-center gap-4 mb-4">
+                           <div className={`w-5 h-5 rounded-full border-4 border-slate-50 shadow-sm shrink-0 z-10 relative -left-[2px] transition-colors ${isToday ? 'bg-violet-500' : 'bg-slate-300'}`}></div>
+                           <div className="flex items-baseline gap-2">
+                             <h2 className={`text-base font-black ${isToday ? 'text-violet-600' : 'text-slate-800'}`}>
+                               {new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(dateObj)}
+                             </h2>
+                             {isToday && <span className="px-2 py-0.5 bg-violet-100 text-violet-700 text-[10px] font-bold rounded-md">HARI INI</span>}
+                           </div>
+                        </div>
+
+                        {/* Event Cards Wrapper */}
+                        <div className="pl-[34px] w-full flex flex-col gap-4">
+                          {groupedTickets[dateStr].map((t: any) => {
+                            
+                            // Determine status badge colors
+                            let badgeStyle = "bg-amber-100 text-amber-700";
+                            let badgeText = "MENUNGGU BAYAR";
+                            if (t.is_checked_in) {
+                               badgeStyle = "bg-indigo-100 text-indigo-700";
+                               badgeText = "HADIR (CHECKED IN)";
+                            } else if (t.status_pembayaran === 'Paid') {
+                               badgeStyle = "bg-emerald-100 text-emerald-700";
+                               badgeText = "LUNAS";
+                            } else if (t.url_bukti_bayar) {
+                               badgeStyle = "bg-blue-100 text-blue-700";
+                               badgeText = "MENUNGGU VERIFIKASI";
+                            }
+
+                            return (
+                              <div key={t.id} onClick={() => setSelectedTicket(t)} className="bg-white rounded-[20px] p-4 border border-slate-200/60 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] flex flex-col gap-1 relative overflow-hidden group cursor-pointer active:scale-[0.98] transition-transform">
+                                {/* Status Top Right Absolute Badge */}
+                                <div className={`absolute top-0 right-0 text-[9px] font-black uppercase px-2.5 py-1 rounded-bl-lg tracking-wider ${badgeStyle}`}>
+                                   {badgeText}
+                                </div>
+
+                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 opacity-80 mt-1">Acara</div>
+                                <h3 className="text-base font-black text-slate-800 leading-snug line-clamp-2 mb-2 pr-16">{t.nama_kegiatan}</h3>
+                                
+                                <div className="flex items-center gap-1.5 mb-2">
+                                  <span className="text-[10px] bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded tracking-widest uppercase">{t.kode_kegiatan}</span>
+                                </div>
+
+                                <div className="flex flex-col gap-1.5 mt-1.5">
+                                   <div className="flex items-center gap-2.5 bg-slate-50/80 p-2 rounded-xl">
+                                     <span className="w-6 h-6 rounded-md bg-violet-100 flex items-center justify-center shrink-0">
+                                        <span className="material-icons-round text-[14px] text-violet-600">schedule</span>
+                                     </span>
+                                     <div className="flex flex-col">
+                                        <span className="text-[10px] text-slate-400 font-bold uppercase leading-none">Waktu</span>
+                                        <span className="text-xs font-black text-slate-700">{formatTime(t.waktu_mulai)} WIB</span>
+                                     </div>
+                                   </div>
+                                   
+                                   <div className="flex items-center gap-2.5 bg-slate-50/80 p-2 rounded-xl">
+                                     <span className="w-6 h-6 rounded-md bg-emerald-100 flex items-center justify-center shrink-0">
+                                        <span className="material-icons-round text-[14px] text-emerald-600">place</span>
+                                     </span>
+                                     <div className="flex flex-col min-w-0">
+                                        <span className="text-[10px] text-slate-400 font-bold uppercase leading-none">Lokasi</span>
+                                        <span className="text-xs font-bold text-slate-700 truncate">{t.lokasi_kegiatan || 'Satelit Utama'}</span>
+                                     </div>
+                                   </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
                       </div>
-                      <div className="flex items-center gap-2 text-[11px] text-slate-500 font-medium">
-                         <span className="material-icons-round text-[13px] text-slate-400">place</span>
-                         <span className="truncate">{t.lokasi_kegiatan || 'GSJA Eben Haezer'}</span>
-                      </div>
-                   </div>
-                </div>
- 
-                {/* Right Status */}
-                <div className="w-[85px] flex flex-col justify-center border-l border-slate-100 pl-3 py-1 shrink-0 items-center">
-                   {t.is_checked_in ? (
-                      <>
-                        <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-500 border border-indigo-100 mb-1">
-                           <span className="material-icons-round text-[20px]">how_to_reg</span>
-                        </div>
-                        <span className="text-[9px] font-bold text-indigo-600 tracking-wide text-center">HADIR</span>
-                      </>
-                   ) : t.status_pembayaran === 'Paid' ? (
-                      <>
-                        <div className="w-10 h-10 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-500 border border-emerald-100 mb-1">
-                           <span className="material-icons-round text-[20px]">verified</span>
-                        </div>
-                        <span className="text-[9px] font-bold text-emerald-600 tracking-wide text-center">LUNAS</span>
-                      </>
-                   ) : (
-                      <>
-                        <div className="w-10 h-10 bg-amber-50 rounded-full flex items-center justify-center text-amber-500 border border-amber-100 mb-1">
-                           <span className="material-icons-round text-[20px]">hourglass_empty</span>
-                        </div>
-                        <span className="text-[9px] font-bold text-amber-600 tracking-wide text-center leading-tight">MENUNGGU<br/>BAYAR</span>
-                      </>
-                   )}
-                </div>
-             </button>
-          )) : (
-            <div className="w-full py-20 flex flex-col items-center justify-center text-center opacity-50 px-6">
-               <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mb-6">
-                 <span className="material-icons-round text-5xl text-slate-300">local_activity_outline</span>
+                    );
+                 })}
+               </div>
+             </div>
+          ) : (
+            <div className="w-full py-20 flex flex-col items-center justify-center text-center px-6 bg-white border border-slate-100 border-dashed rounded-[20px] shadow-sm">
+               <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                 <span className="material-icons-round text-4xl text-slate-300">local_activity</span>
                </div>
                <h3 className="text-lg font-bold text-slate-600 mb-2">Belum Memiliki Tiket</h3>
-               <p className="text-sm text-slate-400 leading-relaxed max-w-[200px]">Anda belum mendaftar di kegiatan manapun. Temukan acara terbaru di menu Jadwal!</p>
+               <p className="text-sm text-slate-400 leading-relaxed max-w-[250px]">Anda belum terdaftar di kegiatan berbayar atau bermandat. Silakan telusuri Jadwal & Acara.</p>
             </div>
-         )}
+          )}
       </div>
 
       {/* Modal Detail Tiket */}
