@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useLoader } from '@/components/ui/GlobalLoader';
 import QRCode from 'react-qr-code';
+import PushNotificationManager from '@/components/ui/PushNotificationManager';
 
 export default function JemaatPwaLayout({
   children,
@@ -401,10 +402,11 @@ export default function JemaatPwaLayout({
               </p>
             </div>
           </div>
-
         </div>
       )}
 
+      {/* WEB PUSH MANAGER */}
+      <PushNotificationManager />
 
     </div>
   );

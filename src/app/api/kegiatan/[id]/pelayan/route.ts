@@ -1,5 +1,13 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import webpush from 'web-push';
+
+// Configuration
+webpush.setVapidDetails(
+  'mailto:it@gsja.org', // Should be replaced with actual admin email
+  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '',
+  process.env.VAPID_PRIVATE_KEY || ''
+);
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -65,6 +73,55 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
        RETURNING id`,
       [id, pelayan_id, role_id]
     );
+
+    // --- PUSH NOTIFICATION DISPATCH ---
+    try {
+      if (process.env.VAPID_PRIVATE_KEY) {
+         // Get the user_id and activity details
+         const userQuery = await pool.query(`
+           SELECT u.id as user_id, j.nama_lengkap
+           FROM public.pelayan p
+           JOIN public.pengguna u ON u.jemaat_id = p.jemaat_id
+           JOIN public.jemaat j ON j.id = p.jemaat_id
+           WHERE p.id = $1
+         `, [pelayan_id]);
+
+         if (userQuery.rows.length > 0) {
+            const userId = userQuery.rows[0].user_id;
+
+            // Get the subscription
+            const subQuery = await pool.query(`
+               SELECT endpoint, p256dh, auth 
+               FROM public.push_subscriptions 
+               WHERE user_id = $1
+            `, [userId]);
+
+            if (subQuery.rows.length > 0) {
+               // Send push notification to all devices
+               const payload = JSON.stringify({
+                  title: "Tugas Pelayanan Baru",
+                  body: `Syalom ${userQuery.rows[0].nama_lengkap.split(' ')[0]}, Anda ditugaskan sebagai ${role_kehadiran || 'pelayan'}. Silakan konfirmasi kesediaan Anda.`,
+                  url: "/pelayan/jadwal"
+               });
+
+               for (const sub of subQuery.rows) {
+                  const pushSub = {
+                     endpoint: sub.endpoint,
+                     keys: { p256dh: sub.p256dh, auth: sub.auth }
+                  };
+                  try {
+                     await webpush.sendNotification(pushSub, payload);
+                  } catch (pushErr) {
+                     console.error("Failed to push to endpoint:", sub.endpoint, pushErr);
+                  }
+               }
+            }
+         }
+      }
+    } catch (pushGeneralErr) {
+      console.error("Web Push Workflow Error:", pushGeneralErr);
+    }
+    // --- END PUSH NOTIFICATION ---
 
     return NextResponse.json({
       success: true,

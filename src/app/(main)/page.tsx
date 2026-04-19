@@ -48,13 +48,42 @@ export default function DashboardHome() {
              const q = new URLSearchParams({ limit: '20', status: 'Akan Datang', tanggal: 'Semua' });
              // Dihapus: filter satelit, karena jemaat bebas mendaftar acara satelit manapun
              
-             const resEv = await fetch(`/api/kegiatan?${q.toString()}`);
-             if (resEv.ok) {
+             // Fetch events and user's tickets in parallel
+             const [resEv, resTiket] = await Promise.all([
+               fetch(`/api/kegiatan?${q.toString()}`),
+               fetch('/api/kegiatan/registrasi/saya')
+             ]);
+
+             if (resEv.ok && resTiket.ok) {
                 const reqData = await resEv.json();
+                const tiketData = await resTiket.json();
+                
+                const myTickets = tiketData.success ? tiketData.data : [];
+
                 if (reqData.success && reqData.data.length > 0) {
                    const eventsWithReg = reqData.data.filter((e: any) => e.butuh_registrasi === true).slice(0, 5);
-                   setUpcomingEvents(eventsWithReg);
-                   localStorage.setItem('gsja_upcoming_events', JSON.stringify(eventsWithReg)); // Simpan Cache Kasar Kegiatan
+                   const mappedEvents = eventsWithReg.map((evt: any) => {
+                      const tiket = myTickets.find((t: any) => t.kegiatan_id === evt.id);
+                      if (tiket) {
+                         let badgeStyle = "bg-amber-100/90 text-amber-700 border-amber-200/50";
+                         let badgeText = "MENUNGGU BAYAR";
+                         if (tiket.is_checked_in) {
+                            badgeStyle = "bg-indigo-100/90 text-indigo-700 border-indigo-200/50";
+                            badgeText = "HADIR";
+                         } else if (tiket.status_pembayaran === 'Paid') {
+                            badgeStyle = "bg-emerald-100/90 text-emerald-700 border-emerald-200/50";
+                            badgeText = "LUNAS";
+                         } else if (tiket.url_bukti_bayar) {
+                            badgeStyle = "bg-blue-100/90 text-blue-700 border-blue-200/50";
+                            badgeText = "MENUNGGU VERIF";
+                         }
+                         return { ...evt, _myTicketBadge: { text: badgeText, style: badgeStyle } };
+                      }
+                      return evt;
+                   });
+
+                   setUpcomingEvents(mappedEvents);
+                   localStorage.setItem('gsja_upcoming_events', JSON.stringify(mappedEvents)); // Simpan Cache Kasar Kegiatan
                 }
              }
 
@@ -425,7 +454,9 @@ export default function DashboardHome() {
                         {evt.url_banner ? (
                           <div className="w-full h-32 bg-slate-100 relative overflow-hidden shrink-0 border-b border-slate-100">
                             <img src={evt.url_banner} alt="Poster" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                            {evt.butuh_registrasi && (
+                            {evt._myTicketBadge ? (
+                               <span className={`absolute top-3 right-3 text-[10px] font-bold px-2 py-1 rounded shadow-sm backdrop-blur border ${evt._myTicketBadge.style}`}>{evt._myTicketBadge.text}</span>
+                            ) : evt.butuh_registrasi && (
                                <span className="absolute top-3 right-3 bg-white/90 backdrop-blur text-blue-600 text-[10px] font-bold px-2 py-1 rounded shadow-sm">Butuh Registrasi</span>
                             )}
                           </div>
@@ -439,7 +470,11 @@ export default function DashboardHome() {
                         <div className="p-5 flex flex-col flex-1">
                           {!evt.url_banner && (
                              <div className="mb-2">
-                               {evt.butuh_registrasi && <span className="bg-blue-50 text-blue-600 text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-widest border border-blue-100">REGISTRASI</span>}
+                               {evt._myTicketBadge ? (
+                                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-widest border ${evt._myTicketBadge.style}`}>{evt._myTicketBadge.text}</span>
+                               ) : evt.butuh_registrasi && (
+                                  <span className="bg-blue-50 text-blue-600 text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-widest border border-blue-100">REGISTRASI</span>
+                               )}
                              </div>
                           )}
                           <h4 className="text-slate-900 font-black text-[15px] leading-snug mb-3 group-hover:text-blue-600 transition-colors line-clamp-2">{evt.nama_kegiatan}</h4>

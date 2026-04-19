@@ -1,8 +1,20 @@
-const { Pool } = require('pg');
-require('dotenv').config({ path: '.env.local' });
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-pool.query('SELECT k.id, k.nama_kegiatan, k.satelit_id, k.komisi_id, kom.nama_komisi FROM kegiatan k LEFT JOIN komisi kom ON k.komisi_id = kom.id ORDER BY k.id DESC LIMIT 5;', (err, res) => {
-  if (err) throw err;
-  console.log(res.rows);
-  pool.end();
+import { Pool } from 'pg';
+import * as dotenv from 'dotenv';
+dotenv.config({ path: '.env.local' });
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
 });
+
+async function run() {
+  try {
+    const res = await pool.query('SELECT user_id, endpoint, created_at FROM public.push_subscriptions');
+    console.log(`FOUND ${res.rows.length} subscriptions in DB:`);
+    console.log(res.rows);
+  } catch(e) {
+    console.error('ERROR:', e);
+  } finally {
+    pool.end();
+  }
+}
+run();
