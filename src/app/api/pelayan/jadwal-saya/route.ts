@@ -71,7 +71,7 @@ export async function GET(request: Request) {
          JOIN public.kegiatan k       ON kjp.kegiatan_id  = k.id
          WHERE p.jemaat_id = $1
            AND k.status_kegiatan IN ('Akan Datang', 'Menunggu Dimulai', 'Ongoing')
-           AND kjp.status_konfirmasi IN ('Menunggu Konfirmasi', 'Hadir') -- 'Hadir' adalah status diterima default
+           AND kjp.status_konfirmasi IN ('Menunggu Konfirmasi', 'Bersedia', 'Hadir') -- Menampilkan semua status jadwal yang valid
          ORDER BY k.tanggal_mulai ASC`,
         [jemaat_id]
       );
