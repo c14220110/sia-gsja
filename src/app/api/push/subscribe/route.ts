@@ -22,11 +22,11 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-       // Using ON CONFLICT ON CONSTRAINT to update if endpoint already exists
+       // Using ON CONFLICT (col) to update if endpoint already exists
        await pool.query(
          `INSERT INTO public.push_subscriptions (user_id, endpoint, p256dh, auth) 
           VALUES ($1, $2, $3, $4)
-          ON CONFLICT ON CONSTRAINT unique_subscription_endpoint DO UPDATE 
+          ON CONFLICT (endpoint) DO UPDATE 
           SET user_id = EXCLUDED.user_id, p256dh = EXCLUDED.p256dh, auth = EXCLUDED.auth`,
           [decoded.user_id, subscription.endpoint, subscription.keys.p256dh, subscription.keys.auth]
        );
