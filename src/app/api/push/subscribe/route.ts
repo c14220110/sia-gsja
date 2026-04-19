@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/server/db';
+import pool from '@/lib/db';
 import jwt from 'jsonwebtoken';
 import { getJwtSecret } from '@/server/utils/jwt';
 
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
 
     try {
        // Using ON CONFLICT ON CONSTRAINT to update if endpoint already exists
-       await db.execute(
+       await pool.query(
          `INSERT INTO public.push_subscriptions (user_id, endpoint, p256dh, auth) 
           VALUES ($1, $2, $3, $4)
           ON CONFLICT ON CONSTRAINT unique_subscription_endpoint DO UPDATE 
