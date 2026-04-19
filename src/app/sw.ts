@@ -25,7 +25,7 @@ serwist.addEventListeners();
 
 // ====== WEB PUSH NOTIFICATION LISTENERS ======
 
-self.addEventListener("push", (event) => {
+self.addEventListener("push", (event: any) => {
   let data = { title: "Notifikasi GSJA", body: "Ada pembaruan", url: "/" };
   
   try {
@@ -47,7 +47,7 @@ self.addEventListener("push", (event) => {
   event.waitUntil(self.registration.showNotification(data.title, options));
 });
 
-self.addEventListener("notificationclick", (event) => {
+self.addEventListener("notificationclick", (event: any) => {
   event.notification.close();
   const urlToOpen = event.notification.data || "/";
 
