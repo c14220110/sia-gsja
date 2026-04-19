@@ -52,7 +52,7 @@ self.addEventListener("notificationclick", (event: any) => {
   const urlToOpen = event.notification.data || "/";
 
   event.waitUntil(
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients: any[]) => {
       // If window is already open, focus it and navigate
       for (let i = 0; i < windowClients.length; i++) {
         const client = windowClients[i];
