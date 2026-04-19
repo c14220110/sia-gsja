@@ -762,7 +762,7 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
               className={`pb-4 text-sm font-bold uppercase tracking-wide transition-colors border-b-2 flex gap-2 items-center ${activeTab === 'pelayan' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-700'}`}
             >
               <div className="flex items-center gap-2"><span className="material-icons-round text-[18px]">groups</span> Susunan Tim Pelayan</div>
-              <span className="bg-slate-100 text-slate-600 py-0.5 px-2 rounded-full text-[10px]">{pelayanList.length}</span>
+              <span className="bg-slate-100 text-slate-600 py-0.5 px-2 rounded-full text-[10px]">{new Set(pelayanList.map((p: any) => p.pelayan_id)).size}</span>
             </button>
             <button 
               onClick={() => setActiveTab('registrasi')}
@@ -900,7 +900,31 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
         )}
 
         {/* TAB 3: PELAYAN (CREATE THEN MANAGE CORE) */}
-        {activeTab === 'pelayan' && (
+        {activeTab === 'pelayan' && (() => {
+          // GROUPING LOGIC OPSI A: 1 Orang = 1 Baris
+          const groupedPelayan = Array.from(
+            pelayanList.reduce((map, p) => {
+               if (!map.has(p.pelayan_id)) {
+                  // Salin data utuh sebagai "Master", tambahkan daftar roles eksklusif
+                  map.set(p.pelayan_id, {
+                     ...p,
+                     roles: [{ id: p.id, role_id: p.role_id, role_kehadiran: p.role_kehadiran, status_konfirmasi: p.status_konfirmasi }]
+                  });
+               } else {
+                  // Orang eksis, cukup inject peran barunya ke dalam array roles di master
+                  const existing = map.get(p.pelayan_id);
+                  existing.roles.push({ id: p.id, role_id: p.role_id, role_kehadiran: p.role_kehadiran, status_konfirmasi: p.status_konfirmasi });
+                  
+                  // Heuristik Status Konfirmasi: Jika ada satu saja yg Hadir/Bersedia, prioritaskan master status tersebut
+                  if (p.status_konfirmasi === 'Hadir' || p.status_konfirmasi === 'Bersedia') {
+                     existing.status_konfirmasi = p.status_konfirmasi;
+                  }
+               }
+               return map;
+            }, new Map()).values()
+          );
+
+          return (
           <div className="w-full bg-white rounded-xl shadow-sm border border-slate-200 animate-in fade-in flex flex-col">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-t-xl">
                <div className="flex flex-col">
@@ -1002,8 +1026,12 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {pelayanList.map((p, index) => (
-                        <tr key={p.id} className={`hover:bg-slate-50/50 transition-colors group ${selectedRosterIds.has(p.id) ? 'bg-blue-50/40' : ''}`}>
+                      {groupedPelayan.map((p: any, index) => {
+                        const allRoleIds = p.roles.map((r: any) => r.id);
+                        const isAllSelected = allRoleIds.every((rid: number) => selectedRosterIds.has(rid));
+
+                        return (
+                        <tr key={p.pelayan_id} className={`hover:bg-slate-50/50 transition-colors group ${isAllSelected ? 'bg-blue-50/40' : ''}`}>
                           {/* Checkbox column — hanya saat Ongoing dan belum hadir */}
                           {data.status_kegiatan === 'Ongoing' && isPelayanManager && (
                             <td className="py-4 pl-6 pr-2">
@@ -1011,15 +1039,11 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
                                 <input
                                   type="checkbox"
                                   className="w-4 h-4 rounded accent-blue-600 cursor-pointer"
-                                  checked={selectedRosterIds.has(p.id)}
+                                  checked={isAllSelected}
                                   onChange={e => {
                                     const next = new Set(selectedRosterIds);
-                                    // Tugas ganda: centang/hapus semua baris milik pelayan yang sama
-                                    const sameIds = pelayanList
-                                      .filter((x: any) => x.pelayan_id === p.pelayan_id && x.status_konfirmasi !== 'Hadir')
-                                      .map((x: any) => x.id);
-                                    if (e.target.checked) sameIds.forEach((rid: number) => next.add(rid));
-                                    else sameIds.forEach((rid: number) => next.delete(rid));
+                                    if (e.target.checked) allRoleIds.forEach((rid: number) => next.add(rid));
+                                    else allRoleIds.forEach((rid: number) => next.delete(rid));
                                     setSelectedRosterIds(next);
                                   }}
                                 />
@@ -1040,19 +1064,30 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
                               )}
                               <div className="flex flex-col">
                                 <span className="text-sm font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">{p.nama_lengkap}</span>
-                                {pelayanList.filter((x: any) => x.pelayan_id === p.pelayan_id).length > 1 && (
-                                  <span className="text-[10px] font-bold text-amber-600 flex items-center gap-0.5 mt-0.5">
-                                    <span className="material-icons-round text-[11px]">repeat</span>
-                                    Tugas Ganda
-                                  </span>
-                                )}
                               </div>
                             </div>
                           </td>
-                          <td className="py-4 px-6">
-                             <div className={`px-3 py-1 text-xs font-bold rounded uppercase tracking-wide inline-flex border ${getRoleColor(p.role_kehadiran)}`}>
-                               {p.role_kehadiran}
-                             </div>
+                          <td className="py-4 px-6 flex flex-wrap gap-2">
+                             {p.roles.map((r: any) => (
+                               <div key={r.id} className={`pl-3 pr-1 py-1 flex items-center gap-2 text-xs font-bold rounded uppercase tracking-wide border ${getRoleColor(r.role_kehadiran)}`}>
+                                 {r.role_kehadiran}
+                                 {isPelayanManager && (
+                                   <button 
+                                     onClick={async () => {
+                                        if (!confirm(`Hapus peran ${r.role_kehadiran} untuk ${p.nama_lengkap}?`)) return;
+                                        try {
+                                          await fetch(`/api/kegiatan/${id}/pelayan?roster_id=${r.id}`, { method: 'DELETE' });
+                                          fetchPelayan();
+                                        } catch (e) { console.error(e); }
+                                     }}
+                                     className="w-5 h-5 rounded hover:bg-slate-900/10 flex items-center justify-center transition-colors"
+                                     title="Hapus peran ini"
+                                   >
+                                     <span className="material-icons-round text-[12px]">close</span>
+                                   </button>
+                                 )}
+                               </div>
+                             ))}
                           </td>
                           <td className="py-4 px-6">
                               {/* ── FASE 2: HARI H (Ongoing/pasca) ── */}
@@ -1135,14 +1170,16 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
 
                                    <button
                                      onClick={async () => {
-                                       if (!confirm(`Hapus ${p.nama_lengkap} (${p.role_kehadiran}) dari roster?`)) return;
+                                       if (!confirm(`Hapus orang ini sepenuhnya (${p.nama_lengkap}) dari semua jadwal?`)) return;
                                        try {
-                                         await fetch(`/api/kegiatan/${id}/pelayan?roster_id=${p.id}`, { method: 'DELETE' });
+                                         for (const role of p.roles) {
+                                           await fetch(`/api/kegiatan/${id}/pelayan?roster_id=${role.id}`, { method: 'DELETE' });
+                                         }
                                          fetchPelayan();
                                        } catch (e) { console.error(e); }
                                      }}
-                                     className="w-8 h-8 rounded-full hover:bg-red-50 text-red-400 hover:text-red-600 inline-flex items-center justify-center transition-colors"
-                                     title="Hapus dari Roster"
+                                     className="w-8 h-8 rounded-full hover:bg-red-50 text-red-400 hover:text-red-600 inline-flex items-center justify-center transition-colors shadow-sm bg-white border border-slate-200 hover:border-red-200"
+                                     title="Hapus Orang (Semua Peran)"
                                    >
                                       <span className="material-icons-round text-[18px]">delete_outline</span>
                                    </button>
@@ -1150,14 +1187,15 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
                                )}
                            </td>
                         </tr>
-                      ))}
+                      )})}
                     </tbody>
                   </table>
                 </div>
               )}
             </div>
           </div>
-        )}
+        );
+        })()}
 
         {/* TAB 2: AKSES, PENDAFTARAN & TIKET */}
         {activeTab === 'registrasi' && (
