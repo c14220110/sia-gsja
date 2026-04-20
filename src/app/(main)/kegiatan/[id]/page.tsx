@@ -303,7 +303,7 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
   const searchParamsHook = useSearchParams();
 
   // Tab state — primed from ?tab= URL param for deep-link support
-  const [activeTab, setActiveTab] = useState<'info' | 'pelayan' | 'registrasi' | 'pasien'>(
+  const [activeTab, setActiveTab] = useState<'info' | 'pelayan' | 'registrasi' | 'pasien' | 'kehadiran'>(
     (searchParamsHook.get('tab') as any) || 'info'
   );
   const [data, setData] = useState<any>(null);
@@ -318,6 +318,13 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
   const [registrasiList, setRegistrasiList] = useState<any[]>([]);
   const [isLoadingRegistrasi, setIsLoadingRegistrasi] = useState(false);
   const [isModalRegistrasiOpen, setIsModalRegistrasiOpen] = useState(false);
+
+  // Kehadiran Logs State
+  const [absensiLogs, setAbsensiLogs] = useState<any[]>([]);
+  const [absensiStats, setAbsensiStats] = useState<any>({ total_hadir: 0, total_jemaat: 0, total_tamu: 0, total_pelayan: 0 });
+  const [isLoadingAbsensi, setIsLoadingAbsensi] = useState(false);
+  const [kehadiranSearch, setKehadiranSearch] = useState('');
+  const [kehadiranFilterRole, setKehadiranFilterRole] = useState('Jemaat');
   
   // Modal Form State (Pelayan)
   const [rolePelayanOptions, setRolePelayanOptions] = useState<any[]>([]);
@@ -373,6 +380,7 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
     fetchPelayan();
     fetchRegistrasi();
     fetchPasien();
+    fetchAbsensiList();
     fetchRolePelayanOptions();
     
     if (typeof window !== 'undefined') {
@@ -405,6 +413,22 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
       console.error(err);
     } finally {
       setIsLoadingPelayan(false);
+    }
+  };
+
+  const fetchAbsensiList = async () => {
+    setIsLoadingAbsensi(true);
+    try {
+      const res = await fetch(`/api/kegiatan/${id}/absensi?limit=all`);
+      const json = await res.json();
+      if (json.success) {
+         setAbsensiLogs(json.data.recent_logs);
+         setAbsensiStats(json.data.stats);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoadingAbsensi(false);
     }
   };
 
@@ -771,6 +795,14 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
               <div className="flex items-center gap-2"><span className="material-icons-round text-[18px]">how_to_reg</span> Akses & Pendaftaran</div>
               {data.berbayar && <span className="w-2 h-2 rounded-full bg-emerald-500"></span>}
             </button>
+            {['Ongoing', 'Menunggu LPJ', 'Selesai'].includes(data.status_kegiatan) && (
+              <button 
+                onClick={() => setActiveTab('kehadiran')}
+                className={`pb-4 text-sm font-bold uppercase tracking-wide transition-colors border-b-2 flex gap-2 items-center ${activeTab === 'kehadiran' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-700'}`}
+              >
+                <div className="flex items-center gap-2"><span className="material-icons-round text-[18px]">assessment</span> Laporan Kehadiran</div>
+              </button>
+            )}
             {data.nama_jenis_kegiatan === 'Pemeriksaan Kesehatan' && (
               <button 
                 onClick={() => setActiveTab('pasien')}
@@ -924,6 +956,10 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
             }, new Map()).values()
           );
 
+          const uniqueSelectedCount = new Set(
+             pelayanList.filter((p: any) => selectedRosterIds.has(p.id)).map((p: any) => p.pelayan_id)
+          ).size;
+
           return (
           <div className="w-full bg-white rounded-xl shadow-sm border border-slate-200 animate-in fade-in flex flex-col">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-t-xl">
@@ -946,7 +982,7 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
             {data.status_kegiatan === 'Ongoing' && isPelayanManager && selectedRosterIds.size > 0 && (
               <div className="mx-6 my-3 px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between animate-in slide-in-from-top-2 fade-in">
                 <span className="text-sm font-bold text-blue-800">
-                  {selectedRosterIds.size} pelayan dipilih
+                  {uniqueSelectedCount} pelayan dipilih
                 </span>
                 <div className="flex gap-2">
                   <button
@@ -979,7 +1015,7 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
                     {isBulkMarking
                       ? <span className="material-icons-round text-[14px] animate-spin">refresh</span>
                       : <span className="material-icons-round text-[14px]">done_all</span>}
-                    Tandai {selectedRosterIds.size} Pelayan Hadir
+                    Tandai {uniqueSelectedCount} Pelayan Hadir
                   </button>
                 </div>
               </div>
@@ -1337,6 +1373,138 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
                </>
              )}
            </div>
+        )}
+
+        {/* TAB EXTRA: LAPORAN KEHADIRAN */}
+        {activeTab === 'kehadiran' && ['Ongoing', 'Menunggu LPJ', 'Selesai'].includes(data.status_kegiatan) && (
+          <div className="w-full flex flex-col gap-6 animate-in fade-in">
+             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+               <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-sm justify-center items-center flex flex-col gap-1">
+                 <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">Total Hadir</h4>
+                 <p className="text-3xl font-black text-slate-900">{absensiStats?.total_hadir || 0}</p>
+               </div>
+               <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-sm justify-center items-center flex flex-col gap-1">
+                 <h4 className="text-[10px] font-bold text-blue-600 uppercase tracking-widest text-center">Jemaat Umum</h4>
+                 <p className="text-3xl font-black text-blue-600">{absensiStats?.total_jemaat || 0}</p>
+               </div>
+               <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-sm justify-center items-center flex flex-col gap-1">
+                 <h4 className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest text-center">Tamu Baru</h4>
+                 <p className="text-3xl font-black text-emerald-600">{absensiStats?.total_tamu || 0}</p>
+               </div>
+               <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-sm justify-center items-center flex flex-col gap-1">
+                 <h4 className="text-[10px] font-bold text-purple-600 uppercase tracking-widest text-center">Tim Pelayan</h4>
+                 <p className="text-3xl font-black text-purple-600">{absensiStats?.total_pelayan || 0}</p>
+               </div>
+             </div>
+
+             <div className="w-full bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden">
+                <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                   <h3 className="font-bold text-slate-800">Log Riwayat Kehadiran</h3>
+                   <button onClick={() => fetchAbsensiList()} className="w-8 h-8 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center hover:bg-slate-50 text-slate-500 transition-colors" title="Segarkan Data">
+                     <span className={`material-icons-round text-[16px] ${isLoadingAbsensi ? 'animate-spin text-blue-600' : ''}`}>refresh</span>
+                   </button>
+                </div>
+                
+                <div className="p-4 border-b border-slate-100 flex flex-col md:flex-row gap-3 bg-white">
+                   <div className="relative flex-[1.5]">
+                      <span className="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
+                      <input 
+                        type="text" 
+                        placeholder="Cari nama jemaat..." 
+                        value={kehadiranSearch} 
+                        onChange={e => setKehadiranSearch(e.target.value)} 
+                        className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400"
+                      />
+                   </div>
+                   <div className="flex bg-slate-100 p-1 rounded-lg shrink-0 overflow-x-auto scrollbar-hide flex-1">
+                      {['Semua', 'Jemaat', 'Tamu', 'Pelayan'].map(f => (
+                         <button 
+                           key={f} 
+                           onClick={() => setKehadiranFilterRole(f)} 
+                           className={`flex-1 px-4 py-1.5 text-[11px] uppercase tracking-wide font-black rounded-md transition-all whitespace-nowrap ${kehadiranFilterRole === f ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
+                         >
+                           {f}
+                         </button>
+                      ))}
+                   </div>
+                </div>
+
+                {isLoadingAbsensi ? (
+                   <div className="p-12 flex justify-center"><div className="w-6 h-6 border-2 border-slate-200 border-t-emerald-600 rounded-full animate-spin"></div></div>
+                ) : absensiLogs.length === 0 ? (
+                   <div className="p-12 text-center flex flex-col items-center">
+                     <span className="material-icons-round text-slate-300 text-[48px] mb-2">event_busy</span>
+                     <h4 className="text-slate-800 font-bold mb-1">Belum Ada Kehadiran</h4>
+                     <p className="text-slate-500 font-medium text-sm">Tidak ada yang melakukan absen pada acara ini.</p>
+                   </div>
+                ) : (() => {
+                  const filteredAbsensi = absensiLogs.filter(log => {
+                    const matchSearch = kehadiranSearch === '' || log.nama.toLowerCase().includes(kehadiranSearch.toLowerCase());
+                    const matchRole = kehadiranFilterRole === 'Semua' || (
+                       kehadiranFilterRole === 'Pelayan' ? !['Jemaat', 'Tamu'].includes(log.jenis) : log.jenis === kehadiranFilterRole
+                    );
+                    return matchSearch && matchRole;
+                  });
+                  
+                  if (filteredAbsensi.length === 0) {
+                     return (
+                       <div className="p-12 text-center flex flex-col items-center">
+                         <span className="material-icons-round text-slate-300 text-[48px] mb-2">search_off</span>
+                         <h4 className="text-slate-800 font-bold mb-1">Pencarian Tidak Ditemukan</h4>
+                         <p className="text-slate-500 font-medium text-sm">Tidak ada yang sesuai dengan filter atau kata kunci di atas.</p>
+                       </div>
+                     );
+                  }
+
+                  return (
+                   <div className="w-full overflow-x-auto">
+                     <table className="w-full text-left text-sm whitespace-nowrap">
+                       <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+                         <tr>
+                           <th className="py-3 px-5">Nama Orang</th>
+                           <th className="py-3 px-5">Peran & Jenis</th>
+                           <th className="py-3 px-5">Metode Scan</th>
+                           <th className="py-3 px-5 text-right">Waktu (Lokal)</th>
+                         </tr>
+                       </thead>
+                       <tbody className="divide-y divide-slate-100 text-slate-700">
+                         {filteredAbsensi.map(log => {
+                           // Parse timezone as Local exactly like how the kiosk page was fixed!
+                           const dateStr = log.waktu_hadir;
+                           const ds = (!dateStr.endsWith('Z') && !dateStr.includes('+')) ? dateStr + 'Z' : dateStr;
+                           const d = new Date(ds);
+                           
+                           return (
+                             <tr key={log.id} className="hover:bg-slate-50 transition-colors">
+                               <td className="py-3 px-5">
+                                 <span className="font-bold text-slate-800">{log.nama}</span>
+                               </td>
+                               <td className="py-3 px-5">
+                                 <span className={`px-2.5 py-1 text-[10px] uppercase font-bold rounded-md border ${log.jenis === 'Jemaat' ? 'bg-blue-50 text-blue-700 border-blue-200' : log.jenis === 'Tamu' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-purple-50 text-purple-700 border-purple-200'}`}>
+                                   {log.jenis}
+                                 </span>
+                               </td>
+                               <td className="py-3 px-5">
+                                 <div className="flex items-center gap-1">
+                                   <span className={`material-icons-round text-[14px] ${log.metode === 'QR Code' ? 'text-emerald-500' : 'text-slate-400'}`}>
+                                      {log.metode === 'QR Code' ? 'qr_code_2' : 'keyboard'}
+                                   </span>
+                                   <span className="text-[11px] font-bold text-slate-500">{log.metode}</span>
+                                 </div>
+                               </td>
+                               <td className="py-3 px-5 text-right font-['Liberation_Mono'] text-xs font-bold text-slate-600">
+                                 {d.toLocaleString('id-ID', { dateStyle: 'long', timeStyle: 'short' })} WIB
+                               </td>
+                             </tr>
+                           )
+                         })}
+                       </tbody>
+                     </table>
+                   </div>
+                  )
+                })()}
+             </div>
+          </div>
         )}
 
         {/* TAB 4: PASIEN MEDIS (KHUSUS PEMERIKSAAN KESEHATAN) */}

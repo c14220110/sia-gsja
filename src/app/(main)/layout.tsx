@@ -166,14 +166,14 @@ export default function DashboardLayout({
           {/* Normal Admin Menus */}
           {userData?.role_name?.toLowerCase() !== 'jemaat' && (
             <nav className="flex-1 w-full overflow-y-auto overflow-x-hidden p-4 pb-20 flex flex-col justify-start items-start gap-2 scrollbar-hide">
-              <div className="w-full px-4 py-3 rounded-lg flex justify-start items-center gap-4 hover:bg-white/5 cursor-pointer">
+              <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)} className="w-full px-4 py-3 rounded-lg flex justify-start items-center gap-4 hover:bg-white/5 cursor-pointer text-inherit no-underline">
                 <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
                   <span className="material-icons-round text-slate-200 text-[20px]">dashboard</span>
                 </div>
                 <div className="flex flex-col justify-start items-start opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 w-auto md:w-0 md:group-hover:w-auto overflow-hidden whitespace-nowrap">
                   <div className="justify-center text-slate-200 text-sm font-normal font-['Inter'] leading-5 pr-4">Dashboard Utama</div>
                 </div>
-              </div>
+              </Link>
               
               {(hasPermission('master_data_manage') || hasPermission('user_access_manage') || hasPermission('akses_sementara_manage') || hasPermission('audit_log_view') || userData?.is_super_admin) && (
                 <div className="w-full">

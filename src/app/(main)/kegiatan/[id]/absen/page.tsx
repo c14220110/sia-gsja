@@ -229,10 +229,12 @@ export default function KioskAbsensiPage({ params }: { params: Promise<{ id: str
       });
       const data = await res.json();
       if (data.success) {
-        triggerFeedback('success', `MANUAL: ${data.message}`);
+        setUsherToast({ visible: true, type: 'success', message: `MANUAL: ${data.message}` });
+        setTimeout(() => setUsherToast(prev => ({ ...prev, visible: false })), 3000);
         fetchLogs();
       } else {
-         alert(data.message); // Gunakan alert biasa untuk panel manual supervisor
+         setUsherToast({ visible: true, type: 'error', message: data.message });
+         setTimeout(() => setUsherToast(prev => ({ ...prev, visible: false })), 3000);
       }
     } catch(e) { alert('Internal Error'); } finally {
       setIsSubmittingManual(false);
@@ -254,8 +256,6 @@ export default function KioskAbsensiPage({ params }: { params: Promise<{ id: str
       });
       const data = await res.json();
       
-      setIsScannerOpen(false); // Tutup scanner otomatis jika scan dibaca
-
       const toastType = data.success ? 'success' : 'error';
       const toastMsg = data.success ? data.message : (data.message || 'Gagal memindai');
       setUsherToast({ visible: true, type: toastType, message: toastMsg });
@@ -281,7 +281,8 @@ export default function KioskAbsensiPage({ params }: { params: Promise<{ id: str
       });
       const data = await res.json();
       if (data.success) {
-        triggerFeedback('success', data.message, '(Tamu)');
+        setUsherToast({ visible: true, type: 'success', message: `TAMU: ${data.message}` });
+        setTimeout(() => setUsherToast(prev => ({ ...prev, visible: false })), 3000);
         setFormTamu({ nama: '', hp: '', asal: '' });
         fetchLogs();
       } else {
@@ -293,7 +294,9 @@ export default function KioskAbsensiPage({ params }: { params: Promise<{ id: str
   };
 
   const formatWaktu = (dateStr: string) => {
-    const d = new Date(dateStr);
+    if (!dateStr) return '';
+    const ds = (!dateStr.endsWith('Z') && !dateStr.includes('+')) ? dateStr + 'Z' : dateStr;
+    const d = new Date(ds);
     return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
   };
 
@@ -581,16 +584,6 @@ export default function KioskAbsensiPage({ params }: { params: Promise<{ id: str
                  <div className="w-full rounded-2xl overflow-hidden relative border-4 border-slate-100 shadow-inner bg-slate-900 mx-auto">
                     <Scanner
                       onScan={(detectedCodes) => {
-                         // Play beep immediately when anything is scanned (success)
-                         try {
-                           const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-                           const oscillator = audioContext.createOscillator();
-                           oscillator.type = 'sine';
-                           oscillator.frequency.value = 800;
-                           oscillator.connect(audioContext.destination);
-                           oscillator.start();
-                           setTimeout(() => oscillator.stop(), 150);
-                         } catch (e) {}
                          handleUsherScan(detectedCodes);
                       }}
                       formats={['qr_code']}
