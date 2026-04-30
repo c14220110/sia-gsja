@@ -21,9 +21,7 @@ export const metadata: Metadata = {
 };
 
 import { LoaderProvider } from '@/components/ui/GlobalLoader';
-import dynamic from 'next/dynamic';
-
-const SplashScreen = dynamic(() => import('@/components/ui/SplashScreen'), { ssr: false });
+import SplashScreenWrapper from '@/components/ui/SplashScreenWrapper';
 
 export default function RootLayout({
   children,
@@ -36,7 +34,7 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
       </head>
       <body className={`${inter.variable} ${playfair.variable} antialiased font-sans`}>
-        <SplashScreen />
+        <SplashScreenWrapper />
         <LoaderProvider>
           {children}
         </LoaderProvider>
