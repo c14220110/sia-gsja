@@ -119,6 +119,9 @@ export async function GET(request: Request) {
         k.butuh_registrasi,
         k.url_banner,
         k.frekuensi_kegiatan,
+        k.satelit_id,
+        k.komisi_id,
+        k.departemen_id,
         jk.nama_jenis_kegiatan,
         jk.kategori,
         s.nama_satelit,
@@ -217,16 +220,13 @@ export async function POST(request: Request) {
     const hk_rp = harga_tiket_rp ? parseFloat(harga_tiket_rp) : 0;
     const kp = kuota_peserta && kuota_peserta !== '' ? parseInt(kuota_peserta, 10) : null;
 
-    // Generate unique code KEG-YYMMDD-RANDOM
-    const now = new Date();
-    const yy = now.getFullYear().toString().slice(-2);
-    const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const dd = String(now.getDate()).padStart(2, '0');
-    const rand = Math.floor(1000 + Math.random() * 9000);
-    const kode_kegiatan = `KEG-${yy}${mm}${dd}-${rand}`;
-
+    // Generate unique code using the new standardized helper
+    const { generateKodeKegiatan } = await import('@/server/utils/kegiatanUtils');
+    // Important: We must use the client that is currently part of the transaction
     client = await pool.connect();
     await client.query('BEGIN'); // Start Transaction
+
+    const kode_kegiatan = await generateKodeKegiatan(client, jenis_kegiatan_id, tanggal_mulai);
 
     const insertKegiatanQuery = `
       INSERT INTO public.kegiatan (

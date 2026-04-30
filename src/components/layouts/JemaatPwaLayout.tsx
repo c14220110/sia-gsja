@@ -131,10 +131,10 @@ export default function JemaatPwaLayout({
       active: pathname === '/dashboard'
     },
     {
-      label: 'Warta',
-      icon: 'newspaper',
-      href: '/warta',
-      active: pathname.includes('/warta')
+      label: 'Layanan',
+      icon: 'volunteer_activism',
+      href: '/layanan-pastoral',
+      active: pathname.includes('/layanan-pastoral')
     }
   ];
 
@@ -145,7 +145,7 @@ export default function JemaatPwaLayout({
       <style>{`
         .pwa-page-enter {
           opacity: 1;
-          transform: translateY(0) scale(1);
+          transform: none;
           transform-origin: top center;
           /* Kurva spring lembut seperti SwiftUI (Apple App) */
           transition: 

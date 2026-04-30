@@ -19,7 +19,7 @@ export function SubmitOverlay({ status, message, errors, onClose }: SubmitOverla
   if (status === 'idle') return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+    <div className="fixed top-0 left-0 w-full h-[100dvh] z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 flex flex-col items-center">
         {status === 'loading' && (
           <div className="flex flex-col items-center">

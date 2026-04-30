@@ -724,6 +724,11 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
             </div>
             
             <div className="flex gap-3">
+               {['Kebaktian Umum (Ibadah Raya)', 'Kebaktian Sekolah Minggu', 'Kebaktian Kaum Muda', 'Kebaktian Wanita', 'Kebaktian Kaum Pria', 'Kebaktian Senior(Lansia)'].includes(data.nama_jenis_kegiatan) && (
+                 <a href={`/api/kegiatan/${id}/export`} target="_blank" rel="noopener noreferrer" className="px-5 py-2.5 rounded-lg border border-indigo-600 bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition flex items-center gap-2 text-sm shadow-sm">
+                   <span className="material-icons-round text-[18px]">download</span> Export Laporan
+                 </a>
+               )}
                {isEditable && (
                  <Link href={`/kegiatan/${id}/edit`} className="px-5 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-700 font-bold hover:bg-slate-50 transition flex items-center gap-2 text-sm shadow-sm">
                    <span className="material-icons-round text-[18px]">edit</span> Edit Kegiatan

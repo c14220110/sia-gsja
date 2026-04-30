@@ -529,7 +529,7 @@ export default function AkunAksesPage() {
               </div>
             </div>
 
-            <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
+            <div className="border border-slate-200 rounded-xl bg-white shadow-sm [&_thead_th:first-child]:rounded-tl-xl [&_thead_th:last-child]:rounded-tr-xl">
               <table className="w-full text-left text-sm text-slate-600">
                 <thead className="bg-slate-50 font-semibold text-slate-800 text-xs uppercase tracking-wider">
                   <tr>

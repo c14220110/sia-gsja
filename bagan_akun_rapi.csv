@@ -1,0 +1,143 @@
+Tipe Akun Utama,Kategori Akun,Nama Akun Detail,Kode Akun
+ASSET,Kas dan Bank,Cash,110001
+ASSET,Kas dan Bank,Petty Cash (Kas Kecil),111001
+ASSET,Kas dan Bank,Ayat Silang,112001
+ASSET,Kas dan Bank,Bank BCA,120101
+ASSET,Kas dan Bank,Bank Danamon,120102
+ASSET,Kas dan Bank,Bank Panin,120103
+ASSET,Kas dan Bank,Bank CIMB Niaga,120104
+ASSET,Deposito,Deposito Berjangka - BCA,130001
+ASSET,Deposito,Deposito Berjangka - Danamon,130002
+ASSET,Deposito,Deposito Berjangka - Panin,130003
+ASSET,Deposito,Deposito Berjangka - CIMB Niaga,130004
+ASSET,PiHutang,Pendapatan Yang Masih Harus Diterima,140001
+ASSET,PiHutang,PiHutang Persembahan,140002
+ASSET,PiHutang,PiHutang Karyawan,140003
+ASSET,PiHutang,PiHutang Lain-lain,140004
+ASSET,Persediaan Barang (Supplies),Persediaan Barang,140005
+ASSET,Uang Muka,Uang Muka,150001
+ASSET,Beban dibayar di muka,Beban dibayar dimuka,150002
+ASSET,Pajak dibayar di muka,PPH FINAL - SEWA,150003
+ASSET,Aset Lancar lainnya,Aset Lancar lainnya,150004
+ASSET,Tanah,Tanah Gereja,160001
+ASSET,Bangunan,Gedung Gereja,160002
+ASSET,Akumulasi penyusutan bangunan,Akumulasi Penyusutan Gedung,160003
+ASSET,Peralatan,Peralatan Gereja,160004
+ASSET,Akumulasi penyusutan peralatan,Akumulasi Penyusutan Peralatan,160005
+ASSET,Kendaraan,Kendaraan Gereja,160006
+ASSET,Akumulasi penyusutan kendaraan,Akumulasi Penyusutan Kendaraan Gereja,160007
+ASSET,Pajak Tangguhan,Pajak Tangguhan,160008
+ASSET,Investasi Surat Berharga,Investasi Surat Berharga,160009
+ASSET,Aset Tidak Lancar Lainnya,Uang Titipan,160010
+LIABILITY,Hutang Bank Jangka Pendek,Hutang Bank Jangka Pendek,210101
+LIABILITY,Hutang Usaha,Hutang Usaha,210201
+LIABILITY,Beban Akrual,Akrual Gaji & Pajak Karyawan,210202
+LIABILITY,Beban Akrual,Akrual Biaya Pengembangan,210203
+LIABILITY,Beban Akrual,Akrual Biaya Lain-lain,210204
+LIABILITY,Uang Titipan,Uang Titipan (Dana Belum Teridentifikasi),210301
+LIABILITY,Hutang Pajak,Hutang PPh 21,210401
+LIABILITY,Hutang Pajak,Hutang PPh 23,210402
+LIABILITY,Hutang Pajak,Hutang PPh 4 (2),210403
+LIABILITY,Hutang Pajak,Hutang PPh Final,210404
+LIABILITY,Hutang Sewa Jangka Pendek,Hutang Sewa Gedung,210501
+LIABILITY,Hutang Jangka Pendek Lainnya,Hutang Bunga,210601
+LIABILITY,Hutang Jangka Pendek Lainnya,Hutang Lain-lain,210602
+LIABILITY,Hutang Bank,Hutang Bank Jangka Panjang,220101
+LIABILITY,Hutang Sewa,Hutang Sewa Pembiayaan (Leasing),220201
+LIABILITY,Pensiun Karyawan,Liabilitas Imbalan Pasca-Kerja,220301
+LIABILITY,Hutang Jangka Panjang Lainnya,Hutang Jangka Panjang Lainnya,220401
+EQUITY,Modal Dana Gereja,Dana Gereja (Modal Awal),310101
+EQUITY,Laba Ditahan yang Ditentukan Penggunaannya (Restricted Retained Earnings),Dana Pembangunan Gereja,320101
+EQUITY,Laba Ditahan yang Ditentukan Penggunaannya (Restricted Retained Earnings),Dana Cadangan,320102
+EQUITY,Laba Ditahan yang Ditentukan Penggunaannya (Restricted Retained Earnings),Modal Kegiatan,320103
+EQUITY,Laba Ditahan yang Belum Ditentukan Penggunaannya (Unrestricted Retained Earnings),Laba Ditahan (Retained Earnings),330101
+PENDAPATAN,Persembahan dari Jemaat,Persembahan Mingguan,410101
+PENDAPATAN,Persembahan dari Jemaat,Persembahan Kasih,410102
+PENDAPATAN,Persembahan dari Jemaat,Persembahan Dana Misi,410103
+PENDAPATAN,Perpuluhan dari Jemaat,Persembahan Persepuluhan,410201
+PENDAPATAN,Persembahan Dept./Komisi,Persembahan Dept./Komisi,410301
+PENDAPATAN,Pendapatan Sewa,Pendapatan Sewa Gedung,410401
+PENDAPATAN,Kontribusi Kegiatan,Pendapatan Kontribusi Kegiatan,410501
+PENDAPATAN,Persembahan Khusus,Persembahan Kegiatan,410501
+PENDAPATAN,Persembahan Khusus,Persembahan Pembangunan Gereja,410502
+PENDAPATAN,Persembahan Khusus,Persembahan Lainnya,410503
+PENDAPATAN,Sumbangan,Pendapatan Donasi (Hibah),420101
+PENDAPATAN,Bunga Bank,Pendapatan Bunga Deposito,420201
+PENDAPATAN,Bunga Bank,Pendapatan Jasa Giro / Bunga Tabungan,420202
+PENDAPATAN,Pendapatan Lain-lain,Pendapatan Usaha Gereja,420301
+PENDAPATAN,Pendapatan Lain-lain,Iuran Anjang Kasih,420302
+PENDAPATAN,Pendapatan Lain-lain,Pendapatan Lain-lain (misal: Plafon),420303
+BIAYA PENDAPATAN,Beban Gaji & Tenaga Pelayanan,Gaji Gembala Sidang & Pendeta Pastoral,510101
+BIAYA PENDAPATAN,Beban Gaji & Tenaga Pelayanan,Beban Honor Pembicara / Pengkhotbah,510102
+BIAYA PENDAPATAN,Beban Gaji & Tenaga Pelayanan,Beban Honor Pemain Musik,510103
+BIAYA PENDAPATAN,Beban Kegiatan Ibadah & Dept.,Beban Dekorasi Ibadah,510201
+BIAYA PENDAPATAN,Beban Kegiatan Ibadah & Dept.,Beban Dokumentasi Ibadah,510202
+BIAYA PENDAPATAN,Beban Kegiatan Ibadah & Dept.,Beban Transportasi Pelayan Ibadah,510203
+BIAYA PENDAPATAN,Beban Kegiatan Ibadah & Dept.,Beban Penginapan Pelayan Ibadah,510204
+BIAYA PENDAPATAN,Beban Kegiatan Ibadah & Dept.,Biaya Kegiatan Departemen/Komisi,510205
+BIAYA PENDAPATAN,Beban Kegiatan Ibadah & Dept.,Biaya Subsidi Peserta Kegiatan,510206
+BIAYA PENDAPATAN,Perpuluhan Sidang ke BPD,Perpuluhan Umum Pusat & Satelit,510301
+BIAYA PENDAPATAN,Perpuluhan Sidang ke BPD,Perpuluhan Departemen SM,510302
+BIAYA PENDAPATAN,Perpuluhan Sidang ke BPD,Perpuluhan Departemen KM,510303
+BIAYA PENDAPATAN,Perpuluhan Sidang ke BPD,Perpuluhan Departemen KW,510304
+BIAYA PENDAPATAN,Perpuluhan Sidang ke BPD,Perpuluhan Departemen KP,510305
+BIAYA PENDAPATAN,Perpuluhan Sidang ke BPD,Perpuluhan Depertemen Doa,510306
+BIAYA PENDAPATAN,Perpuluhan Sidang ke BPD,Perpuluhan Departemen Konseling,510307
+BIAYA PENDAPATAN,Beban Pelayanan Sosial,Biaya Sumbangan Diakonia,510401
+BIAYA PENDAPATAN,Beban Pelayanan Sosial,Biaya Persembahan Kasih (disalurkan),510402
+BIAYA PENDAPATAN,Beban Pelayanan Sosial,Beban CSR (Corporate Social Responsibility),510403
+BIAYA PENDAPATAN,Beban Pelayanan Sosial,Dana Khusus UMAS,510404
+BIAYA PENDAPATAN,Beban Pelayanan Sosial,Gerakan E-1000 Bencana Alam,510405
+BIAYA PENDAPATAN,Beban Pelayanan Sosial,Harnas,510406
+BIAYA PENDAPATAN,Beban Pelayanan Sosial,Biaya Sumbangan Lainnya,510407
+BEBAN OPERASIONAL,Beban Karyawan (Non-Pelayanan),Beban Gaji Karyawan Lain-lain (Staf Kantor),620101
+BEBAN OPERASIONAL,Beban Karyawan (Non-Pelayanan),Beban Gaji Tenaga Outsourcing (PT Outsourcing),620102
+BEBAN OPERASIONAL,Beban Karyawan (Non-Pelayanan),Tunjangan Pendidikan Anak,620103
+BEBAN OPERASIONAL,Beban Karyawan (Non-Pelayanan),Tunjangan Kesehatan / BPJS Kesehatan,620104
+BEBAN OPERASIONAL,Beban Karyawan (Non-Pelayanan),Tunjangan Transportasi/Kendaraan,620105
+BEBAN OPERASIONAL,Beban Karyawan (Non-Pelayanan),Tunjangan Hari Raya (THR),620106
+BEBAN OPERASIONAL,Beban Karyawan (Non-Pelayanan),Tunjangan Lain-lain,620107
+BEBAN OPERASIONAL,Beban Karyawan (Non-Pelayanan),Pesangon & Insentif,620108
+BEBAN OPERASIONAL,Beban Karyawan (Non-Pelayanan),BPJS Ketenagakerjaan,620109
+BEBAN OPERASIONAL,Beban Karyawan (Non-Pelayanan),Uang Makan,620110
+BEBAN OPERASIONAL,Beban Kantor & Umum,Office Supplies - Perlengkapan Kantor,620201
+BEBAN OPERASIONAL,Beban Kantor & Umum,Beban Alat Tulis Kantor,620202
+BEBAN OPERASIONAL,Beban Kantor & Umum,Beban Perawatan (< Rp. 3 juta),620203
+BEBAN OPERASIONAL,Beban Kantor & Umum,"Beban IT (Software, hardware, dll)",620204
+BEBAN OPERASIONAL,Beban Kantor & Umum,"Beban Fotokopi, Cetak, Stensil",620205
+BEBAN OPERASIONAL,Beban Kantor & Umum,Beban Pengiriman Surat & Dokumen,620206
+BEBAN OPERASIONAL,Beban Kantor & Umum,Beban Konsumsi (Rapat & Harian,620207
+BEBAN OPERASIONAL,Beban Komunikasi & Utilitas,Beban Komunikasi - Telepon,620301
+BEBAN OPERASIONAL,Beban Komunikasi & Utilitas,Beban Komunikasi - Internet,620302
+BEBAN OPERASIONAL,Beban Komunikasi & Utilitas,Beban Utilitas - PDAM,620303
+BEBAN OPERASIONAL,Beban Komunikasi & Utilitas,Beban Utilitas - Listrik,620304
+BEBAN OPERASIONAL,Beban Komunikasi & Utilitas,Beban Utilitas - BBM Generator,620305
+BEBAN OPERASIONAL,Beban Pajak & Perizinan,"Pajak & Perizinan - PBB, HGB, IMB",620401
+BEBAN OPERASIONAL,Beban Pajak & Perizinan,Pajak & Perizinan - Kendaraan,620402
+BEBAN OPERASIONAL,Beban Pajak & Perizinan,Pajak & Perizinan - Biaya Materai & Lainnya,620403
+BEBAN OPERASIONAL,Beban Pemeliharaan & Kebersihan,Beban Cleaning Service,620501
+BEBAN OPERASIONAL,Beban Pemeliharaan & Kebersihan,Beban Cleaning - Bahan Pembersih,620502
+BEBAN OPERASIONAL,Beban Pemeliharaan & Kebersihan,Beban Cleaning - Sampah & Pembuangan,620503
+BEBAN OPERASIONAL,Beban Pemeliharaan & Kebersihan,Pemeliharaan Kendaraan,620504
+BEBAN OPERASIONAL,Beban Pemeliharaan & Kebersihan,Pemeliharaan Peralatan Kantor,620505
+BEBAN OPERASIONAL,Beban Pemeliharaan & Kebersihan,Pemeliharaan Bangunan & Sipil,620506
+BEBAN OPERASIONAL,Beban Pemeliharaan & Kebersihan,"Pemeliharaan Sarana Prasarana (Taman, Jalan)",620507
+BEBAN OPERASIONAL,Beban Pemeliharaan & Kebersihan,Pemeliharaan Lainnya,620508
+BEBAN OPERASIONAL,Beban Sewa & Asuransi,Beban Sewa Gedung / Tempat,620601
+BEBAN OPERASIONAL,Beban Sewa & Asuransi,Beban Sewa Transportasi,620602
+BEBAN OPERASIONAL,Beban Sewa & Asuransi,Beban Sewa Peralatan,620603
+BEBAN OPERASIONAL,Beban Sewa & Asuransi,Beban Asuransi Gedung,620604
+BEBAN OPERASIONAL,Beban Sewa & Asuransi,Beban Asuransi Kendaraan,620605
+BEBAN OPERASIONAL,Beban Lain-lain,Beban Entertainment,620701
+BEBAN OPERASIONAL,Beban Lain-lain,Beban Seragam Staf,620702
+BEBAN OPERASIONAL,Beban Lain-lain,Beban Magang,620703
+BEBAN OPERASIONAL,Beban Lain-lain,Pulsa,620704
+BEBAN OPERASIONAL,Beban Penyusutan,Beban Penyusutan (akan dirinci per aset),620801
+LAIN-LAIN (PENDAPATAN DI LUAR USAHA),Pendapatan Lain-lain,Keuntungan dari Penjualan Aset,710101
+LAIN-LAIN (PENDAPATAN DI LUAR USAHA),Pendapatan Lain-lain,Keuntungan Selisih Kurs,710102
+LAIN-LAIN (BEBAN DI LUAR USAHA),Beban Lain-lain,Beban Bunga,810101
+LAIN-LAIN (BEBAN DI LUAR USAHA),Beban Lain-lain,Kerugian dari Penjualan Aset,810102
+LAIN-LAIN (BEBAN DI LUAR USAHA),Beban Lain-lain,Kerugian karena Penghapusan Aset,810103
+LAIN-LAIN (BEBAN DI LUAR USAHA),Beban Lain-lain,Beban Denda,810104
+LAIN-LAIN (BEBAN DI LUAR USAHA),Beban Lain-lain,Kerugian Selisih Kurs,810105
+LAIN-LAIN (BEBAN DI LUAR USAHA),Beban Lain-lain,Beban Admin (Umum),810106

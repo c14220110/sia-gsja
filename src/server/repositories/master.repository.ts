@@ -171,7 +171,7 @@ export class MasterRepository {
     const query = `
       SELECT 
         id, nama_jenis_kegiatan, kategori, 
-        default_is_published, default_butuh_registrasi
+        default_is_published, default_butuh_registrasi, butuh_permohonan
       FROM jenis_kegiatan
       ORDER BY id ASC;
     `;
