@@ -178,7 +178,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
     doc.render(data);
 
-    const buf = doc.getZip().generate({ type: 'uint8array' });
+    const buf = Buffer.from(doc.getZip().generate({ type: 'uint8array' }));
 
     return new NextResponse(buf, {
       status: 200,
