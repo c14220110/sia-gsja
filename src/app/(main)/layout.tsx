@@ -93,6 +93,9 @@ export default function DashboardLayout({
     return userData.permissions?.includes?.(perm);
   };
 
+  // Sekretaris Satelit (role_id=7) hanya boleh: Dashboard, Manajemen User, Kegiatan
+  const isSekretarisSatelit = userData?.role_id === 7 || userData?.role_name?.toLowerCase() === 'sekretaris satelit';
+
   let topbarTitle = 'Dashboard Utama';
   let topbarIcon  = 'dashboard';
 
@@ -269,6 +272,7 @@ export default function DashboardLayout({
                 </div>
               </div>
 
+              {!isSekretarisSatelit && (
               <div className="w-full">
                 <div 
                   className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer"
@@ -297,8 +301,9 @@ export default function DashboardLayout({
                   </div>
                 </div>
               </div>
+              )}
 
-              {hasPermission('pelayan_view') && (
+              {hasPermission('pelayan_view') && !isSekretarisSatelit && (
                 <div className="w-full">
                   <div 
                     className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer"
@@ -329,6 +334,7 @@ export default function DashboardLayout({
                 </div>
               )}
 
+              {!isSekretarisSatelit && (
               <div className="w-full">
                 <div 
                   className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer"
@@ -357,7 +363,9 @@ export default function DashboardLayout({
                   </div>
                 </div>
               </div>
+              )}
 
+              {!isSekretarisSatelit && (
               <div className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer">
                 <div className="flex justify-start items-center gap-4">
                   <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
@@ -368,7 +376,9 @@ export default function DashboardLayout({
                   </div>
                 </div>
               </div>
+              )}
 
+              {!isSekretarisSatelit && (
               <div className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer">
                 <div className="flex justify-start items-center gap-4">
                   <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
@@ -379,7 +389,9 @@ export default function DashboardLayout({
                   </div>
                 </div>
               </div>
+              )}
 
+              {!isSekretarisSatelit && (
               <div className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer">
                 <div className="flex justify-start items-center gap-4">
                   <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
@@ -390,7 +402,9 @@ export default function DashboardLayout({
                   </div>
                 </div>
               </div>
+              )}
 
+              {!isSekretarisSatelit && (
               <div className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer">
                 <div className="flex justify-start items-center gap-4">
                   <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
@@ -401,6 +415,7 @@ export default function DashboardLayout({
                   </div>
                 </div>
               </div>
+              )}
 
             </nav>
           )}
@@ -599,7 +614,7 @@ export default function DashboardLayout({
               </div>
             )}
 
-            {activeSubmenu === 'pegawai' && (
+            {activeSubmenu === 'pegawai' && !isSekretarisSatelit && (
               <div 
                 className="absolute pl-2 animate-in fade-in zoom-in-95 duration-200"
                 style={{ top: submenuTop }}
@@ -686,7 +701,7 @@ export default function DashboardLayout({
               </div>
             )}
 
-            {activeSubmenu === 'buku_besar' && (
+            {activeSubmenu === 'buku_besar' && !isSekretarisSatelit && (
               <div 
                 className="absolute pl-2 animate-in fade-in zoom-in-95 duration-200"
                 style={{ top: submenuTop }}
@@ -770,7 +785,7 @@ export default function DashboardLayout({
               </div>
             )}
 
-            {activeSubmenu === 'anggaran_proposal' && (
+            {activeSubmenu === 'anggaran_proposal' && !isSekretarisSatelit && (
               <div 
                 className="absolute pl-2 animate-in fade-in zoom-in-95 duration-200"
                 style={{ top: submenuTop }}
