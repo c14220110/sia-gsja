@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 
 // GET: Fetch all COA as a flat list
-export async function GET() {
+export async function GET(request: Request) {
+  const caller = getCallerFromRequest(request);
+  if (!caller) {
+    return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const res = await pool.query(`
       SELECT 
@@ -24,6 +30,11 @@ export async function GET() {
 
 // POST: Add a new Account
 export async function POST(req: Request) {
+  const caller = getCallerFromRequest(req);
+  if (!caller) {
+    return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const body = await req.json();
     let { kode_akun, nama_akun, induk_akun_id, grup_laporan, tipe_akun, saldo_normal, is_active } = body;
@@ -76,6 +87,11 @@ export async function POST(req: Request) {
 
 // PUT: Edit an existing Account
 export async function PUT(req: Request) {
+  const caller = getCallerFromRequest(req);
+  if (!caller) {
+    return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const body = await req.json();
     let { id, kode_akun, nama_akun, induk_akun_id, grup_laporan, tipe_akun, saldo_normal, is_active } = body;

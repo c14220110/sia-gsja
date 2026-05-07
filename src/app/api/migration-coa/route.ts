@@ -2,8 +2,14 @@ import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import fs from 'fs';
 import path from 'path';
+import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 
-export async function GET() {
+export async function GET(request: Request) {
+  const caller = getCallerFromRequest(request);
+  if (!caller || !caller.is_super_admin) {
+    return NextResponse.json({ success: false, message: 'Forbidden: Super Admin only' }, { status: 403 });
+  }
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');

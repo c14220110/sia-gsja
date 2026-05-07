@@ -1,12 +1,18 @@
 import { NextResponse } from 'next/server';
 import { Pool } from 'pg';
+import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
 // GET /api/kegiatan/validasi-pembayaran
-export async function GET() {
+export async function GET(request: Request) {
+  const caller = getCallerFromRequest(request);
+  if (!caller) {
+    return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const query = `
       SELECT 

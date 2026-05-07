@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { Pool } from 'pg';
+import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -20,6 +21,11 @@ export async function GET(request: Request) {
   const offset = parseInt(searchParams.get('offset') || '0', 10);
 
   try {
+    const caller = getCallerFromRequest(request);
+    if (!caller) {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    }
+
     let whereClauses: string[] = [];
     let values: any[] = [];
     let paramIndex = 1;
@@ -181,6 +187,11 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   let client;
   try {
+    const caller = getCallerFromRequest(request);
+    if (!caller) {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     
       // Parse Payload

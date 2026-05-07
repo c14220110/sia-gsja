@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { Pool } from 'pg';
+import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -7,6 +8,11 @@ const pool = new Pool({
 
 // GET /api/kegiatan/[id]/registrasi
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const caller = getCallerFromRequest(request);
+  if (!caller) {
+    return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  }
+
   const { id } = await params;
 
   try {
@@ -34,6 +40,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
 // POST /api/kegiatan/[id]/registrasi
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const caller = getCallerFromRequest(request);
+  if (!caller) {
+    return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  }
+
   const { id } = await params;
   const client = await pool.connect();
 
@@ -82,6 +93,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
 // PUT /api/kegiatan/[id]/registrasi - Bulk or Single operations
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const caller = getCallerFromRequest(request);
+  if (!caller) {
+    return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  }
+
   // const { id } = await params; // Kegiatan ID, keeping it for params consistency
   try {
     const body = await request.json();

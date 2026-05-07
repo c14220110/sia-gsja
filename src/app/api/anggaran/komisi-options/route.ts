@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 
 /**
  * GET /api/anggaran/komisi-options?satelit_id=X
  * Mengembalikan daftar komisi aktif yang berada di bawah satelit tertentu.
  */
 export async function GET(request: NextRequest) {
+  const caller = getCallerFromRequest(request);
+  if (!caller) {
+    return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  }
+
   const { searchParams } = new URL(request.url);
   const satelitId = searchParams.get('satelit_id');
 

@@ -148,7 +148,7 @@ export class AkunAksesRepository {
       await client.query('COMMIT');
       return { success: true };
     } catch (error: any) {
-      await client.query('ROLLBACK');
+      try { await client.query('ROLLBACK'); } catch (e) {}
       console.error('Error createPengguna:', error);
       if (error.code === '23505') {
          return { success: false, message: 'Email atau Jemaat ini sudah memiliki akun di sistem' };
@@ -167,6 +167,8 @@ export class AkunAksesRepository {
     password_hash: string;
     jemaat_id: number;
     roles: { role_id: number; satelit_id: number }[];
+    komisi_id?: number | null;
+    departemen_id?: number | null;
   }): Promise<{ success: boolean; message?: string }> {
     const client = await pool.connect();
     try {
@@ -186,19 +188,22 @@ export class AkunAksesRepository {
         userId = insUser.rows[0].id;
       }
 
-      // Insert all roles
+      // Insert all roles with optional scope
       for (const role of data.roles) {
         await client.query(`
-          INSERT INTO user_role (user_id, role_id, satelit_id)
-          VALUES ($1, $2, $3)
-          ON CONFLICT (user_id, role_id, satelit_id) DO UPDATE SET is_active = true
-        `, [userId, role.role_id, role.satelit_id]);
+          INSERT INTO user_role (user_id, role_id, satelit_id, komisi_id, departemen_id)
+          VALUES ($1, $2, $3, $4, $5)
+          ON CONFLICT (user_id, role_id, satelit_id) DO UPDATE 
+            SET is_active = true,
+                komisi_id = EXCLUDED.komisi_id,
+                departemen_id = EXCLUDED.departemen_id
+        `, [userId, role.role_id, role.satelit_id, data.komisi_id ?? null, data.departemen_id ?? null]);
       }
 
       await client.query('COMMIT');
       return { success: true };
     } catch (error: any) {
-      await client.query('ROLLBACK');
+      try { await client.query('ROLLBACK'); } catch (e) {}
       console.error('Error createPenggunaMultiRole:', error);
       if (error.code === '23505') {
         return { success: false, message: 'Email atau Jemaat ini sudah memiliki akun di sistem' };
@@ -263,7 +268,7 @@ export class AkunAksesRepository {
       await client.query('COMMIT');
       return { success: true };
     } catch (error: any) {
-      await client.query('ROLLBACK');
+      try { await client.query('ROLLBACK'); } catch (e) {}
       console.error('Error updatePengguna:', error);
       if (error.code === '23505') {
         return { success: false, message: 'Email sudah digunakan oleh pengguna lain.' };
@@ -348,7 +353,7 @@ export class AkunAksesRepository {
       await client.query('COMMIT');
       return { success: true, createdCount };
     } catch (error: any) {
-      await client.query('ROLLBACK');
+      try { await client.query('ROLLBACK'); } catch (e) {}
       console.error('Error bulkCreatePengguna:', error);
       return { success: false, createdCount: 0, message: error.message };
     } finally {

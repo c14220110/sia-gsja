@@ -38,6 +38,47 @@ export default function PengurusPage() {
   const [periodeOptions,     setPeriodeOptions]     = useState<any[]>([]);
   const [departemenOptions,  setDepartemenOptions]  = useState<any[]>([]);
   const [komisiOptions,      setKomisiOptions]      = useState<any[]>([]);
+  const [roleOptions,        setRoleOptions]        = useState<any[]>([]);
+
+  // Modal Buatkan Akun State
+  const [akunModal, setAkunModal] = useState<{
+    open: boolean;
+    pengurusId: number | null;
+    jemaatId: number | null;
+    namaLengkap: string;
+    emailDefault: string;
+    satelitDefault: string;
+    tanggalLahir: string;
+    jabatanList: any[];
+  }>({ open: false, pengurusId: null, jemaatId: null, namaLengkap: '', emailDefault: '', satelitDefault: '', tanggalLahir: '', jabatanList: [] });
+
+  const [akunForm, setAkunForm] = useState({
+    email: '', password: '',
+    roles: [] as { role_id: number; role_name: string; satelit_id: number; satelit_name: string; komisi_id: number | null; departemen_id: number | null; lingkup: string; label: string }[],
+  });
+  const [akunSubmitState, setAkunSubmitState] = useState<'idle'|'loading'|'success'|'error'>('idle');
+  const [akunError, setAkunError] = useState('');
+
+  // Modal Kelola Akun State
+  const [kelolaAkunModal, setKelolaAkunModal] = useState<{
+    open: boolean;
+    pengurusId: number | null;
+    akunId: number | null;
+    namaLengkap: string;
+    email: string;
+    isActive: boolean;
+  }>({ open: false, pengurusId: null, akunId: null, namaLengkap: '', email: '', isActive: false });
+  const [kelolaAkunForm, setKelolaAkunForm] = useState({ password: '' });
+  const [kelolaAkunSubmitState, setKelolaAkunSubmitState] = useState<'idle'|'loading'|'success'|'error'>('idle');
+  const [kelolaAkunError, setKelolaAkunError] = useState('');
+
+  // Komisi terfilter untuk modal (tidak dipakai lagi, tapi dijaga agar tidak error)
+  const filteredKomisiModal: any[] = [];
+
+  // Role yang butuh komisi/departemen scope
+  const selectedRoleName = '';
+  const isKomisiRole = false;
+  const isDepartemenRole = false;
 
   // Pagination & Stats State
   const [data,          setData]          = useState<any[]>([]);
@@ -72,26 +113,31 @@ export default function PengurusPage() {
     const fetchOptionsAndUser = async () => {
       showLoader();
       try {
-        const [resSatelit, resJabatan, resPeriode, resDepartemen, resKomisi, resUser] = await Promise.all([
+        const [resSatelit, resJabatan, resPeriode, resDepartemen, resKomisi, resUser, resRoles] = await Promise.all([
           fetch('/api/options?type=satelit'),
           fetch('/api/options?type=jabatan'),
           fetch('/api/options?type=periode_kepengurusan'),
           fetch('/api/options?type=departemen'),
           fetch('/api/options?type=komisi'),
           fetch('/api/auth/me'),
+          fetch('/api/settings/akun-akses/roles'),
         ]);
-        const satelitData = await resSatelit.json();
-        const jabatanData = await resJabatan.json();
-        const periodeData = await resPeriode.json();
+        const satelitData    = await resSatelit.json();
+        const jabatanData    = await resJabatan.json();
+        const periodeData    = await resPeriode.json();
         const departemenData = await resDepartemen.json();
-        const komisiData = await resKomisi.json();
-        const authData    = resUser.ok ? await resUser.json() : null;
+        const komisiData     = await resKomisi.json();
+        const authData       = resUser.ok ? await resUser.json() : null;
+        const rolesData      = resRoles.ok ? await resRoles.json() : null;
 
         if (satelitData.success) setSatelitOptions(satelitData.data);
         if (jabatanData.success) setJabatanOptions(jabatanData.data);
         if (periodeData.success) setPeriodeOptions(periodeData.data);
         if (departemenData.success) setDepartemenOptions(departemenData.data);
         if (komisiData.success) setKomisiOptions(komisiData.data);
+        if (rolesData?.success && Array.isArray(rolesData.data?.roles)) {
+          setRoleOptions(rolesData.data.roles.filter((r: any) => r.is_active));
+        }
     // Auto-lock satelit asal untuk admin satelit
         if (authData) {
           setUserData(authData);
@@ -161,6 +207,182 @@ export default function PengurusPage() {
   const handleToggleStatus = (id: number, currentStatus: string) => {
     const newStatus = currentStatus === 'Aktif' ? 'Demisioner' : 'Aktif';
     setAlertState({ isOpen: true, id, newStatus });
+  };
+
+  // Handler Buatkan Akun
+  const openAkunModal = (pengurus: any) => {
+    setOpenMenuId(null);
+    let defaultPassword = '';
+    if (pengurus.tanggal_lahir) {
+      const date = new Date(pengurus.tanggal_lahir);
+      const dd = String(date.getDate()).padStart(2, '0');
+      const mm = String(date.getMonth() + 1).padStart(2, '0');
+      const yyyy = date.getFullYear();
+      defaultPassword = `${dd}/${mm}/${yyyy}`;
+    }
+
+    // Auto-build roles dari jabatan aktif + mapping ke role sistem
+    const jabatanList: any[] = pengurus.jabatan_aktif_list ?? [];
+    const autoRoles = jabatanList.map((jab: any) => {
+      // Cari role sistem yang namanya mirip dengan jabatan
+      const jabNama = jab.nama?.toUpperCase().replace(/\s+/g, '_');
+      const matchedRole = roleOptions.find((r: any) =>
+        r.nama_role.toUpperCase() === jabNama ||
+        r.nama_role.toUpperCase().includes(jabNama) ||
+        jabNama.includes(r.nama_role.toUpperCase())
+      );
+      return {
+        role_id: matchedRole?.id ?? null,
+        role_name: matchedRole?.nama_role ?? jab.nama,
+        satelit_id: jab.satelit_id ?? pengurus.satelit_asal_id ?? null,
+        satelit_name: satelitOptions.find((s: any) => s.id === (jab.satelit_id ?? pengurus.satelit_asal_id))?.nama_satelit ?? '',
+        komisi_id: jab.komisi_id ?? null,
+        departemen_id: jab.departemen_id ?? null,
+        lingkup: jab.lingkup,
+        label: jab.label,
+      };
+    }).filter((r: any) => r.role_id !== null);
+
+    setAkunForm({ 
+      email: pengurus.email_jemaat || '', 
+      password: defaultPassword, 
+      roles: autoRoles,
+    });
+    setAkunSubmitState('idle');
+    setAkunError('');
+    setAkunModal({
+      open: true,
+      pengurusId: pengurus.id,
+      jemaatId: pengurus.jemaat_id,
+      namaLengkap: pengurus.nama_lengkap,
+      emailDefault: pengurus.email_jemaat || '',
+      satelitDefault: pengurus.satelit_asal_id?.toString() || '',
+      tanggalLahir: pengurus.tanggal_lahir || '',
+      jabatanList,
+    });
+  };
+
+  const handleBuatAkun = async () => {
+    if (!akunForm.email || !akunForm.password) {
+      setAkunError('Email dan Password diperlukan.');
+      return;
+    }
+    if (akunForm.roles.length === 0) {
+      setAkunError('Tidak ada role yang bisa di-assign. Pastikan jabatan aktif pengurus sudah terdaftar sebagai Role Sistem.');
+      return;
+    }
+    setAkunError('');
+    setAkunSubmitState('loading');
+    try {
+      const roles = akunForm.roles.map(r => ({
+        role_id: r.role_id,
+        satelit_id: r.satelit_id,
+      }));
+      const komisi_id = akunForm.roles.find(r => r.komisi_id)?.komisi_id ?? null;
+      const departemen_id = akunForm.roles.find(r => r.departemen_id)?.departemen_id ?? null;
+      const res = await fetch('/api/settings/akun-akses/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: akunForm.email,
+          password: akunForm.password,
+          jemaat_id: akunModal.jemaatId,
+          roles,
+          komisi_id,
+          departemen_id,
+        }),
+      });
+      const result = await res.json();
+      if (result.success) {
+        setAkunSubmitState('success');
+        setTimeout(() => {
+          setAkunModal(m => ({ ...m, open: false }));
+          window.location.reload();
+        }, 1500);
+      } else {
+        setAkunError(result.message || 'Gagal membuat akun.');
+        setAkunSubmitState('error');
+      }
+    } catch {
+      setAkunError('Terjadi kesalahan koneksi.');
+      setAkunSubmitState('error');
+    }
+  };
+
+  // Handler Kelola Akun
+  const openKelolaAkunModal = (pengurus: any) => {
+    setOpenMenuId(null);
+    setKelolaAkunForm({ password: '' });
+    setKelolaAkunSubmitState('idle');
+    setKelolaAkunError('');
+    setKelolaAkunModal({
+      open: true,
+      pengurusId: pengurus.id,
+      akunId: pengurus.akun_id,
+      namaLengkap: pengurus.nama_lengkap,
+      email: pengurus.email_jemaat || '',
+      isActive: pengurus.akun_is_active,
+    });
+  };
+
+  const handleUpdatePassword = async () => {
+    if (!kelolaAkunForm.password || kelolaAkunForm.password.length < 8) {
+      setKelolaAkunError('Password baru wajib diisi minimal 8 karakter.');
+      return;
+    }
+    setKelolaAkunError('');
+    setKelolaAkunSubmitState('loading');
+    try {
+      const res = await fetch('/api/settings/akun-akses/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: kelolaAkunModal.akunId,
+          password: kelolaAkunForm.password,
+        }),
+      });
+      const result = await res.json();
+      if (result.success) {
+        setKelolaAkunSubmitState('success');
+        setTimeout(() => {
+          setKelolaAkunSubmitState('idle');
+          setKelolaAkunForm({ password: '' });
+        }, 3000);
+      } else {
+        setKelolaAkunError(result.message || 'Gagal mengubah password.');
+        setKelolaAkunSubmitState('error');
+      }
+    } catch {
+      setKelolaAkunError('Terjadi kesalahan koneksi.');
+      setKelolaAkunSubmitState('error');
+    }
+  };
+
+  const handleToggleAkunStatus = async () => {
+    try {
+      setKelolaAkunSubmitState('loading');
+      const newStatus = !kelolaAkunModal.isActive;
+      const res = await fetch('/api/settings/akun-akses/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: kelolaAkunModal.akunId,
+          is_active: newStatus,
+        }),
+      });
+      const result = await res.json();
+      if (result.success) {
+        setKelolaAkunSubmitState('idle');
+        setKelolaAkunModal(m => ({ ...m, isActive: newStatus }));
+        setData(prev => prev.map(p => p.id === kelolaAkunModal.pengurusId ? { ...p, akun_is_active: newStatus } : p));
+      } else {
+        setKelolaAkunError(result.message || 'Gagal mengubah status akun.');
+        setKelolaAkunSubmitState('error');
+      }
+    } catch {
+      setKelolaAkunError('Terjadi kesalahan saat mengubah status.');
+      setKelolaAkunSubmitState('error');
+    }
   };
 
   const confirmToggleStatus = async () => {
@@ -505,6 +727,7 @@ export default function PengurusPage() {
               <div className="w-32 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">ID Pengurus</div>
               <div className="w-64 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Profil Pengurus</div>
               <div className="flex-1 min-w-[200px] text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Jabatan Aktif</div>
+              <div className="w-24 shrink-0 text-center text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Akun</div>
               <div className="w-32 shrink-0 text-center text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Status Global</div>
               <div className="w-20 shrink-0 text-right text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Aksi</div>
             </div>
@@ -557,9 +780,24 @@ export default function PengurusPage() {
                         })()}
                       </div>
 
+                      {/* Akun Badge — sesudah jabatan */}
+                      <div className="w-24 shrink-0 flex justify-center">
+                        {pengurus.has_akun ? (
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
+                            pengurus.akun_is_active ? 'bg-violet-100 text-violet-700' : 'bg-slate-100 text-slate-500'
+                          }`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${pengurus.akun_is_active ? 'bg-violet-500' : 'bg-slate-400'}`}></span>
+                            {pengurus.akun_is_active ? 'Aktif' : 'Non-Aktif'}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-600 border border-amber-200">
+                            <span className="material-icons-round text-[11px]">lock</span>
+                            Belum
+                          </span>
+                        )}
+                      </div>
 
-
-                      {/* Status Global (pengurus.is_active) */}
+                      {/* Status Akun Badge */}
                       <div className="w-32 shrink-0 flex justify-center">
                         <span className={`px-3 py-1 rounded-full text-xs font-bold font-['Public_Sans'] uppercase ${
                           pengurus.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
@@ -580,7 +818,7 @@ export default function PengurusPage() {
                         {openMenuId === pengurus.id && (
                           <>
                             <div className="fixed inset-0 z-40" onClick={() => setOpenMenuId(null)}></div>
-                            <div className={`absolute right-0 ${isLastRows ? 'bottom-full mb-1' : 'top-full mt-1'} w-52 bg-white rounded-lg shadow-[0_4px_20px_-4px_rgba(0,0,0,0.15)] border border-slate-200 z-50 py-1 overflow-visible`}>
+                            <div className={`absolute right-0 ${isLastRows ? 'bottom-full mb-1' : 'top-full mt-1'} w-56 bg-white rounded-lg shadow-[0_4px_20px_-4px_rgba(0,0,0,0.15)] border border-slate-200 z-50 py-1 overflow-visible`}>
                               <Link
                                 href={`/pengurus/${pengurus.id}?mode=view`}
                                 className="w-full text-left px-4 py-2 hover:bg-slate-50 transition-colors flex items-center gap-3 text-sm text-slate-700 font-['Public_Sans']"
@@ -594,6 +832,30 @@ export default function PengurusPage() {
                                 >
                                   <span className="material-icons-round text-[18px] text-slate-400">edit</span> Edit / Kelola Jabatan
                                 </Link>
+                              )}
+                              {/* Buatkan Akun — hanya untuk SUPER_ADMIN dan jika belum punya akun */}
+                              {userData?.is_super_admin && !pengurus.has_akun && (
+                                <>
+                                  <div className="mx-3 my-1 border-t border-slate-100" />
+                                  <button
+                                    onClick={() => openAkunModal(pengurus)}
+                                    className="w-full text-left px-4 py-2 hover:bg-violet-50 transition-colors flex items-center gap-3 text-sm text-violet-700 font-['Public_Sans'] font-semibold"
+                                  >
+                                    <span className="material-icons-round text-[18px] text-violet-500">manage_accounts</span>
+                                    Buatkan Akun Sistem
+                                  </button>
+                                </>
+                              )}
+                              {userData?.is_super_admin && pengurus.has_akun && (
+                                <>
+                                  <div className="mx-3 my-1 border-t border-slate-100" />
+                                  <button
+                                    onClick={() => openKelolaAkunModal(pengurus)}
+                                    className="w-full text-left px-4 py-2 hover:bg-slate-50 transition-colors flex items-center gap-3 text-sm text-slate-700 font-['Public_Sans'] font-medium"
+                                  >
+                                    <span className="material-icons-round text-[18px] text-slate-500">manage_accounts</span> Kelola Akun Sistem
+                                  </button>
+                                </>
                               )}
                             </div>
                           </>
@@ -642,6 +904,230 @@ export default function PengurusPage() {
         onConfirm={confirmToggleStatus}
         onCancel={() => setAlertState({ isOpen: false, id: null, newStatus: '' })}
       />
+
+      {/* ─── Modal Buatkan Akun Sistem ─── */}
+      {akunModal.open && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-violet-600 to-violet-700">
+              <div className="flex items-center gap-3">
+                <span className="material-icons-round text-white text-[22px]">manage_accounts</span>
+                <div>
+                  <h3 className="text-white font-black text-base font-['Inter']">Buatkan Akun Sistem</h3>
+                  <p className="text-violet-200 text-xs font-['Public_Sans'] mt-0.5">{akunModal.namaLengkap}</p>
+                </div>
+              </div>
+              <button onClick={() => setAkunModal(m => ({ ...m, open: false }))}
+                className="w-8 h-8 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors">
+                <span className="material-icons-round text-white text-[18px]">close</span>
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="px-6 py-5 flex flex-col gap-4">
+              {/* Peringatan Data Kurang */}
+              {(!akunModal.emailDefault || !akunModal.tanggalLahir) && (
+                <div className="px-4 py-3 bg-rose-50 border border-rose-200 rounded-lg text-rose-700 text-sm flex flex-col gap-1.5 mb-2">
+                  <div className="flex items-center gap-2 font-bold">
+                    <span className="material-icons-round text-[18px]">warning</span> Data Jemaat Belum Lengkap!
+                  </div>
+                  <p>Tidak dapat membuat akun. Silakan lengkapi data profil jemaat terlebih dahulu:</p>
+                  <ul className="list-disc pl-5 mt-1 font-medium">
+                    {!akunModal.emailDefault && <li>Alamat Email</li>}
+                    {!akunModal.tanggalLahir && <li>Tanggal Lahir (untuk password default)</li>}
+                  </ul>
+                  <div className="mt-2">
+                    <Link href={`/jemaat/${akunModal.jemaatId}?mode=edit`} className="inline-flex items-center gap-1 text-rose-600 hover:text-rose-800 font-bold underline">
+                      Lengkapi Data Sekarang <span className="material-icons-round text-[16px]">arrow_forward</span>
+                    </Link>
+                  </div>
+                </div>
+              )}
+
+              {/* Email */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-slate-600 text-xs font-bold font-['Inter'] uppercase tracking-wide">Email Login</label>
+                <input
+                  type="email"
+                  value={akunForm.email}
+                  disabled
+                  className="px-3 py-2.5 bg-slate-100 border border-slate-200 rounded-lg text-slate-500 font-medium text-sm font-['Inter'] w-full cursor-not-allowed"
+                />
+              </div>
+
+              {/* Password */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-slate-600 text-xs font-bold font-['Inter'] uppercase tracking-wide">Password Default</label>
+                <input
+                  type="text"
+                  value={akunForm.password}
+                  disabled
+                  placeholder="Di-generate dari Tanggal Lahir (DD/MM/YYYY)"
+                  className="px-3 py-2.5 bg-slate-100 border border-slate-200 rounded-lg text-slate-500 font-medium text-sm font-['Inter'] w-full cursor-not-allowed tracking-wide"
+                />
+              </div>
+
+              {/* Role & Satelit — auto-generated dari jabatan aktif */}
+              <div className="flex flex-col gap-2">
+                <label className="text-slate-600 text-xs font-bold font-['Inter'] uppercase tracking-wide">Role & Akses Sistem (Dari Jabatan Aktif)</label>
+                {akunForm.roles.length === 0 ? (
+                  <div className="px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-sm">
+                    <div className="flex items-center gap-2 font-bold mb-1">
+                      <span className="material-icons-round text-[16px]">warning</span>
+                      Tidak ada role yang cocok!
+                    </div>
+                    <p className="text-xs">Jabatan aktif pengurus ini belum dipetakan ke Role Sistem manapun. Silakan buat role di <Link href="/settings/akun-akses" className="underline font-bold">Pengaturan &gt; Akun &amp; Akses</Link>.</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {akunForm.roles.map((r, i) => (
+                      <div key={i} className="flex items-center gap-2 px-3 py-2.5 bg-violet-50 border border-violet-200 rounded-lg">
+                        <span className="material-icons-round text-violet-500 text-[16px]">verified_user</span>
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-violet-800 text-xs font-bold">{r.role_name.replace(/_/g, ' ')}</span>
+                          <span className="text-slate-500 text-[11px]">{r.label}</span>
+                        </div>
+                        <span className="ml-auto text-[10px] text-slate-400 bg-slate-100 rounded-full px-2 py-0.5 font-mono shrink-0">{r.satelit_name}</span>
+                      </div>
+                    ))}
+                    <p className="text-xs text-slate-400 mt-1">💡 Role di atas otomatis di-assign berdasarkan jabatan aktif. Untuk konfigurasi lebih lanjut gunakan <Link href="/settings/akun-akses" className="text-violet-600 underline">Pengaturan Akun</Link>.</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Error */}
+              {akunError && (
+                <div className="px-3 py-2.5 bg-rose-50 border border-rose-200 rounded-lg text-rose-700 text-sm flex items-center gap-2">
+                  <span className="material-icons-round text-[16px]">error_outline</span>
+                  {akunError}
+                </div>
+              )}
+
+              {akunSubmitState === 'success' && (
+                <div className="px-3 py-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 text-sm flex items-center gap-2">
+                  <span className="material-icons-round text-[16px]">check_circle</span>
+                  Akun berhasil dibuat!
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3">
+              <button
+                onClick={() => setAkunModal(m => ({ ...m, open: false }))}
+                disabled={akunSubmitState === 'loading'}
+                className="px-5 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleBuatAkun}
+                disabled={akunSubmitState === 'loading' || akunSubmitState === 'success' || !akunModal.emailDefault || !akunModal.tanggalLahir || akunForm.roles.length === 0}
+                className="px-6 py-2 text-sm font-bold text-white bg-violet-600 hover:bg-violet-700 rounded-lg transition-colors shadow-sm flex items-center gap-2 disabled:opacity-60 disabled:pointer-events-none"
+              >
+                {akunSubmitState === 'loading' && <span className="material-icons-round animate-spin text-[16px]">sync</span>}
+                {akunSubmitState === 'loading' ? 'Membuat...' : 'Buat Akun'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Modal Kelola Akun Sistem ─── */}
+      {kelolaAkunModal.open && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <div className="flex items-center gap-3">
+                <span className="material-icons-round text-slate-700 text-[22px]">manage_accounts</span>
+                <div>
+                  <h3 className="text-slate-800 font-black text-base font-['Inter']">Kelola Akun Login</h3>
+                  <p className="text-slate-500 text-xs font-['Public_Sans'] mt-0.5">{kelolaAkunModal.namaLengkap}</p>
+                </div>
+              </div>
+              <button onClick={() => setKelolaAkunModal(m => ({ ...m, open: false }))}
+                className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200 flex items-center justify-center transition-colors">
+                <span className="material-icons-round text-[18px]">close</span>
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="px-6 py-5 flex flex-col gap-6">
+              {/* Info & Toggle Status */}
+              <div className="flex flex-col gap-3">
+                <div className="flex justify-between items-center px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg">
+                  <div className="flex flex-col">
+                    <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Email Login</span>
+                    <span className="text-sm font-semibold text-slate-700">{kelolaAkunModal.email}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs font-bold ${kelolaAkunModal.isActive ? 'text-emerald-600' : 'text-rose-600'}`}>
+                      {kelolaAkunModal.isActive ? 'Aktif' : 'Non-Aktif'}
+                    </span>
+                    <button
+                      onClick={handleToggleAkunStatus}
+                      disabled={kelolaAkunSubmitState === 'loading'}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 disabled:opacity-50 ${
+                        kelolaAkunModal.isActive ? 'bg-emerald-500' : 'bg-slate-300'
+                      }`}
+                    >
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${kelolaAkunModal.isActive ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="w-full border-t border-slate-100"></div>
+
+              {/* Reset Password */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-slate-600 text-xs font-bold font-['Inter'] uppercase tracking-wide">Reset Password Baru</label>
+                <div className="flex gap-2">
+                  <input
+                    type="password"
+                    value={kelolaAkunForm.password}
+                    onChange={e => setKelolaAkunForm({ password: e.target.value })}
+                    placeholder="Masukkan password baru (min. 8 karakter)"
+                    className="flex-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-400 text-slate-900 text-sm font-['Inter']"
+                  />
+                  <button
+                    onClick={handleUpdatePassword}
+                    disabled={kelolaAkunSubmitState === 'loading' || !kelolaAkunForm.password}
+                    className="px-4 py-2.5 bg-slate-800 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:pointer-events-none"
+                  >
+                    Simpan
+                  </button>
+                </div>
+                {kelolaAkunSubmitState === 'success' && (
+                  <span className="text-emerald-600 text-xs font-semibold mt-1 flex items-center gap-1">
+                    <span className="material-icons-round text-[14px]">check_circle</span> Password berhasil diubah.
+                  </span>
+                )}
+              </div>
+
+              {/* Error */}
+              {kelolaAkunError && (
+                <div className="px-3 py-2.5 bg-rose-50 border border-rose-200 rounded-lg text-rose-700 text-sm flex items-center gap-2">
+                  <span className="material-icons-round text-[16px]">error_outline</span>
+                  {kelolaAkunError}
+                </div>
+              )}
+
+              {/* Link ke Pengaturan Lengkap */}
+              <div className="pt-2 flex justify-center">
+                <Link
+                  href="/settings/akun-akses"
+                  className="text-violet-600 hover:text-violet-700 text-sm font-semibold flex items-center gap-1"
+                >
+                  Buka Pengaturan Role & Akses Lengkap <span className="material-icons-round text-[16px]">arrow_forward</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <SubmitOverlay
         status={submitState.status}

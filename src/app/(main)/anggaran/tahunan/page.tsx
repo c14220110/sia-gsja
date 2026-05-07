@@ -19,16 +19,29 @@ export default function AnggaranTahunanPage() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [data, setData] = useState<AnggaranItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthorizedToCreate, setIsAuthorizedToCreate] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        const res = await fetch('/api/anggaran/tahunan');
-        const json = await res.json();
+        const [resAnggaran, resAuth] = await Promise.all([
+          fetch('/api/anggaran/tahunan'),
+          fetch('/api/auth/me')
+        ]);
+        
+        const json = await resAnggaran.json();
         if (json.success) setData(json.data);
+
+        if (resAuth.ok) {
+          const authData = await resAuth.json();
+          const allowedRolesToCreate = [1, 5, 6, 8, 9];
+          if (authData && allowedRolesToCreate.includes(authData.role_id)) {
+            setIsAuthorizedToCreate(true);
+          }
+        }
       } catch (err) {
-        console.error('Gagal memuat data anggaran', err);
+        console.error('Gagal memuat data', err);
       } finally {
         setIsLoading(false);
       }
@@ -68,67 +81,91 @@ export default function AnggaranTahunanPage() {
 
   return (
     <div className="w-full flex flex-col gap-6 relative overflow-hidden">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-        <div>
-          <div className="flex items-center gap-2 text-sm text-slate-500 mb-2">
-            <span className="material-icons-round text-[16px]">request_quote</span>
-            <span>Anggaran & Proposal</span>
-            <span className="material-icons-round text-[16px]">chevron_right</span>
-            <span className="font-semibold text-slate-700">Anggaran Tahunan</span>
-          </div>
-          <h1 className="text-2xl font-bold text-slate-800">Daftar Anggaran Tahunan</h1>
-          <p className="text-slate-500 text-sm mt-1">Kelola pengajuan anggaran tahunan tiap komisi dan satelit.</p>
+      {/* Header Section */}
+      <div className="w-full flex justify-between items-start">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Daftar Anggaran Tahunan</h1>
+          <div className="text-slate-500 text-base font-medium font-['Inter'] leading-6">Kelola pengajuan anggaran tahunan tiap komisi dan satelit</div>
         </div>
-        <Link 
-          href="/anggaran/tahunan/new"
-          className="h-10 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium text-sm flex items-center gap-2 transition-colors shrink-0"
-        >
-          <span className="material-icons-round text-[18px]">add</span>
-          Buat Anggaran Baru
-        </Link>
+        <div className="flex items-center gap-3">
+          {isAuthorizedToCreate && (
+            <Link href="/anggaran/tahunan/new" className="px-5 py-2.5 bg-slate-700 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none">
+              <span className="material-icons-round text-white text-[20px]">add</span>
+              <span className="text-white text-sm font-bold font-['Inter'] leading-5">Buat Anggaran Baru</span>
+            </Link>
+          )}
+        </div>
       </div>
 
-      {/* Filter Bar */}
-      <div className="flex flex-col sm:flex-row gap-3 items-center">
-        <div className="relative flex-1 w-full sm:max-w-xs">
-          <span className="material-icons-round absolute left-3 top-2.5 text-slate-400 text-lg">search</span>
+      {/* Filter Options */}
+      <div className="w-full px-4 py-4 bg-white rounded-xl border border-slate-200 flex flex-wrap items-center gap-4 shadow-sm">
+        
+        {/* Search Bar */}
+        <div className="flex-1 min-w-[200px] relative flex items-center">
+          <span className="material-icons-round absolute left-4 text-slate-400 text-[20px]">search</span>
           <input 
             type="text" 
             placeholder="Cari ID Dokumen atau Komisi..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-10 pl-10 pr-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+            className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm"
           />
         </div>
-        <div className="flex gap-3 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
-          <select className="h-10 px-3 pr-8 rounded-lg border border-slate-300 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 shrink-0 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2364748B%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:16px_16px] bg-[right_10px_center] bg-no-repeat">
+
+        {/* Tahun Dropdown */}
+        <div className="relative min-w-[140px]">
+          <select 
+            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
+          >
             <option value="">Semua Tahun</option>
             <option value="2026">2026</option>
             <option value="2025">2025</option>
           </select>
-          <select className="h-10 px-3 pr-8 rounded-lg border border-slate-300 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 shrink-0 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2364748B%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:16px_16px] bg-[right_10px_center] bg-no-repeat">
+          <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
+        </div>
+
+        {/* Satelit Dropdown */}
+        <div className="relative min-w-[150px]">
+          <select 
+            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
+          >
             <option value="">Semua Satelit</option>
             <option value="pusat">Pusat</option>
             <option value="air-hidup">Satelit Air Hidup</option>
             <option value="kasih-karunia">Satelit Kasih Karunia</option>
           </select>
-          <select className="h-10 px-3 pr-8 rounded-lg border border-slate-300 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 shrink-0 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2364748B%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:16px_16px] bg-[right_10px_center] bg-no-repeat">
+          <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
+        </div>
+
+        {/* Komisi Dropdown */}
+        <div className="relative min-w-[150px]">
+          <select 
+            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
+          >
             <option value="">Semua Komisi</option>
             <option value="sm">Sekolah Minggu</option>
             <option value="wanita">Wanita</option>
             <option value="pria">Pria</option>
             <option value="umum">- Umum (Satelit) -</option>
           </select>
-          <select className="h-10 px-3 pr-8 rounded-lg border border-slate-300 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 shrink-0 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2364748B%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:16px_16px] bg-[right_10px_center] bg-no-repeat">
+          <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
+        </div>
+
+        {/* Status Dropdown */}
+        <div className="relative min-w-[150px]">
+          <select 
+            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
+          >
             <option value="">Semua Status</option>
             <option value="Draft">Draft</option>
             <option value="Menunggu Review">Menunggu Review</option>
             <option value="Sedang Direviu">Sedang Direviu</option>
             <option value="Disetujui Penuh">Disetujui Penuh</option>
           </select>
+          <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">flag</span>
         </div>
-        <div className="ml-auto text-xs font-medium text-slate-400">
+
+        <div className="ml-auto text-xs font-medium text-slate-400 whitespace-nowrap hidden lg:block">
           {filteredData.length} dokumen
         </div>
       </div>
@@ -139,14 +176,14 @@ export default function AnggaranTahunanPage() {
           <table className="w-full text-left border-collapse min-w-[1000px] relative">
             <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 shadow-sm">
               <tr>
-                <th className="p-4 font-semibold text-slate-500 text-xs tracking-wider whitespace-nowrap">ID DOKUMEN</th>
-                <th className="p-4 font-semibold text-slate-500 text-xs tracking-wider whitespace-nowrap">TAHUN</th>
-                <th className="p-4 font-semibold text-slate-500 text-xs tracking-wider whitespace-nowrap">SATELIT</th>
-                <th className="p-4 font-semibold text-slate-500 text-xs tracking-wider whitespace-nowrap">KOMISI</th>
-                <th className="p-4 font-semibold text-slate-500 text-xs tracking-wider whitespace-nowrap text-right">TOTAL ANGGARAN</th>
-                <th className="p-4 font-semibold text-slate-500 text-xs tracking-wider whitespace-nowrap">TANGGAL UPDATE</th>
-                <th className="p-4 font-semibold text-slate-500 text-xs tracking-wider whitespace-nowrap">STATUS</th>
-                <th className="p-4 font-semibold text-slate-500 text-xs tracking-wider text-center w-24 whitespace-nowrap">AKSI</th>
+                <th className="p-4 font-bold text-slate-500 text-xs font-['Public_Sans'] uppercase tracking-wider whitespace-nowrap">ID DOKUMEN</th>
+                <th className="p-4 font-bold text-slate-500 text-xs font-['Public_Sans'] uppercase tracking-wider whitespace-nowrap">TAHUN</th>
+                <th className="p-4 font-bold text-slate-500 text-xs font-['Public_Sans'] uppercase tracking-wider whitespace-nowrap">SATELIT</th>
+                <th className="p-4 font-bold text-slate-500 text-xs font-['Public_Sans'] uppercase tracking-wider whitespace-nowrap">KOMISI</th>
+                <th className="p-4 font-bold text-slate-500 text-xs font-['Public_Sans'] uppercase tracking-wider whitespace-nowrap text-right">TOTAL ANGGARAN</th>
+                <th className="p-4 font-bold text-slate-500 text-xs font-['Public_Sans'] uppercase tracking-wider whitespace-nowrap">TANGGAL UPDATE</th>
+                <th className="p-4 font-bold text-slate-500 text-xs font-['Public_Sans'] uppercase tracking-wider whitespace-nowrap">STATUS</th>
+                <th className="p-4 font-bold text-slate-500 text-xs font-['Public_Sans'] uppercase tracking-wider text-center w-24 whitespace-nowrap">AKSI</th>
               </tr>
             </thead>
             <tbody>
@@ -165,10 +202,14 @@ export default function AnggaranTahunanPage() {
                     <div className="flex flex-col items-center gap-3">
                       <span className="material-icons-round text-5xl text-slate-200">request_quote</span>
                       <p className="text-slate-500 font-semibold">Belum ada data anggaran tahunan</p>
-                      <p className="text-slate-400 text-sm">Klik tombol "+ Buat Anggaran Baru" untuk membuat anggaran pertama Anda.</p>
-                      <Link href="/anggaran/tahunan/new" className="mt-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-colors">
-                        <span className="material-icons-round text-[16px]">add</span> Buat Anggaran Baru
-                      </Link>
+                      {isAuthorizedToCreate && (
+                        <>
+                          <p className="text-slate-400 text-sm">Klik tombol "+ Buat Anggaran Baru" untuk membuat anggaran pertama Anda.</p>
+                          <Link href="/anggaran/tahunan/new" className="mt-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-colors">
+                            <span className="material-icons-round text-[16px]">add</span> Buat Anggaran Baru
+                          </Link>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>

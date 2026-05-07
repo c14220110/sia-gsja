@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { email, password, jemaat_id, roles } = body;
+    const { email, password, jemaat_id, roles, komisi_id, departemen_id } = body;
 
     if (!email || !password || !jemaat_id || !roles) {
       return NextResponse.json({ success: false, message: 'Mohon lengkapi semua field yang diwajibkan (Email, Password, Jemaat)' }, { status: 400 });
@@ -40,6 +40,8 @@ export async function POST(req: NextRequest) {
       password_hash,
       jemaat_id,
       roles,
+      komisi_id: komisi_id ?? null,
+      departemen_id: departemen_id ?? null,
     });
 
     if (result.success) {

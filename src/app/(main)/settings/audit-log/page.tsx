@@ -102,8 +102,8 @@ export default function AuditLogPage() {
     <div className="flex flex-col gap-6 w-full">
       {/* Header */}
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold text-slate-800 font-['Inter']">Audit Log</h1>
-        <p className="text-sm text-slate-500 font-['Public_Sans']">Riwayat seluruh aksi Create, Update, dan Deactivate berdasarkan kategori data</p>
+        <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Audit Log</h1>
+        <p className="text-slate-500 text-base font-medium font-['Inter'] leading-6">Riwayat seluruh aksi Create, Update, dan Deactivate berdasarkan kategori data</p>
       </div>
 
       {/* Log Type Tabs */}

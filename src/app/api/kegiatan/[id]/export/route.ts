@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { Pool } from 'pg';
+import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 import fs from 'fs';
 import path from 'path';
 
@@ -51,6 +52,11 @@ const formatWaktu = (timeStr: string) => {
 };
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const caller = getCallerFromRequest(request);
+  if (!caller) {
+    return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  }
+
   const { id } = await params;
   
   try {

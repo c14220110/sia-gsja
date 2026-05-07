@@ -17,6 +17,17 @@ export default function SplashScreen() {
     const shown = sessionStorage.getItem('splash_shown');
     if (shown) return;
 
+    // Hanya tampil di mobile (layar kecil) atau mode standalone PWA
+    const isMobile = window.innerWidth <= 768;
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+      || (navigator as any).standalone === true;
+
+    if (!isMobile && !isStandalone) {
+      // Desktop browser → langsung skip, tandai sudah tampil
+      sessionStorage.setItem('splash_shown', '1');
+      return;
+    }
+
     setVisible(true);
 
     // Setelah 2.2 detik, mulai fade-out

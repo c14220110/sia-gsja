@@ -81,9 +81,23 @@ export class PengurusRepository {
         p.id,
         p.id_pengurus,
         p.is_active,
+        j.id AS jemaat_id,
         j.nama_lengkap,
         j.foto_url,
+        j.email AS email_jemaat,
+        j.tanggal_lahir,
         js.nama_satelit AS nama_satelit_asal,
+        js.id AS satelit_asal_id,
+        -- status akun sistem
+        EXISTS (
+          SELECT 1 FROM pengguna pg WHERE pg.jemaat_id = j.id
+        ) AS has_akun,
+        (
+          SELECT pg.id FROM pengguna pg WHERE pg.jemaat_id = j.id LIMIT 1
+        ) AS akun_id,
+        (
+          SELECT pg.is_active FROM pengguna pg WHERE pg.jemaat_id = j.id LIMIT 1
+        ) AS akun_is_active,
         -- semua jabatan aktif sebagai JSON array
         (
           SELECT JSON_AGG(
@@ -95,7 +109,12 @@ export class PengurusRepository {
                   WHEN kom2.nama_komisi IS NOT NULL THEN CONCAT(' · ', kom2.nama_komisi)
                   WHEN dep2.nama_departemen IS NOT NULL THEN CONCAT(' · ', dep2.nama_departemen)
                   ELSE '' END
-              )
+              ),
+              'jabatan_id', dk2.jabatan_id,
+              'lingkup', dk2.lingkup,
+              'satelit_id', dk2.satelit_id,
+              'komisi_id', dk2.komisi_id,
+              'departemen_id', dk2.departemen_id
             ) ORDER BY dk2.id ASC
           )
           FROM detail_kepengurusan dk2
@@ -105,6 +124,9 @@ export class PengurusRepository {
           LEFT JOIN departemen dep2 ON dk2.departemen_id = dep2.id
           WHERE dk2.pengurus_id = p.id AND dk2.status_jabatan = 'Aktif'
         ) AS jabatan_aktif_list,
+        (
+          SELECT pg.email FROM pengguna pg WHERE pg.jemaat_id = j.id LIMIT 1
+        ) AS akun_email,
         p.created_at
       ${baseFrom}
       ${where}

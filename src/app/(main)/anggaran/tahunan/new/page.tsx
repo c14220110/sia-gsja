@@ -24,14 +24,41 @@ export default function InputAnggaranBaruPage() {
   const [coaList, setCoaList] = useState<COAOption[]>([]);
   const [form, setForm] = useState({ jenis:'Pengeluaran', kegiatanId:'', kegiatanName:'', coaId:'', coaLabel:'', sumber_dana:'Kas Mandiri', uraian:'', deskripsi:'', jumlah:1, satuan:'', harga:0 });
   const [items, setItems] = useState<RincianItem[]>([]);
+  
+  // RBAC State
+  const [userData, setUserData] = useState<any>(null);
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
-  // Fetch COA & Satelit once
+  // Fetch COA, Satelit & User Data once
   useEffect(() => {
-    fetch('/api/buku-besar/coa').then(r=>r.json()).then(j=>{
-      if(j.success) setCoaList(j.data.filter((c:any)=>c.tipe_akun==='Detail'&&c.is_active).map((c:any)=>({id:c.id,label:`${c.kode_akun} — ${c.nama_akun}`,saldo_normal:c.saldo_normal,grup_laporan:c.grup_laporan})));
-    });
-    fetch('/api/master-data?table=satelit').then(r=>r.json()).then(j=>{
-      if(j.success) setSatelitList(j.data.filter((s:any)=>s.is_active).map((s:any)=>({id:s.id,label:s.nama_satelit})));
+    Promise.all([
+      fetch('/api/buku-besar/coa').then(r=>r.json()).catch(() => ({})),
+      fetch('/api/master-data?table=satelit').then(r=>r.json()).catch(() => ({})),
+      fetch('/api/auth/me').then(r=>r.json()).catch(() => ({}))
+    ]).then(([resCoa, resSatelit, resUser]) => {
+      if (resCoa.success) {
+        setCoaList(resCoa.data.filter((c:any)=>c.tipe_akun==='Detail'&&c.is_active).map((c:any)=>({id:c.id,label:`${c.kode_akun} — ${c.nama_akun}`,saldo_normal:c.saldo_normal,grup_laporan:c.grup_laporan})));
+      }
+      if (resSatelit.success) {
+        setSatelitList(resSatelit.data.filter((s:any)=>s.is_active).map((s:any)=>({id:s.id,label:s.nama_satelit})));
+      }
+      if (resUser && resUser.role_id) {
+        setUserData(resUser);
+        // Check authorization: SUPER_ADMIN (1), BENDAHARA_PUSAT (5), BENDAHARA_SATELIT (6), KETUA_KOMISI (8), KETUA_DEPARTEMEN (9)
+        const allowedRoles = [1, 5, 6, 8, 9];
+        if (allowedRoles.includes(resUser.role_id)) {
+          setIsAuthorized(true);
+          // Auto-select satelit berdasarkan penugasan user
+          if (resUser.satelit_id) {
+            setSatelitId(resUser.satelit_id.toString());
+          }
+          // komisi_id akan di-set setelah komisiList selesai di-fetch (lihat useEffect bawah)
+        } else {
+          setIsAuthorized(false);
+        }
+      } else {
+        setIsAuthorized(false);
+      }
     });
   }, []);
 
@@ -39,19 +66,18 @@ export default function InputAnggaranBaruPage() {
   useEffect(() => {
     setKomisiId(''); setKomisiList([]); setKegiatanList([]); setForm(p=>({...p,kegiatanId:'',kegiatanName:''}));
     if (!satelitId) return;
-    // Fetch all komisi then filter client-side by satelit_id
-    // master-data?table=komisi returns: { id, nama_komisi, satelit_id (via join), is_active }
-    fetch('/api/master-data?table=komisi').then(r=>r.json()).then(j=>{
-      if(j.success) {
-        // The komisi data has satelit_id implicitly — we need to filter by matching satelit
-        // Since master-data joins satelit, we filter by matching nama_satelit won't work.
-        // Instead call a dedicated filtered fetch:
-        fetch(`/api/anggaran/komisi-options?satelit_id=${satelitId}`).then(r=>r.json()).then(j2=>{
-          if(j2.success) setKomisiList(j2.data.map((k:any)=>({id:k.id,label:k.nama_komisi})));
-        });
-      }
+    fetch(`/api/anggaran/komisi-options?satelit_id=${satelitId}`).then(r=>r.json()).then(j2=>{
+      if(j2.success) setKomisiList(j2.data.map((k:any)=>({id:k.id,label:k.nama_komisi})));
     });
   }, [satelitId]);
+
+  // Auto-set komisi dari scope user (KETUA_KOMISI) setelah komisiList selesai dimuat
+  useEffect(() => {
+    if (userData?.role_id === 8 && userData?.komisi_id && komisiList.length > 0) {
+      const found = komisiList.find((k: any) => k.id === userData.komisi_id);
+      if (found) setKomisiId(String(userData.komisi_id));
+    }
+  }, [komisiList, userData]);
 
 
   // Cascading: fetch kegiatan when satelit or komisi changes
@@ -117,36 +143,74 @@ export default function InputAnggaranBaruPage() {
     return g;
   },[items]);
 
+  if (isAuthorized === null) {
+    return <div className="p-10 text-center text-slate-500 flex flex-col items-center"><div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4"></div>Memeriksa Hak Akses...</div>;
+  }
+
+  if (isAuthorized === false) {
+    return (
+      <div className="w-full flex flex-col items-center justify-center py-20">
+        <span className="material-icons-round text-6xl text-red-400 mb-4">gpp_bad</span>
+        <h1 className="text-2xl font-black text-slate-800 mb-2">Akses Ditolak</h1>
+        <p className="text-slate-500 mb-6 text-center max-w-md">Role Anda saat ini ({userData?.role_name || 'Tidak Diketahui'}) tidak memiliki izin untuk membuat anggaran baru. Hanya role operasional yang dapat mengakses halaman ini.</p>
+        <Link href="/anggaran/tahunan" className="px-6 py-2.5 bg-slate-800 text-white rounded-lg font-bold hover:bg-slate-900 transition-colors">
+          Kembali ke Daftar Anggaran
+        </Link>
+      </div>
+    );
+  }
+
+  // Determine if fields should be locked based on user role
+  // Ketua Komisi (8) -> only for their satelit & komisi. Bendahara Satelit (6) -> only their satelit.
+  const isSatelitLocked = userData?.role_id === 6 || userData?.role_id === 8 || userData?.role_id === 7 || userData?.role_id === 10;
+  
   return (
     <div className="w-full flex flex-col gap-6 pb-32">
       <SubmitOverlay status={submitState.status} message={submitState.message} onClose={()=>setSubmitState({status:'idle',message:''})}/>
-      <div className="flex items-center gap-2 text-sm text-slate-500">
-        <Link href="/anggaran/tahunan" className="hover:text-indigo-600">Anggaran Tahunan</Link>
-        <span className="material-icons-round text-[16px]">chevron_right</span>
-        <span className="font-semibold text-slate-700">Input Anggaran Baru</span>
+      {/* Header Area */}
+      <div className="w-full flex flex-col justify-start items-start gap-4">
+        <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-['Inter'] leading-4">
+          <span className="text-slate-500">Anggaran & Proposal</span>
+          <span className="text-slate-500 material-icons-round text-[14px]">chevron_right</span>
+          <Link href="/anggaran/tahunan" className="text-slate-500 hover:text-blue-600">Daftar Anggaran Tahunan</Link>
+          <span className="text-slate-500 material-icons-round text-[14px]">chevron_right</span>
+          <span className="text-slate-700 font-bold">Input Anggaran Baru</span>
+        </div>
+        
+        <div className="self-stretch inline-flex justify-between items-end">
+          <div className="inline-flex gap-4 items-center">
+            <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Input Anggaran Baru</h1>
+            <div className="px-3 py-1 bg-amber-100 rounded border border-amber-300 flex items-center gap-1 mt-1">
+               <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
+               <span className="text-amber-800 text-xs font-bold uppercase tracking-wide">DRAFT</span>
+            </div>
+          </div>
+          <div className="text-slate-500 text-sm font-medium font-['Inter'] flex gap-1 items-center">
+            <span className="material-icons-round text-lg text-slate-400">qr_code</span> ID: <span className="text-slate-700 font-bold">Otomatis Terbuat</span>
+          </div>
+        </div>
       </div>
 
-      {/* Header Card */}
-      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-5">
-        <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
-          <span className="material-icons-round text-indigo-600 text-3xl">request_quote</span>
-          <div>
-            <h1 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-              Input Anggaran Baru
-              <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded font-mono text-xs">ID: [Auto-Generated]</span>
-            </h1>
-            <p className="text-xs text-slate-400 mt-0.5">Pilih Satelit terlebih dahulu untuk mengaktifkan filter kegiatan.</p>
+      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-5 mt-2">
+        <div className="flex flex-col gap-2 border-b border-slate-100 pb-4">
+          <div className="text-slate-800 text-sm font-bold font-['Inter'] uppercase tracking-wider flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+              <span className="material-icons-round text-[18px]">request_quote</span>
+            </div>
+            <span>Informasi Dasar & Filter Kegiatan</span>
           </div>
+          <p className="text-xs text-slate-400 mt-0.5 ml-10">Pilih Satelit dan Komisi terlebih dahulu untuk mengaktifkan pilihan kegiatan.</p>
         </div>
 
         {/* Cascading Header */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className={labelCls}>Satelit <span className="text-red-500">*</span></label>
-            <select value={satelitId} onChange={e=>setSatelitId(e.target.value)} className={selectCls}>
+            <select value={satelitId} onChange={e=>setSatelitId(e.target.value)} disabled={isSatelitLocked} className={selectCls}>
               <option value="">-- Pilih Satelit --</option>
               {satelitList.map(s=><option key={s.id} value={s.id}>{s.label}</option>)}
             </select>
+            {isSatelitLocked && <p className="text-[10px] text-amber-600 mt-1 flex items-center gap-1"><span className="material-icons-round text-[12px]">lock</span> Terkunci sesuai penugasan Anda</p>}
           </div>
           <div>
             <label className={labelCls}>Komisi <span className="text-slate-400 font-normal">(Opsional)</span></label>
@@ -155,6 +219,7 @@ export default function InputAnggaranBaruPage() {
               {komisiList.map(k=><option key={k.id} value={k.id}>{k.label}</option>)}
             </select>
             {!satelitId && <p className="text-[10px] text-amber-600 mt-1 flex items-center gap-1"><span className="material-icons-round text-[12px]">lock</span>Pilih Satelit dulu</p>}
+            {satelitId && userData?.role_id === 8 && <p className="text-[10px] text-amber-600 mt-1 flex items-center gap-1"><span className="material-icons-round text-[12px]">info</span> Pilih Komisi Anda</p>}
           </div>
           <div>
             <label className={labelCls}>Tahun Anggaran <span className="text-red-500">*</span></label>

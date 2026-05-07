@@ -118,6 +118,9 @@ export default function DashboardLayout({
   } else if (pathname.includes('/buku-besar')) {
     topbarTitle = 'Buku Besar & Keuangan';
     topbarIcon  = 'menu_book';
+  } else if (pathname.includes('/anggaran')) {
+    topbarTitle = 'Anggaran & Proposal';
+    topbarIcon  = 'request_quote';
   } else if (pathname.includes('/family-tree')) {
     topbarTitle = 'Family Tree';
     topbarIcon  = 'account_tree';

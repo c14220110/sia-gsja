@@ -60,6 +60,8 @@ export class AuthService {
       role_id: singleRole.role_id,
       role_name: singleRole.nama_role,
       satelit_id: singleRole.satelit_id,
+      komisi_id: singleRole.komisi_id ?? null,
+      departemen_id: singleRole.departemen_id ?? null,
       is_super_admin,
       permissions,
       jemaat_id: user.jemaat_id ?? null   // ← wajib untuk fitur pelayan di PWA
@@ -102,6 +104,8 @@ export class AuthService {
       role_id: selectedRole.role_id,
       role_name: selectedRole.nama_role,
       satelit_id: selectedRole.satelit_id,
+      komisi_id: selectedRole.komisi_id ?? null,
+      departemen_id: selectedRole.departemen_id ?? null,
       is_super_admin,
       permissions,
       jemaat_id: userRecord?.jemaat_id ?? null   // ← wajib untuk fitur pelayan di PWA

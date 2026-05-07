@@ -328,7 +328,7 @@ export default function KegiatanPage() {
              <span className="material-icons-round text-indigo-600 text-3xl">calendar_month</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-slate-600 text-xs font-bold font-['Public_Sans'] uppercase tracking-wide">TOTAL KEGIATAN (BULAN INI)</span>
+            <span className="text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wide">TOTAL KEGIATAN (BULAN INI)</span>
             <div className="flex items-end gap-2 mt-1">
               <span className="text-slate-900 text-3xl font-bold font-['Public_Sans'] leading-9">{bulanIni}</span>
             </div>
@@ -341,7 +341,7 @@ export default function KegiatanPage() {
             <span className="material-icons-round text-emerald-600 text-3xl">event_note</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-slate-600 text-xs font-bold font-['Public_Sans'] uppercase tracking-wide leading-tight">
+            <span className="text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wide leading-tight">
               KEGIATAN MENDATANG (7 HARI KEDEPAN)
             </span>
             <div className="flex items-end gap-2 mt-1">
@@ -358,7 +358,7 @@ export default function KegiatanPage() {
             <span className="material-icons-round text-amber-600 text-3xl">assignment_late</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-slate-600 text-xs font-bold font-['Public_Sans'] uppercase tracking-wide">MENUNGGU LPJ (LAPORAN)</span>
+            <span className="text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wide">MENUNGGU LPJ (LAPORAN)</span>
             <div className="flex items-end gap-2 mt-1">
               <span className="text-amber-600 text-3xl font-bold font-['Public_Sans'] leading-9">{menungguLpj}</span>
             </div>
@@ -556,12 +556,12 @@ export default function KegiatanPage() {
           <div className="min-w-[1200px] flex flex-col">
             {/* Table Header */}
             <div className="w-full bg-slate-50 border-b border-slate-200 flex items-center px-6 py-4">
-              <div className="w-[180px] shrink-0 text-left pr-4 text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">TANGGAL & WAKTU</div>
-              <div className="w-[200px] shrink-0 text-left pr-4 text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">STATUS</div>
-              <div className="flex-1 min-w-[200px] text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">INFORMASI KEGIATAN</div>
-              <div className="w-56 shrink-0 text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">JENIS KEGIATAN</div>
-              <div className="w-[180px] shrink-0 text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">PELAKSANA</div>
-              <div className="w-12 shrink-0 text-center text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">AKSI</div>
+              <div className="w-[180px] shrink-0 text-left pr-4 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">TANGGAL & WAKTU</div>
+              <div className="w-[200px] shrink-0 text-left pr-4 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">STATUS</div>
+              <div className="flex-1 min-w-[200px] text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">INFORMASI KEGIATAN</div>
+              <div className="w-56 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">JENIS KEGIATAN</div>
+              <div className="w-[180px] shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">PELAKSANA</div>
+              <div className="w-12 shrink-0 text-center text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">AKSI</div>
             </div>
 
             {/* Table Body */}

@@ -22,9 +22,13 @@ export async function GET(request: NextRequest) {
       offset:                parseInt(searchParams.get('offset') ?? '0'),
     };
 
-    const caller = await getCallerFromRequest(request);
+    const caller = getCallerFromRequest(request);
+    if (!caller) {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    }
+
     // Auto-lock satelit asal untuk admin satelit
-    if (caller && caller.role_name?.toUpperCase().includes('SATELIT')) {
+    if (caller.role_name?.toUpperCase().includes('SATELIT')) {
       params.satelit_asal_id = caller.satelit_id?.toString();
     }
 
@@ -50,7 +54,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const caller = await getCallerFromRequest(request);
+    const caller = getCallerFromRequest(request);
     if (!caller || (!caller.is_super_admin && !caller.permissions.includes('pengurus_manage'))) {
       return NextResponse.json({ success: false, message: 'Akses Ditolak: Anda tidak memiliki izin untuk mengukuhkan pengurus (pengurus_manage).' }, { status: 403 });
     }

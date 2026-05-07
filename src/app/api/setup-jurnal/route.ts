@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 
-export async function GET() {
+export async function GET(request: Request) {
+  const caller = getCallerFromRequest(request);
+  if (!caller || !caller.is_super_admin) {
+    return NextResponse.json({ success: false, message: 'Forbidden: Super Admin only' }, { status: 403 });
+  }
+
   try {
     // Drop existing if we are resetting (optional, but let's just create if not exists or let it throw if exists)
     // Wait, the user script doesn't have IF NOT EXISTS. So we just execute the raw SQL they gave.

@@ -518,8 +518,8 @@ export default function MasterDataPage() {
 
       {/* Header */}
       <div className="flex flex-col gap-1 pb-5">
-        <h1 className="text-2xl font-bold text-slate-800 font-['Inter']">Master Data</h1>
-        <p className="text-sm text-slate-500 font-['Public_Sans']">Kelola semua tabel referensi dan parameter sistem dalam satu tempat</p>
+        <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Master Data</h1>
+        <p className="text-slate-500 text-base font-medium font-['Inter'] leading-6">Kelola semua tabel referensi dan parameter sistem dalam satu tempat</p>
       </div>
 
       {/* 2-column layout */}

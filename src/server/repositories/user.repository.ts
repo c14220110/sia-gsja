@@ -20,6 +20,10 @@ export interface UserRoleDetail {
   nama_role: string;
   satelit_id: number;
   nama_satelit: string;
+  komisi_id: number | null;      // scope untuk KETUA_KOMISI
+  nama_komisi: string | null;
+  departemen_id: number | null;  // scope untuk KETUA_DEPARTEMEN
+  nama_departemen: string | null;
 }
 
 export class UserRepository {
@@ -55,11 +59,17 @@ export class UserRepository {
         r.nama_role, 
         ur.satelit_id, 
         s.nama_satelit,
+        ur.komisi_id,
+        k.nama_komisi,
+        ur.departemen_id,
+        d.nama_departemen,
         ur.tanggal_mulai,
         ur.tanggal_selesai
       FROM user_role ur
       JOIN role r ON ur.role_id = r.id
       JOIN satelit s ON ur.satelit_id = s.id
+      LEFT JOIN komisi k ON ur.komisi_id = k.id
+      LEFT JOIN departemen d ON ur.departemen_id = d.id
       WHERE ur.user_id = $1 
         AND ur.is_active = true
         AND (
@@ -77,6 +87,10 @@ export class UserRepository {
         'JEMAAT' as nama_role,
         j.satelit_id,
         s.nama_satelit,
+        NULL as komisi_id,
+        NULL as nama_komisi,
+        NULL as departemen_id,
+        NULL as nama_departemen,
         NULL as tanggal_mulai,
         NULL as tanggal_selesai
       FROM pengguna p

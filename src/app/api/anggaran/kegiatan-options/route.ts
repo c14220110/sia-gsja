@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 
 /**
  * GET /api/anggaran/kegiatan-options
@@ -12,6 +13,11 @@ import pool from '@/lib/db';
  * Ini mencegah Cross-Branch Data Leak antar satelit/komisi.
  */
 export async function GET(request: NextRequest) {
+  const caller = getCallerFromRequest(request);
+  if (!caller) {
+    return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  }
+
   const { searchParams } = new URL(request.url);
   const satelitId = searchParams.get('satelit_id');
   const komisiId = searchParams.get('komisi_id');

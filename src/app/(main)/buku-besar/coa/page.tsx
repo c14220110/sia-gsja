@@ -393,30 +393,35 @@ export default function COAPage() {
         onCancel={() => setConfirmModal({ isOpen: false, item: null })}
       />
 
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">Akun Perkiraan (COA)</h1>
-          <p className="text-slate-500 text-sm mt-1">Kelola bagan akun untuk transaksi buku besar dan laporan keuangan.</p>
+      {/* Header Section */}
+      <div className="w-full flex justify-between items-start">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Akun Perkiraan (COA)</h1>
+          <div className="text-slate-500 text-base font-medium font-['Inter'] leading-6">Kelola bagan akun untuk transaksi buku besar dan laporan keuangan</div>
         </div>
-        <div className="flex gap-3 w-full md:w-auto">
-          {/* Search Bar */}
-          <div className="relative flex-1 md:w-64">
-            <span className="material-icons-round absolute left-3 top-2.5 text-slate-400 text-lg">search</span>
-            <input 
-              type="text" 
-              placeholder="Cari akun..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-10 pl-10 pr-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
-            />
-          </div>
-          <button 
-            onClick={() => handleOpenDrawer()}
-            className="h-10 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium text-sm flex items-center gap-2 transition-colors shrink-0"
-          >
-            <span className="material-icons-round text-[18px]">add</span>
-            Tambah Akun
+        <div className="flex items-center gap-3">
+          <button onClick={() => handleOpenDrawer()} className="px-5 py-2.5 bg-slate-700 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none">
+            <span className="material-icons-round text-white text-[20px]">add</span>
+            <span className="text-white text-sm font-bold font-['Inter'] leading-5">Tambah Akun Baru</span>
           </button>
+        </div>
+      </div>
+
+      {/* Filter Options */}
+      <div className="w-full px-4 py-4 bg-white rounded-xl border border-slate-200 flex flex-wrap items-center gap-4 shadow-sm">
+        {/* Search Bar */}
+        <div className="flex-1 min-w-[200px] relative flex items-center">
+          <span className="material-icons-round absolute left-4 text-slate-400 text-[20px]">search</span>
+          <input 
+            type="text" 
+            placeholder="Cari Kode atau Nama Akun..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm"
+          />
+        </div>
+        <div className="ml-auto text-xs font-medium text-slate-400 whitespace-nowrap hidden lg:block">
+          {treeData.length > 0 ? `${treeData.length} akun utama` : ''}
         </div>
       </div>
 
@@ -425,12 +430,12 @@ export default function COAPage() {
           <table className="w-full text-left border-collapse min-w-[800px] relative">
             <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 shadow-sm">
               <tr>
-                <th className="p-4 font-semibold text-slate-600 text-sm whitespace-nowrap">Kode Akun</th>
-                <th className="p-4 font-semibold text-slate-600 text-sm whitespace-nowrap">Nama Akun</th>
-                <th className="p-4 font-semibold text-slate-600 text-sm whitespace-nowrap">Grup Laporan</th>
-                <th className="p-4 font-semibold text-slate-600 text-sm whitespace-nowrap">Tipe</th>
-                <th className="p-4 font-semibold text-slate-600 text-sm whitespace-nowrap">Saldo Normal</th>
-                <th className="p-4 font-semibold text-slate-600 text-sm text-center w-32 whitespace-nowrap">Aksi</th>
+                <th className="p-4 font-bold text-slate-500 text-xs font-['Public_Sans'] uppercase tracking-wider whitespace-nowrap">Kode Akun</th>
+                <th className="p-4 font-bold text-slate-500 text-xs font-['Public_Sans'] uppercase tracking-wider whitespace-nowrap">Nama Akun</th>
+                <th className="p-4 font-bold text-slate-500 text-xs font-['Public_Sans'] uppercase tracking-wider whitespace-nowrap">Grup Laporan</th>
+                <th className="p-4 font-bold text-slate-500 text-xs font-['Public_Sans'] uppercase tracking-wider whitespace-nowrap">Tipe</th>
+                <th className="p-4 font-bold text-slate-500 text-xs font-['Public_Sans'] uppercase tracking-wider whitespace-nowrap">Saldo Normal</th>
+                <th className="p-4 font-bold text-slate-500 text-xs font-['Public_Sans'] uppercase tracking-wider text-center w-32 whitespace-nowrap">Aksi</th>
               </tr>
             </thead>
             <tbody>

@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 
 // GET: Fetch all Anggaran Tahunan
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const caller = getCallerFromRequest(request);
+  if (!caller) {
+    return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const res = await pool.query(`
       SELECT 
@@ -28,6 +34,11 @@ export async function GET() {
 
 // POST: Create new Anggaran Tahunan (header + detail items in one transaction)
 export async function POST(request: NextRequest) {
+  const caller = getCallerFromRequest(request);
+  if (!caller) {
+    return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  }
+
   const client = await pool.connect();
   try {
     const body = await request.json();

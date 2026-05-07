@@ -26,12 +26,12 @@ export const defaultJabatanEntry = (): JabatanEntry => ({
   catatan: '',
 });
 
-// Jabatan yang diizinkan per lingkup
+// Jabatan yang diizinkan per lingkup (substring match dengan nama di tabel jabatan)
 export const JABATAN_PER_LINGKUP: Record<string, string[]> = {
-  Pusat: ['Gembala Sidang', 'Wakil Gembala', 'Majelis', 'Sekretaris', 'Bendahara'],
-  Satelit: ['Wakil Gembala', 'Sekretaris', 'Bendahara'],
-  Komisi: ['Koordinator Komisi', 'Sekretaris', 'Bendahara'],
-  Departemen: ['Koordinator Departemen', 'Sekretaris', 'Bendahara'],
+  Pusat:     ['Gembala Sidang', 'Wakil Gembala', 'Majelis', 'Sekretaris', 'Bendahara', 'Komisaris'],
+  Satelit:   ['Gembala Satelit', 'Wakil Gembala', 'Sekretaris', 'Bendahara', 'Staf Pastoral'],
+  Komisi:    ['Ketua', 'Wakil Ketua', 'Sekretaris', 'Bendahara', 'Penasehat'],
+  Departemen:['Ketua', 'Wakil Ketua', 'Sekretaris', 'Bendahara', 'Penasehat'],
 };
 
 interface Props {
@@ -59,10 +59,16 @@ export function FormDetailKepengurusan({
     let overrides: Partial<JabatanEntry> = {};
     if (name === 'lingkup') {
       overrides = { komisi_id: '', departemen_id: '', jabatan_id: '' };
-      // Auto-set lokasi_satelit_id from jemaat if available
-      if (value !== 'Pusat' && defaultSatelitId && !data.lokasi_satelit_id) {
+      // Reset satelit untuk lingkup yang tidak butuh satelit
+      if (value === 'Departemen') {
+        overrides.lokasi_satelit_id = ''; // Departemen tidak terikat satelit
+      } else if (value !== 'Pusat' && defaultSatelitId && !data.lokasi_satelit_id) {
         overrides.lokasi_satelit_id = defaultSatelitId;
       }
+    }
+    // Reset komisi_id jika satelit berubah
+    if (name === 'lokasi_satelit_id') {
+      overrides = { komisi_id: '' };
     }
     onChange({ ...data, [name]: value, ...overrides } as JabatanEntry);
   };
@@ -72,7 +78,10 @@ export function FormDetailKepengurusan({
     allowedNames.some(name => j.nama_jabatan.toLowerCase().includes(name.toLowerCase()))
   );
 
-  const stepNum = (base: number) => data.lingkup === 'Pusat' ? base - 1 : base;
+  // Filter komisi hanya yang milik satelit yang dipilih
+  const filteredKomisi = data.lokasi_satelit_id
+    ? komisiOptions.filter(k => k.satelit_id?.toString() === data.lokasi_satelit_id)
+    : komisiOptions;
 
   return (
     <div className="flex flex-col gap-5">
@@ -95,11 +104,16 @@ export function FormDetailKepengurusan({
         </select>
       </div>
 
-      {/* STEP 2: Lokasi Satelit (tidak muncul untuk Pusat) */}
-      {data.lingkup === 'Pusat' ? (
+      {/* STEP 2: Lokasi Satelit — tidak muncul untuk Pusat dan Departemen */}
+      {(data.lingkup === 'Pusat' || data.lingkup === 'Departemen') ? (
         <div className="w-full py-3 px-4 text-emerald-600 bg-emerald-50 rounded-lg border border-emerald-200 flex items-center gap-3">
           <span className="material-icons-round text-[18px]">verified</span>
-          <span className="text-sm font-['Inter'] font-medium">Jabatan ini berada di tingkat <strong>Pusat / Majelis</strong>.</span>
+          {data.lingkup === 'Pusat' && (
+            <span className="text-sm font-['Inter'] font-medium">Jabatan ini berada di tingkat <strong>Pusat / Majelis</strong>.</span>
+          )}
+          {data.lingkup === 'Departemen' && (
+            <span className="text-sm font-['Inter'] font-medium">Departemen bersifat <strong>lintas satelit</strong> — tidak terikat pada satu satelit tertentu.</span>
+          )}
         </div>
       ) : (
         <div className="w-full flex-col gap-1 flex">
@@ -118,21 +132,32 @@ export function FormDetailKepengurusan({
         </div>
       )}
 
-      {/* STEP 3: Komisi (kondisional) */}
+      {/* STEP 3: Komisi — hanya muncul jika lingkup=Komisi, difilter per satelit */}
       {data.lingkup === 'Komisi' && (
         <div className="w-full flex-col gap-1 flex animate-in fade-in slide-in-from-top-1">
           <div className="flex items-center gap-1.5 mb-0.5">
             <span className="w-5 h-5 rounded-full bg-violet-500 text-white text-[10px] font-black flex items-center justify-center shrink-0">3</span>
             <label className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Pilih Komisi</label>
           </div>
-          <select
-            value={data.komisi_id}
-            onChange={e => handleChange('komisi_id', e.target.value)}
-            className="px-3 py-2 bg-violet-50 rounded-lg border border-violet-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 text-slate-900 text-sm font-['Inter'] w-full transition-all cursor-pointer"
-          >
-            <option value="">-- Pilih Komisi --</option>
-            {komisiOptions.map(k => <option key={k.id} value={k.id}>{k.nama_komisi}</option>)}
-          </select>
+          {!data.lokasi_satelit_id ? (
+            <div className="w-full py-2.5 px-3 text-amber-600 bg-amber-50 rounded-lg border border-amber-200 text-sm flex items-center gap-2">
+              <span className="material-icons-round text-[16px]">warning</span>
+              Pilih Satelit terlebih dahulu untuk melihat pilihan komisi.
+            </div>
+          ) : (
+            <select
+              value={data.komisi_id}
+              onChange={e => handleChange('komisi_id', e.target.value)}
+              disabled={!data.lokasi_satelit_id}
+              className="px-3 py-2 bg-violet-50 rounded-lg border border-violet-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 text-slate-900 text-sm font-['Inter'] w-full transition-all cursor-pointer"
+            >
+              <option value="">-- Pilih Komisi --</option>
+              {filteredKomisi.map(k => <option key={k.id} value={k.id}>{k.nama_komisi}</option>)}
+            </select>
+          )}
+          {data.lokasi_satelit_id && filteredKomisi.length === 0 && (
+            <p className="text-xs text-amber-500 mt-1">⚠ Belum ada komisi terdaftar di satelit ini.</p>
+          )}
         </div>
       )}
 

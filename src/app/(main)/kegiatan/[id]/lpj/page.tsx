@@ -107,8 +107,8 @@ export default function InputLPJPage() {
         <div className="flex items-center gap-3 border-b border-slate-100 pb-4 mb-4">
           <span className="material-icons-round text-amber-500 text-3xl">assignment</span>
           <div>
-            <h1 className="text-xl font-bold text-slate-800">Input LPJ — Laporan Pertanggungjawaban</h1>
-            <p className="text-xs text-slate-400 mt-0.5">{kegiatan ? `${kegiatan.nama_kegiatan} · ${kegiatan.kode_kegiatan}` : 'Memuat data kegiatan...'}</p>
+            <h1 className="text-xl font-black text-slate-800 font-['Inter']">Input LPJ — Laporan Pertanggungjawaban</h1>
+            <p className="text-xs text-slate-400 font-['Public_Sans'] mt-0.5">{kegiatan ? `${kegiatan.nama_kegiatan} · ${kegiatan.kode_kegiatan}` : 'Memuat data kegiatan...'}</p>
           </div>
           {existingStatus && (
             <span className={`ml-auto px-3 py-1 rounded-full text-xs font-bold border ${existingStatus === 'Menunggu Review' ? 'bg-amber-50 text-amber-700 border-amber-200' : existingStatus === 'Disetujui' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>

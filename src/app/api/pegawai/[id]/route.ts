@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const caller = getCallerFromRequest(request);
+  if (!caller) {
+    return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  }
+
   const unwrappedParams = await params;
   const id = unwrappedParams.id;
   try {
@@ -32,6 +38,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 }
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const caller = getCallerFromRequest(request);
+  if (!caller) {
+    return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  }
+
   const unwrappedParams = await params;
   const id = unwrappedParams.id;
   try {
@@ -85,6 +96,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 }
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const caller = getCallerFromRequest(request);
+  if (!caller) {
+    return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  }
+
   const unwrappedParams = await params;
   const id = unwrappedParams.id;
   try {

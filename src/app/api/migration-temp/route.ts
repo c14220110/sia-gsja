@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 
-export async function GET() {
+export async function GET(request: Request) {
+  const caller = getCallerFromRequest(request);
+  if (!caller || !caller.is_super_admin) {
+    return NextResponse.json({ success: false, message: 'Forbidden: Super Admin only' }, { status: 403 });
+  }
+
   const client = await pool.connect();
   try {
     await client.query('ALTER TABLE public.permohonan_layanan_pastoral ADD COLUMN IF NOT EXISTS kegiatan_id integer;');

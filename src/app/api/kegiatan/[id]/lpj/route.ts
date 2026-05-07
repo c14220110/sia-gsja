@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 
 // GET /api/kegiatan/[id]/lpj
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const caller = getCallerFromRequest(_req);
+  if (!caller) {
+    return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  }
+
   const { id } = await params;
   try {
     const lpjRes = await pool.query(
@@ -34,6 +40,11 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 // POST /api/kegiatan/[id]/lpj
 // body: { action: 'draft'|'ajukan', laporan_naratif?, items: [...] }
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const caller = getCallerFromRequest(req);
+  if (!caller) {
+    return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  }
+
   const { id } = await params;
   const client = await pool.connect();
   try {

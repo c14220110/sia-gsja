@@ -1,0 +1,752 @@
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+CREATE TABLE public.anggaran_tahunan (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  kode_dokumen character varying NOT NULL UNIQUE,
+  tahun integer NOT NULL,
+  satelit_id uuid NOT NULL,
+  komisi_id uuid,
+  departemen_id uuid,
+  total_anggaran numeric DEFAULT 0,
+  status USER-DEFINED DEFAULT 'Draft'::status_anggaran_enum,
+  catatan_reviewer text,
+  created_by uuid,
+  created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT anggaran_tahunan_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.anggaran_tahunan_detail (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  anggaran_tahunan_id uuid NOT NULL,
+  jenis_anggaran character varying CHECK (jenis_anggaran::text = ANY (ARRAY['Penerimaan'::character varying, 'Pengeluaran'::character varying]::text[])),
+  kegiatan_id uuid,
+  coa_id integer,
+  sumber_dana character varying,
+  uraian character varying NOT NULL,
+  deskripsi text,
+  jumlah numeric DEFAULT 1,
+  satuan character varying,
+  harga_satuan numeric DEFAULT 0,
+  total numeric DEFAULT (jumlah * harga_satuan),
+  created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT anggaran_tahunan_detail_pkey PRIMARY KEY (id),
+  CONSTRAINT anggaran_tahunan_detail_anggaran_tahunan_id_fkey FOREIGN KEY (anggaran_tahunan_id) REFERENCES public.anggaran_tahunan(id)
+);
+CREATE TABLE public.bank_master (
+  id integer NOT NULL DEFAULT nextval('bank_master_id_seq'::regclass),
+  nama_bank character varying NOT NULL UNIQUE,
+  kode_bank character varying,
+  is_active boolean DEFAULT true,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT bank_master_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.buku_besar_coa (
+  id integer NOT NULL DEFAULT nextval('buku_besar_coa_id_seq'::regclass),
+  kode_akun character varying NOT NULL UNIQUE,
+  nama_akun character varying NOT NULL,
+  induk_akun_id integer,
+  grup_laporan character varying NOT NULL CHECK (grup_laporan::text = ANY (ARRAY['Neraca'::character varying, 'Laba Rugi'::character varying]::text[])),
+  tipe_akun character varying NOT NULL CHECK (tipe_akun::text = ANY (ARRAY['Header'::character varying, 'Detail'::character varying]::text[])),
+  saldo_normal character varying NOT NULL CHECK (saldo_normal::text = ANY (ARRAY['Debit'::character varying, 'Kredit'::character varying]::text[])),
+  is_active boolean DEFAULT true,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT buku_besar_coa_pkey PRIMARY KEY (id),
+  CONSTRAINT buku_besar_coa_induk_akun_id_fkey FOREIGN KEY (induk_akun_id) REFERENCES public.buku_besar_coa(id)
+);
+CREATE TABLE public.buku_besar_jurnal (
+  id integer NOT NULL DEFAULT nextval('buku_besar_jurnal_id_seq'::regclass),
+  nomor_referensi character varying NOT NULL UNIQUE,
+  tanggal_transaksi date NOT NULL,
+  deskripsi text NOT NULL,
+  total_debit numeric NOT NULL DEFAULT 0,
+  total_kredit numeric NOT NULL DEFAULT 0,
+  status character varying NOT NULL DEFAULT 'Draft'::character varying CHECK (status::text = ANY (ARRAY['Draft'::character varying, 'Posted'::character varying]::text[])),
+  created_by integer,
+  posted_by integer,
+  posted_at timestamp without time zone,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT buku_besar_jurnal_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.buku_besar_jurnal_detail (
+  id integer NOT NULL DEFAULT nextval('buku_besar_jurnal_detail_id_seq'::regclass),
+  jurnal_id integer NOT NULL,
+  coa_id integer NOT NULL,
+  satelit_id integer,
+  departemen_id integer,
+  komisi_id integer,
+  kegiatan_id integer,
+  posisi character varying NOT NULL CHECK (posisi::text = ANY (ARRAY['Debit'::character varying, 'Kredit'::character varying]::text[])),
+  nominal numeric NOT NULL CHECK (nominal > 0::numeric),
+  keterangan_baris character varying,
+  CONSTRAINT buku_besar_jurnal_detail_pkey PRIMARY KEY (id),
+  CONSTRAINT fk_jurnal_detail_header FOREIGN KEY (jurnal_id) REFERENCES public.buku_besar_jurnal(id),
+  CONSTRAINT fk_jurnal_detail_coa FOREIGN KEY (coa_id) REFERENCES public.buku_besar_coa(id)
+);
+CREATE TABLE public.departemen (
+  id integer NOT NULL DEFAULT nextval('departemen_id_seq'::regclass),
+  nama_departemen character varying NOT NULL UNIQUE,
+  is_active boolean DEFAULT true,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT departemen_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.detail_kepengurusan (
+  id integer NOT NULL DEFAULT nextval('detail_kepengurusan_id_seq'::regclass),
+  pengurus_id integer,
+  jabatan_id integer,
+  periode_id integer,
+  satelit_id integer,
+  kode_urutan integer,
+  komisi_id integer,
+  departemen_id integer,
+  status_jabatan character varying DEFAULT 'Aktif'::character varying CHECK (status_jabatan::text = ANY (ARRAY['Aktif'::character varying, 'Demisioner'::character varying, 'Non-Aktif'::character varying]::text[])),
+  jalur_pengangkatan character varying DEFAULT 'Penunjukan'::character varying CHECK (jalur_pengangkatan::text = ANY (ARRAY['Penunjukan'::character varying, 'Pemilu'::character varying]::text[])),
+  tanggal_mulai_menjabat date,
+  tanggal_akhir_menjabat date,
+  tanggal_mulai date,
+  lingkup character varying DEFAULT 'Satelit'::character varying CHECK (lingkup::text = ANY (ARRAY['Pusat'::character varying, 'Satelit'::character varying, 'Komisi'::character varying, 'Departemen'::character varying]::text[])),
+  catatan text,
+  CONSTRAINT detail_kepengurusan_pkey PRIMARY KEY (id),
+  CONSTRAINT detail_kepengurusan_jabatan_id_fkey FOREIGN KEY (jabatan_id) REFERENCES public.jabatan(id),
+  CONSTRAINT detail_kepengurusan_pengurus_id_fkey FOREIGN KEY (pengurus_id) REFERENCES public.pengurus(id),
+  CONSTRAINT detail_kepengurusan_periode_id_fkey FOREIGN KEY (periode_id) REFERENCES public.periode_kepengurusan(id),
+  CONSTRAINT detail_kepengurusan_satelit_id_fkey FOREIGN KEY (satelit_id) REFERENCES public.satelit(id),
+  CONSTRAINT detail_kepengurusan_komisi_id_fkey FOREIGN KEY (komisi_id) REFERENCES public.komisi(id),
+  CONSTRAINT detail_kepengurusan_departemen_id_fkey FOREIGN KEY (departemen_id) REFERENCES public.departemen(id)
+);
+CREATE TABLE public.jabatan (
+  id integer NOT NULL DEFAULT nextval('jabatan_id_seq'::regclass),
+  nama_jabatan character varying NOT NULL UNIQUE,
+  is_active boolean DEFAULT true,
+  CONSTRAINT jabatan_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.jabatan_pegawai_master (
+  id integer NOT NULL DEFAULT nextval('jabatan_pegawai_master_id_seq'::regclass),
+  nama_jabatan character varying NOT NULL UNIQUE,
+  deskripsi text,
+  is_active boolean DEFAULT true,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT jabatan_pegawai_master_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.jemaat (
+  id integer NOT NULL DEFAULT nextval('jemaat_id_seq'::regclass),
+  jemaat_id character varying NOT NULL UNIQUE,
+  nik character varying,
+  nama_lengkap character varying NOT NULL,
+  jenis_kelamin character varying CHECK (jenis_kelamin::text = ANY (ARRAY['Laki-laki'::character varying::text, 'Perempuan'::character varying::text])),
+  tempat_lahir character varying,
+  tanggal_lahir date,
+  alamat text,
+  kota character varying,
+  kecamatan character varying,
+  kelurahan character varying,
+  kode_pos character varying,
+  no_hp character varying,
+  email character varying,
+  status_pernikahan character varying CHECK (status_pernikahan::text = ANY (ARRAY['Lajang'::character varying::text, 'Menikah'::character varying::text, 'Duda'::character varying::text, 'Janda'::character varying::text])),
+  status_baptis boolean DEFAULT false,
+  tanggal_baptis date,
+  status_jemaat character varying DEFAULT 'Aktif'::character varying CHECK (status_jemaat::text = ANY (ARRAY['Aktif'::character varying::text, 'Tidak Aktif'::character varying::text, 'Keluar'::character varying::text])),
+  tanggal_bergabung date,
+  pekerjaan character varying,
+  foto_url text,
+  satelit_id integer NOT NULL,
+  ayah_id integer,
+  ibu_id integer,
+  pasangan_id integer,
+  is_deleted boolean DEFAULT false,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  ayah_nama character varying,
+  ibu_nama character varying,
+  pasangan_nama character varying,
+  gereja_asal_ayah character varying,
+  gereja_asal_ibu character varying,
+  gereja_asal_pasangan character varying,
+  pekerjaan_id integer,
+  CONSTRAINT jemaat_pkey PRIMARY KEY (id),
+  CONSTRAINT jemaat_ayah_id_fkey FOREIGN KEY (ayah_id) REFERENCES public.jemaat(id),
+  CONSTRAINT jemaat_ibu_id_fkey FOREIGN KEY (ibu_id) REFERENCES public.jemaat(id),
+  CONSTRAINT jemaat_pasangan_id_fkey FOREIGN KEY (pasangan_id) REFERENCES public.jemaat(id),
+  CONSTRAINT jemaat_satelit_id_fkey FOREIGN KEY (satelit_id) REFERENCES public.satelit(id),
+  CONSTRAINT fk_jemaat_pekerjaan FOREIGN KEY (pekerjaan_id) REFERENCES public.pekerjaan_master(id)
+);
+CREATE TABLE public.jemaat_audit_log (
+  id integer NOT NULL DEFAULT nextval('jemaat_audit_log_id_seq'::regclass),
+  jemaat_id integer NOT NULL,
+  aksi USER-DEFINED NOT NULL,
+  user_id integer NOT NULL,
+  role_id integer NOT NULL,
+  satelit_id integer NOT NULL,
+  keterangan text,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT jemaat_audit_log_pkey PRIMARY KEY (id),
+  CONSTRAINT jemaat_audit_log_jemaat_id_fkey FOREIGN KEY (jemaat_id) REFERENCES public.jemaat(id),
+  CONSTRAINT jemaat_audit_log_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.pengguna(id),
+  CONSTRAINT jemaat_audit_log_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.role(id),
+  CONSTRAINT jemaat_audit_log_satelit_id_fkey FOREIGN KEY (satelit_id) REFERENCES public.satelit(id)
+);
+CREATE TABLE public.jemaat_departemen (
+  id integer NOT NULL DEFAULT nextval('jemaat_departemen_id_seq'::regclass),
+  jemaat_id integer NOT NULL,
+  departemen_id integer NOT NULL,
+  satelit_id integer NOT NULL,
+  tanggal_bergabung date,
+  is_active boolean DEFAULT true,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT jemaat_departemen_pkey PRIMARY KEY (id),
+  CONSTRAINT fk_jemaat_departemen_jemaat FOREIGN KEY (jemaat_id) REFERENCES public.jemaat(id),
+  CONSTRAINT fk_jemaat_departemen_departemen FOREIGN KEY (departemen_id) REFERENCES public.departemen(id),
+  CONSTRAINT fk_jemaat_departemen_satelit FOREIGN KEY (satelit_id) REFERENCES public.satelit(id)
+);
+CREATE TABLE public.jemaat_komisi (
+  id integer NOT NULL DEFAULT nextval('jemaat_komisi_id_seq'::regclass),
+  jemaat_id integer NOT NULL,
+  komisi_id integer NOT NULL,
+  tanggal_bergabung date,
+  is_active boolean DEFAULT true,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT jemaat_komisi_pkey PRIMARY KEY (id),
+  CONSTRAINT jemaat_komisi_jemaat_id_fkey FOREIGN KEY (jemaat_id) REFERENCES public.jemaat(id),
+  CONSTRAINT jemaat_komisi_komisi_id_fkey FOREIGN KEY (komisi_id) REFERENCES public.komisi(id)
+);
+CREATE TABLE public.jenis_kegiatan (
+  id integer NOT NULL DEFAULT nextval('jenis_kegiatan_id_seq'::regclass),
+  nama_jenis_kegiatan character varying NOT NULL UNIQUE,
+  keterangan text,
+  kategori character varying,
+  default_is_published boolean DEFAULT true,
+  default_butuh_registrasi boolean DEFAULT false,
+  butuh_permohonan boolean DEFAULT false,
+  kode_singkatan character varying,
+  CONSTRAINT jenis_kegiatan_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.jenis_relasi (
+  id integer NOT NULL DEFAULT nextval('jenis_relasi_id_seq'::regclass),
+  nama_relasi character varying NOT NULL UNIQUE,
+  is_active boolean DEFAULT true,
+  CONSTRAINT jenis_relasi_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.jurnal_umum (
+  id integer NOT NULL DEFAULT nextval('jurnal_umum_id_seq'::regclass),
+  nomor_jurnal character varying NOT NULL UNIQUE,
+  tanggal_transaksi date NOT NULL,
+  keterangan text NOT NULL,
+  status character varying DEFAULT 'Posted'::character varying CHECK (status::text = ANY (ARRAY['Draft'::character varying, 'Posted'::character varying, 'Batal'::character varying]::text[])),
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT jurnal_umum_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.jurnal_umum_detail (
+  id integer NOT NULL DEFAULT nextval('jurnal_umum_detail_id_seq'::regclass),
+  jurnal_id integer NOT NULL,
+  coa_id integer NOT NULL,
+  debit numeric DEFAULT 0,
+  kredit numeric DEFAULT 0,
+  keterangan_baris text,
+  satelit_id integer,
+  departemen_id integer,
+  komisi_id integer,
+  kegiatan_id integer,
+  CONSTRAINT jurnal_umum_detail_pkey PRIMARY KEY (id),
+  CONSTRAINT jurnal_umum_detail_jurnal_id_fkey FOREIGN KEY (jurnal_id) REFERENCES public.jurnal_umum(id),
+  CONSTRAINT jurnal_umum_detail_coa_id_fkey FOREIGN KEY (coa_id) REFERENCES public.buku_besar_coa(id),
+  CONSTRAINT jurnal_umum_detail_satelit_fk FOREIGN KEY (satelit_id) REFERENCES public.satelit(id),
+  CONSTRAINT jurnal_umum_detail_departemen_fk FOREIGN KEY (departemen_id) REFERENCES public.departemen(id),
+  CONSTRAINT jurnal_umum_detail_komisi_fk FOREIGN KEY (komisi_id) REFERENCES public.komisi(id)
+);
+CREATE TABLE public.kandidat (
+  id integer NOT NULL DEFAULT nextval('kandidat_id_seq'::regclass),
+  jemaat_id integer,
+  jabatan_id integer,
+  periode_id integer,
+  satelit_id integer,
+  total_suara integer DEFAULT 0,
+  CONSTRAINT kandidat_pkey PRIMARY KEY (id),
+  CONSTRAINT kandidat_jabatan_id_fkey FOREIGN KEY (jabatan_id) REFERENCES public.jabatan(id),
+  CONSTRAINT kandidat_jemaat_id_fkey FOREIGN KEY (jemaat_id) REFERENCES public.jemaat(id),
+  CONSTRAINT kandidat_periode_id_fkey FOREIGN KEY (periode_id) REFERENCES public.periode_kepengurusan(id),
+  CONSTRAINT kandidat_satelit_id_fkey FOREIGN KEY (satelit_id) REFERENCES public.satelit(id)
+);
+CREATE TABLE public.kegiatan (
+  id integer NOT NULL DEFAULT nextval('kegiatan_id_seq'::regclass),
+  kode_kegiatan character varying NOT NULL UNIQUE,
+  nama_kegiatan character varying NOT NULL,
+  jenis_kegiatan_id integer NOT NULL,
+  satelit_id integer,
+  departemen_id integer,
+  frekuensi_kegiatan character varying NOT NULL,
+  tanggal_mulai date NOT NULL,
+  tanggal_selesai date,
+  waktu_mulai time without time zone NOT NULL,
+  waktu_selesai time without time zone,
+  lokasi_kegiatan text,
+  pic_pengurus_id integer,
+  berbayar boolean DEFAULT false,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  status_kegiatan USER-DEFINED DEFAULT 'Draft'::status_kegiatan_enum,
+  komisi_id integer,
+  keterangan text,
+  alasan_pembatalan text,
+  is_published boolean DEFAULT true,
+  butuh_registrasi boolean DEFAULT false,
+  url_banner text,
+  harga_tiket_rp numeric DEFAULT 0,
+  kuota_peserta integer,
+  CONSTRAINT kegiatan_pkey PRIMARY KEY (id),
+  CONSTRAINT kegiatan_jenis_kegiatan_id_fkey FOREIGN KEY (jenis_kegiatan_id) REFERENCES public.jenis_kegiatan(id),
+  CONSTRAINT kegiatan_komisi_id_fkey FOREIGN KEY (komisi_id) REFERENCES public.komisi(id),
+  CONSTRAINT fk_kegiatan_satelit FOREIGN KEY (satelit_id) REFERENCES public.satelit(id),
+  CONSTRAINT fk_kegiatan_departemen FOREIGN KEY (departemen_id) REFERENCES public.departemen(id),
+  CONSTRAINT fk_kegiatan_pic FOREIGN KEY (pic_pengurus_id) REFERENCES public.pengurus(id)
+);
+CREATE TABLE public.kegiatan_absensi (
+  id integer NOT NULL DEFAULT nextval('kegiatan_absensi_id_seq'::regclass),
+  kegiatan_id integer NOT NULL,
+  jemaat_id integer,
+  nama_pengunjung character varying,
+  role_kehadiran character varying NOT NULL,
+  metode_absensi character varying DEFAULT 'Manual'::character varying,
+  status_kehadiran character varying DEFAULT 'Hadir'::character varying,
+  waktu_hadir timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT kegiatan_absensi_pkey PRIMARY KEY (id),
+  CONSTRAINT kegiatan_absensi_kegiatan_id_fkey FOREIGN KEY (kegiatan_id) REFERENCES public.kegiatan(id),
+  CONSTRAINT fk_absensi_jemaat FOREIGN KEY (jemaat_id) REFERENCES public.jemaat(id)
+);
+CREATE TABLE public.kegiatan_detail_eksternal (
+  kegiatan_id integer NOT NULL,
+  akomodasi text,
+  CONSTRAINT kegiatan_detail_eksternal_pkey PRIMARY KEY (kegiatan_id),
+  CONSTRAINT kegiatan_detail_eksternal_kegiatan_id_fkey FOREIGN KEY (kegiatan_id) REFERENCES public.kegiatan(id)
+);
+CREATE TABLE public.kegiatan_detail_ibadah (
+  kegiatan_id integer NOT NULL,
+  tema_khotbah character varying,
+  nama_pengkhotbah_1 character varying,
+  nama_pengkhotbah_2 character varying,
+  jumlah_pengunjung_baru integer DEFAULT 0,
+  CONSTRAINT kegiatan_detail_ibadah_pkey PRIMARY KEY (kegiatan_id),
+  CONSTRAINT kegiatan_detail_ibadah_kegiatan_id_fkey FOREIGN KEY (kegiatan_id) REFERENCES public.kegiatan(id)
+);
+CREATE TABLE public.kegiatan_detail_kesehatan_pasien (
+  id integer NOT NULL DEFAULT nextval('kegiatan_detail_kesehatan_pasien_id_seq'::regclass),
+  kegiatan_id integer NOT NULL,
+  jemaat_id integer,
+  pelayan_medis_id integer,
+  keluhan_simptom text,
+  diagnosa text,
+  tindakan_obat text,
+  nama_pasien_luar character varying,
+  no_hp_pasien_luar character varying,
+  tensi_darah character varying,
+  gula_darah integer,
+  asam_urat numeric,
+  kolesterol integer,
+  nama_pelayan_luar character varying,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT kegiatan_detail_kesehatan_pasien_pkey PRIMARY KEY (id),
+  CONSTRAINT fk_kesehatan_pelayan FOREIGN KEY (pelayan_medis_id) REFERENCES public.jemaat(id),
+  CONSTRAINT fk_kesehatan_kegiatan FOREIGN KEY (kegiatan_id) REFERENCES public.kegiatan(id),
+  CONSTRAINT fk_kesehatan_pasien FOREIGN KEY (jemaat_id) REFERENCES public.jemaat(id)
+);
+CREATE TABLE public.kegiatan_detail_layanan_personal (
+  kegiatan_id integer NOT NULL,
+  jemaat_target_1_id integer,
+  jemaat_target_2_id integer,
+  keterangan_layanan text,
+  CONSTRAINT kegiatan_detail_layanan_personal_pkey PRIMARY KEY (kegiatan_id),
+  CONSTRAINT kegiatan_detail_layanan_personal_kegiatan_id_fkey FOREIGN KEY (kegiatan_id) REFERENCES public.kegiatan(id),
+  CONSTRAINT fk_layanan_target_1 FOREIGN KEY (jemaat_target_1_id) REFERENCES public.jemaat(id),
+  CONSTRAINT fk_layanan_target_2 FOREIGN KEY (jemaat_target_2_id) REFERENCES public.jemaat(id)
+);
+CREATE TABLE public.kegiatan_detail_sakramen (
+  kegiatan_id integer NOT NULL,
+  nama_pendeta_pelayan character varying,
+  no_sertifikat_awal character varying,
+  keterangan_sakramen text,
+  CONSTRAINT kegiatan_detail_sakramen_pkey PRIMARY KEY (kegiatan_id),
+  CONSTRAINT fk_sakramen_kegiatan FOREIGN KEY (kegiatan_id) REFERENCES public.kegiatan(id)
+);
+CREATE TABLE public.kegiatan_jadwal_pelayan (
+  id integer NOT NULL DEFAULT nextval('kegiatan_jadwal_pelayan_id_seq'::regclass),
+  kegiatan_id integer NOT NULL,
+  pelayan_id integer NOT NULL,
+  status_konfirmasi USER-DEFINED DEFAULT 'Menunggu Konfirmasi'::status_konfirmasi_pelayan_enum,
+  role_id integer NOT NULL,
+  CONSTRAINT kegiatan_jadwal_pelayan_pkey PRIMARY KEY (id),
+  CONSTRAINT fk_jadwal_kegiatan FOREIGN KEY (kegiatan_id) REFERENCES public.kegiatan(id),
+  CONSTRAINT fk_jadwal_pelayan FOREIGN KEY (pelayan_id) REFERENCES public.pelayan(id),
+  CONSTRAINT kegiatan_jadwal_pelayan_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.role_pelayan(id)
+);
+CREATE TABLE public.kegiatan_lpj (
+  kegiatan_id integer NOT NULL,
+  laporan_naratif text NOT NULL,
+  file_dokumen_lpj text,
+  diajukan_oleh_id integer,
+  waktu_submit timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  total_subsidi_gereja numeric DEFAULT 0,
+  total_kontribusi_peserta numeric DEFAULT 0,
+  total_pengeluaran numeric DEFAULT 0,
+  sisa_dana numeric DEFAULT 0,
+  status_lpj character varying DEFAULT 'Pending Approval'::character varying,
+  CONSTRAINT kegiatan_lpj_pkey PRIMARY KEY (kegiatan_id),
+  CONSTRAINT kegiatan_lpj_kegiatan_id_fkey FOREIGN KEY (kegiatan_id) REFERENCES public.kegiatan(id),
+  CONSTRAINT fk_lpj_pengaju FOREIGN KEY (diajukan_oleh_id) REFERENCES public.pengurus(id)
+);
+CREATE TABLE public.kegiatan_lpj_detail (
+  id integer NOT NULL DEFAULT nextval('kegiatan_lpj_detail_id_seq'::regclass),
+  kegiatan_id integer NOT NULL,
+  jenis_anggaran character varying NOT NULL CHECK (jenis_anggaran::text = ANY (ARRAY['Penerimaan'::character varying, 'Pengeluaran'::character varying]::text[])),
+  coa_id integer NOT NULL,
+  sumber_dana character varying DEFAULT 'Kas Mandiri'::character varying,
+  uraian character varying NOT NULL,
+  deskripsi text,
+  jumlah numeric NOT NULL DEFAULT 1,
+  satuan character varying,
+  harga_satuan numeric NOT NULL DEFAULT 0,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT kegiatan_lpj_detail_pkey PRIMARY KEY (id),
+  CONSTRAINT kegiatan_lpj_detail_coa_id_fkey FOREIGN KEY (coa_id) REFERENCES public.buku_besar_coa(id),
+  CONSTRAINT kegiatan_lpj_detail_kegiatan_id_fkey FOREIGN KEY (kegiatan_id) REFERENCES public.kegiatan(id)
+);
+CREATE TABLE public.kegiatan_registrasi (
+  id integer NOT NULL DEFAULT nextval('kegiatan_registrasi_id_seq'::regclass),
+  kegiatan_id integer NOT NULL,
+  jemaat_id integer NOT NULL,
+  tanggal_daftar timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  status_pendaftaran character varying DEFAULT 'Pending'::character varying,
+  catatan_khusus text,
+  jemaat_terkait_id integer,
+  total_biaya numeric DEFAULT 0,
+  status_pembayaran character varying DEFAULT 'Unpaid'::character varying CHECK (status_pembayaran::text = ANY (ARRAY['Unpaid'::character varying, 'Pending_Verification'::character varying, 'Paid'::character varying, 'Refunded'::character varying]::text[])),
+  bukti_bayar_url text,
+  waktu_bayar timestamp without time zone,
+  metode_pembayaran character varying,
+  is_checked_in boolean DEFAULT false,
+  waktu_check_in timestamp without time zone,
+  url_bukti_bayar text,
+  CONSTRAINT kegiatan_registrasi_pkey PRIMARY KEY (id),
+  CONSTRAINT fk_registrasi_kegiatan FOREIGN KEY (kegiatan_id) REFERENCES public.kegiatan(id),
+  CONSTRAINT fk_registrasi_jemaat FOREIGN KEY (jemaat_id) REFERENCES public.jemaat(id)
+);
+CREATE TABLE public.komisi (
+  id integer NOT NULL DEFAULT nextval('komisi_id_seq'::regclass),
+  nama_komisi character varying NOT NULL,
+  satelit_id integer NOT NULL,
+  is_active boolean DEFAULT true,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT komisi_pkey PRIMARY KEY (id),
+  CONSTRAINT komisi_satelit_id_fkey FOREIGN KEY (satelit_id) REFERENCES public.satelit(id)
+);
+CREATE TABLE public.partisipan (
+  id integer NOT NULL DEFAULT nextval('partisipan_id_seq'::regclass),
+  nama_lengkap character varying NOT NULL,
+  alamat text,
+  kecamatan character varying,
+  kelurahan character varying,
+  no_hp character varying,
+  satelit_id integer,
+  sudah_jadi_jemaat boolean DEFAULT false,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT partisipan_pkey PRIMARY KEY (id),
+  CONSTRAINT partisipan_satelit_id_fkey FOREIGN KEY (satelit_id) REFERENCES public.satelit(id)
+);
+CREATE TABLE public.pegawai (
+  id integer NOT NULL DEFAULT nextval('pegawai_id_seq'::regclass),
+  id_pegawai character varying UNIQUE,
+  jemaat_id integer UNIQUE,
+  nama_lengkap character varying NOT NULL,
+  nik character varying NOT NULL,
+  no_kk character varying,
+  status_pernikahan character varying CHECK (status_pernikahan::text = ANY (ARRAY['Lajang'::character varying::text, 'Menikah'::character varying::text, 'Duda'::character varying::text, 'Janda'::character varying::text])),
+  jumlah_anak integer DEFAULT 0,
+  tanggal_lahir date,
+  jenis_kelamin character varying CHECK (jenis_kelamin::text = ANY (ARRAY['Laki-laki'::character varying::text, 'Perempuan'::character varying::text])),
+  no_hp character varying,
+  email_pribadi character varying,
+  kontak_darurat_nama character varying,
+  kontak_darurat_nohp character varying,
+  kontak_darurat_relasi character varying,
+  jabatan_pegawai_id integer NOT NULL,
+  departemen_id integer NOT NULL,
+  tanggal_bergabung date,
+  tanggal_keluar date,
+  status_pegawai character varying DEFAULT 'Aktif'::character varying CHECK (status_pegawai::text = ANY (ARRAY['Aktif'::character varying::text, 'Resign'::character varying::text, 'Pensiun'::character varying::text, 'PHK'::character varying::text, 'Cuti'::character varying::text, 'Meninggal'::character varying::text])),
+  status_approval character varying DEFAULT 'Pending'::character varying CHECK (status_approval::text = ANY (ARRAY['Pending'::character varying::text, 'Disetujui'::character varying::text, 'Ditolak'::character varying::text])),
+  di_acc_oleh integer,
+  tanggal_acc timestamp without time zone,
+  url_ktp text,
+  url_perjanjian_kerjasama text,
+  url_kartu_keluarga text,
+  alamat_lengkap text,
+  rt_rw character varying,
+  kota character varying,
+  kode_pos character varying,
+  is_kena_pph21 boolean DEFAULT true,
+  no_npwp character varying,
+  tipe_pekerja character varying CHECK (tipe_pekerja::text = ANY (ARRAY['Pegawai Tetap'::character varying::text, 'Tidak Tetap'::character varying::text])),
+  status_ptkp character varying,
+  bank_id integer,
+  no_rekening character varying,
+  atas_nama_rekening character varying,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  satelit_id integer,
+  CONSTRAINT pegawai_pkey PRIMARY KEY (id),
+  CONSTRAINT fk_pegawai_jemaat FOREIGN KEY (jemaat_id) REFERENCES public.jemaat(id),
+  CONSTRAINT fk_pegawai_jabatan FOREIGN KEY (jabatan_pegawai_id) REFERENCES public.jabatan_pegawai_master(id),
+  CONSTRAINT fk_pegawai_departemen FOREIGN KEY (departemen_id) REFERENCES public.departemen(id),
+  CONSTRAINT fk_pegawai_bank FOREIGN KEY (bank_id) REFERENCES public.bank_master(id),
+  CONSTRAINT fk_pegawai_acc FOREIGN KEY (di_acc_oleh) REFERENCES public.pengguna(id),
+  CONSTRAINT fk_pegawai_satelit FOREIGN KEY (satelit_id) REFERENCES public.satelit(id)
+);
+CREATE TABLE public.pegawai_audit_log (
+  id integer NOT NULL DEFAULT nextval('pegawai_audit_log_id_seq'::regclass),
+  pegawai_id integer NOT NULL,
+  aksi character varying NOT NULL,
+  user_id integer NOT NULL,
+  keterangan text,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT pegawai_audit_log_pkey PRIMARY KEY (id),
+  CONSTRAINT fk_audit_pegawai FOREIGN KEY (pegawai_id) REFERENCES public.pegawai(id),
+  CONSTRAINT fk_audit_user FOREIGN KEY (user_id) REFERENCES public.pengguna(id)
+);
+CREATE TABLE public.pekerjaan_master (
+  id integer NOT NULL DEFAULT nextval('pekerjaan_master_id_seq'::regclass),
+  nama_pekerjaan character varying NOT NULL UNIQUE,
+  is_active boolean DEFAULT true,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT pekerjaan_master_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.pelayan (
+  id integer NOT NULL DEFAULT nextval('pelayan_id_seq'::regclass),
+  id_pelayanan character varying NOT NULL UNIQUE,
+  jemaat_id integer NOT NULL,
+  satelit_id integer NOT NULL,
+  tanggal_mulai date NOT NULL,
+  status_pelayan character varying DEFAULT 'Aktif'::character varying,
+  catatan text,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT pelayan_pkey PRIMARY KEY (id),
+  CONSTRAINT pelayan_jemaat_id_fkey FOREIGN KEY (jemaat_id) REFERENCES public.jemaat(id),
+  CONSTRAINT pelayan_satelit_id_fkey FOREIGN KEY (satelit_id) REFERENCES public.satelit(id)
+);
+CREATE TABLE public.pelayan_audit_log (
+  id integer NOT NULL DEFAULT nextval('pelayan_audit_log_id_seq'::regclass),
+  pelayan_id integer NOT NULL,
+  aksi USER-DEFINED NOT NULL,
+  user_id integer NOT NULL,
+  role_id integer NOT NULL,
+  satelit_id integer NOT NULL,
+  keterangan text,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT pelayan_audit_log_pkey PRIMARY KEY (id),
+  CONSTRAINT pelayan_audit_log_pelayan_id_fkey FOREIGN KEY (pelayan_id) REFERENCES public.pelayan(id),
+  CONSTRAINT pelayan_audit_log_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.pengguna(id),
+  CONSTRAINT pelayan_audit_log_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.role(id),
+  CONSTRAINT pelayan_audit_log_satelit_id_fkey FOREIGN KEY (satelit_id) REFERENCES public.satelit(id)
+);
+CREATE TABLE public.pelayan_role (
+  id integer NOT NULL DEFAULT nextval('pelayan_role_id_seq'::regclass),
+  pelayan_id integer NOT NULL,
+  role_id integer NOT NULL,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  tanggal_mulai date,
+  tanggal_selesai date,
+  status_role character varying DEFAULT 'Aktif'::character varying CHECK (status_role::text = ANY (ARRAY['Aktif'::character varying, 'Tidak Aktif'::character varying]::text[])),
+  CONSTRAINT pelayan_role_pkey PRIMARY KEY (id),
+  CONSTRAINT pelayan_role_pelayan_id_fkey FOREIGN KEY (pelayan_id) REFERENCES public.pelayan(id),
+  CONSTRAINT pelayan_role_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.role_pelayan(id)
+);
+CREATE TABLE public.pengguna (
+  id integer NOT NULL DEFAULT nextval('pengguna_id_seq'::regclass),
+  email character varying NOT NULL UNIQUE,
+  password_hash character varying NOT NULL,
+  is_active boolean DEFAULT true,
+  last_login_at timestamp without time zone,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  jemaat_id integer UNIQUE,
+  requires_password_change boolean DEFAULT true,
+  CONSTRAINT pengguna_pkey PRIMARY KEY (id),
+  CONSTRAINT fk_pengguna_jemaat FOREIGN KEY (jemaat_id) REFERENCES public.jemaat(id)
+);
+CREATE TABLE public.pengurus (
+  id integer NOT NULL DEFAULT nextval('pengurus_id_seq'::regclass),
+  jemaat_id integer,
+  tanggal_bergabung date,
+  is_active boolean DEFAULT true,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  id_pengurus character varying UNIQUE,
+  satelit_asal_id integer,
+  CONSTRAINT pengurus_pkey PRIMARY KEY (id),
+  CONSTRAINT pengurus_jemaat_id_fkey FOREIGN KEY (jemaat_id) REFERENCES public.jemaat(id),
+  CONSTRAINT pengurus_satelit_asal_id_fkey FOREIGN KEY (satelit_asal_id) REFERENCES public.satelit(id)
+);
+CREATE TABLE public.pengurus_audit_log (
+  id integer NOT NULL DEFAULT nextval('pengurus_audit_log_id_seq'::regclass),
+  pengurus_id integer NOT NULL,
+  aksi USER-DEFINED NOT NULL,
+  user_id integer NOT NULL,
+  role_id integer NOT NULL,
+  satelit_id integer NOT NULL,
+  keterangan text,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT pengurus_audit_log_pkey PRIMARY KEY (id),
+  CONSTRAINT pengurus_audit_pengurus_id_fkey FOREIGN KEY (pengurus_id) REFERENCES public.pengurus(id),
+  CONSTRAINT pengurus_audit_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.role(id),
+  CONSTRAINT pengurus_audit_satelit_id_fkey FOREIGN KEY (satelit_id) REFERENCES public.satelit(id),
+  CONSTRAINT pengurus_audit_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.pengguna(id)
+);
+CREATE TABLE public.periode_kepengurusan (
+  id integer NOT NULL DEFAULT nextval('periode_kepengurusan_id_seq'::regclass),
+  tahun_mulai integer,
+  tahun_akhir integer,
+  is_active boolean DEFAULT true,
+  nama_periode character varying,
+  CONSTRAINT periode_kepengurusan_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.permission (
+  id integer NOT NULL DEFAULT nextval('permission_id_seq'::regclass),
+  nama_permission character varying NOT NULL UNIQUE,
+  deskripsi text,
+  CONSTRAINT permission_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.permohonan_layanan_audit_log (
+  id integer NOT NULL DEFAULT nextval('permohonan_layanan_audit_log_id_seq'::regclass),
+  permohonan_id integer NOT NULL,
+  status_sebelumnya character varying,
+  status_baru character varying NOT NULL,
+  diubah_oleh_id integer,
+  catatan_perubahan text,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT permohonan_layanan_audit_log_pkey PRIMARY KEY (id),
+  CONSTRAINT fk_audit_permohonan FOREIGN KEY (permohonan_id) REFERENCES public.permohonan_layanan_pastoral(id)
+);
+CREATE TABLE public.permohonan_layanan_pastoral (
+  id integer NOT NULL DEFAULT nextval('permohonan_layanan_pastoral_id_seq'::regclass),
+  nomor_tiket character varying NOT NULL UNIQUE,
+  jemaat_pemohon_id integer NOT NULL,
+  untuk_siapa character varying NOT NULL CHECK (untuk_siapa::text = ANY (ARRAY['Saya Sendiri'::character varying, 'Anggota Keluarga'::character varying, 'Jemaat Lain'::character varying]::text[])),
+  jemaat_target_id integer,
+  nama_target_luar character varying,
+  jenis_kegiatan_id integer NOT NULL,
+  no_hp_kontak character varying NOT NULL,
+  keterangan text,
+  is_urgent boolean DEFAULT false,
+  jadwal_harapan timestamp without time zone,
+  lokasi_pelayanan character varying,
+  status_permohonan character varying DEFAULT 'Menunggu'::character varying CHECK (status_permohonan::text = ANY (ARRAY['Menunggu'::character varying, 'Ditugaskan'::character varying, 'Ditindaklanjuti'::character varying, 'Selesai'::character varying, 'Dibatalkan'::character varying]::text[])),
+  penanggung_jawab_id integer,
+  kegiatan_id integer,
+  catatan_penyelesaian text,
+  alasan_pembatalan text,
+  waktu_diterima timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  waktu_ditugaskan timestamp without time zone,
+  waktu_ditindaklanjuti timestamp without time zone,
+  waktu_selesai timestamp without time zone,
+  waktu_dibatalkan timestamp without time zone,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT permohonan_layanan_pastoral_pkey PRIMARY KEY (id),
+  CONSTRAINT fk_permohonan_pemohon FOREIGN KEY (jemaat_pemohon_id) REFERENCES public.jemaat(id),
+  CONSTRAINT fk_permohonan_target FOREIGN KEY (jemaat_target_id) REFERENCES public.jemaat(id),
+  CONSTRAINT fk_permohonan_jenis_keg FOREIGN KEY (jenis_kegiatan_id) REFERENCES public.jenis_kegiatan(id),
+  CONSTRAINT fk_permohonan_pj FOREIGN KEY (penanggung_jawab_id) REFERENCES public.pengurus(id),
+  CONSTRAINT fk_permohonan_kegiatan FOREIGN KEY (kegiatan_id) REFERENCES public.kegiatan(id)
+);
+CREATE TABLE public.push_subscriptions (
+  id integer NOT NULL DEFAULT nextval('push_subscriptions_id_seq'::regclass),
+  user_id integer NOT NULL,
+  endpoint text NOT NULL,
+  p256dh text NOT NULL,
+  auth text NOT NULL,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT push_subscriptions_pkey PRIMARY KEY (id),
+  CONSTRAINT push_subscriptions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.pengguna(id)
+);
+CREATE TABLE public.relasi_jemaat (
+  id integer NOT NULL DEFAULT nextval('relasi_jemaat_id_seq'::regclass),
+  jemaat_id integer,
+  jemaat_terkait_id integer,
+  jenis_relasi_id integer,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  nama_terkait character varying,
+  gereja_asal character varying,
+  CONSTRAINT relasi_jemaat_pkey PRIMARY KEY (id),
+  CONSTRAINT relasi_jemaat_jemaat_id_fkey FOREIGN KEY (jemaat_id) REFERENCES public.jemaat(id),
+  CONSTRAINT relasi_jemaat_jemaat_terkait_id_fkey FOREIGN KEY (jemaat_terkait_id) REFERENCES public.jemaat(id),
+  CONSTRAINT relasi_jemaat_jenis_relasi_id_fkey FOREIGN KEY (jenis_relasi_id) REFERENCES public.jenis_relasi(id)
+);
+CREATE TABLE public.role (
+  id integer NOT NULL DEFAULT nextval('role_id_seq'::regclass),
+  nama_role character varying NOT NULL UNIQUE,
+  deskripsi text,
+  is_active boolean DEFAULT true,
+  CONSTRAINT role_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.role_pelayan (
+  id integer NOT NULL DEFAULT nextval('role_pelayan_id_seq'::regclass),
+  nama_role character varying NOT NULL UNIQUE,
+  deskripsi text,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  is_active boolean DEFAULT true,
+  CONSTRAINT role_pelayan_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.role_permission (
+  role_id integer NOT NULL,
+  permission_id integer NOT NULL,
+  CONSTRAINT role_permission_pkey PRIMARY KEY (role_id, permission_id),
+  CONSTRAINT role_permission_permission_id_fkey FOREIGN KEY (permission_id) REFERENCES public.permission(id),
+  CONSTRAINT role_permission_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.role(id)
+);
+CREATE TABLE public.satelit (
+  id integer NOT NULL DEFAULT nextval('satelit_id_seq'::regclass),
+  kode_satelit character varying NOT NULL UNIQUE,
+  nama_satelit character varying NOT NULL,
+  alamat text,
+  kota character varying,
+  kontak_satelit character varying,
+  wilayah_id integer,
+  is_active boolean DEFAULT true,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT satelit_pkey PRIMARY KEY (id),
+  CONSTRAINT satelit_wilayah_id_fkey FOREIGN KEY (wilayah_id) REFERENCES public.wilayah(id)
+);
+create table public.user_role (
+  user_id integer not null,
+  role_id integer not null,
+  satelit_id integer not null,
+  tanggal_mulai date null,
+  tanggal_selesai date null,
+  is_active boolean null default true,
+  komisi_id integer null,
+  departemen_id integer null,
+  constraint user_role_pkey primary key (user_id, role_id, satelit_id),
+  constraint user_role_departemen_id_fkey foreign KEY (departemen_id) references departemen (id) on delete set null,
+  constraint user_role_komisi_id_fkey foreign KEY (komisi_id) references komisi (id) on delete set null,
+  constraint user_role_role_id_fkey foreign KEY (role_id) references role (id) on delete CASCADE,
+  constraint user_role_satelit_id_fkey foreign KEY (satelit_id) references satelit (id) on delete CASCADE,
+  constraint user_role_user_id_fkey foreign KEY (user_id) references pengguna (id) on delete CASCADE
+) TABLESPACE pg_default;
+CREATE TABLE public.vote_log (
+  id integer NOT NULL DEFAULT nextval('vote_log_id_seq'::regclass),
+  kandidat_id integer,
+  user_id integer,
+  waktu_vote timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT vote_log_pkey PRIMARY KEY (id),
+  CONSTRAINT vote_log_kandidat_id_fkey FOREIGN KEY (kandidat_id) REFERENCES public.kandidat(id),
+  CONSTRAINT vote_log_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.pengguna(id)
+);
+CREATE TABLE public.wilayah (
+  id integer NOT NULL DEFAULT nextval('wilayah_id_seq'::regclass),
+  kode_wilayah character varying NOT NULL UNIQUE,
+  nama_wilayah character varying NOT NULL,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT wilayah_pkey PRIMARY KEY (id)
+);

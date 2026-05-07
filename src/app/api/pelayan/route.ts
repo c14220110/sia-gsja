@@ -18,8 +18,12 @@ export async function GET(request: NextRequest) {
       offset:     parseInt(searchParams.get('offset') ?? '0'),
     };
 
-    const caller = await getCallerFromRequest(request);
-    if (caller && caller.role_name?.toUpperCase().includes('SATELIT')) {
+    const caller = getCallerFromRequest(request);
+    if (!caller) {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (caller.role_name?.toUpperCase().includes('SATELIT')) {
       params.satelit_id = caller.satelit_id?.toString();
     }
 
@@ -44,7 +48,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const caller = await getCallerFromRequest(request);
+    const caller = getCallerFromRequest(request);
     if (!caller || (!caller.is_super_admin && !caller.permissions.includes('pelayan_manage'))) {
       return NextResponse.json({ success: false, message: 'Akses Ditolak: Anda tidak memiliki izin untuk mendaftarkan pelayan baru (pelayan_manage).' }, { status: 403 });
     }

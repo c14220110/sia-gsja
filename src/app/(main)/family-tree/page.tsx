@@ -103,8 +103,8 @@ function FamilyTreeInner() {
       {/* Header */}
       <div className="flex-shrink-0 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Pohon Keluarga</h1>
-          <p className="text-slate-500 text-sm mt-0.5">Visualisasi silsilah keluarga jemaat secara interaktif</p>
+          <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Pohon Keluarga</h1>
+          <p className="text-slate-500 text-base font-medium font-['Inter'] leading-6">Visualisasi silsilah keluarga jemaat secara interaktif</p>
         </div>
 
         {/* Search */}
