@@ -21,8 +21,8 @@ export async function GET(request: NextRequest) {
         at.status,
         at.updated_at
       FROM public.anggaran_tahunan at
-      LEFT JOIN public.satelit  s ON at.satelit_id  = s.id
-      LEFT JOIN public.komisi   k ON at.komisi_id   = k.id
+      LEFT JOIN public.satelit  s ON at.satelit_id::varchar = s.id::varchar
+      LEFT JOIN public.komisi   k ON at.komisi_id::varchar   = k.id::varchar
       ORDER BY at.tahun DESC, at.updated_at DESC
     `);
     return NextResponse.json({ success: true, data: res.rows });
@@ -86,8 +86,8 @@ export async function POST(request: NextRequest) {
     for (const item of items) {
       await client.query(
         `INSERT INTO public.anggaran_tahunan_detail
-           (anggaran_tahunan_id, jenis_anggaran, kegiatan_id, coa_id, sumber_dana, uraian, deskripsi, jumlah, satuan, harga_satuan)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+           (anggaran_tahunan_id, jenis_anggaran, kegiatan_id, coa_id, sumber_dana, uraian, deskripsi, jumlah, satuan, harga_satuan, total)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
         [
           anggaranId,
           item.jenis_anggaran,
@@ -99,6 +99,7 @@ export async function POST(request: NextRequest) {
           item.jumlah,
           item.satuan || null,
           item.harga_satuan,
+          item.jumlah * item.harga_satuan
         ]
       );
     }

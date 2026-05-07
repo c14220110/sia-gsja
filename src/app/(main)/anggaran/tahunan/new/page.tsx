@@ -101,7 +101,6 @@ export default function InputAnggaranBaruPage() {
   useEffect(() => { setForm(p=>({...p,coaId:'',coaLabel:''})); }, [form.jenis]);
 
   const handleAdd = () => {
-    if (!form.kegiatanId) { alert('Kegiatan wajib dipilih.'); return; }
     if (!form.coaId) { alert('Akun Perkiraan (COA) wajib dipilih. Ini adalah benang merah antara anggaran dan realisasi jurnal.'); return; }
     if (!form.uraian) { alert('Uraian / Judul Item wajib diisi.'); return; }
     if (form.jumlah <= 0 || form.harga <= 0) { alert('Jumlah dan Harga Satuan harus lebih dari 0.'); return; }
@@ -139,7 +138,12 @@ export default function InputAnggaranBaruPage() {
   const margin = totalP>0?((totalP-totalK)/totalP)*100:0;
   const grouped = useMemo(()=>{
     const g:{[k:string]:{name:string;pen:RincianItem[];kel:RincianItem[]}}={};
-    items.forEach(i=>{if(!g[i.kegiatanId])g[i.kegiatanId]={name:i.kegiatan,pen:[],kel:[]};if(i.jenis==='Penerimaan')g[i.kegiatanId].pen.push(i);else g[i.kegiatanId].kel.push(i);});
+    items.forEach(i=>{
+      const kId = i.kegiatanId || 'umum';
+      if(!g[kId]) g[kId]={name:i.kegiatan || 'ANGGARAN UMUM / RUTIN',pen:[],kel:[]};
+      if(i.jenis==='Penerimaan') g[kId].pen.push(i);
+      else g[kId].kel.push(i);
+    });
     return g;
   },[items]);
 
@@ -261,7 +265,7 @@ export default function InputAnggaranBaruPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className={labelCls}>
-                Kegiatan <span className="text-red-500">*</span>
+                Kegiatan <span className="text-slate-400 font-normal normal-case ml-1">(Opsional)</span>
                 {!satelitId && <span className="ml-2 text-amber-500 font-normal normal-case">(Pilih Satelit dulu)</span>}
               </label>
               <select value={form.kegiatanId} onChange={e=>{const s=kegiatanList.find(k=>k.id===parseInt(e.target.value));setForm(p=>({...p,kegiatanId:e.target.value,kegiatanName:s?.label||''}));}} disabled={!satelitId} className={selectCls+' font-medium'}>

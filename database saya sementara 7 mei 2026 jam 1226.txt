@@ -5,13 +5,14 @@ CREATE TABLE public.anggaran_tahunan (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   kode_dokumen character varying NOT NULL UNIQUE,
   tahun integer NOT NULL,
-  satelit_id uuid NOT NULL,
-  komisi_id uuid,
-  departemen_id uuid,
+  satelit_id integer NOT NULL,
+  komisi_id integer,
+  departemen_id integer,
   total_anggaran numeric DEFAULT 0,
-  status USER-DEFINED DEFAULT 'Draft'::status_anggaran_enum,
+  total_disetujui numeric DEFAULT 0,
+  status character varying DEFAULT 'Draft'::character varying,
   catatan_reviewer text,
-  created_by uuid,
+  created_by integer,
   created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
   updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT anggaran_tahunan_pkey PRIMARY KEY (id)
@@ -19,8 +20,8 @@ CREATE TABLE public.anggaran_tahunan (
 CREATE TABLE public.anggaran_tahunan_detail (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   anggaran_tahunan_id uuid NOT NULL,
-  jenis_anggaran character varying CHECK (jenis_anggaran::text = ANY (ARRAY['Penerimaan'::character varying, 'Pengeluaran'::character varying]::text[])),
-  kegiatan_id uuid,
+  jenis_anggaran character varying CHECK (jenis_anggaran::text = ANY (ARRAY['Penerimaan'::character varying::text, 'Pengeluaran'::character varying::text])),
+  kegiatan_id integer,
   coa_id integer,
   sumber_dana character varying,
   uraian character varying NOT NULL,
@@ -28,10 +29,13 @@ CREATE TABLE public.anggaran_tahunan_detail (
   jumlah numeric DEFAULT 1,
   satuan character varying,
   harga_satuan numeric DEFAULT 0,
-  total numeric DEFAULT (jumlah * harga_satuan),
+  total numeric DEFAULT 0,
+  nominal_disetujui numeric DEFAULT 0,
+  status_peruntukkan character varying DEFAULT 'Menunggu Review'::character varying,
+  catatan_reviewer text,
   created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT anggaran_tahunan_detail_pkey PRIMARY KEY (id),
-  CONSTRAINT anggaran_tahunan_detail_anggaran_tahunan_id_fkey FOREIGN KEY (anggaran_tahunan_id) REFERENCES public.anggaran_tahunan(id)
+  CONSTRAINT fk_detail_anggaran FOREIGN KEY (anggaran_tahunan_id) REFERENCES public.anggaran_tahunan(id)
 );
 CREATE TABLE public.bank_master (
   id integer NOT NULL DEFAULT nextval('bank_master_id_seq'::regclass),
@@ -454,6 +458,15 @@ CREATE TABLE public.partisipan (
   CONSTRAINT partisipan_pkey PRIMARY KEY (id),
   CONSTRAINT partisipan_satelit_id_fkey FOREIGN KEY (satelit_id) REFERENCES public.satelit(id)
 );
+CREATE TABLE public.password_reset_tokens (
+  id integer NOT NULL DEFAULT nextval('password_reset_tokens_id_seq'::regclass),
+  user_id integer NOT NULL,
+  token character varying NOT NULL UNIQUE,
+  expires_at timestamp with time zone NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT password_reset_tokens_pkey PRIMARY KEY (id),
+  CONSTRAINT password_reset_tokens_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.pengguna(id)
+);
 CREATE TABLE public.pegawai (
   id integer NOT NULL DEFAULT nextval('pegawai_id_seq'::regclass),
   id_pegawai character varying UNIQUE,
@@ -718,22 +731,22 @@ CREATE TABLE public.satelit (
   CONSTRAINT satelit_pkey PRIMARY KEY (id),
   CONSTRAINT satelit_wilayah_id_fkey FOREIGN KEY (wilayah_id) REFERENCES public.wilayah(id)
 );
-create table public.user_role (
-  user_id integer not null,
-  role_id integer not null,
-  satelit_id integer not null,
-  tanggal_mulai date null,
-  tanggal_selesai date null,
-  is_active boolean null default true,
-  komisi_id integer null,
-  departemen_id integer null,
-  constraint user_role_pkey primary key (user_id, role_id, satelit_id),
-  constraint user_role_departemen_id_fkey foreign KEY (departemen_id) references departemen (id) on delete set null,
-  constraint user_role_komisi_id_fkey foreign KEY (komisi_id) references komisi (id) on delete set null,
-  constraint user_role_role_id_fkey foreign KEY (role_id) references role (id) on delete CASCADE,
-  constraint user_role_satelit_id_fkey foreign KEY (satelit_id) references satelit (id) on delete CASCADE,
-  constraint user_role_user_id_fkey foreign KEY (user_id) references pengguna (id) on delete CASCADE
-) TABLESPACE pg_default;
+CREATE TABLE public.user_role (
+  user_id integer NOT NULL,
+  role_id integer NOT NULL,
+  satelit_id integer NOT NULL,
+  tanggal_mulai date,
+  tanggal_selesai date,
+  is_active boolean DEFAULT true,
+  komisi_id integer,
+  departemen_id integer,
+  CONSTRAINT user_role_pkey PRIMARY KEY (user_id, role_id, satelit_id),
+  CONSTRAINT user_role_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.role(id),
+  CONSTRAINT user_role_satelit_id_fkey FOREIGN KEY (satelit_id) REFERENCES public.satelit(id),
+  CONSTRAINT user_role_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.pengguna(id),
+  CONSTRAINT user_role_komisi_id_fkey FOREIGN KEY (komisi_id) REFERENCES public.komisi(id),
+  CONSTRAINT user_role_departemen_id_fkey FOREIGN KEY (departemen_id) REFERENCES public.departemen(id)
+);
 CREATE TABLE public.vote_log (
   id integer NOT NULL DEFAULT nextval('vote_log_id_seq'::regclass),
   kandidat_id integer,
