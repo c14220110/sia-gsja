@@ -606,8 +606,6 @@ export default function DetailPegawaiPage() {
           </div>
         )}
 
-      </div>
-
         {/* TAB 5: DOKUMEN LAMPIRAN */}
         {activeTab === 5 && (
           <div className="flex flex-col gap-8 animate-in fade-in slide-in-from-right-4">
