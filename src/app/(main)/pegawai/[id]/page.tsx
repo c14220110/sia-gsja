@@ -70,7 +70,12 @@ export default function DetailPegawaiPage() {
     // Tab 4: Rekening
     bank_id: '',
     no_rekening: '',
-    atas_nama_rekening: ''
+    atas_nama_rekening: '',
+
+    // Tab 5: Dokumen
+    url_ktp: '',
+    url_kartu_keluarga: '',
+    url_perjanjian_kerjasama: ''
   });
 
   useEffect(() => {
@@ -128,7 +133,10 @@ export default function DetailPegawaiPage() {
               status_ptkp: p.status_ptkp || 'TK/0',
               bank_id: p.bank_id?.toString() || '',
               no_rekening: p.no_rekening || '',
-              atas_nama_rekening: p.atas_nama_rekening || ''
+              atas_nama_rekening: p.atas_nama_rekening || '',
+              url_ktp: p.url_ktp || '',
+              url_kartu_keluarga: p.url_kartu_keluarga || '',
+              url_perjanjian_kerjasama: p.url_perjanjian_kerjasama || ''
             });
             if (p.jemaat_kode) setLinkedJemaatKode(p.jemaat_kode);
           }
@@ -185,6 +193,41 @@ export default function DetailPegawaiPage() {
     }));
     setLinkedJemaatKode(j.jemaat_id);
     setJemaatSearchModal(false);
+  };
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, fieldName: string, bucketName: string) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Ukuran file maksimal 10MB');
+      return;
+    }
+
+    setSubmitState({ status: 'loading', message: `Mengupload berkas...` });
+    
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      form.append('bucket', bucketName);
+
+      const uploadRes = await fetch('/api/upload', {
+        method: 'POST',
+        body: form
+      });
+
+      const uploadJson = await uploadRes.json();
+      if (uploadJson.success) {
+        setFormData((prev: any) => ({ ...prev, [fieldName]: uploadJson.url }));
+        setSubmitState({ status: 'success', message: `Berkas berhasil diupload` });
+        setTimeout(() => setSubmitState({ status: 'idle', message: '' }), 2000);
+      } else {
+        setSubmitState({ status: 'error', message: `Gagal mengupload: ${uploadJson.message}` });
+      }
+    } catch (err: any) {
+      console.error(err);
+      setSubmitState({ status: 'error', message: 'Terjadi kesalahan saat upload' });
+    }
   };
 
   const validateCurrentTab = () => {
@@ -301,9 +344,10 @@ export default function DetailPegawaiPage() {
            { id: 2, name: 'Alamat', icon: 'maps_home_work' },
            { id: 3, name: 'Pajak (PPh21)', icon: 'account_balance' },
            { id: 4, name: 'Rekening Bank', icon: 'payments' },
+           { id: 5, name: 'Dokumen', icon: 'folder_shared' },
          ].map(tab => (
-            <div key={tab.id} className="flex flex-col items-center gap-2 w-1/4 relative group">
-              <div className={`w-full h-1 absolute top-5 left-1/2 -z-10 ${tab.id === 4 ? 'hidden' : 'block'} ${activeTab > tab.id ? 'bg-blue-500' : 'bg-slate-200'}`}></div>
+            <div key={tab.id} className="flex flex-col items-center gap-2 w-1/5 relative group">
+              <div className={`w-full h-1 absolute top-5 left-1/2 -z-10 ${tab.id === 5 ? 'hidden' : 'block'} ${activeTab > tab.id ? 'bg-blue-500' : 'bg-slate-200'}`}></div>
               <button 
                 onClick={() => { if(activeTab > tab.id) setActiveTab(tab.id); }}
                 className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors shadow-sm
@@ -564,6 +608,77 @@ export default function DetailPegawaiPage() {
 
       </div>
 
+        {/* TAB 5: DOKUMEN LAMPIRAN */}
+        {activeTab === 5 && (
+          <div className="flex flex-col gap-8 animate-in fade-in slide-in-from-right-4">
+             <div className="flex flex-col gap-1">
+               <h2 className="text-slate-900 text-xl font-bold font-['Inter'] flex items-center gap-2"><span className="material-icons-round text-teal-500">folder_shared</span> Dokumen Lampiran</h2>
+               <p className="text-slate-500 text-sm">Upload berkas penting kepegawaian (Masing-masing 1 Gambar KTP, KK, & PK).</p>
+             </div>
+
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* KTP */}
+                <div className="flex flex-col gap-2 p-4 border border-slate-200 rounded-xl bg-slate-50">
+                  <label className="text-slate-700 text-xs font-bold uppercase">Upload KTP</label>
+                  {formData.url_ktp && (
+                    <div className="w-full h-48 rounded bg-slate-200 overflow-hidden relative group">
+                      <img src={formData.url_ktp} alt="KTP" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                      {isEditMode && (
+                         <button onClick={() => setFormData((p:any)=>({...p, url_ktp: ''}))} className="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white flex items-center justify-center rounded-full hover:bg-red-600 shadow-md">
+                           <span className="material-icons-round text-[16px]">delete</span>
+                         </button>
+                      )}
+                    </div>
+                  )}
+                  {isEditMode && !formData.url_ktp && (
+                    <input type="file" accept="image/*" onChange={(e) => handleUpload(e, 'url_ktp', 'upload-ktp-pegawai')} className="text-sm w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100 cursor-pointer" />
+                  )}
+                  {!isEditMode && !formData.url_ktp && <span className="text-slate-400 text-sm italic">Belum ada file KTP</span>}
+                </div>
+
+                {/* KK */}
+                <div className="flex flex-col gap-2 p-4 border border-slate-200 rounded-xl bg-slate-50">
+                  <label className="text-slate-700 text-xs font-bold uppercase">Upload Kartu Keluarga</label>
+                  {formData.url_kartu_keluarga && (
+                    <div className="w-full h-48 rounded bg-slate-200 overflow-hidden relative group">
+                      <img src={formData.url_kartu_keluarga} alt="Kartu Keluarga" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                      {isEditMode && (
+                         <button onClick={() => setFormData((p:any)=>({...p, url_kartu_keluarga: ''}))} className="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white flex items-center justify-center rounded-full hover:bg-red-600 shadow-md">
+                           <span className="material-icons-round text-[16px]">delete</span>
+                         </button>
+                      )}
+                    </div>
+                  )}
+                  {isEditMode && !formData.url_kartu_keluarga && (
+                    <input type="file" accept="image/*" onChange={(e) => handleUpload(e, 'url_kartu_keluarga', 'upload-kartu-keluarga-pegawai')} className="text-sm w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100 cursor-pointer" />
+                  )}
+                  {!isEditMode && !formData.url_kartu_keluarga && <span className="text-slate-400 text-sm italic">Belum ada file Kartu Keluarga</span>}
+                </div>
+
+                {/* Perjanjian Kerja */}
+                <div className="flex flex-col gap-2 p-4 border border-slate-200 rounded-xl bg-slate-50">
+                  <label className="text-slate-700 text-xs font-bold uppercase">Upload Perjanjian Kerja</label>
+                  {formData.url_perjanjian_kerjasama && (
+                    <div className="w-full h-48 rounded bg-slate-200 overflow-hidden relative group">
+                      <img src={formData.url_perjanjian_kerjasama} alt="Perjanjian Kerja" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                      {isEditMode && (
+                         <button onClick={() => setFormData((p:any)=>({...p, url_perjanjian_kerjasama: ''}))} className="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white flex items-center justify-center rounded-full hover:bg-red-600 shadow-md">
+                           <span className="material-icons-round text-[16px]">delete</span>
+                         </button>
+                      )}
+                    </div>
+                  )}
+                  {isEditMode && !formData.url_perjanjian_kerjasama && (
+                    <input type="file" accept="image/*" onChange={(e) => handleUpload(e, 'url_perjanjian_kerjasama', 'upload-perjanjian-kerja-pegawai')} className="text-sm w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100 cursor-pointer" />
+                  )}
+                  {!isEditMode && !formData.url_perjanjian_kerjasama && <span className="text-slate-400 text-sm italic">Belum ada file Perjanjian Kerja</span>}
+                </div>
+             </div>
+          </div>
+        )}
+
+      </div>
+
       {/* Button Controls */}
       <div className="w-full flex justify-between items-center bg-white py-4 px-6 rounded-xl border border-slate-200 shadow-sm mt-2">
         <div>
@@ -574,7 +689,7 @@ export default function DetailPegawaiPage() {
           )}
         </div>
         <div>
-          {activeTab < 4 ? (
+          {activeTab < 5 ? (
              <button onClick={nextTab} className="px-8 py-3 bg-blue-600 rounded-lg text-white font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/30 flex items-center gap-2">
                 Lanjut <span className="material-icons-round text-[18px]">arrow_forward</span>
              </button>

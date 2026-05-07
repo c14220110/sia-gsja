@@ -67,10 +67,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
 
     if (status_kegiatan === 'Dibatalkan') {
-      const updateQuery = `UPDATE public.kegiatan SET status_kegiatan = $1, alasan_pembatalan = $2 WHERE id = $3 RETURNING id`;
+      const updateQuery = `UPDATE public.kegiatan SET status_kegiatan = CAST($1 AS status_kegiatan_enum), alasan_pembatalan = $2 WHERE id = $3 RETURNING id`;
       await pool.query(updateQuery, [status_kegiatan, alasan_pembatalan, id]);
     } else {
-      const updateQuery = `UPDATE public.kegiatan SET status_kegiatan = $1 WHERE id = $2 RETURNING id`;
+      const updateQuery = `UPDATE public.kegiatan SET status_kegiatan = CAST($1 AS status_kegiatan_enum) WHERE id = $2 RETURNING id`;
       await pool.query(updateQuery, [status_kegiatan, id]);
     }
 
@@ -110,7 +110,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         lokasi_kegiatan = $10,
         keterangan = $11,
         pic_pengurus_id = $12,
-        status_kegiatan = $13,
+        status_kegiatan = CAST($13 AS status_kegiatan_enum),
         is_published = $14,
         butuh_registrasi = $15,
         url_banner = $16,

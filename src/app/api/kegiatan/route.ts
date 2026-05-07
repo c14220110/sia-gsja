@@ -245,7 +245,7 @@ export async function POST(request: Request) {
         frekuensi_kegiatan, tanggal_mulai, tanggal_selesai, waktu_mulai, waktu_selesai,
         lokasi_kegiatan, keterangan, pic_pengurus_id, berbayar, status_kegiatan,
         is_published, butuh_registrasi, url_banner, harga_tiket_rp, kuota_peserta
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, CAST($16 AS status_kegiatan_enum), $17, $18, $19, $20, $21)
       RETURNING id;
     `;
 

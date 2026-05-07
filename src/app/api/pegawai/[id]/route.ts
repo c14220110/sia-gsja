@@ -137,8 +137,11 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         no_rekening = $26,
         atas_nama_rekening = $27,
         satelit_id = $28,
+        url_ktp = $29,
+        url_kartu_keluarga = $30,
+        url_perjanjian_kerjasama = $31,
         updated_at = CURRENT_TIMESTAMP
-      WHERE id = $29
+      WHERE id = $32
       RETURNING id;
     `;
 
@@ -156,6 +159,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       parseInt(data.bank_id) || null,
       data.no_rekening, data.atas_nama_rekening,
       parseInt(data.satelit_id) || null,
+      data.url_ktp || null,
+      data.url_kartu_keluarga || null,
+      data.url_perjanjian_kerjasama || null,
       parseInt(id)
     ];
 
