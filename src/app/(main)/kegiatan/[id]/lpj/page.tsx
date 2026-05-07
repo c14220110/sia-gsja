@@ -21,6 +21,8 @@ export default function InputLPJPage() {
   const [laporan, setLaporan] = useState('');
   const [existingStatus, setExistingStatus] = useState('');
   const [form, setForm] = useState({ jenis: 'Pengeluaran', coaId: '', coaLabel: '', sumber_dana: 'Kas Mandiri', uraian: '', deskripsi: '', jumlah: 1, satuan: '', harga: 0 });
+  const [coaSearch, setCoaSearch] = useState('');
+  const [coaOpen, setCoaOpen] = useState(false);
 
   // Fetch kegiatan info + existing LPJ
   useEffect(() => {
@@ -54,7 +56,7 @@ export default function InputLPJPage() {
   }), [coaList, form.jenis]);
 
   // Reset COA saat jenis berubah
-  useEffect(() => { setForm(p => ({ ...p, coaId: '', coaLabel: '' })); }, [form.jenis]);
+  useEffect(() => { setForm(p => ({ ...p, coaId: '', coaLabel: '' })); setCoaSearch(''); }, [form.jenis]);
 
   const handleAdd = useCallback(() => {
     if (!form.coaId) { alert('Akun Perkiraan (COA) wajib dipilih!'); return; }
@@ -141,12 +143,47 @@ export default function InputLPJPage() {
                   <option value="Penerimaan">Penerimaan</option>
                 </select>
               </div>
-              <div>
+              <div className="relative">
                 <label className={lbl}>Akun COA <span className="text-red-500">*</span> <span className="font-normal normal-case text-slate-400">({form.jenis === 'Penerimaan' ? 'Akun Pendapatan' : 'Akun Beban'})</span></label>
-                <select value={form.coaId} onChange={e => { const s = filteredCoa.find(c => c.id === parseInt(e.target.value)); setForm(p => ({ ...p, coaId: e.target.value, coaLabel: s?.label || '' })); }} className={`${sel} ${!form.coaId ? 'border-amber-300' : ''}`}>
-                  <option value="">-- Pilih Akun --</option>
-                  {filteredCoa.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-                </select>
+                <div 
+                  className={`${sel} ${!form.coaId ? 'border-amber-300' : ''} flex items-center justify-between cursor-text relative overflow-hidden`}
+                >
+                  <input
+                    type="text"
+                    placeholder="-- Ketik untuk mencari COA --"
+                    value={coaSearch}
+                    onChange={(e) => {
+                      setCoaSearch(e.target.value);
+                      setCoaOpen(true);
+                      if (form.coaId) setForm(p => ({ ...p, coaId: '', coaLabel: '' }));
+                    }}
+                    onFocus={() => setCoaOpen(true)}
+                    onBlur={() => setTimeout(() => setCoaOpen(false), 200)}
+                    className="w-full bg-transparent outline-none h-full truncate text-sm"
+                  />
+                  <span className="material-icons-round text-slate-400 text-lg pointer-events-none">expand_more</span>
+                </div>
+                {coaOpen && (
+                  <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                    {filteredCoa.filter(c => c.label.toLowerCase().includes(coaSearch.toLowerCase())).length === 0 ? (
+                      <div className="px-4 py-3 text-sm text-slate-500 text-center italic">Tidak ditemukan.</div>
+                    ) : (
+                      filteredCoa.filter(c => c.label.toLowerCase().includes(coaSearch.toLowerCase())).map(c => (
+                        <div 
+                          key={c.id} 
+                          onClick={() => {
+                            setForm(p => ({ ...p, coaId: String(c.id), coaLabel: c.label }));
+                            setCoaSearch(c.label);
+                            setCoaOpen(false);
+                          }}
+                          className="px-4 py-2 hover:bg-indigo-50 hover:text-indigo-700 cursor-pointer text-sm font-medium border-b border-slate-50 last:border-0"
+                        >
+                          {c.label}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
               <div>
                 <label className={lbl}>Sumber Dana</label>
