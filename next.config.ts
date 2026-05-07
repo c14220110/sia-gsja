@@ -9,6 +9,9 @@ const withSerwist = withSerwistInit({
 
 const nextConfig: NextConfig = {
   turbopack: {},
+  outputFileTracingIncludes: {
+    '/api/kegiatan/[id]/export': ['./public/*.docx'],
+  },
   async redirects() {
     return [
       { source: '/dashboard/kegiatan/:path*', destination: '/kegiatan/:path*', permanent: true },
