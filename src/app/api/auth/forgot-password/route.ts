@@ -54,7 +54,10 @@ export async function POST(request: NextRequest) {
       );
 
       // Build reset link
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      let appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      if (appUrl.endsWith('/')) appUrl = appUrl.slice(0, -1);
+      appUrl = appUrl.replace('https://https://', 'https://');
+      
       const resetLink = `${appUrl}/reset-password?token=${token}`;
 
       // Send email

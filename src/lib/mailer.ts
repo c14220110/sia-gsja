@@ -31,7 +31,7 @@ export async function sendPasswordResetEmail(toEmail: string, toName: string, re
                 <!-- Header -->
                 <tr>
                   <td style="background:#2d3a4f;padding:32px 40px;text-align:center;">
-                    <img src="${process.env.NEXT_PUBLIC_APP_URL}/assets/logo_gsja.png" alt="GSJA Logo" style="height:48px;margin-bottom:12px;" onerror="this.style.display='none'" />
+                    <div style="font-size: 40px; margin-bottom: 12px;">✝️</div>
                     <h1 style="color:#ffffff;margin:0;font-size:20px;font-weight:700;letter-spacing:0.5px;">SIA GSJA Eben Haezer</h1>
                     <p style="color:#94a3b8;margin:4px 0 0;font-size:13px;">Sistem Informasi Akuntansi</p>
                   </td>

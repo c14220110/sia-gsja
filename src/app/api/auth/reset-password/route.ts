@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       await client.query(
         `UPDATE public.pengguna
          SET password_hash = $1,
-             force_change_password = false,
+             requires_password_change = false,
              updated_at = NOW()
          WHERE id = $2`,
         [hashedPassword, user_id]
