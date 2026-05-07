@@ -171,8 +171,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       hadir: hadirList.length > 0 ? hadirList : [{ no: '-', id_j: '-', nama_j: '-' }]
     };
 
-    // Load template dari root project
-    const templatePath = path.join(process.cwd(), 'Output Form Kegiatan Ibadah Rutin.docx');
+    // Load template dari folder public (direkomendasikan untuk Vercel)
+    const templatePath = path.join(process.cwd(), 'public', 'Output Form Kegiatan Ibadah Rutin.docx');
     
     if (!fs.existsSync(templatePath)) {
        return NextResponse.json({ success: false, message: 'File template docx tidak ditemukan di root server!' }, { status: 404 });
