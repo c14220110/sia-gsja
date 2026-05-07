@@ -44,11 +44,14 @@ export default function InputLPJPage() {
     });
   }, [id]);
 
-  // Filter COA by jenis
-  const filteredCoa = useMemo(() => coaList.filter(c =>
-    c.grup_laporan === 'Laba Rugi' &&
-    (form.jenis === 'Penerimaan' ? c.saldo_normal === 'Kredit' : c.saldo_normal === 'Debit')
-  ), [coaList, form.jenis]);
+  // Filter COA by jenis (Penerimaan: 4, 7 | Pengeluaran: 5, 6, 8)
+  const filteredCoa = useMemo(() => coaList.filter(c => {
+    if (form.jenis === 'Penerimaan') {
+      return c.label.startsWith('4') || c.label.startsWith('7');
+    } else {
+      return c.label.startsWith('5') || c.label.startsWith('6') || c.label.startsWith('8');
+    }
+  }), [coaList, form.jenis]);
 
   // Reset COA saat jenis berubah
   useEffect(() => { setForm(p => ({ ...p, coaId: '', coaLabel: '' })); }, [form.jenis]);
