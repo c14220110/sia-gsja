@@ -149,7 +149,6 @@ export default function NewPegawaiPage() {
       if (!formData.nama_lengkap) return 'Nama Lengkap wajib diisi.';
       if (!formData.nik) return 'NIK wajib diisi.';
       if (!formData.satelit_id) return 'Satelit Penugasan wajib diisi.';
-      if (!formData.departemen_id) return 'Departemen wajib dipilih.';
       if (!formData.jabatan_pegawai_id) return 'Jabatan Pegawai wajib dipilih.';
     }
     if (activeTab === 2) {
@@ -340,9 +339,9 @@ export default function NewPegawaiPage() {
                     </select>
                   </div>
                   <div className="flex flex-col gap-1 w-full">
-                    <label className="text-slate-700 text-xs font-bold uppercase">Departemen *</label>
+                    <label className="text-slate-700 text-xs font-bold uppercase">Departemen <span className="text-slate-400 font-normal normal-case">(Opsional)</span></label>
                     <select name="departemen_id" value={formData.departemen_id} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                      <option value="">-- Pilih Departemen --</option>
+                      <option value="">-- Tidak Masuk Departemen --</option>
                       {departemenOptions.map(d => (
                         <option key={d.id} value={d.id}>{d.nama_departemen}</option>
                       ))}

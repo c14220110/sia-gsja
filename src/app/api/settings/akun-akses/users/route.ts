@@ -101,7 +101,15 @@ export async function PUT(req: NextRequest) {
     if (password) {
       updateData.password_hash = await bcrypt.hash(password, 10);
     }
-    if (roles !== undefined) updateData.roles = roles;
+    // Teruskan komisi_id dan departemen_id per-role-row (bukan dari level global)
+    if (roles !== undefined) {
+      updateData.roles = roles.map((r: any) => ({
+        role_id: r.role_id,
+        satelit_id: r.satelit_id,
+        komisi_id: r.komisi_id ?? null,
+        departemen_id: r.departemen_id ?? null,
+      }));
+    }
 
     const result = await akunAksesRepository.updatePengguna(user_id, updateData);
 

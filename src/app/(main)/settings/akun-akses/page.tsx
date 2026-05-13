@@ -69,7 +69,7 @@ const JemaatAutocomplete = ({
 };
 
 type TabKey = 'role_permission' | 'akun_pengguna' | 'akses_sementara' | 'bulk_generate';
-interface RoleAssignment { role_id: string; satelit_id: string; }
+interface RoleAssignment { role_id: string; satelit_id: string; komisi_id?: string; departemen_id?: string; }
 
 export default function AkunAksesPage() {
   const { showLoader, hideLoader } = useLoader();
@@ -104,6 +104,8 @@ export default function AkunAksesPage() {
   // Add User modal
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
   const [satelitOptions, setSatelitOptions] = useState<any[]>([]);
+  const [komisiOptionsByRow, setKomisiOptionsByRow] = useState<Record<string, any[]>>({}); // key: `${modalKey}-${idx}`
+  const [departemenOptions, setDepartemenOptions] = useState<any[]>([]);
   const [newUserSelectedJemaat, setNewUserSelectedJemaat] = useState<any>(null);
   const [newUserSearchQuery, setNewUserSearchQuery] = useState('');
   const [newUserForm, setNewUserForm] = useState({ email: '', password: '' });
@@ -239,25 +241,143 @@ export default function AkunAksesPage() {
     } catch(e) { setSubmitState({ status: 'error', message: 'Terjadi kesalahan pada server.' }); }
   };
 
-  const getPermId = (modulNamePrefix: string, suffix: string) => {
-    const p = permissionsMaster.find(x => x.nama_permission === `${modulNamePrefix}_${suffix}`);
+  const getPermIdExact = (permName: string) => {
+    const p = permissionsMaster.find(x => x.nama_permission === permName);
     return p ? p.id : null;
   };
 
-  const modulesLayout = [
-    { label: 'Data Jemaat', prefix: 'jemaat', hasView: true, hasCreate: true, hasEdit: true, manageSuffix: null },
-    { label: 'Data Pelayan', prefix: 'pelayan', hasView: true, hasCreate: false, hasEdit: false, manageSuffix: 'manage' },
-    { label: 'Data Pengurus', prefix: 'pengurus', hasView: true, hasCreate: false, hasEdit: false, manageSuffix: 'manage' },
-    { label: 'Kegiatan & Absen', prefix: 'kegiatan', hasView: true, hasCreate: true, hasEdit: true, manageSuffix: 'absensi_input' },
-    { label: 'Kas & Bank', prefix: 'kas', hasView: true, hasCreate: false, hasEdit: false, manageSuffix: 'kas_input', customPrefix: true },
-    { label: 'Proposal & LPJ', prefix: 'lpj', hasView: true, hasCreate: false, hasEdit: false, manageSuffix: 'lpj_approve', customPrefix: true },
-    { label: 'Sistem & Master Data', prefix: 'master_data', hasView: false, hasCreate: false, hasEdit: false, manageSuffix: 'manage' },
+  const permissionGroups = [
+    {
+      title: 'Data Jemaat', icon: 'people', color: 'text-sky-600', bg: 'bg-sky-50', border: 'border-sky-100', ring: 'focus:ring-sky-500', 
+      checkedBg: 'checked:bg-sky-500', checkBorder: 'peer-checked:border-sky-500', activeBg: 'bg-sky-100',
+      keys: ['jemaat_view', 'jemaat_create', 'jemaat_edit', 'jemaat_delete']
+    },
+    {
+      title: 'Data Pelayan & Pengurus', icon: 'badge', color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-100', ring: 'focus:ring-indigo-500', 
+      checkedBg: 'checked:bg-indigo-500', checkBorder: 'peer-checked:border-indigo-500', activeBg: 'bg-indigo-100',
+      keys: ['pelayan_view', 'pelayan_manage', 'pengurus_view', 'pengurus_manage']
+    },
+    {
+      title: 'Kegiatan & Pelayanan', icon: 'event', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100', ring: 'focus:ring-amber-500', 
+      checkedBg: 'checked:bg-amber-500', checkBorder: 'peer-checked:border-amber-500', activeBg: 'bg-amber-100',
+      keys: ['kegiatan_view', 'kegiatan_create', 'kegiatan_manage', 'kegiatan_absensi', 'kegiatan_lpj', 'kegiatan_pastoral_view', 'kegiatan_pastoral_manage']
+    },
+    {
+      title: 'Keuangan & Anggaran', icon: 'account_balance_wallet', color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100', ring: 'focus:ring-emerald-500', 
+      checkedBg: 'checked:bg-emerald-500', checkBorder: 'peer-checked:border-emerald-500', activeBg: 'bg-emerald-100',
+      keys: ['anggaran_view', 'anggaran_create', 'anggaran_review', 'buku_besar_view', 'buku_besar_manage']
+    },
+    {
+      title: 'HRD & Penggajian', icon: 'work', color: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-100', ring: 'focus:ring-rose-500', 
+      checkedBg: 'checked:bg-rose-500', checkBorder: 'peer-checked:border-rose-500', activeBg: 'bg-rose-100',
+      keys: ['pegawai_view', 'pegawai_create', 'pegawai_edit', 'pegawai_approval', 'penggajian_manage']
+    },
+    {
+      title: 'Sistem & Keamanan', icon: 'admin_panel_settings', color: 'text-slate-700', bg: 'bg-slate-100', border: 'border-slate-200', ring: 'focus:ring-slate-500', 
+      checkedBg: 'checked:bg-slate-700', checkBorder: 'peer-checked:border-slate-700', activeBg: 'bg-slate-200',
+      keys: ['master_data_manage', 'user_access_manage', 'akses_sementara_manage', 'audit_log_view', 'multi_satelit_view']
+    }
   ];
 
   // Multi-role helpers
-  const addRoleRow = (setter: React.Dispatch<React.SetStateAction<RoleAssignment[]>>) => setter(prev => [...prev, { role_id: '', satelit_id: '' }]);
+  const addRoleRow = (setter: React.Dispatch<React.SetStateAction<RoleAssignment[]>>) => setter(prev => [...prev, { role_id: '', satelit_id: '', komisi_id: '', departemen_id: '' }]);
   const removeRoleRow = (setter: React.Dispatch<React.SetStateAction<RoleAssignment[]>>, idx: number) => setter(prev => prev.filter((_, i) => i !== idx));
   const updateRoleRow = (setter: React.Dispatch<React.SetStateAction<RoleAssignment[]>>, idx: number, field: keyof RoleAssignment, value: string) => setter(prev => prev.map((r, i) => i === idx ? { ...r, [field]: value } : r));
+
+  // Fetch komisi options when satelit+role changes (called from role row onChange)
+  const fetchKomisiForRow = async (rowKey: string, satelitId: string) => {
+    if (!satelitId) { setKomisiOptionsByRow(p => ({ ...p, [rowKey]: [] })); return; }
+    try {
+      const res = await fetch(`/api/options?type=komisi&satelit_id=${satelitId}`);
+      const json = await res.json();
+      setKomisiOptionsByRow(p => ({ ...p, [rowKey]: json.success ? json.data : [] }));
+    } catch { setKomisiOptionsByRow(p => ({ ...p, [rowKey]: [] })); }
+  };
+
+  // Fetch departemen options (flat list, no satelit filter)
+  const ensureDepartemenOptions = async () => {
+    if (departemenOptions.length > 0) return;
+    try {
+      const res = await fetch('/api/options?type=departemen');
+      const json = await res.json();
+      if (json.success) setDepartemenOptions(json.data);
+    } catch {}
+  };
+
+  // Helper: get role name string from role_id
+  const getRoleName = (roleId: string) => dataRoles.find((r: any) => String(r.id) === roleId)?.nama_role || '';
+
+  // Reusable role row renderer
+  const renderRoleRow = (
+    assignments: RoleAssignment[],
+    setter: React.Dispatch<React.SetStateAction<RoleAssignment[]>>,
+    modalKey: string,
+    accentClass: string
+  ) => assignments.map((assignment, idx) => {
+    const rowKey = `${modalKey}-${idx}`;
+    const roleName = getRoleName(assignment.role_id);
+    const needsKomisi = roleName === 'KETUA_KOMISI';
+    const needsDept = roleName === 'KETUA_DEPARTEMEN';
+    return (
+      <div key={idx} className="flex flex-col gap-2 bg-white rounded-lg p-2.5 border border-slate-100">
+        <div className="flex items-center gap-2">
+          <select
+            className={`flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 ${accentClass} text-sm font-semibold text-slate-800`}
+            value={assignment.role_id}
+            onChange={e => {
+              updateRoleRow(setter, idx, 'role_id', e.target.value);
+              // Reset sub-fields when role changes
+              setter(prev => prev.map((r, i) => i === idx ? { ...r, komisi_id: '', departemen_id: '' } : r));
+              const newRoleName = dataRoles.find((r: any) => String(r.id) === e.target.value)?.nama_role || '';
+              if (newRoleName === 'KETUA_DEPARTEMEN') ensureDepartemenOptions();
+            }}
+          >
+            <option value="">-- Role --</option>
+            {dataRoles.filter((r: any) => r.is_active && r.nama_role !== 'JEMAAT').map((r: any) => <option key={r.id} value={r.id}>{r.nama_role}</option>)}
+          </select>
+          <select
+            className={`flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 ${accentClass} text-sm font-semibold text-slate-800`}
+            value={assignment.satelit_id}
+            onChange={e => {
+              updateRoleRow(setter, idx, 'satelit_id', e.target.value);
+              if (needsKomisi) fetchKomisiForRow(rowKey, e.target.value);
+            }}
+          >
+            <option value="">-- Satelit --</option>
+            {satelitOptions.map((s: any) => <option key={s.id} value={s.id}>{s.nama_satelit}</option>)}
+          </select>
+          {assignments.length > 1 && <button type="button" onClick={() => removeRoleRow(setter, idx)} className="w-7 h-7 rounded-full bg-rose-50 hover:bg-rose-100 flex items-center justify-center text-rose-500 flex-shrink-0"><span className="material-icons-round text-[16px]">close</span></button>}
+        </div>
+        {needsKomisi && (
+          <div className="flex items-center gap-2 pl-1">
+            <span className="material-icons-round text-[14px] text-violet-400">account_tree</span>
+            <select
+              className={`flex-1 px-3 py-2 bg-violet-50 border border-violet-200 rounded-lg focus:outline-none focus:ring-2 ${accentClass} text-sm text-violet-800 font-semibold`}
+              value={assignment.komisi_id || ''}
+              onClick={() => { if (!komisiOptionsByRow[rowKey] && assignment.satelit_id) fetchKomisiForRow(rowKey, assignment.satelit_id); }}
+              onChange={e => updateRoleRow(setter, idx, 'komisi_id', e.target.value)}
+            >
+              <option value="">-- Pilih Komisi (wajib untuk Ketua Komisi) --</option>
+              {(komisiOptionsByRow[rowKey] || []).map((k: any) => <option key={k.id} value={k.id}>{k.nama_komisi}</option>)}
+            </select>
+          </div>
+        )}
+        {needsDept && (
+          <div className="flex items-center gap-2 pl-1">
+            <span className="material-icons-round text-[14px] text-emerald-500">business</span>
+            <select
+              className={`flex-1 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-lg focus:outline-none focus:ring-2 ${accentClass} text-sm text-emerald-800 font-semibold`}
+              value={assignment.departemen_id || ''}
+              onChange={e => updateRoleRow(setter, idx, 'departemen_id', e.target.value)}
+            >
+              <option value="">-- Pilih Departemen (wajib untuk Ketua Departemen) --</option>
+              {departemenOptions.map((d: any) => <option key={d.id} value={d.id}>{d.nama_departemen}</option>)}
+            </select>
+          </div>
+        )}
+      </div>
+    );
+  });
 
   const filteredBulk = dataBulk.filter(j => {
     if (bulkSearchQuery && !j.nama_lengkap?.toLowerCase().includes(bulkSearchQuery.toLowerCase())) return false;
@@ -310,12 +430,16 @@ export default function AkunAksesPage() {
     if (!newUserForm.email || !newUserForm.password) { setSubmitState({ status: 'error', message: 'Email dan Password wajib diisi!' }); return; }
     const hasIncomplete = roleAssignments.some(r => (r.role_id && !r.satelit_id) || (!r.role_id && r.satelit_id));
     if (hasIncomplete) { setSubmitState({ status: 'error', message: 'Pilihan Role dan Satelit harus berpasangan (tidak boleh ada yang kosong)!' }); return; }
-    
+    const missingKomisi = roleAssignments.some(r => getRoleName(r.role_id) === 'KETUA_KOMISI' && !r.komisi_id);
+    if (missingKomisi) { setSubmitState({ status: 'error', message: 'Pilih Komisi untuk setiap role KETUA_KOMISI!' }); return; }
+    const missingDept = roleAssignments.some(r => getRoleName(r.role_id) === 'KETUA_DEPARTEMEN' && !r.departemen_id);
+    if (missingDept) { setSubmitState({ status: 'error', message: 'Pilih Departemen untuk setiap role KETUA_DEPARTEMEN!' }); return; }
+
     const validRoles = roleAssignments.filter(r => r.role_id && r.satelit_id);
     setIsAddUserModalOpen(false);
     setSubmitState({ status: 'loading', message: '' });
     try {
-      const res = await fetch('/api/settings/akun-akses/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: newUserForm.email, password: newUserForm.password, jemaat_id: newUserSelectedJemaat.id, roles: validRoles.map(r => ({ role_id: parseInt(r.role_id), satelit_id: parseInt(r.satelit_id) })) }) });
+      const res = await fetch('/api/settings/akun-akses/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: newUserForm.email, password: newUserForm.password, jemaat_id: newUserSelectedJemaat.id, roles: validRoles.map(r => ({ role_id: parseInt(r.role_id), satelit_id: parseInt(r.satelit_id), komisi_id: r.komisi_id ? parseInt(r.komisi_id) : null, departemen_id: r.departemen_id ? parseInt(r.departemen_id) : null })) }) });
       const json = await res.json();
       if (json.success) {
         setSubmitState({ status: 'success', message: 'Akun berhasil dibuat dan role berhasil di-assign!' });
@@ -344,12 +468,16 @@ export default function AkunAksesPage() {
     if (!editForm.email) { setSubmitState({ status: 'error', message: 'Email tidak boleh kosong!' }); return; }
     const hasIncomplete = editRoleAssignments.some(r => (r.role_id && !r.satelit_id) || (!r.role_id && r.satelit_id));
     if (hasIncomplete) { setSubmitState({ status: 'error', message: 'Pilihan Role dan Satelit harus berpasangan (tidak boleh ada yang kosong)!' }); return; }
-    
+    const missingKomisi = editRoleAssignments.some(r => getRoleName(r.role_id) === 'KETUA_KOMISI' && !r.komisi_id);
+    if (missingKomisi) { setSubmitState({ status: 'error', message: 'Pilih Komisi untuk setiap role KETUA_KOMISI!' }); return; }
+    const missingDept = editRoleAssignments.some(r => getRoleName(r.role_id) === 'KETUA_DEPARTEMEN' && !r.departemen_id);
+    if (missingDept) { setSubmitState({ status: 'error', message: 'Pilih Departemen untuk setiap role KETUA_DEPARTEMEN!' }); return; }
+
     const validRoles = editRoleAssignments.filter(r => r.role_id && r.satelit_id);
     setIsEditUserModalOpen(false);
     setSubmitState({ status: 'loading', message: '' });
     try {
-      const res = await fetch('/api/settings/akun-akses/users', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: editingUser.id, email: editForm.email, ...(editForm.password ? { password: editForm.password } : {}), roles: validRoles.map(r => ({ role_id: parseInt(r.role_id), satelit_id: parseInt(r.satelit_id) })) }) });
+      const res = await fetch('/api/settings/akun-akses/users', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: editingUser.id, email: editForm.email, ...(editForm.password ? { password: editForm.password } : {}), roles: validRoles.map(r => ({ role_id: parseInt(r.role_id), satelit_id: parseInt(r.satelit_id), komisi_id: r.komisi_id ? parseInt(r.komisi_id) : null, departemen_id: r.departemen_id ? parseInt(r.departemen_id) : null })) }) });
       const json = await res.json();
       if (json.success) { setSubmitState({ status: 'success', message: 'Data pengguna berhasil diperbarui!' }); fetchUsersData(); }
       else setSubmitState({ status: 'error', message: json.message || 'Gagal memperbarui data.' });
@@ -777,35 +905,37 @@ export default function AkunAksesPage() {
                 <button onClick={() => setIsRoleModalOpen(false)} className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors"><span className="material-icons-round text-[20px]">close</span></button>
               </div>
               <div className="p-8 overflow-y-auto bg-slate-50/50">
-                <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-                  <table className="w-full text-left text-sm">
-                    <thead className="bg-slate-50 uppercase text-[11px] font-bold text-slate-500 tracking-wider">
-                      <tr>
-                        <th className="px-6 py-4 border-b border-slate-200 w-1/4">Modul Sistem</th>
-                        <th className="px-6 py-4 border-b border-slate-200 text-center text-sky-600"><div className="flex flex-col items-center gap-1"><span className="material-icons-round">visibility</span> Lihat (View)</div></th>
-                        <th className="px-6 py-4 border-b border-slate-200 text-center text-emerald-600"><div className="flex flex-col items-center gap-1"><span className="material-icons-round">add_circle</span> Tambah (Create)</div></th>
-                        <th className="px-6 py-4 border-b border-slate-200 text-center text-amber-600"><div className="flex flex-col items-center gap-1"><span className="material-icons-round">edit</span> Ubah (Edit)</div></th>
-                        <th className="px-6 py-4 border-b border-slate-200 text-center text-rose-600"><div className="flex flex-col items-center gap-1"><span className="material-icons-round">gavel</span> Khusus (Manage)</div></th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {modulesLayout.map((mod, idx) => {
-                        const viewId   = getPermId(mod.prefix, 'view');
-                        const createId = mod.customPrefix ? null : getPermId(mod.prefix, 'create');
-                        const editId   = mod.customPrefix ? null : getPermId(mod.prefix, 'edit');
-                        const manageId = mod.customPrefix ? getPermId(mod.manageSuffix!, '') : (mod.manageSuffix ? getPermId(mod.prefix, mod.manageSuffix) : null);
-                        return (
-                          <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                            <td className="px-6 py-4 font-bold text-slate-700">{mod.label}</td>
-                            <td className="px-6 py-4 text-center">{mod.hasView && viewId ? <input type="checkbox" className="w-5 h-5 accent-sky-500 cursor-pointer" checked={rolePermissions.includes(viewId)} onChange={() => togglePermission(viewId)} /> : <span className="text-slate-300">-</span>}</td>
-                            <td className="px-6 py-4 text-center">{mod.hasCreate && createId ? <input type="checkbox" className="w-5 h-5 accent-emerald-500 cursor-pointer" checked={rolePermissions.includes(createId)} onChange={() => togglePermission(createId)} /> : <span className="text-slate-300">-</span>}</td>
-                            <td className="px-6 py-4 text-center">{mod.hasEdit && editId ? <input type="checkbox" className="w-5 h-5 accent-amber-500 cursor-pointer" checked={rolePermissions.includes(editId)} onChange={() => togglePermission(editId)} /> : <span className="text-slate-300">-</span>}</td>
-                            <td className="px-6 py-4 text-center">{manageId ? <input type="checkbox" className="w-5 h-5 accent-rose-500 cursor-pointer" checked={rolePermissions.includes(manageId)} onChange={() => togglePermission(manageId)} /> : <span className="text-slate-300">-</span>}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {permissionGroups.map((group, gIdx) => (
+                    <div key={gIdx} className={`bg-white rounded-xl border ${group.border} overflow-hidden shadow-sm flex flex-col`}>
+                      <div className={`px-4 py-3 ${group.bg} border-b ${group.border} flex items-center gap-2`}>
+                        <span className={`material-icons-round ${group.color} text-[20px]`}>{group.icon}</span>
+                        <h4 className={`font-bold ${group.color} text-sm uppercase tracking-wide`}>{group.title}</h4>
+                      </div>
+                      <div className="p-4 flex flex-col gap-3 flex-1">
+                        {group.keys.map((permKey, pIdx) => {
+                          const permData = permissionsMaster.find(p => p.nama_permission === permKey);
+                          if (!permData) return null;
+                          const isChecked = rolePermissions.includes(permData.id);
+                          return (
+                            <label key={pIdx} className="flex items-start gap-3 cursor-pointer group">
+                              <div className="mt-0.5 relative flex items-center justify-center shrink-0">
+                                <input type="checkbox" className={`peer appearance-none w-5 h-5 border-2 border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-offset-1 ${group.ring} checked:border-transparent ${group.checkedBg} transition-all`} checked={isChecked} onChange={() => togglePermission(permData.id)} />
+                                <span className="absolute text-white opacity-0 peer-checked:opacity-100 pointer-events-none material-icons-round text-[16px] transition-opacity">check</span>
+                                <div className={`absolute inset-0 rounded pointer-events-none opacity-0 peer-checked:opacity-20 ${group.activeBg} ${group.checkBorder}`}></div>
+                              </div>
+                              <div className="flex flex-col">
+                                <span className={`text-sm font-bold transition-colors ${isChecked ? 'text-slate-900' : 'text-slate-600 group-hover:text-slate-800'}`}>
+                                  {permData.nama_permission.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                                </span>
+                                <span className="text-xs text-slate-500 mt-0.5 leading-relaxed">{permData.deskripsi}</span>
+                              </div>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
               <div className="px-8 py-5 border-t border-slate-100 bg-white flex justify-end gap-3 sticky bottom-0">
@@ -873,21 +1003,9 @@ export default function AkunAksesPage() {
                           <button type="button" onClick={() => addRoleRow(setRoleAssignments)} className="text-xs font-bold text-violet-600 bg-white border border-violet-200 hover:bg-violet-50 px-2 py-1 rounded-lg flex items-center gap-1 transition-colors"><span className="material-icons-round text-[14px]">add</span> Tambah Role</button>
                         </div>
                         <div className="flex flex-col gap-2">
-                          {roleAssignments.map((assignment, idx) => (
-                            <div key={idx} className="flex items-center gap-2 bg-white rounded-lg p-2.5 border border-violet-100">
-                              <select className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm font-semibold text-slate-800" value={assignment.role_id} onChange={e => updateRoleRow(setRoleAssignments, idx, 'role_id', e.target.value)}>
-                                <option value="">-- Role --</option>
-                                {dataRoles.filter(r => r.is_active && r.nama_role !== 'JEMAAT').map(r => <option key={r.id} value={r.id}>{r.nama_role}</option>)}
-                              </select>
-                              <select className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm font-semibold text-slate-800" value={assignment.satelit_id} onChange={e => updateRoleRow(setRoleAssignments, idx, 'satelit_id', e.target.value)}>
-                                <option value="">-- Satelit --</option>
-                                {satelitOptions.map(s => <option key={s.id} value={s.id}>{s.nama_satelit}</option>)}
-                              </select>
-                              {roleAssignments.length > 1 && <button type="button" onClick={() => removeRoleRow(setRoleAssignments, idx)} className="w-7 h-7 rounded-full bg-rose-50 hover:bg-rose-100 flex items-center justify-center text-rose-500 flex-shrink-0"><span className="material-icons-round text-[16px]">close</span></button>}
-                            </div>
-                          ))}
+                          {renderRoleRow(roleAssignments, setRoleAssignments, 'add', 'focus:ring-violet-500')}
                         </div>
-                        <p className="text-[11px] text-violet-600 italic">💡 Satu pengguna bisa memegang beberapa role di satelit berbeda.</p>
+                        <p className="text-[11px] text-violet-600 italic">💡 Satu pengguna bisa memegang beberapa role di satelit berbeda. Komisi/Departemen muncul otomatis jika dibutuhkan.</p>
                       </div>
                     </>
                   );
@@ -933,21 +1051,9 @@ export default function AkunAksesPage() {
                   <button type="button" onClick={() => addRoleRow(setEditRoleAssignments)} className="text-xs font-bold text-amber-700 bg-white border border-amber-200 hover:bg-amber-50 px-2 py-1 rounded-lg flex items-center gap-1 transition-colors"><span className="material-icons-round text-[14px]">add</span> Tambah Role</button>
                 </div>
                 <div className="flex flex-col gap-2">
-                  {editRoleAssignments.map((assignment, idx) => (
-                    <div key={idx} className="flex items-center gap-2 bg-white rounded-lg p-2.5 border border-amber-100">
-                      <select className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 text-sm font-semibold text-slate-800" value={assignment.role_id} onChange={e => updateRoleRow(setEditRoleAssignments, idx, 'role_id', e.target.value)}>
-                        <option value="">-- Role --</option>
-                        {dataRoles.filter(r => r.is_active && r.nama_role !== 'JEMAAT').map(r => <option key={r.id} value={r.id}>{r.nama_role}</option>)}
-                      </select>
-                      <select className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 text-sm font-semibold text-slate-800" value={assignment.satelit_id} onChange={e => updateRoleRow(setEditRoleAssignments, idx, 'satelit_id', e.target.value)}>
-                        <option value="">-- Satelit --</option>
-                        {satelitOptions.map(s => <option key={s.id} value={s.id}>{s.nama_satelit}</option>)}
-                      </select>
-                      {editRoleAssignments.length > 1 && <button type="button" onClick={() => removeRoleRow(setEditRoleAssignments, idx)} className="w-7 h-7 rounded-full bg-rose-50 hover:bg-rose-100 flex items-center justify-center text-rose-500 flex-shrink-0"><span className="material-icons-round text-[16px]">close</span></button>}
-                    </div>
-                  ))}
+                  {renderRoleRow(editRoleAssignments, setEditRoleAssignments, 'edit', 'focus:ring-amber-400')}
                 </div>
-                <p className="text-[11px] text-amber-600 italic">⚠️ Perubahan ini hanya mengubah role PERMANEN. Role panitia sementara tidak terpengaruh.</p>
+                <p className="text-[11px] text-amber-600 italic">⚠️ Perubahan ini hanya mengubah role PERMANEN. Role panitia sementara tidak terpengaruh. Komisi/Departemen muncul otomatis jika role memerlukannya.</p>
               </div>
             </div>
             <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-white rounded-b-2xl flex-shrink-0">

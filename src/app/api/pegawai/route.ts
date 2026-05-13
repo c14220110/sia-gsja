@@ -164,8 +164,8 @@ export async function POST(request: Request) {
       body.kontak_darurat_nama || null,
       body.kontak_darurat_nohp || null,
       body.kontak_darurat_relasi || null,
-      body.jabatan_pegawai_id,
-      body.departemen_id,
+      body.jabatan_pegawai_id ? parseInt(body.jabatan_pegawai_id) : null,
+      body.departemen_id ? parseInt(body.departemen_id) : null,
       body.tanggal_bergabung || null,
       body.alamat_lengkap || null,
       body.rt_rw || null,
@@ -175,10 +175,10 @@ export async function POST(request: Request) {
       body.no_npwp || null,
       body.tipe_pekerja || null,
       body.status_ptkp || null,
-      body.bank_id || null,
+      body.bank_id ? parseInt(body.bank_id) : null,
       body.no_rekening || null,
       body.atas_nama_rekening || null,
-      body.satelit_id || null
+      body.satelit_id ? parseInt(body.satelit_id) : null
     ];
 
     const result = await pool.query(insertQuery, values);

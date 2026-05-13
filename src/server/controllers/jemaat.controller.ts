@@ -35,9 +35,9 @@ export async function getJemaatController(request: Request) {
       }, { status: 403 });
     }
 
-    // Jika dia adalah Admin Cabang/Satelit, paksa filter berdasarkan satelit miliknya saja
-    if (caller.role_name?.toUpperCase().includes('SATELIT')) {
-       params.satelit_id = caller.satelit_id.toString();
+    // Jika tidak punya multi_satelit_view → filter by satelit_id sendiri
+    if (!caller.is_super_admin && !caller.permissions.includes('multi_satelit_view')) {
+       params.satelit_id = caller.satelit_id?.toString();
     }
     
     const result = await getJemaatPaginationService(params);

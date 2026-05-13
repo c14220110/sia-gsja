@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useLoader } from '@/components/ui/GlobalLoader';
 
 type AuditAction = 'CREATE' | 'UPDATE' | 'DEACTIVATE';
-type LogType = 'jemaat' | 'pelayan' | 'pengurus';
+type LogType = 'jemaat' | 'pelayan' | 'pengurus' | 'anggaran';
 
 interface AuditLogEntry {
   id:             number;
@@ -22,25 +22,60 @@ interface AuditLogEntry {
   created_at:     string;
 }
 
+interface AnggaranAuditLogEntry {
+  id:              number;
+  anggaran_id:     string;
+  kode_dokumen:    string;
+  aksi:            string;
+  status_sebelum:  string | null;
+  status_sesudah:  string;
+  user_id:         number;
+  nama_pelaksana:  string;
+  role_id:         number;
+  nama_role:       string;
+  satelit_id:      number;
+  nama_satelit:    string;
+  keterangan:      string | null;
+  created_at:      string;
+}
+
 const ACTION_CONFIG: Record<AuditAction, { label: string; bg: string; text: string; icon: string }> = {
   CREATE:     { label: 'CREATE',     bg: 'bg-emerald-100', text: 'text-emerald-700', icon: 'person_add'  },
   UPDATE:     { label: 'UPDATE',     bg: 'bg-blue-100',    text: 'text-blue-700',    icon: 'edit'        },
   DEACTIVATE: { label: 'DEACTIVATE', bg: 'bg-rose-100',    text: 'text-rose-700',    icon: 'person_off'  },
 };
 
-const LOG_TYPE_CONFIG: Record<LogType, { label: string; icon: string; entityLabel: string; detailPath: string }> = {
-  jemaat:   { label: 'Data Jemaat',   icon: 'group',              entityLabel: 'Jemaat',   detailPath: '/jemaat'  },
-  pelayan:  { label: 'Data Pelayan',  icon: 'volunteer_activism',  entityLabel: 'Pelayan',  detailPath: '/jemaat'  },
-  pengurus: { label: 'Data Pengurus', icon: 'admin_panel_settings', entityLabel: 'Pengurus', detailPath: '/pengurus' },
+const ANGGARAN_ACTION_CONFIG: Record<string, { label: string; bg: string; text: string; icon: string }> = {
+  'Dibuat':                    { label: 'Dibuat',        bg: 'bg-emerald-100', text: 'text-emerald-700', icon: 'add_circle'           },
+  'Diajukan':                  { label: 'Diajukan',      bg: 'bg-amber-100',   text: 'text-amber-700',   icon: 'send'                 },
+  'Disetujui Penuh':           { label: 'Disetujui',     bg: 'bg-green-100',   text: 'text-green-700',   icon: 'check_circle'         },
+  'Disetujui Sebagian':        { label: 'Sebagian',      bg: 'bg-teal-100',    text: 'text-teal-700',    icon: 'rule'                 },
+  'Ditolak':                   { label: 'Ditolak',       bg: 'bg-rose-100',    text: 'text-rose-700',    icon: 'cancel'               },
+  'Revisi':                    { label: 'Revisi',        bg: 'bg-orange-100',  text: 'text-orange-700',  icon: 'replay'               },
+  'Direvisi & Diajukan Ulang': { label: 'Resubmit',      bg: 'bg-purple-100',  text: 'text-purple-700',  icon: 'published_with_changes' },
+  'Dihapus':                   { label: 'Dihapus',       bg: 'bg-red-100',     text: 'text-red-700',     icon: 'delete'               },
 };
+
+const LOG_TYPE_CONFIG: Record<LogType, { label: string; icon: string; entityLabel: string; detailPath: string }> = {
+  jemaat:   { label: 'Data Jemaat',   icon: 'group',              entityLabel: 'Jemaat',    detailPath: '/jemaat'  },
+  pelayan:  { label: 'Data Pelayan',  icon: 'volunteer_activism',  entityLabel: 'Pelayan',   detailPath: '/jemaat'  },
+  pengurus: { label: 'Data Pengurus', icon: 'admin_panel_settings', entityLabel: 'Pengurus',  detailPath: '/pengurus' },
+  anggaran: { label: 'Anggaran (RA)', icon: 'account_balance',     entityLabel: 'Anggaran',  detailPath: '/anggaran/rancangan' },
+};
+
+const ANGGARAN_AKSI_OPTIONS = [
+  'Dibuat', 'Diajukan', 'Disetujui Penuh', 'Disetujui Sebagian',
+  'Ditolak', 'Revisi', 'Direvisi & Diajukan Ulang', 'Dihapus',
+];
 
 export default function AuditLogPage() {
   const { showLoader, hideLoader } = useLoader();
-  const [data,        setData]        = useState<AuditLogEntry[]>([]);
-  const [total,       setTotal]       = useState(0);
-  const [loading,     setLoading]     = useState(true);
-  const [initDone,    setInitDone]    = useState(false); // true after first fetch
-  const [currentPage, setCurrentPage] = useState(1);
+  const [data,             setData]             = useState<AuditLogEntry[]>([]);
+  const [anggaranData,     setAnggaranData]     = useState<AnggaranAuditLogEntry[]>([]);
+  const [total,            setTotal]            = useState(0);
+  const [loading,          setLoading]          = useState(true);
+  const [initDone,         setInitDone]         = useState(false); // true after first fetch
+  const [currentPage,      setCurrentPage]      = useState(1);
   const limit = 15;
 
   const [logType,    setLogType]    = useState<LogType>('jemaat');
@@ -50,6 +85,7 @@ export default function AuditLogPage() {
   const [dateTo,     setDateTo]     = useState('');
 
   const totalPages = Math.max(1, Math.ceil(total / limit));
+  const isAnggaran = logType === 'anggaran';
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
@@ -68,10 +104,17 @@ export default function AuditLogPage() {
       const res  = await fetch(`/api/audit-log?${params}`);
       const json = await res.json();
       if (json.success) {
-        setData(json.data);
+        if (isAnggaran) {
+          setAnggaranData(json.data);
+          setData([]);
+        } else {
+          setData(json.data);
+          setAnggaranData([]);
+        }
         setTotal(json.meta.total);
       } else {
         setData([]);
+        setAnggaranData([]);
         setTotal(0);
       }
     } catch (err) {
@@ -80,7 +123,7 @@ export default function AuditLogPage() {
       setLoading(false);
       if (!initDone) { hideLoader(); setInitDone(true); }
     }
-  }, [currentPage, logType, filterAksi, dateFrom, dateTo, search, initDone]);
+  }, [currentPage, logType, filterAksi, dateFrom, dateTo, search, initDone, isAnggaran]);
 
   // Show Lottie overlay ONLY on first page mount
   useEffect(() => { showLoader(); }, []);
@@ -90,6 +133,9 @@ export default function AuditLogPage() {
   // Reset to page 1 when any filter or log type changes
   useEffect(() => { setCurrentPage(1); }, [logType, filterAksi, dateFrom, dateTo, search]);
 
+  // Reset aksi filter when switching between entity/anggaran (different action sets)
+  useEffect(() => { setFilterAksi(''); }, [logType]);
+
   function formatDate(dateStr: string) {
     return new Date(dateStr).toLocaleString('id-ID', {
       day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
@@ -98,12 +144,15 @@ export default function AuditLogPage() {
 
   const entityConfig = LOG_TYPE_CONFIG[logType];
 
+  // ── Stat card counts (for the current page) ────────────────────────────────
+  const entityStatActions = ['CREATE', 'UPDATE', 'DEACTIVATE'] as AuditAction[];
+
   return (
     <div className="flex flex-col gap-6 w-full">
       {/* Header */}
       <div className="flex flex-col gap-1">
         <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Audit Log</h1>
-        <p className="text-slate-500 text-base font-medium font-['Inter'] leading-6">Riwayat seluruh aksi Create, Update, dan Deactivate berdasarkan kategori data</p>
+        <p className="text-slate-500 text-base font-medium font-['Inter'] leading-6">Riwayat seluruh aksi berdasarkan kategori data</p>
       </div>
 
       {/* Log Type Tabs */}
@@ -124,35 +173,66 @@ export default function AuditLogPage() {
         ))}
       </div>
 
-      {/* Action Stat Cards */}
-      <div className="grid grid-cols-3 gap-4">
-        {(['CREATE', 'UPDATE', 'DEACTIVATE'] as AuditAction[]).map(aksi => {
-          const cfg   = ACTION_CONFIG[aksi];
-          const count = data.filter(d => d.aksi === aksi).length;
-          return (
-            <button
-              key={aksi}
-              onClick={() => setFilterAksi(filterAksi === aksi ? '' : aksi)}
-              className={`flex items-center gap-3 p-4 rounded-xl border transition-all text-left ${
-                filterAksi === aksi
-                  ? `${cfg.bg} border-current ring-2 ring-offset-1 ${cfg.text}`
-                  : 'bg-white border-slate-200 hover:bg-slate-50'
-              }`}
-            >
-              <span className={`material-icons-round text-[28px] ${filterAksi === aksi ? cfg.text : 'text-slate-400'}`}>{cfg.icon}</span>
-              <div>
-                <div className="text-xs text-slate-500 font-['Public_Sans'] font-bold uppercase tracking-wide">{cfg.label}</div>
-                <div className="text-lg font-bold text-slate-800 font-['Inter']">
-                  {loading ? '—' : count}
-                  {!loading && total > limit && (
-                    <span className="text-xs font-normal text-slate-400 ml-1">di halaman ini</span>
-                  )}
+      {/* Action Stat Cards — different sets for entity vs anggaran */}
+      {!isAnggaran ? (
+        <div className="grid grid-cols-3 gap-4">
+          {entityStatActions.map(aksi => {
+            const cfg   = ACTION_CONFIG[aksi];
+            const count = data.filter(d => d.aksi === aksi).length;
+            return (
+              <button
+                key={aksi}
+                onClick={() => setFilterAksi(filterAksi === aksi ? '' : aksi)}
+                className={`flex items-center gap-3 p-4 rounded-xl border transition-all text-left ${
+                  filterAksi === aksi
+                    ? `${cfg.bg} border-current ring-2 ring-offset-1 ${cfg.text}`
+                    : 'bg-white border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                <span className={`material-icons-round text-[28px] ${filterAksi === aksi ? cfg.text : 'text-slate-400'}`}>{cfg.icon}</span>
+                <div>
+                  <div className="text-xs text-slate-500 font-['Public_Sans'] font-bold uppercase tracking-wide">{cfg.label}</div>
+                  <div className="text-lg font-bold text-slate-800 font-['Inter']">
+                    {loading ? '—' : count}
+                    {!loading && total > limit && (
+                      <span className="text-xs font-normal text-slate-400 ml-1">di halaman ini</span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </button>
-          );
-        })}
-      </div>
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {['Dibuat', 'Diajukan', 'Disetujui Penuh', 'Ditolak'].map(aksi => {
+            const cfg   = ANGGARAN_ACTION_CONFIG[aksi] ?? { label: aksi, bg: 'bg-gray-100', text: 'text-gray-700', icon: 'info' };
+            const count = anggaranData.filter(d => d.aksi === aksi).length;
+            return (
+              <button
+                key={aksi}
+                onClick={() => setFilterAksi(filterAksi === aksi ? '' : aksi)}
+                className={`flex items-center gap-3 p-4 rounded-xl border transition-all text-left ${
+                  filterAksi === aksi
+                    ? `${cfg.bg} border-current ring-2 ring-offset-1 ${cfg.text}`
+                    : 'bg-white border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                <span className={`material-icons-round text-[24px] ${filterAksi === aksi ? cfg.text : 'text-slate-400'}`}>{cfg.icon}</span>
+                <div>
+                  <div className="text-xs text-slate-500 font-['Public_Sans'] font-bold uppercase tracking-wide">{cfg.label}</div>
+                  <div className="text-lg font-bold text-slate-800 font-['Inter']">
+                    {loading ? '—' : count}
+                    {!loading && total > limit && (
+                      <span className="text-xs font-normal text-slate-400 ml-1">di halaman ini</span>
+                    )}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Filter Bar */}
       <div className="flex flex-col md:flex-row gap-3 flex-wrap">
@@ -160,7 +240,7 @@ export default function AuditLogPage() {
           <span className="absolute left-3 top-1/2 -translate-y-1/2 material-icons-round text-slate-400 text-[20px]">search</span>
           <input
             type="text"
-            placeholder={`Cari nama ${entityConfig.entityLabel.toLowerCase()} atau pelaksana...`}
+            placeholder={isAnggaran ? 'Cari kode dokumen, pelaksana, atau keterangan...' : `Cari nama ${entityConfig.entityLabel.toLowerCase()} atau pelaksana...`}
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 bg-white font-['Public_Sans']"
@@ -172,9 +252,14 @@ export default function AuditLogPage() {
           className="px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 bg-white font-['Public_Sans'] text-slate-700"
         >
           <option value="">Semua Aksi</option>
-          <option value="CREATE">CREATE</option>
-          <option value="UPDATE">UPDATE</option>
-          <option value="DEACTIVATE">DEACTIVATE</option>
+          {isAnggaran
+            ? ANGGARAN_AKSI_OPTIONS.map(a => <option key={a} value={a}>{a}</option>)
+            : <>
+                <option value="CREATE">CREATE</option>
+                <option value="UPDATE">UPDATE</option>
+                <option value="DEACTIVATE">DEACTIVATE</option>
+              </>
+          }
         </select>
         <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
           className="px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 bg-white font-['Public_Sans'] text-slate-700"
@@ -197,55 +282,117 @@ export default function AuditLogPage() {
       {/* Table */}
       <div className="w-full bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col">
         <div className="w-full overflow-x-auto">
-          <div className="min-w-[900px] flex flex-col">
+          <div className={`${isAnggaran ? 'min-w-[1200px]' : 'min-w-[1050px]'} flex flex-col`}>
             {/* Header */}
-            <div className="w-full bg-slate-50 border-b border-slate-200 flex items-center px-6 py-4 gap-4">
-              <div className="w-40 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">Waktu</div>
-              <div className="w-44 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">{entityConfig.entityLabel}</div>
-              <div className="w-28 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">Aksi</div>
-              <div className="flex-1 min-w-[130px] text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">Pelaksana</div>
-              <div className="w-36 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">Role</div>
-              <div className="w-32 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">Satelit</div>
-              <div className="w-40 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">Keterangan</div>
-            </div>
+            {isAnggaran ? (
+              <div className="w-full bg-slate-50 border-b border-slate-200 flex items-center px-6 py-4 gap-4">
+                <div className="w-40 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">Waktu</div>
+                <div className="w-32 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">Kode RA</div>
+                <div className="w-28 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">Aksi</div>
+                <div className="w-64 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">Transisi Status</div>
+                <div className="w-28 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">Pelaksana</div>
+                <div className="w-32 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">Role</div>
+                <div className="w-28 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">Satelit</div>
+                <div className="flex-1 min-w-[180px] text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">Keterangan</div>
+              </div>
+            ) : (
+              <div className="w-full bg-slate-50 border-b border-slate-200 flex items-center px-6 py-4 gap-4">
+                <div className="w-40 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">Waktu</div>
+                <div className="w-44 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">{entityConfig.entityLabel}</div>
+                <div className="w-28 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">Aksi</div>
+                <div className="w-28 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">Pelaksana</div>
+                <div className="w-36 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">Role</div>
+                <div className="w-28 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">Satelit</div>
+                <div className="flex-1 min-w-[180px] text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">Keterangan</div>
+              </div>
+            )}
 
             {/* Body */}
             {loading ? (
               <div className="w-full py-16 flex items-center justify-center">
                 <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-700 rounded-full animate-spin" />
               </div>
-            ) : data.length === 0 ? (
-              <div className="w-full py-16 flex flex-col items-center justify-center text-slate-400 gap-2">
-                <span className="material-icons-round text-5xl text-slate-300">history_edu</span>
-                <p className="text-sm font-['Public_Sans']">Belum ada data audit log untuk kategori ini.</p>
-              </div>
+            ) : isAnggaran ? (
+              anggaranData.length === 0 ? (
+                <div className="w-full py-16 flex flex-col items-center justify-center text-slate-400 gap-2">
+                  <span className="material-icons-round text-5xl text-slate-300">receipt_long</span>
+                  <p className="text-sm font-['Public_Sans']">Belum ada audit log anggaran.</p>
+                </div>
+              ) : (
+                anggaranData.map(entry => {
+                  const cfg = ANGGARAN_ACTION_CONFIG[entry.aksi] ?? { label: entry.aksi, bg: 'bg-gray-100', text: 'text-gray-700', icon: 'info' };
+                  return (
+                    <div key={entry.id} className="w-full flex items-center px-6 py-4 border-b border-slate-100 hover:bg-slate-50 transition-colors gap-4">
+                      <div className="w-40 shrink-0 text-slate-500 text-xs font-['Public_Sans']">{formatDate(entry.created_at)}</div>
+                      <div className="w-32 shrink-0">
+                        <Link
+                          href={`${entityConfig.detailPath}/${entry.anggaran_id}`}
+                          className="text-slate-800 text-sm font-semibold font-['Public_Sans'] hover:text-slate-600 hover:underline truncate block"
+                        >
+                          {entry.kode_dokumen}
+                        </Link>
+                      </div>
+                      <div className="w-36 shrink-0">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold font-['Public_Sans'] ${cfg.bg} ${cfg.text}`}>
+                          <span className="material-icons-round text-[12px]">{cfg.icon}</span>
+                          {cfg.label}
+                        </span>
+                      </div>
+                      <div className="w-64 shrink-0">
+                        <div className="flex items-center gap-1.5 text-xs font-['Public_Sans']" title={entry.status_sebelum ? `${entry.status_sebelum} → ${entry.status_sesudah}` : entry.status_sesudah}>
+                          {entry.status_sebelum ? (
+                            <>
+                              <span className="text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded whitespace-nowrap">{entry.status_sebelum}</span>
+                              <span className="material-icons-round text-[14px] text-slate-300 shrink-0">arrow_forward</span>
+                              <span className="text-slate-700 font-semibold bg-slate-100 px-1.5 py-0.5 rounded whitespace-nowrap">{entry.status_sesudah}</span>
+                            </>
+                          ) : (
+                            <span className="text-slate-700 font-semibold bg-slate-100 px-1.5 py-0.5 rounded whitespace-nowrap">{entry.status_sesudah}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="w-28 shrink-0 text-slate-700 text-sm font-['Public_Sans'] truncate" title={entry.nama_pelaksana}>{entry.nama_pelaksana}</div>
+                      <div className="w-32 shrink-0 text-slate-500 text-xs font-['Public_Sans'] truncate" title={entry.nama_role.replace(/_/g, ' ')}>{entry.nama_role.replace(/_/g, ' ')}</div>
+                      <div className="w-28 shrink-0 text-slate-500 text-xs font-['Public_Sans'] truncate" title={entry.nama_satelit}>{entry.nama_satelit}</div>
+                      <div className="flex-1 min-w-[180px] text-slate-400 text-xs font-['Public_Sans'] italic leading-relaxed" title={entry.keterangan || '-'}>{entry.keterangan || '-'}</div>
+                    </div>
+                  );
+                })
+              )
             ) : (
-              data.map(entry => {
-                const cfg = ACTION_CONFIG[entry.aksi] ?? ACTION_CONFIG.UPDATE;
-                return (
-                  <div key={entry.id} className="w-full flex items-center px-6 py-4 border-b border-slate-100 hover:bg-slate-50 transition-colors gap-4">
-                    <div className="w-40 shrink-0 text-slate-500 text-xs font-['Public_Sans']">{formatDate(entry.created_at)}</div>
-                    <div className="w-44 shrink-0">
-                      <Link
-                        href={`${entityConfig.detailPath}/${entry.entity_id}?mode=view`}
-                        className="text-slate-800 text-sm font-semibold font-['Public_Sans'] hover:text-slate-600 hover:underline truncate block"
-                      >
-                        {entry.nama_entity}
-                      </Link>
+              data.length === 0 ? (
+                <div className="w-full py-16 flex flex-col items-center justify-center text-slate-400 gap-2">
+                  <span className="material-icons-round text-5xl text-slate-300">history_edu</span>
+                  <p className="text-sm font-['Public_Sans']">Belum ada data audit log untuk kategori ini.</p>
+                </div>
+              ) : (
+                data.map(entry => {
+                  const cfg = ACTION_CONFIG[entry.aksi] ?? ACTION_CONFIG.UPDATE;
+                  return (
+                    <div key={entry.id} className="w-full flex items-center px-6 py-4 border-b border-slate-100 hover:bg-slate-50 transition-colors gap-4">
+                      <div className="w-40 shrink-0 text-slate-500 text-xs font-['Public_Sans']">{formatDate(entry.created_at)}</div>
+                      <div className="w-44 shrink-0">
+                        <Link
+                          href={`${entityConfig.detailPath}/${entry.entity_id}?mode=view`}
+                          className="text-slate-800 text-sm font-semibold font-['Public_Sans'] hover:text-slate-600 hover:underline truncate block"
+                        >
+                          {entry.nama_entity}
+                        </Link>
+                      </div>
+                      <div className="w-28 shrink-0">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold font-['Public_Sans'] uppercase ${cfg.bg} ${cfg.text}`}>
+                          <span className="material-icons-round text-[12px]">{cfg.icon}</span>
+                          {cfg.label}
+                        </span>
+                      </div>
+                      <div className="w-28 shrink-0 text-slate-700 text-sm font-['Public_Sans'] truncate" title={entry.nama_pelaksana}>{entry.nama_pelaksana}</div>
+                      <div className="w-36 shrink-0 text-slate-500 text-xs font-['Public_Sans'] truncate" title={entry.nama_role.replace(/_/g, ' ')}>{entry.nama_role.replace(/_/g, ' ')}</div>
+                      <div className="w-28 shrink-0 text-slate-500 text-xs font-['Public_Sans'] truncate" title={entry.nama_satelit}>{entry.nama_satelit}</div>
+                      <div className="flex-1 min-w-[180px] text-slate-400 text-xs font-['Public_Sans'] italic leading-relaxed" title={entry.keterangan || '-'}>{entry.keterangan || '-'}</div>
                     </div>
-                    <div className="w-28 shrink-0">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold font-['Public_Sans'] uppercase ${cfg.bg} ${cfg.text}`}>
-                        <span className="material-icons-round text-[12px]">{cfg.icon}</span>
-                        {cfg.label}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-[130px] text-slate-700 text-sm font-['Public_Sans'] truncate">{entry.nama_pelaksana}</div>
-                    <div className="w-36 shrink-0 text-slate-500 text-xs font-['Public_Sans'] truncate">{entry.nama_role.replace(/_/g, ' ')}</div>
-                    <div className="w-32 shrink-0 text-slate-500 text-xs font-['Public_Sans'] truncate">{entry.nama_satelit}</div>
-                    <div className="w-40 shrink-0 text-slate-400 text-xs font-['Public_Sans'] truncate italic">{entry.keterangan || '-'}</div>
-                  </div>
-                );
-              })
+                  );
+                })
+              )
             )}
           </div>
         </div>
@@ -253,7 +400,7 @@ export default function AuditLogPage() {
         {/* Pagination Footer */}
         <div className="w-full px-6 py-4 bg-white border-t border-slate-200 flex flex-col md:flex-row justify-between items-center text-sm gap-4">
           <span className="text-slate-500 font-['Public_Sans']">
-            Menampilkan {data.length > 0 ? ((currentPage - 1) * limit) + 1 : 0}–
+            Menampilkan {(isAnggaran ? anggaranData.length : data.length) > 0 ? ((currentPage - 1) * limit) + 1 : 0}–
             {Math.min(currentPage * limit, total)} dari {total} log
           </span>
           <div className="flex items-center gap-2">

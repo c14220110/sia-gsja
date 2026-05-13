@@ -24,7 +24,7 @@ export function SubmitOverlay({ status, message, errors, onClose }: SubmitOverla
         {status === 'loading' && (
           <div className="flex flex-col items-center">
             <div className="w-16 h-16 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
-            <p className="mt-6 text-slate-600 font-medium text-sm">Menyimpan data...</p>
+            <p className="mt-6 text-slate-600 font-medium text-sm">{message || 'Menyimpan data...'}</p>
           </div>
         )}
         

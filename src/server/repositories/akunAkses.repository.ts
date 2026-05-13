@@ -166,9 +166,7 @@ export class AkunAksesRepository {
     email: string;
     password_hash: string;
     jemaat_id: number;
-    roles: { role_id: number; satelit_id: number }[];
-    komisi_id?: number | null;
-    departemen_id?: number | null;
+    roles: { role_id: number; satelit_id: number; komisi_id?: number | null; departemen_id?: number | null }[];
   }): Promise<{ success: boolean; message?: string }> {
     const client = await pool.connect();
     try {
@@ -188,7 +186,7 @@ export class AkunAksesRepository {
         userId = insUser.rows[0].id;
       }
 
-      // Insert all roles with optional scope
+      // Insert all roles — komisi_id/departemen_id diambil per role row, bukan dari level atas
       for (const role of data.roles) {
         await client.query(`
           INSERT INTO user_role (user_id, role_id, satelit_id, komisi_id, departemen_id)
@@ -197,7 +195,7 @@ export class AkunAksesRepository {
             SET is_active = true,
                 komisi_id = EXCLUDED.komisi_id,
                 departemen_id = EXCLUDED.departemen_id
-        `, [userId, role.role_id, role.satelit_id, data.komisi_id ?? null, data.departemen_id ?? null]);
+        `, [userId, role.role_id, role.satelit_id, role.komisi_id ?? null, role.departemen_id ?? null]);
       }
 
       await client.query('COMMIT');
@@ -233,7 +231,7 @@ export class AkunAksesRepository {
   async updatePengguna(userId: number, data: {
     email?: string;
     password_hash?: string;
-    roles?: { role_id: number; satelit_id: number }[];
+    roles?: { role_id: number; satelit_id: number; komisi_id?: number | null; departemen_id?: number | null }[];
   }): Promise<{ success: boolean; message?: string }> {
     const client = await pool.connect();
     try {
@@ -258,10 +256,13 @@ export class AkunAksesRepository {
         // Insert roles baru
         for (const role of data.roles) {
           await client.query(`
-            INSERT INTO user_role (user_id, role_id, satelit_id)
-            VALUES ($1, $2, $3)
-            ON CONFLICT (user_id, role_id, satelit_id) DO UPDATE SET is_active = true
-          `, [userId, role.role_id, role.satelit_id]);
+            INSERT INTO user_role (user_id, role_id, satelit_id, komisi_id, departemen_id)
+            VALUES ($1, $2, $3, $4, $5)
+            ON CONFLICT (user_id, role_id, satelit_id) DO UPDATE 
+              SET is_active = true,
+                  komisi_id = EXCLUDED.komisi_id,
+                  departemen_id = EXCLUDED.departemen_id
+          `, [userId, role.role_id, role.satelit_id, role.komisi_id ?? null, role.departemen_id ?? null]);
         }
       }
 

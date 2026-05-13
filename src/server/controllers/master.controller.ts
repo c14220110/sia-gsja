@@ -43,6 +43,8 @@ export async function getOptionsController(request: Request) {
       data = await masterService.getJabatanPegawaiOptions();
     } else if (type === 'bank') {
       data = await masterService.getBankOptions();
+    } else if (type === 'ra_approved') {
+      data = await masterService.getApprovedAnggaranOptions();
     } else {
       return NextResponse.json({ success: false, message: 'Invalid type parameter' }, { status: 400 });
     }

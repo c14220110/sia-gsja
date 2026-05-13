@@ -4,12 +4,14 @@ import { useState, useEffect, useCallback } from 'react';
 import { useLoader } from '@/components/ui/GlobalLoader';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
 import { AlertModal } from '@/components/ui/AlertModal';
+import { MasterKomponenGaji } from './MasterKomponenGaji';
 
 /* ── Tab Config ─────────────────────────────────────────────────────────────── */
 type TabKey =
   | 'wilayah' | 'satelit' | 'departemen' | 'komisi'
   | 'periode_kepengurusan' | 'jabatan' | 'role_pelayan'
-  | 'pekerjaan_master' | 'jenis_relasi' | 'jenis_kegiatan';
+  | 'pekerjaan_master' | 'jenis_relasi' | 'jenis_kegiatan'
+  | 'komponen_gaji';
 
 interface TabConfig {
   label:      string;
@@ -94,6 +96,11 @@ const TABS: Record<TabKey, TabConfig> = {
     formFields: [{ key: 'nama_role', label: 'Nama Role' }, { key: 'deskripsi', label: 'Deskripsi', optional: true }],
     hasToggle: true,
   },
+  komponen_gaji: {
+    label: 'Komponen Gaji', icon: 'payments', group: 'Parameter SDM', groupColor: 'emerald',
+    columns: [], // handled by custom component
+    formFields: [], // handled by custom component
+  },
   pekerjaan_master: {
     label: 'Pekerjaan', icon: 'work', group: 'Atribut Jemaat', groupColor: 'amber',
     columns: [{ key: 'nama_pekerjaan', label: 'Nama Pekerjaan' }, { key: 'is_active', label: 'Status', width: 'w-28' }],
@@ -153,6 +160,7 @@ function primaryKey(tabKey: TabKey): string {
     pekerjaan_master:     'nama_pekerjaan',
     jenis_relasi:         'nama_relasi',
     jenis_kegiatan:       'nama_jenis_kegiatan',
+    komponen_gaji:        '', // Not used for custom page
   };
   return map[tabKey];
 }
@@ -386,6 +394,7 @@ export default function MasterDataPage() {
 
   /* ── Fetch table data (inline spinner, no lottie overlay) ── */
   const fetchData = useCallback(async () => {
+    if (activeTab === 'komponen_gaji') return; // Custom component handles its own data
     setLoadingTable(true);
     try {
       const params = new URLSearchParams({ table: activeTab });
@@ -560,6 +569,7 @@ export default function MasterDataPage() {
         <div className="flex-1 min-w-0 flex flex-col gap-4">
 
           {/* Header band */}
+          {activeTab !== 'komponen_gaji' && (
           <div className={`${gs.activeBg} rounded-xl px-5 py-4 flex items-center justify-between gap-4`}>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
@@ -580,8 +590,10 @@ export default function MasterDataPage() {
               Tambah {tab.label}
             </button>
           </div>
+          )}
 
           {/* Search */}
+          {activeTab !== 'komponen_gaji' && (
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 material-icons-round text-slate-400 text-[20px]">search</span>
             <input
@@ -597,8 +609,12 @@ export default function MasterDataPage() {
               </button>
             )}
           </div>
+          )}
 
-          {/* Table — overflow-visible so dropdown escapes */}
+          {/* Render Custom Component OR Generic Table */}
+          {activeTab === 'komponen_gaji' ? (
+            <MasterKomponenGaji />
+          ) : (
           <div className="w-full bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col">
             <div className="w-full overflow-x-auto">
               <table className="w-full min-w-[420px] border-collapse">
@@ -686,6 +702,7 @@ export default function MasterDataPage() {
               </span>
             </div>
           </div>
+          )}
 
         </div>
       </div>

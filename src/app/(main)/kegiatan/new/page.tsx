@@ -313,13 +313,16 @@ export default function NewKegiatanPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitState, setSubmitState] = useState<{ status: 'idle'|'loading'|'success'|'error', message: string, errors?: any }>({ status: 'idle', message: '' });
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   // Master Data Options
   const [jenisKegiatanOptions, setJenisKegiatanOptions] = useState<any[]>([]);
   const [satelitOptions, setSatelitOptions] = useState<any[]>([]);
   const [komisiOptions, setKomisiOptions] = useState<any[]>([]);
   const [departemenOptions, setDepartemenOptions] = useState<any[]>([]);
-  const [pengurusOptions, setPengurusOptions] = useState<{id: string, name: string}[]>([]); // specifically mapped for generic autocomplete
+  const [pengurusOptions, setPengurusOptions] = useState<{id: string, name: string}[]>([]);
+  const [raOptions, setRaOptions] = useState<any[]>([]);
+  const [raSearchQuery, setRaSearchQuery] = useState(''); // specifically mapped for generic autocomplete
 
   // Form State
   const [formData, setFormData] = useState({
@@ -368,6 +371,9 @@ export default function NewKegiatanPage() {
     harga_tiket_rp: '',
     kuota_peserta: '',
     
+    // Sumber Anggaran (RA Link)
+    anggaran_tahunan_id: '',
+
     status_kegiatan: 'Draft' 
   });
 
@@ -378,12 +384,13 @@ export default function NewKegiatanPage() {
   useEffect(() => {
     const fetchOptions = async () => {
       try {
-        const [resJenis, resSatelit, resKomisi, resDept, resPengurus] = await Promise.all([
+        const [resJenis, resSatelit, resKomisi, resDept, resPengurus, resRA] = await Promise.all([
           fetch('/api/options?type=jenis_kegiatan'),
           fetch('/api/options?type=satelit'),
           fetch('/api/options?type=komisi'),
           fetch('/api/options?type=departemen'),
-          fetch('/api/options?type=pengurus')
+          fetch('/api/options?type=pengurus'),
+          fetch('/api/options?type=ra_approved')
         ]);
         
         const dataJenis = await resJenis.json();
@@ -391,11 +398,13 @@ export default function NewKegiatanPage() {
         const dataKomisi = await resKomisi.json();
         const dataDept = await resDept.json();
         const dataPengurus = await resPengurus.json();
+        const dataRA = await resRA.json();
 
         if (dataJenis.success) setJenisKegiatanOptions(dataJenis.data);
         if (dataSatelit.success) setSatelitOptions(dataSatelit.data);
         if (dataKomisi.success) setKomisiOptions(dataKomisi.data);
         if (dataDept.success) setDepartemenOptions(dataDept.data);
+        if (dataRA.success) setRaOptions(dataRA.data);
         
         if (dataPengurus.success) {
           const mapped = dataPengurus.data.map((p: any) => ({
@@ -547,7 +556,7 @@ export default function NewKegiatanPage() {
 
   return (
     <div className="w-full flex flex-col gap-6 pb-36 relative">
-      {isSubmitting && <SubmitOverlay status={submitState.status} message={submitState.message} />}
+      {isSubmitting && <SubmitOverlay status={submitState.status} message={submitState.message} onClose={() => { setIsSubmitting(false); setSubmitState({ status: 'idle', message: '' }); }} />}
 
       {/* Header Area */}
       <div className="w-full flex flex-col justify-start items-start gap-4">
@@ -899,6 +908,158 @@ export default function NewKegiatanPage() {
 
         {/* KOLOM KANAN (30% - Sidebar) */}
         <div className="flex flex-col gap-6">
+
+          {/* CARD SUMBER ANGGARAN (RA LINK) */}
+          {(() => {
+            const selectedRA = raOptions.find(r => r.id === formData.anggaran_tahunan_id);
+            const filteredRA = raOptions.filter(r => {
+              if (!raSearchQuery) return true;
+              const q = raSearchQuery.toLowerCase();
+              return (
+                r.kode_dokumen?.toLowerCase().includes(q) ||
+                r.nama_rancangan?.toLowerCase().includes(q) ||
+                r.nama_satelit?.toLowerCase().includes(q) ||
+                r.nama_komisi?.toLowerCase().includes(q)
+              );
+            });
+            const multiEventRA = filteredRA.filter(r => r.pola_penggunaan === 'Bertahap');
+            const sekaliPakaiRA = filteredRA.filter(r => r.pola_penggunaan === 'Sekali Pakai');
+
+            return (
+              <div className="p-6 bg-gradient-to-br from-violet-50 to-white rounded-xl shadow-sm border border-violet-200 flex flex-col gap-4 animate-in fade-in slide-in-from-right-2 duration-300 relative overflow-hidden">
+                <div className="absolute right-0 top-0 w-32 h-32 overflow-hidden pointer-events-none rounded-tr-xl">
+                  <span className="material-icons-round text-[100px] text-violet-900 absolute -top-3 -right-3 opacity-[0.04]">account_balance_wallet</span>
+                </div>
+                <div className="w-full inline-flex items-center justify-between border-b border-violet-100 pb-3 z-10">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-violet-100 text-violet-700 flex items-center justify-center">
+                      <span className="material-icons-round text-[18px]">receipt_long</span>
+                    </div>
+                    <span className="text-violet-900 text-sm font-bold font-['Inter'] uppercase tracking-wider">Sumber Anggaran</span>
+                  </div>
+                  <div className="px-2 py-0.5 bg-violet-100 text-violet-700 border border-violet-200 rounded text-[10px] font-bold tracking-wide">WAJIB SAAT AJUKAN</div>
+                </div>
+
+                {/* Selected RA Summary */}
+                {selectedRA ? (
+                  <div className="w-full p-4 bg-white rounded-lg border border-violet-200 flex flex-col gap-2 animate-in fade-in duration-200">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="material-icons-round text-violet-600 text-[16px]">description</span>
+                        <span className="text-sm font-black text-violet-800 tracking-wide">{selectedRA.kode_dokumen}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => { setFormData(prev => ({ ...prev, anggaran_tahunan_id: '' })); setRaSearchQuery(''); }}
+                        className="w-6 h-6 rounded-full bg-slate-100 hover:bg-red-100 text-slate-500 hover:text-red-500 flex items-center justify-center transition-colors"
+                      >
+                        <span className="material-icons-round text-[14px]">close</span>
+                      </button>
+                    </div>
+                    <div className="text-sm font-bold text-slate-900">{selectedRA.nama_rancangan}</div>
+                    <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-500">
+                      {selectedRA.nama_satelit && <span>🏛️ {selectedRA.nama_satelit}</span>}
+                      {selectedRA.nama_komisi && <span>👥 {selectedRA.nama_komisi}</span>}
+                    </div>
+                    <div className="w-full h-px bg-slate-100 my-1"></div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-slate-500">Plafon Disetujui</span>
+                      <span className="text-sm font-black text-emerald-700">Rp {Number(selectedRA.total_disetujui || 0).toLocaleString('id-ID')}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                        selectedRA.pola_penggunaan === 'Bertahap' 
+                          ? 'bg-blue-100 text-blue-700 border border-blue-200' 
+                          : 'bg-amber-100 text-amber-700 border border-amber-200'
+                      }`}>{selectedRA.pola_penggunaan}</span>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                        selectedRA.status === 'Disetujui Penuh' 
+                          ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' 
+                          : 'bg-sky-100 text-sky-700 border border-sky-200'
+                      }`}>{selectedRA.status}</span>
+                      {selectedRA.pola_penggunaan === 'Bertahap' && (
+                        <span className="text-[10px] text-slate-500">{selectedRA.jumlah_kegiatan_aktif} kegiatan aktif</span>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  /* RA Search + Selection List */
+                  <div className="w-full flex flex-col gap-3">
+                    <div className="relative">
+                      <span className="material-icons-round absolute left-3 top-2.5 text-violet-400 text-[18px]">search</span>
+                      <input
+                        type="text"
+                        value={raSearchQuery}
+                        onChange={(e) => setRaSearchQuery(e.target.value)}
+                        placeholder="Cari kode RA atau nama rancangan..."
+                        className="pl-10 pr-4 py-2.5 bg-white rounded-lg border border-violet-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-['Inter'] w-full transition-all placeholder-slate-400"
+                      />
+                    </div>
+                    <div className="max-h-52 overflow-y-auto rounded-lg border border-slate-200 bg-white divide-y divide-slate-100">
+                      {filteredRA.length === 0 ? (
+                        <div className="p-4 text-center text-sm text-slate-400 flex flex-col items-center gap-1">
+                          <span className="material-icons-round text-[28px] text-slate-300">search_off</span>
+                          {raOptions.length === 0 ? 'Belum ada RA yang disetujui Majelis.' : 'Tidak ditemukan RA yang cocok.'}
+                        </div>
+                      ) : (
+                        <>
+                          {multiEventRA.length > 0 && (
+                            <>
+                              <div className="px-3 py-1.5 bg-blue-50 text-[10px] font-bold text-blue-600 uppercase tracking-wider sticky top-0 z-10">🔄 Multi Event</div>
+                              {multiEventRA.map(ra => (
+                                <button
+                                  key={ra.id}
+                                  type="button"
+                                  onClick={() => { setFormData(prev => ({ ...prev, anggaran_tahunan_id: ra.id })); setRaSearchQuery(''); }}
+                                  className="w-full text-left px-3 py-2.5 hover:bg-violet-50 transition-colors flex flex-col gap-0.5"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-black text-violet-700">{ra.kode_dokumen}</span>
+                                    <span className="text-[10px] text-slate-400">·</span>
+                                    <span className="text-[10px] text-emerald-600 font-bold">Rp {Number(ra.total_disetujui || 0).toLocaleString('id-ID')}</span>
+                                  </div>
+                                  <span className="text-xs text-slate-700 font-medium truncate">{ra.nama_rancangan}</span>
+                                  <span className="text-[10px] text-slate-400">{ra.jumlah_kegiatan_aktif} kegiatan aktif</span>
+                                </button>
+                              ))}
+                            </>
+                          )}
+                          {sekaliPakaiRA.length > 0 && (
+                            <>
+                              <div className="px-3 py-1.5 bg-amber-50 text-[10px] font-bold text-amber-600 uppercase tracking-wider sticky top-0 z-10">📌 Sekali Pakai</div>
+                              {sekaliPakaiRA.map(ra => (
+                                <button
+                                  key={ra.id}
+                                  type="button"
+                                  disabled={!ra.is_available}
+                                  onClick={() => { if (ra.is_available) { setFormData(prev => ({ ...prev, anggaran_tahunan_id: ra.id })); setRaSearchQuery(''); } }}
+                                  className={`w-full text-left px-3 py-2.5 transition-colors flex flex-col gap-0.5 ${
+                                    ra.is_available ? 'hover:bg-violet-50 cursor-pointer' : 'opacity-50 cursor-not-allowed bg-slate-50'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <span className={`text-xs font-black ${ra.is_available ? 'text-violet-700' : 'text-slate-400'}`}>{ra.kode_dokumen}</span>
+                                    <span className="text-[10px] text-slate-400">·</span>
+                                    <span className="text-[10px] text-emerald-600 font-bold">Rp {Number(ra.total_disetujui || 0).toLocaleString('id-ID')}</span>
+                                    {!ra.is_available && <span className="text-[9px] bg-red-100 text-red-600 font-bold px-1.5 py-0.5 rounded">SUDAH TERPAKAI</span>}
+                                  </div>
+                                  <span className="text-xs text-slate-700 font-medium truncate">{ra.nama_rancangan}</span>
+                                </button>
+                              ))}
+                            </>
+                          )}
+                        </>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-slate-400 flex items-start gap-1">
+                      <span className="material-icons-round text-[12px] mt-0.5">info</span>
+                      Hanya RA berstatus "Disetujui" yang tampil. Boleh kosong saat Draft.
+                    </p>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
           
           {/* CARD 4: PENYELENGGARA & PIC */}
           <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col gap-5 animate-in fade-in slide-in-from-right-2 duration-300">
@@ -1053,7 +1214,7 @@ export default function NewKegiatanPage() {
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-[260px] right-0 py-3 px-6 bg-white/90 backdrop-blur-md border-t border-slate-200 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] flex items-center justify-between z-40 transition-all md:w-[calc(100%-260px)] w-full ml-[-260px] md:ml-0 rounded-t-2xl md:rounded-tr-none">
+       <div className="fixed bottom-0 left-[260px] right-0 py-3 px-6 bg-white/90 backdrop-blur-md border-t border-slate-200 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] flex items-center justify-between z-40 transition-all md:w-[calc(100%-260px)] w-full ml-[-260px] md:ml-0 rounded-t-2xl md:rounded-tr-none">
          <button onClick={() => router.back()} className="px-6 py-2.5 rounded-lg border border-slate-300 text-slate-700 font-bold hover:bg-slate-50 transition-colors text-sm">
            Batalkan
          </button>
@@ -1061,11 +1222,58 @@ export default function NewKegiatanPage() {
            <button onClick={() => handleCreate('Draft')} className="px-6 py-2.5 rounded-lg bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 transition-colors text-sm border border-slate-200">
              Simpan sebagai Draft
            </button>
-           <button onClick={() => handleCreate('Menunggu Persetujuan')} className="px-8 py-2.5 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/30 text-sm flex gap-2 items-center">
+           <button onClick={() => setShowConfirmDialog(true)} className="px-8 py-2.5 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/30 text-sm flex gap-2 items-center">
              <span className="material-icons-round text-[18px]">send</span> Ajukan Jadwal Acara
            </button>
          </div>
       </div>
+
+      {/* CONFIRMATION DIALOG - Submit Proposal */}
+      {showConfirmDialog && (
+        <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-0 overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-2 duration-300">
+            <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-5 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                <span className="material-icons-round text-white text-[22px]">warning</span>
+              </div>
+              <div>
+                <h3 className="text-white font-black text-lg">Konfirmasi Pengajuan</h3>
+                <p className="text-white/80 text-xs font-medium">Proposal akan dikirim ke Majelis</p>
+              </div>
+            </div>
+            <div className="p-6 flex flex-col gap-4">
+              <div className="flex flex-col gap-2 text-sm text-slate-700 leading-relaxed">
+                <div className="flex items-start gap-2">
+                  <span className="material-icons-round text-amber-500 text-[16px] mt-0.5">lock</span>
+                  <span>Setelah diajukan, formulir kegiatan <b>akan dikunci</b> dan tidak bisa diedit selama proses review.</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="material-icons-round text-blue-500 text-[16px] mt-0.5">info</span>
+                  <span>Jika perlu perubahan, Anda harus <b>"Tarik Kembali ke Draft"</b> terlebih dahulu.</span>
+                </div>
+              </div>
+              <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                <span className="text-[10px] text-slate-400 font-bold uppercase">Kegiatan yang akan diajukan:</span>
+                <p className="text-sm font-bold text-slate-900 mt-1">{formData.nama_kegiatan || '(Tanpa Nama)'}</p>
+              </div>
+              <div className="flex gap-3 mt-2">
+                <button
+                  onClick={() => setShowConfirmDialog(false)}
+                  className="flex-1 px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold hover:bg-slate-50 transition-colors text-sm"
+                >
+                  Batal, Periksa Lagi
+                </button>
+                <button
+                  onClick={() => { setShowConfirmDialog(false); handleCreate('Menunggu Persetujuan'); }}
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/30 text-sm flex items-center justify-center gap-2"
+                >
+                  <span className="material-icons-round text-[16px]">send</span> Ya, Ajukan Sekarang
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* IMAGE LIGHTBOX MODAL */}
       {isLightboxOpen && imagePreview && (

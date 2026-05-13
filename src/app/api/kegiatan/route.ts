@@ -37,10 +37,15 @@ export async function GET(request: Request) {
       paramIndex++;
     }
 
-    // 2. Satelit
-    if (satelitId) {
+    // 2. Satelit & RBAC check
+    let finalSatelitId = satelitId;
+    if (!caller.is_super_admin && !caller.permissions.includes('multi_satelit_view')) {
+      finalSatelitId = caller.satelit_id?.toString() || '';
+    }
+
+    if (finalSatelitId) {
       whereClauses.push(`k.satelit_id = $${paramIndex}`);
-      values.push(satelitId);
+      values.push(finalSatelitId);
       paramIndex++;
     }
 
@@ -203,6 +208,9 @@ export async function POST(request: Request) {
         is_published, butuh_registrasi, url_banner,
         harga_tiket_rp, kuota_peserta,
         
+        // Sumber Anggaran (RA Link)
+        anggaran_tahunan_id,
+
         // Ibadah specific (3A)
         tema_khotbah, nama_pengkhotbah_1, nama_pengkhotbah_2,
 
@@ -221,21 +229,65 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: 'Lengkapi field wajib (Nama, Jenis, Tanggal Mulai, Waktu Mulai)' }, { status: 400 });
     }
 
+    // RA wajib saat Ajukan (bukan Draft)
+    const isSubmitting = status_kegiatan !== 'Draft';
+    if (isSubmitting && !anggaran_tahunan_id) {
+      return NextResponse.json({ success: false, message: 'Sumber Anggaran (RA) wajib dipilih saat mengajukan kegiatan.' }, { status: 400 });
+    }
+
     const t_selesai = (tanggal_selesai && tanggal_selesai.trim() !== '') ? tanggal_selesai : null;
     const w_selesai = (waktu_selesai && waktu_selesai.trim() !== '') ? waktu_selesai : null;
     
-    const s_id = satelit_id ? satelit_id : null;
+    let s_id = satelit_id ? satelit_id : null;
+    if (!caller.is_super_admin && !caller.permissions.includes('multi_satelit_view')) {
+      if (s_id && s_id.toString() !== caller.satelit_id?.toString()) {
+        return NextResponse.json({ success: false, message: 'Akses ditolak: Anda tidak memiliki izin untuk membuat kegiatan di satelit lain.' }, { status: 403 });
+      }
+      s_id = caller.satelit_id;
+    }
+
     const d_id = tipe_penyelenggara === 'Departemen' && departemen_id ? departemen_id : null;
     const k_id = tipe_penyelenggara === 'Komisi' && komisi_id ? komisi_id : null;
     const pic_id = pic_pengurus_id ? pic_pengurus_id : null;
     const hk_rp = harga_tiket_rp ? parseFloat(harga_tiket_rp) : 0;
     const kp = kuota_peserta && kuota_peserta !== '' ? parseInt(kuota_peserta, 10) : null;
+    const ra_id = anggaran_tahunan_id || null;
 
     // Generate unique code using the new standardized helper
     const { generateKodeKegiatan } = await import('@/server/utils/kegiatanUtils');
     // Important: We must use the client that is currently part of the transaction
     client = await pool.connect();
     await client.query('BEGIN'); // Start Transaction
+
+    // RA Integrity Check (di dalam transaksi untuk race-condition safety)
+    if (ra_id) {
+      const raCheck = await client.query(
+        `SELECT id, status, pola_penggunaan FROM public.anggaran_tahunan WHERE id = $1`, [ra_id]
+      );
+      if (raCheck.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return NextResponse.json({ success: false, message: 'Rancangan Anggaran tidak ditemukan.' }, { status: 404 });
+      }
+      const ra = raCheck.rows[0];
+      if (!['Disetujui Penuh', 'Disetujui Sebagian'].includes(ra.status)) {
+        await client.query('ROLLBACK');
+        return NextResponse.json({ success: false, message: `RA ini berstatus "${ra.status}" — hanya RA yang disetujui yang bisa digunakan.` }, { status: 400 });
+      }
+      // Cek Sekali Pakai: tidak boleh sudah diklaim oleh kegiatan lain yang bukan Draft/Dibatalkan
+      if (ra.pola_penggunaan === 'Sekali Pakai' && isSubmitting) {
+        const claimCheck = await client.query(
+          `SELECT k.id, k.nama_kegiatan FROM public.kegiatan k
+           WHERE k.anggaran_tahunan_id = $1 AND k.status_kegiatan NOT IN ('Draft', 'Dibatalkan')`, [ra_id]
+        );
+        if (claimCheck.rows.length > 0) {
+          await client.query('ROLLBACK');
+          return NextResponse.json({ 
+            success: false, 
+            message: `RA Sekali Pakai ini sudah diklaim oleh kegiatan "${claimCheck.rows[0].nama_kegiatan}". Pilih RA lain.` 
+          }, { status: 409 });
+        }
+      }
+    }
 
     const kode_kegiatan = await generateKodeKegiatan(client, jenis_kegiatan_id, tanggal_mulai);
 
@@ -244,8 +296,9 @@ export async function POST(request: Request) {
         kode_kegiatan, nama_kegiatan, jenis_kegiatan_id, satelit_id, departemen_id, komisi_id,
         frekuensi_kegiatan, tanggal_mulai, tanggal_selesai, waktu_mulai, waktu_selesai,
         lokasi_kegiatan, keterangan, pic_pengurus_id, berbayar, status_kegiatan,
-        is_published, butuh_registrasi, url_banner, harga_tiket_rp, kuota_peserta
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, CAST($16 AS status_kegiatan_enum), $17, $18, $19, $20, $21)
+        is_published, butuh_registrasi, url_banner, harga_tiket_rp, kuota_peserta,
+        anggaran_tahunan_id
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, CAST($16 AS status_kegiatan_enum), $17, $18, $19, $20, $21, $22)
       RETURNING id;
     `;
 
@@ -253,7 +306,8 @@ export async function POST(request: Request) {
       kode_kegiatan, nama_kegiatan, jenis_kegiatan_id, s_id, d_id, k_id,
       frekuensi_kegiatan, tanggal_mulai, t_selesai, waktu_mulai, w_selesai,
       lokasi_kegiatan, keterangan || null, pic_id, berbayar, status_kegiatan,
-      is_published ?? true, butuh_registrasi ?? false, url_banner || null, hk_rp, kp
+      is_published ?? true, butuh_registrasi ?? false, url_banner || null, hk_rp, kp,
+      ra_id
     ]);
 
     const newKegiatanId = kegiatanResult.rows[0].id;

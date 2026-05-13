@@ -351,7 +351,9 @@ export default function PegawaiPage() {
               
               <div className="flex-1 min-w-[200px] flex flex-col pr-4">
                 <span className="text-slate-700 text-sm font-bold font-['Public_Sans'] truncate">{pegawai.nama_jabatan}</span>
-                <span className="text-slate-400 text-xs font-medium font-['Public_Sans'] truncate">Dep: {pegawai.nama_departemen}</span>
+                {pegawai.nama_departemen && (
+                  <span className="text-slate-400 text-xs font-medium font-['Public_Sans'] truncate">Dep: {pegawai.nama_departemen}</span>
+                )}
               </div>
               
               <div className="w-48 shrink-0 flex items-center">

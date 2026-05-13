@@ -85,3 +85,7 @@ export async function getJabatanPegawaiOptions(): Promise<any[]> {
 export async function getBankOptions(): Promise<any[]> {
   return await masterRepository.getAllBank();
 }
+
+export async function getApprovedAnggaranOptions(): Promise<any[]> {
+  return await masterRepository.getApprovedAnggaranOptions();
+}

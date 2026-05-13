@@ -1,6 +1,7 @@
 import pool from '@/lib/db';
 
 export type AuditAction = 'CREATE' | 'UPDATE' | 'DEACTIVATE';
+export type AnggaranAuditAksi = 'Dibuat' | 'Diajukan' | 'Disetujui Penuh' | 'Disetujui Sebagian' | 'Ditolak' | 'Revisi' | 'Direvisi & Diajukan Ulang' | 'Dihapus';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Interfaces
@@ -32,6 +33,21 @@ export interface InsertPengurusAuditLogParams {
   keterangan?: string;
 }
 
+export interface InsertAnggaranAuditLogParams {
+  anggaran_id:    string; // uuid
+  kode_dokumen:   string;
+  aksi:           AnggaranAuditAksi;
+  status_sebelum: string | null;
+  status_sesudah: string;
+  user_id:        number;
+  nama_pelaksana: string;
+  role_id:        number;
+  nama_role:      string;
+  satelit_id:     number;
+  nama_satelit:   string;
+  keterangan?:    string;
+}
+
 export interface AuditLogEntry {
   id:             number;
   entity_id:      number;
@@ -47,6 +63,23 @@ export interface AuditLogEntry {
   created_at:     string;
 }
 
+export interface AnggaranAuditLogEntry {
+  id:              number;
+  anggaran_id:     string;
+  kode_dokumen:    string;
+  aksi:            string;
+  status_sebelum:  string | null;
+  status_sesudah:  string;
+  user_id:         number;
+  nama_pelaksana:  string;
+  role_id:         number;
+  nama_role:       string;
+  satelit_id:      number;
+  nama_satelit:    string;
+  keterangan:      string | null;
+  created_at:      string;
+}
+
 export interface GetAuditLogParams {
   entity_id?: number;
   user_id?:   number;
@@ -56,6 +89,16 @@ export interface GetAuditLogParams {
   search?:    string;
   limit?:     number;
   offset?:    number;
+}
+
+export interface GetAnggaranAuditLogParams {
+  anggaran_id?: string;
+  aksi?:        string;
+  date_from?:   string;
+  date_to?:     string;
+  search?:      string;
+  limit?:       number;
+  offset?:      number;
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -290,6 +333,85 @@ export class AuditLogRepository {
       pool.query(dataQuery, [...values, limit, offset]),
     ]);
     return { total: parseInt(countRes.rows[0].count, 10), data: dataRes.rows };
+  }
+
+  // ── INSERT ANGGARAN AUDIT LOG ──────────────────────────────────────────────
+
+  async insertAnggaranAuditLog(params: InsertAnggaranAuditLogParams): Promise<void> {
+    const {
+      anggaran_id, kode_dokumen, aksi, status_sebelum, status_sesudah,
+      user_id, nama_pelaksana, role_id, nama_role, satelit_id, nama_satelit, keterangan
+    } = params;
+    await pool.query(
+      `INSERT INTO anggaran_audit_log
+         (anggaran_id, kode_dokumen, aksi, status_sebelum, status_sesudah,
+          user_id, nama_pelaksana, role_id, nama_role, satelit_id, nama_satelit, keterangan)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+      [anggaran_id, kode_dokumen, aksi, status_sebelum, status_sesudah,
+       user_id, nama_pelaksana, role_id, nama_role, satelit_id, nama_satelit, keterangan ?? null]
+    );
+  }
+
+  // ── GET ANGGARAN AUDIT LOGS (for /settings/audit-log page) ────────────────
+
+  async getAnggaranAuditLogs(params: GetAnggaranAuditLogParams): Promise<{ data: AnggaranAuditLogEntry[]; total: number }> {
+    const { limit = 15, offset = 0, anggaran_id, aksi, date_from, date_to, search } = params;
+    const conditions: string[] = ['1 = 1'];
+    const values: any[] = [];
+    let idx = 1;
+
+    if (anggaran_id) {
+      conditions.push(`al.anggaran_id = $${idx++}`);
+      values.push(anggaran_id);
+    }
+    if (aksi) {
+      conditions.push(`al.aksi = $${idx++}`);
+      values.push(aksi);
+    }
+    if (date_from) {
+      conditions.push(`al.created_at >= $${idx++}::date`);
+      values.push(date_from);
+    }
+    if (date_to) {
+      conditions.push(`al.created_at < ($${idx++}::date + INTERVAL '1 day')`);
+      values.push(date_to);
+    }
+    if (search) {
+      conditions.push(`(al.kode_dokumen ILIKE $${idx} OR al.nama_pelaksana ILIKE $${idx} OR al.keterangan ILIKE $${idx})`);
+      values.push(`%${search}%`);
+      idx++;
+    }
+
+    const where = conditions.join(' AND ');
+
+    const countQuery = `SELECT COUNT(*) AS count FROM anggaran_audit_log al WHERE ${where}`;
+    const dataQuery = `
+      SELECT al.id, al.anggaran_id, al.kode_dokumen,
+             al.aksi, al.status_sebelum, al.status_sesudah,
+             al.user_id, al.nama_pelaksana, al.role_id, al.nama_role,
+             al.satelit_id, al.nama_satelit, al.keterangan, al.created_at
+      FROM anggaran_audit_log al
+      WHERE ${where}
+      ORDER BY al.created_at DESC
+      LIMIT $${idx} OFFSET $${idx + 1}`;
+
+    const [countRes, dataRes] = await Promise.all([
+      pool.query(countQuery, values),
+      pool.query(dataQuery, [...values, limit, offset]),
+    ]);
+    return { total: parseInt(countRes.rows[0].count, 10), data: dataRes.rows };
+  }
+
+  // ── GET ANGGARAN TIMELINE (for "Lihat Riwayat" per RA) ────────────────────
+
+  async getAnggaranTimeline(anggaran_id: string): Promise<AnggaranAuditLogEntry[]> {
+    const res = await pool.query(
+      `SELECT * FROM anggaran_audit_log
+       WHERE anggaran_id = $1
+       ORDER BY created_at ASC`,
+      [anggaran_id]
+    );
+    return res.rows;
   }
 
   // ── LEGACY ALIAS ───────────────────────────────────────────────────────────

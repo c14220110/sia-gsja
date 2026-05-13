@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Auto-lock satelit asal untuk admin satelit
-    if (caller.role_name?.toUpperCase().includes('SATELIT')) {
+    if (!caller.is_super_admin && !caller.permissions.includes('multi_satelit_view')) {
       params.satelit_asal_id = caller.satelit_id?.toString();
     }
 
@@ -96,9 +96,17 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, message: 'Setiap jabatan harus memiliki lingkup, jabatan, periode, tanggal mulai, dan jalur pengangkatan' }, { status: 400 });
       }
 
+      const parsedSatelitId = parseInt(satelit_id, 10);
+      
+      if (!caller.is_super_admin && !caller.permissions.includes('multi_satelit_view')) {
+        if (parsedSatelitId !== caller.satelit_id) {
+          return NextResponse.json({ success: false, message: 'Akses Ditolak: Anda tidak bisa mengangkat pengurus untuk satelit lain.' }, { status: 403 });
+        }
+      }
+
       const result = await pengurusRepository.createPengurus({
         jemaat_id:          parseInt(jemaat_id, 10),
-        satelit_id:         parseInt(satelit_id, 10),
+        satelit_id:         parsedSatelitId,
         jabatan_id:         parseInt(jabatan_id, 10),
         lingkup,
         komisi_id:          komisi_id ? parseInt(komisi_id, 10) : null,

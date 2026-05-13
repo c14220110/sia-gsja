@@ -95,6 +95,59 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const body = await request.json();
     await client.query('BEGIN');
 
+    // ── Enforce Edit Lock ──────────────────────────────
+    const currentStatusCheck = await client.query(`SELECT status_kegiatan FROM public.kegiatan WHERE id = $1`, [id]);
+    if (currentStatusCheck.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return NextResponse.json({ success: false, message: 'Kegiatan tidak ditemukan.' }, { status: 404 });
+    }
+    const currentStatus = currentStatusCheck.rows[0].status_kegiatan;
+    if (currentStatus !== 'Draft' && currentStatus !== 'Ditolak') {
+      await client.query('ROLLBACK');
+      return NextResponse.json({ 
+        success: false, 
+        message: `Kegiatan tidak bisa diedit karena sedang dalam status "${currentStatus}". Tarik kembali ke Draft terlebih dahulu.` 
+      }, { status: 403 });
+    }
+
+    // ── RA Validation (same rules as POST) ──────────────────────────────
+    const ra_id = body.anggaran_tahunan_id || null;
+    const isSubmitting = body.status_kegiatan !== 'Draft';
+
+    if (isSubmitting && !ra_id) {
+      await client.query('ROLLBACK');
+      return NextResponse.json({ success: false, message: 'Sumber Anggaran (RA) wajib dipilih saat mengajukan kegiatan.' }, { status: 400 });
+    }
+
+    if (ra_id) {
+      const raCheck = await client.query(
+        `SELECT id, status, pola_penggunaan FROM public.anggaran_tahunan WHERE id = $1`, [ra_id]
+      );
+      if (raCheck.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return NextResponse.json({ success: false, message: 'Rancangan Anggaran tidak ditemukan.' }, { status: 404 });
+      }
+      const ra = raCheck.rows[0];
+      if (!['Disetujui Penuh', 'Disetujui Sebagian'].includes(ra.status)) {
+        await client.query('ROLLBACK');
+        return NextResponse.json({ success: false, message: `RA ini berstatus "${ra.status}" — hanya RA yang disetujui yang bisa digunakan.` }, { status: 400 });
+      }
+      // Cek Sekali Pakai: tidak boleh sudah diklaim oleh kegiatan lain yang bukan Draft/Dibatalkan
+      if (ra.pola_penggunaan === 'Sekali Pakai' && isSubmitting) {
+        const claimCheck = await client.query(
+          `SELECT k.id, k.nama_kegiatan FROM public.kegiatan k
+           WHERE k.anggaran_tahunan_id = $1 AND k.status_kegiatan NOT IN ('Draft', 'Dibatalkan') AND k.id != $2`, [ra_id, id]
+        );
+        if (claimCheck.rows.length > 0) {
+          await client.query('ROLLBACK');
+          return NextResponse.json({ 
+            success: false, 
+            message: `RA Sekali Pakai ini sudah diklaim oleh kegiatan "${claimCheck.rows[0].nama_kegiatan}". Pilih RA lain.` 
+          }, { status: 409 });
+        }
+      }
+    }
+
     // 1. Update Tabel Utama Kegiatan
     const updateKegiatan = `
       UPDATE public.kegiatan SET 
@@ -116,7 +169,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         url_banner = $16,
         harga_tiket_rp = $17,
         kuota_peserta = $18,
-        frekuensi_kegiatan = $20
+        frekuensi_kegiatan = $20,
+        anggaran_tahunan_id = $21
       WHERE id = $19
     `;
     
@@ -140,7 +194,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       body.harga_tiket_rp ? parseFloat(body.harga_tiket_rp) : 0,
       body.kuota_peserta && body.kuota_peserta !== '' ? parseInt(body.kuota_peserta, 10) : null,
       id,
-      body.frekuensi_kegiatan || 'Insidental - Tahunan'
+      body.frekuensi_kegiatan || 'Insidental - Tahunan',
+      ra_id
     ]);
 
     // 2. Update atau Insert Detail Ibadah (Tema & Pengkhotbah)

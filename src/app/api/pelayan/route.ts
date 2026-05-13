@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
     }
 
-    if (caller.role_name?.toUpperCase().includes('SATELIT')) {
+    if (!caller.is_super_admin && !caller.permissions.includes('multi_satelit_view')) {
       params.satelit_id = caller.satelit_id?.toString();
     }
 
@@ -62,6 +62,12 @@ export async function POST(request: NextRequest) {
 
     const parsedJemaatId = parseInt(jemaat_id, 10);
     const parsedSatelitId = parseInt(satelit_id, 10);
+
+    if (!caller.is_super_admin && !caller.permissions.includes('multi_satelit_view')) {
+      if (parsedSatelitId !== caller.satelit_id) {
+        return NextResponse.json({ success: false, message: 'Akses Ditolak: Anda tidak bisa mendaftarkan pelayan untuk satelit lain.' }, { status: 403 });
+      }
+    }
 
     const result = await pelayanRepository.createPelayan({
       jemaat_id: parsedJemaatId,

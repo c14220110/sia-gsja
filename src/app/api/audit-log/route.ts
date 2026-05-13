@@ -35,7 +35,17 @@ export async function GET(request: NextRequest) {
     };
 
     let data, total;
-    if (log_type === 'pelayan') {
+    if (log_type === 'anggaran') {
+      // Anggaran uses a different query params structure (uuid entity, varchar aksi)
+      ({ data, total } = await auditLogRepository.getAnggaranAuditLogs({
+        aksi,
+        date_from,
+        date_to,
+        search,
+        limit,
+        offset,
+      }));
+    } else if (log_type === 'pelayan') {
       ({ data, total } = await auditLogRepository.getPelayanAuditLogs(queryParams));
     } else if (log_type === 'pengurus') {
       ({ data, total } = await auditLogRepository.getPengurusAuditLogs(queryParams));

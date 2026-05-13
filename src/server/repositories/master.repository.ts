@@ -200,4 +200,40 @@ export class MasterRepository {
     const result = await pool.query(query);
     return result.rows;
   }
+
+  async getApprovedAnggaranOptions(): Promise<any[]> {
+    const query = `
+      SELECT 
+        at.id, 
+        at.kode_dokumen, 
+        at.nama_rancangan, 
+        at.pola_penggunaan,
+        at.total_anggaran,
+        at.total_disetujui,
+        at.status,
+        at.tahun,
+        at.kategori_ra,
+        s.nama_satelit,
+        k.nama_komisi,
+        CASE 
+          WHEN at.pola_penggunaan = 'Sekali Pakai' THEN
+            CASE WHEN EXISTS (
+              SELECT 1 FROM public.kegiatan kg 
+              WHERE kg.anggaran_tahunan_id = at.id 
+              AND kg.status_kegiatan NOT IN ('Draft', 'Dibatalkan')
+            ) THEN false ELSE true END
+          ELSE true
+        END AS is_available,
+        (SELECT COUNT(*) FROM public.kegiatan kg 
+         WHERE kg.anggaran_tahunan_id = at.id 
+         AND kg.status_kegiatan NOT IN ('Draft', 'Dibatalkan'))::int AS jumlah_kegiatan_aktif
+      FROM public.anggaran_tahunan at
+      LEFT JOIN public.satelit s ON at.satelit_id = s.id
+      LEFT JOIN public.komisi k ON at.komisi_id = k.id
+      WHERE at.status IN ('Disetujui Penuh', 'Disetujui Sebagian')
+      ORDER BY at.pola_penggunaan ASC, at.tahun DESC, at.kode_dokumen ASC;
+    `;
+    const result = await pool.query(query);
+    return result.rows;
+  }
 }

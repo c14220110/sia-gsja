@@ -56,8 +56,16 @@ export async function GET(request: NextRequest) {
         orderBy: 'nama_relasi',
       },
       jenis_kegiatan: {
-        query: `SELECT id, nama_jenis_kegiatan FROM jenis_kegiatan`,
-        orderBy: 'nama_jenis_kegiatan',
+        query: `SELECT id, nama_jenis_kegiatan, kategori FROM jenis_kegiatan`,
+        orderBy: 'kategori, nama_jenis_kegiatan',
+      },
+      jabatan_pegawai_master: {
+        query: `SELECT id, nama_jabatan, is_active FROM jabatan_pegawai_master WHERE is_active = TRUE`,
+        orderBy: 'nama_jabatan',
+      },
+      buku_besar_coa: {
+        query: `SELECT id, kode_akun, nama_akun, tipe_akun, is_active FROM buku_besar_coa WHERE is_active = TRUE`,
+        orderBy: 'kode_akun',
       },
     };
 
@@ -77,6 +85,8 @@ export async function GET(request: NextRequest) {
       pekerjaan_master: 'nama_pekerjaan',
       jenis_relasi: 'nama_relasi',
       jenis_kegiatan: 'nama_jenis_kegiatan',
+      jabatan_pegawai_master: 'nama_jabatan',
+      buku_besar_coa: 'nama_akun',
     };
 
     let fullQuery = query;

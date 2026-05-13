@@ -119,7 +119,7 @@ export default function DashboardLayout({
     topbarTitle = 'Buku Besar & Keuangan';
     topbarIcon  = 'menu_book';
   } else if (pathname.includes('/anggaran')) {
-    topbarTitle = 'Anggaran & Proposal';
+    topbarTitle = 'Anggaran & Plotting';
     topbarIcon  = 'request_quote';
   } else if (pathname.includes('/family-tree')) {
     topbarTitle = 'Family Tree';
@@ -184,7 +184,7 @@ export default function DashboardLayout({
                 </div>
               </Link>
               
-              {(hasPermission('master_data_manage') || hasPermission('user_access_manage') || hasPermission('akses_sementara_manage') || hasPermission('audit_log_view') || userData?.is_super_admin) && (
+              {(hasPermission('master_data_manage') || hasPermission('user_access_manage') || hasPermission('akses_sementara_manage') || hasPermission('audit_log_view') || hasPermission('pengurus_view') || userData?.is_super_admin) && (
                 <div className="w-full">
                   <div
                     className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer"
@@ -210,6 +210,7 @@ export default function DashboardLayout({
                       {(hasPermission('user_access_manage') || hasPermission('akses_sementara_manage')) && <Link href="/settings/akun-akses" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Akun &amp; Hak Akses</Link>}
                       {hasPermission('master_data_manage') && <Link href="/settings/master-data" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Master Data</Link>}
                       {hasPermission('audit_log_view') && <Link href="/settings/audit-log" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Audit Log</Link>}
+                      {hasPermission('pengurus_view') && <Link href="/settings/organisasi" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Bagan Organisasi</Link>}
                     </div>
                   </div>
                 </div>
@@ -350,19 +351,18 @@ export default function DashboardLayout({
                       <span className="material-icons-round text-slate-300 text-[20px]">request_quote</span>
                     </div>
                     <div className="flex flex-col justify-start items-start opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 w-auto md:w-0 md:group-hover:w-auto overflow-hidden whitespace-nowrap">
-                      <div className="h-5 justify-center text-slate-200 text-sm font-medium font-['Inter'] leading-5 pr-4">Anggaran & Proposal</div>
+                      <div className="h-5 justify-center text-slate-200 text-sm font-medium font-['Inter'] leading-5 pr-4">Anggaran & Plotting</div>
                     </div>
                   </div>
                   <div className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">
                     <span className="material-icons-round text-slate-400 text-[16px]">chevron_right</span>
                   </div>
                 </div>
-                {/* Mobile Accordion */}
                 <div className={`md:hidden overflow-hidden transition-all duration-300 ${mobileExpandedMenus['anggaran_proposal'] ? 'max-h-96 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
                   <div className="pl-14 pr-4 py-2 flex flex-col gap-4">
-                    <Link href="/anggaran/tahunan" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Anggaran Tahunan</Link>
-                    <Link href="/anggaran/proposal" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Proposal</Link>
-                    <Link href="/anggaran/plotting-plafon" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Plotting Plafon Anggaran</Link>
+                    <Link href="/anggaran/konsolidasi" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Rekapitulasi Anggaran</Link>
+                    <Link href="/anggaran/rancangan" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Rancangan Anggaran</Link>
+                    <Link href="/anggaran/plotting-tahunan" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Plotting Anggaran Tahunan</Link>
                   </div>
                 </div>
               </div>
@@ -556,6 +556,18 @@ export default function DashboardLayout({
                         </div>
                         <div className="flex flex-col justify-start items-center">
                           <div className="text-center justify-center text-amber-900 text-sm font-bold font-['Inter'] leading-5">Audit Log</div>
+                        </div>
+                      </Link>
+                    )}
+                    {hasPermission('pengurus_view') && (
+                      <Link href="/settings/organisasi" onClick={() => setActiveSubmenu(null)} className="w-full h-32 p-4 bg-sky-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-sky-200 flex flex-col justify-center items-center cursor-pointer hover:bg-sky-100 transition-colors block text-inherit no-underline">
+                        <div className="pb-2 flex flex-col justify-start items-start">
+                          <div className="flex flex-col justify-start items-center">
+                            <span className="material-icons-round text-sky-600 text-[32px]">account_tree</span>
+                          </div>
+                        </div>
+                        <div className="flex flex-col justify-start items-center">
+                          <div className="text-center justify-center text-sky-900 text-sm font-bold font-['Inter'] leading-5">Bagan Organisasi</div>
                         </div>
                       </Link>
                     )}
@@ -799,38 +811,38 @@ export default function DashboardLayout({
                   <div className="self-stretch pb-2 border-b border-slate-100 flex flex-col justify-start items-start">
                     <div className="justify-center text-slate-800 text-lg font-bold font-['Inter'] leading-7 flex items-center gap-2">
                       <span className="material-icons-round text-[20px] text-purple-600">request_quote</span>
-                      Anggaran & Proposal
+                      Anggaran & Plotting
                     </div>
                   </div>
                   <div className="self-stretch flex justify-between items-start gap-4">
-                    <Link href="/anggaran/tahunan" onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-fuchsia-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-fuchsia-200 flex flex-col justify-center items-center cursor-pointer hover:bg-fuchsia-100 transition-colors block text-inherit no-underline">
+                    <Link href="/anggaran/konsolidasi" onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-emerald-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-emerald-200 flex flex-col justify-center items-center cursor-pointer hover:bg-emerald-100 transition-colors block text-inherit no-underline">
+                      <div className="pb-2 flex flex-col justify-start items-start">
+                        <div className="flex flex-col justify-start items-center">
+                          <span className="material-icons-round text-emerald-600 text-[32px]">pie_chart</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col justify-start items-center text-center">
+                        <div className="justify-center text-emerald-900 text-sm font-bold font-['Inter'] leading-5">Rekapitulasi<br/>Anggaran</div>
+                      </div>
+                    </Link>
+                    <Link href="/anggaran/rancangan" onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-fuchsia-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-fuchsia-200 flex flex-col justify-center items-center cursor-pointer hover:bg-fuchsia-100 transition-colors block text-inherit no-underline">
                       <div className="pb-2 flex flex-col justify-start items-start">
                         <div className="flex flex-col justify-start items-center">
                           <span className="material-icons-round text-fuchsia-600 text-[32px]">event_note</span>
                         </div>
                       </div>
-                      <div className="flex flex-col justify-start items-center">
-                        <div className="text-center justify-center text-fuchsia-900 text-sm font-bold font-['Inter'] leading-5">Anggaran<br/>Tahunan</div>
+                      <div className="flex flex-col justify-start items-center text-center">
+                        <div className="justify-center text-fuchsia-900 text-sm font-bold font-['Inter'] leading-5">Rancangan<br/>Anggaran</div>
                       </div>
                     </Link>
-                    <Link href="/anggaran/proposal" onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-purple-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-purple-200 flex flex-col justify-center items-center cursor-pointer hover:bg-purple-100 transition-colors block text-inherit no-underline">
-                      <div className="pb-2 flex flex-col justify-start items-start">
-                        <div className="flex flex-col justify-start items-center">
-                          <span className="material-icons-round text-purple-600 text-[32px]">description</span>
-                        </div>
-                      </div>
-                      <div className="flex flex-col justify-start items-center">
-                        <div className="text-center justify-center text-purple-900 text-sm font-bold font-['Inter'] leading-5">Proposal</div>
-                      </div>
-                    </Link>
-                    <Link href="/anggaran/plotting-plafon" onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-violet-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-violet-200 flex flex-col justify-center items-center cursor-pointer hover:bg-violet-100 transition-colors block text-inherit no-underline">
+                    <Link href="/anggaran/plotting-tahunan" onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-violet-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-violet-200 flex flex-col justify-center items-center cursor-pointer hover:bg-violet-100 transition-colors block text-inherit no-underline">
                       <div className="pb-2 flex flex-col justify-start items-start">
                         <div className="flex flex-col justify-start items-center">
                           <span className="material-icons-round text-violet-600 text-[32px]">request_quote</span>
                         </div>
                       </div>
                       <div className="flex flex-col justify-start items-center text-center">
-                        <div className="justify-center text-violet-900 text-sm font-bold font-['Inter'] leading-5">Plotting Plafon<br/>Anggaran</div>
+                        <div className="justify-center text-violet-900 text-sm font-bold font-['Inter'] leading-5">Plotting<br/>Tahunan</div>
                       </div>
                     </Link>
                   </div>

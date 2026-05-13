@@ -31,9 +31,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           p.jenis_kegiatan_id, 
           p.lokasi_pelayanan,
           p.jemaat_pemohon_id,
-          pemohon.nama_lengkap as nama_pemohon
+          p.nomor_tiket,
+          pemohon.nama_lengkap as nama_pemohon,
+          jk.nama_jenis_kegiatan
         FROM public.permohonan_layanan_pastoral p
         JOIN public.jemaat pemohon ON p.jemaat_pemohon_id = pemohon.id
+        LEFT JOIN public.jenis_kegiatan jk ON p.jenis_kegiatan_id = jk.id
         WHERE p.id = $1
       `, [id]);
       if (checkRes.rows.length === 0) {
@@ -60,7 +63,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       // 4. Create Kegiatan
       const { generateKodeKegiatan } = await import('@/server/utils/kegiatanUtils');
       const kodeKegiatan = await generateKodeKegiatan(client, ticket.jenis_kegiatan_id, tanggal_fix);
-      const namaKegiatan = `Layanan Pastoral - ${ticket.nama_pemohon}`;
+      const isSensitive = ticket.nama_jenis_kegiatan?.toLowerCase().includes('konseling') || 
+                          ticket.nama_jenis_kegiatan?.toLowerCase().includes('pranikah');
+      const namaKegiatan = isSensitive 
+                           ? `Layanan Internal Pastoral - ${ticket.nomor_tiket}` 
+                           : `Layanan Pastoral - ${ticket.nama_pemohon}`;
       const kegiatanRes = await client.query(
         `INSERT INTO public.kegiatan (
           kode_kegiatan, nama_kegiatan, jenis_kegiatan_id, 
