@@ -40,8 +40,6 @@ export async function POST(req: NextRequest) {
       password_hash,
       jemaat_id,
       roles,
-      komisi_id: komisi_id ?? null,
-      departemen_id: departemen_id ?? null,
     });
 
     if (result.success) {
