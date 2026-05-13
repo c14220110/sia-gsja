@@ -213,6 +213,9 @@ export class MasterRepository {
         at.status,
         at.tahun,
         at.kategori_ra,
+        at.jenis_kegiatan_id,
+        at.satelit_id,
+        at.komisi_id,
         s.nama_satelit,
         k.nama_komisi,
         CASE 
@@ -231,9 +234,11 @@ export class MasterRepository {
       LEFT JOIN public.satelit s ON at.satelit_id = s.id
       LEFT JOIN public.komisi k ON at.komisi_id = k.id
       WHERE at.status IN ('Disetujui Penuh', 'Disetujui Sebagian')
+        AND at.kategori_ra = 'Kegiatan'
       ORDER BY at.pola_penggunaan ASC, at.tahun DESC, at.kode_dokumen ASC;
     `;
     const result = await pool.query(query);
     return result.rows;
   }
+
 }

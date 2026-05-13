@@ -45,47 +45,57 @@ export default function DashboardHome() {
            localStorage.setItem('gsja_user_data', JSON.stringify(uData)); // Simpan Cache
 
            if (uData?.role_name?.toLowerCase() === 'jemaat') {
-             const q = new URLSearchParams({ limit: '20', status: 'Akan Datang', tanggal: 'Semua' });
-             // Dihapus: filter satelit, karena jemaat bebas mendaftar acara satelit manapun
-             
-             // Fetch events and user's tickets in parallel
-             const [resEv, resTiket] = await Promise.all([
-               fetch(`/api/kegiatan?${q.toString()}`),
-               fetch('/api/kegiatan/registrasi/saya')
-             ]);
+              // mode=publik: bypass RBAC satelit, tampilkan semua kegiatan yang is_published
+              // Exclude 'Ibadah Rutin' agar hanya tampil kegiatan spesial/event
+              const q = new URLSearchParams({
+                limit: '20',
+                status: 'Akan Datang',
+                tanggal: 'Semua',
+                mode: 'publik',
+              });
+              
+              // Fetch events and user's tickets in parallel
+              const [resEv, resTiket] = await Promise.all([
+                fetch(`/api/kegiatan?${q.toString()}`),
+                fetch('/api/kegiatan/registrasi/saya')
+              ]);
 
-             if (resEv.ok && resTiket.ok) {
-                const reqData = await resEv.json();
-                const tiketData = await resTiket.json();
-                
-                const myTickets = tiketData.success ? tiketData.data : [];
+              if (resEv.ok && resTiket.ok) {
+                 const reqData = await resEv.json();
+                 const tiketData = await resTiket.json();
+                 
+                 const myTickets = tiketData.success ? tiketData.data : [];
 
-                if (reqData.success && reqData.data.length > 0) {
-                   const eventsWithReg = reqData.data.filter((e: any) => e.butuh_registrasi === true).slice(0, 5);
-                   const mappedEvents = eventsWithReg.map((evt: any) => {
-                      const tiket = myTickets.find((t: any) => t.kegiatan_id === evt.id);
-                      if (tiket) {
-                         let badgeStyle = "bg-amber-100/90 text-amber-700 border-amber-200/50";
-                         let badgeText = "MENUNGGU BAYAR";
-                         if (tiket.is_checked_in) {
-                            badgeStyle = "bg-indigo-100/90 text-indigo-700 border-indigo-200/50";
-                            badgeText = "HADIR";
-                         } else if (tiket.status_pembayaran === 'Paid') {
-                            badgeStyle = "bg-emerald-100/90 text-emerald-700 border-emerald-200/50";
-                            badgeText = "LUNAS";
-                         } else if (tiket.url_bukti_bayar) {
-                            badgeStyle = "bg-blue-100/90 text-blue-700 border-blue-200/50";
-                            badgeText = "MENUNGGU VERIF";
-                         }
-                         return { ...evt, _myTicketBadge: { text: badgeText, style: badgeStyle } };
-                      }
-                      return evt;
-                   });
+                 if (reqData.success && reqData.data.length > 0) {
+                    // Filter: exclude kategori 'Ibadah Rutin' — tampilkan event, perayaan, edukasi, dll
+                    const nonRutinEvents = reqData.data
+                      .filter((e: any) => (e.kategori || '') !== 'Ibadah Rutin')
+                      .slice(0, 6);
 
-                   setUpcomingEvents(mappedEvents);
-                   localStorage.setItem('gsja_upcoming_events', JSON.stringify(mappedEvents)); // Simpan Cache Kasar Kegiatan
-                }
-             }
+                    const mappedEvents = nonRutinEvents.map((evt: any) => {
+                       const tiket = myTickets.find((t: any) => t.kegiatan_id === evt.id);
+                       if (tiket) {
+                          let badgeStyle = "bg-amber-100/90 text-amber-700 border-amber-200/50";
+                          let badgeText = "MENUNGGU BAYAR";
+                          if (tiket.is_checked_in) {
+                             badgeStyle = "bg-indigo-100/90 text-indigo-700 border-indigo-200/50";
+                             badgeText = "HADIR";
+                          } else if (tiket.status_pembayaran === 'Paid') {
+                             badgeStyle = "bg-emerald-100/90 text-emerald-700 border-emerald-200/50";
+                             badgeText = "LUNAS";
+                          } else if (tiket.url_bukti_bayar) {
+                             badgeStyle = "bg-blue-100/90 text-blue-700 border-blue-200/50";
+                             badgeText = "MENUNGGU VERIF";
+                          }
+                          return { ...evt, _myTicketBadge: { text: badgeText, style: badgeStyle } };
+                       }
+                       return evt;
+                    });
+
+                    setUpcomingEvents(mappedEvents);
+                    localStorage.setItem('gsja_upcoming_events', JSON.stringify(mappedEvents));
+                 }
+              }
 
              // Cek jadwal pelayanan yang belum dikonfirmasi (untuk banner & badge)
              const resRoster = await fetch('/api/pelayan/jadwal-saya');
@@ -460,12 +470,39 @@ export default function DashboardHome() {
                                <span className="absolute top-3 right-3 bg-white/90 backdrop-blur text-blue-600 text-[10px] font-bold px-2 py-1 rounded shadow-sm">Butuh Registrasi</span>
                             )}
                           </div>
-                        ) : (
-                          <div className="w-full h-20 bg-gradient-to-r from-blue-500 to-indigo-600 relative overflow-hidden shrink-0 flex items-center px-5">
-                            <span className="material-icons-round text-white/20 text-6xl absolute -right-4 -top-2">event</span>
-                            <span className="bg-white/20 backdrop-blur text-white text-[10px] font-bold px-2.5 py-1 rounded border border-white/20 uppercase tracking-widest">{evt.nama_jenis_kegiatan}</span>
-                          </div>
-                        )}
+                        ) : (() => {
+                           // Smart thumbnail fallback berdasarkan jenis kegiatan
+                           const kn = (evt.nama_jenis_kegiatan || '').toLowerCase();
+                           const kat = (evt.kategori || '').toLowerCase();
+                           let bg = 'from-indigo-500 to-blue-600', icon = 'church';
+                           if (kn.includes('kkr') || kn.includes('kebangunan')) { bg = 'from-orange-500 to-red-500'; icon = 'local_fire_department'; }
+                           else if (kn.includes('camp') || kn.includes('retreat')) { bg = 'from-green-500 to-emerald-600'; icon = 'forest'; }
+                           else if (kn.includes('seminar') || kn.includes('pelatihan') || kn.includes('webinar')) { bg = 'from-purple-500 to-violet-600'; icon = 'school'; }
+                           else if (kn.includes('pernikahan')) { bg = 'from-pink-500 to-rose-600'; icon = 'favorite'; }
+                           else if (kn.includes('baptisan')) { bg = 'from-sky-400 to-blue-500'; icon = 'water_drop'; }
+                           else if (kn.includes('penyerahan anak')) { bg = 'from-yellow-400 to-amber-500'; icon = 'child_care'; }
+                           else if (kn.includes('kesehatan') || kn.includes('medis')) { bg = 'from-teal-400 to-cyan-600'; icon = 'medical_services'; }
+                           else if (kn.includes('ibadah padang') || kn.includes('outing')) { bg = 'from-lime-500 to-green-600'; icon = 'nature_people'; }
+                           else if (kn.includes('perayaan') || kn.includes('natal') || kn.includes('paskah') || kn.includes('khusus')) { bg = 'from-amber-400 to-orange-500'; icon = 'celebration'; }
+                           else if (kn.includes('besuk') || kn.includes('kunjungan') || kat.includes('sosial')) { bg = 'from-rose-400 to-pink-600'; icon = 'volunteer_activism'; }
+                           else if (kat.includes('sakramen') || kn.includes('pemberkatan')) { bg = 'from-violet-500 to-purple-700'; icon = 'auto_awesome'; }
+                           return (
+                             <div className={`w-full h-28 bg-gradient-to-br ${bg} relative overflow-hidden shrink-0 flex flex-col items-center justify-center gap-1.5`}>
+                               <div className="absolute inset-0 bg-black/10 pointer-events-none" />
+                               <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center border border-white/30 shadow-lg z-10">
+                                 <span className="material-icons-round text-white text-3xl">{icon}</span>
+                               </div>
+                               <span className="text-white/90 text-[10px] font-bold uppercase tracking-widest z-10 px-3 text-center leading-tight line-clamp-1">
+                                 {evt.nama_jenis_kegiatan}
+                               </span>
+                               {(evt._myTicketBadge || evt.butuh_registrasi) && (
+                                 <span className={`absolute top-2.5 right-2.5 text-[9px] font-bold px-2 py-0.5 rounded shadow-sm backdrop-blur border ${evt._myTicketBadge ? evt._myTicketBadge.style : 'bg-white/90 text-blue-600 border-white/50'}`}>
+                                   {evt._myTicketBadge ? evt._myTicketBadge.text : 'REGISTRASI'}
+                                 </span>
+                               )}
+                             </div>
+                           );
+                         })()}
                         
                         <div className="p-5 flex flex-col flex-1">
                           {!evt.url_banner && (

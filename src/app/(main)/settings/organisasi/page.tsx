@@ -167,7 +167,7 @@ export default function OrganisasiPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('satelit');
   const [satelitList, setSatelitList] = useState<any[]>([]);
   const [selectedSatelit, setSelectedSatelit] = useState<number | null>(null);
-  const [bagan, setBagan] = useState<{ bph: any[]; komisi: any[]; rayon: any[] } | null>(null);
+  const [bagan, setBagan] = useState<{ bph: any[]; komisi: any[]; rayon: any[]; is_pusat: boolean } | null>(null);
   const [departemen, setDepartemen] = useState<any[]>([]);
   const [konflik, setKonflik] = useState<{ jabatan_ganda: any[]; segera_habis: any[]; total_konflik: number } | null>(null);
   const [loading, setLoading] = useState(false);
@@ -206,7 +206,7 @@ export default function OrganisasiPage() {
     setLoading(true);
     fetch(`/api/settings/organisasi?tab=satelit&satelit_id=${selectedSatelit}`)
       .then(r => r.json())
-      .then(d => { if (d.success) setBagan({ bph: d.bph, komisi: d.komisi, rayon: d.rayon }); })
+      .then(d => { if (d.success) setBagan({ bph: d.bph, komisi: d.komisi, rayon: d.rayon, is_pusat: d.is_pusat || false }); })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [selectedSatelit, activeTab]);
@@ -404,22 +404,23 @@ export default function OrganisasiPage() {
             </div>
           ) : bagan ? (
             <div className="relative flex flex-col mt-2 pb-10">
-              {/* ROOT LEVEL: BPH Satelit */}
-              <div className="bg-white rounded-xl border border-blue-200 shadow-md overflow-hidden relative z-10 w-full lg:w-3/4">
-                <div className="bg-gradient-to-r from-blue-700 to-blue-500 px-5 py-3.5 flex items-center gap-2">
-                  <span className="material-icons-round text-white text-[20px]">shield</span>
-                  <span className="text-white font-bold font-['Inter']">BPH Satelit</span>
-                  <span className="text-blue-100 text-sm ml-1 font-semibold">({bagan.bph.length} jabatan)</span>
+              {/* ROOT LEVEL: BPH Satelit / Majelis Pusat */}
+              <div className={`bg-white rounded-xl shadow-md overflow-hidden relative z-10 w-full lg:w-3/4 border ${bagan.is_pusat ? 'border-amber-300' : 'border-blue-200'}`}>
+                <div className={`px-5 py-3.5 flex items-center gap-2 bg-gradient-to-r ${bagan.is_pusat ? 'from-amber-700 to-amber-500' : 'from-blue-700 to-blue-500'}`}>
+                  <span className="material-icons-round text-white text-[20px]">{bagan.is_pusat ? 'account_balance' : 'shield'}</span>
+                  <span className="text-white font-bold font-['Inter']">{bagan.is_pusat ? 'Majelis / BPH Pusat' : 'BPH Satelit'}</span>
+                  <span className={`text-sm ml-1 font-semibold ${bagan.is_pusat ? 'text-amber-100' : 'text-blue-100'}`}>({bagan.bph.length} jabatan)</span>
                 </div>
                 <div className="p-4 flex flex-wrap gap-3">
                   {bagan.bph.length ? bagan.bph.map((b, i) => (
                     <div key={i} className="flex-1 min-w-[250px]">
                       <PersonCard nama={b.nama_lengkap} jabatan={b.nama_jabatan}
-                        foto={b.foto_url} idPengurus={b.id_pengurus} hasAkun={b.has_akun} highlight="blue" />
+                        foto={b.foto_url} idPengurus={b.id_pengurus} hasAkun={b.has_akun}
+                        highlight={bagan.is_pusat ? 'amber' : 'blue'} />
                     </div>
                   )) : (
                     <div className="w-full">
-                      <EmptyState icon="shield" text="Belum ada BPH Satelit terdaftar." />
+                      <EmptyState icon={bagan.is_pusat ? 'account_balance' : 'shield'} text={bagan.is_pusat ? 'Belum ada data Majelis/BPH Pusat.' : 'Belum ada BPH Satelit terdaftar.'} />
                     </div>
                   )}
                 </div>

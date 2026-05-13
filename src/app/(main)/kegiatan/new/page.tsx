@@ -323,6 +323,7 @@ export default function NewKegiatanPage() {
   const [pengurusOptions, setPengurusOptions] = useState<{id: string, name: string}[]>([]);
   const [raOptions, setRaOptions] = useState<any[]>([]);
   const [raSearchQuery, setRaSearchQuery] = useState(''); // specifically mapped for generic autocomplete
+  const [raLockedJenisId, setRaLockedJenisId] = useState<string>(''); // ID jenis kegiatan yang dikunci dari RA
 
   // Form State
   const [formData, setFormData] = useState({
@@ -460,8 +461,11 @@ export default function NewKegiatanPage() {
       tipe_penyelenggara: e.target.value,
       satelit_id: '',
       komisi_id: '',
-      departemen_id: ''
+      departemen_id: '',
+      anggaran_tahunan_id: '', // reset RA saat penyelenggara berubah
     }));
+    setRaLockedJenisId('');
+    setRaSearchQuery('');
   };
 
   const handleCreate = async (statusOverride: string) => {
@@ -607,8 +611,26 @@ export default function NewKegiatanPage() {
 
               <div className="w-full flex gap-5">
                 <div className="flex-[2] flex-col gap-1.5 flex">
-                  <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase">Jenis Kegiatan <span className="text-red-500">*</span></label>
-                  <select name="jenis_kegiatan_id" value={formData.jenis_kegiatan_id} onChange={handleInputChange} className="px-4 py-2.5 bg-slate-50 rounded-lg border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all cursor-pointer">
+                  <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase flex items-center gap-2">
+                    Jenis Kegiatan <span className="text-red-500">*</span>
+                    {raLockedJenisId && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-violet-100 text-violet-700 border border-violet-200 rounded text-[9px] font-bold tracking-wide">
+                        <span className="material-icons-round text-[11px]">lock</span>
+                        Dikunci oleh RA
+                      </span>
+                    )}
+                  </label>
+                  <select
+                    name="jenis_kegiatan_id"
+                    value={formData.jenis_kegiatan_id}
+                    onChange={handleInputChange}
+                    disabled={!!raLockedJenisId}
+                    className={`px-4 py-2.5 rounded-lg border text-slate-900 text-sm font-['Inter'] w-full transition-all ${
+                      raLockedJenisId
+                        ? 'bg-violet-50 border-violet-200 cursor-not-allowed opacity-80'
+                        : 'bg-slate-50 border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer'
+                    }`}
+                  >
                     <option value="">-- Pilih Spesifikasi --</option>
                     {(() => {
                       const KATEGORI_ORDER = [
@@ -637,7 +659,14 @@ export default function NewKegiatanPage() {
                       ));
                     })()}
                   </select>
+                  {raLockedJenisId && (
+                    <span className="text-[10px] text-violet-500 flex items-center gap-1 mt-0.5">
+                      <span className="material-icons-round text-[11px]">info</span>
+                      Hapus pilihan RA di atas untuk mengubah jenis kegiatan.
+                    </span>
+                  )}
                 </div>
+
                 <div className="flex-1 flex-col gap-1.5 flex">
                   <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase">Frekuensi <span className="text-red-500">*</span></label>
                   <select name="frekuensi_kegiatan" value={formData.frekuensi_kegiatan} onChange={handleInputChange} className="px-4 py-2.5 bg-slate-50 rounded-lg border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all cursor-pointer">
@@ -912,7 +941,21 @@ export default function NewKegiatanPage() {
           {/* CARD SUMBER ANGGARAN (RA LINK) */}
           {(() => {
             const selectedRA = raOptions.find(r => r.id === formData.anggaran_tahunan_id);
-            const filteredRA = raOptions.filter(r => {
+
+            // Filter 1: berdasarkan penyelenggara yang dipilih
+            const penyelenggaraFilteredRA = raOptions.filter(r => {
+              if (formData.tipe_penyelenggara === 'Komisi' && formData.komisi_id) {
+                return r.komisi_id?.toString() === formData.komisi_id;
+              }
+              if (formData.tipe_penyelenggara === 'Satelit' && formData.satelit_id) {
+                return r.satelit_id?.toString() === formData.satelit_id;
+              }
+              // Departemen atau belum ada pilihan → tampilkan semua
+              return true;
+            });
+
+            // Filter 2: berdasarkan teks pencarian
+            const filteredRA = penyelenggaraFilteredRA.filter(r => {
               if (!raSearchQuery) return true;
               const q = raSearchQuery.toLowerCase();
               return (
@@ -950,7 +993,11 @@ export default function NewKegiatanPage() {
                       </div>
                       <button
                         type="button"
-                        onClick={() => { setFormData(prev => ({ ...prev, anggaran_tahunan_id: '' })); setRaSearchQuery(''); }}
+                        onClick={() => {
+                          setFormData(prev => ({ ...prev, anggaran_tahunan_id: '' }));
+                          setRaSearchQuery('');
+                          setRaLockedJenisId('');
+                        }}
                         className="w-6 h-6 rounded-full bg-slate-100 hover:bg-red-100 text-slate-500 hover:text-red-500 flex items-center justify-center transition-colors"
                       >
                         <span className="material-icons-round text-[14px]">close</span>
@@ -995,12 +1042,33 @@ export default function NewKegiatanPage() {
                         className="pl-10 pr-4 py-2.5 bg-white rounded-lg border border-violet-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-['Inter'] w-full transition-all placeholder-slate-400"
                       />
                     </div>
+
+                    {/* Filter context hint */}
+                    {(formData.tipe_penyelenggara === 'Satelit' && formData.satelit_id) || (formData.tipe_penyelenggara === 'Komisi' && formData.komisi_id) ? (
+                      <div className="flex items-center gap-1.5 px-2 py-1.5 bg-violet-50 border border-violet-100 rounded-lg">
+                        <span className="material-icons-round text-violet-500 text-[13px]">filter_list</span>
+                        <span className="text-[11px] text-violet-700 font-semibold font-['Public_Sans']">
+                          {formData.tipe_penyelenggara === 'Komisi' && formData.komisi_id
+                            ? `RA milik: ${komisiOptions.find(k => k.id.toString() === formData.komisi_id)?.nama_komisi || 'Komisi'}`
+                            : `RA milik: ${satelitOptions.find(s => s.id.toString() === formData.satelit_id)?.nama_satelit || 'Satelit'}`
+                          }
+                        </span>
+                        <span className="text-[10px] text-violet-400 ml-auto">({penyelenggaraFilteredRA.length} tersedia)</span>
+                      </div>
+                    ) : null}
+
                     <div className="max-h-52 overflow-y-auto rounded-lg border border-slate-200 bg-white divide-y divide-slate-100">
                       {filteredRA.length === 0 ? (
                         <div className="p-4 text-center text-sm text-slate-400 flex flex-col items-center gap-1">
                           <span className="material-icons-round text-[28px] text-slate-300">search_off</span>
-                          {raOptions.length === 0 ? 'Belum ada RA yang disetujui Majelis.' : 'Tidak ditemukan RA yang cocok.'}
+                          {raOptions.length === 0
+                            ? 'Belum ada RA Kegiatan yang disetujui Majelis.'
+                            : penyelenggaraFilteredRA.length === 0
+                              ? 'Tidak ada RA untuk penyelenggara ini. Coba ubah ke All atau hubungi Majelis.'
+                              : 'Tidak ditemukan RA yang cocok.'
+                          }
                         </div>
+
                       ) : (
                         <>
                           {multiEventRA.length > 0 && (
@@ -1010,7 +1078,38 @@ export default function NewKegiatanPage() {
                                 <button
                                   key={ra.id}
                                   type="button"
-                                  onClick={() => { setFormData(prev => ({ ...prev, anggaran_tahunan_id: ra.id })); setRaSearchQuery(''); }}
+                                  onClick={() => {
+                                    setFormData(prev => {
+                                      const next = { ...prev, anggaran_tahunan_id: ra.id };
+                                      if (ra.jenis_kegiatan_id) {
+                                        const jkIdStr = ra.jenis_kegiatan_id.toString();
+                                        next.jenis_kegiatan_id = jkIdStr;
+                                        setRaLockedJenisId(jkIdStr);
+                                        // Auto-apply default toggles dari jenis kegiatan ini
+                                        const jk = jenisKegiatanOptions.find(o => o.id.toString() === jkIdStr);
+                                        if (jk) {
+                                          next.is_published = jk.default_is_published;
+                                          next.butuh_registrasi = jk.default_butuh_registrasi;
+                                        }
+                                      } else {
+                                        setRaLockedJenisId('');
+                                      }
+                                      // Auto-populate Eksekutor dari RA
+                                      if (ra.komisi_id) {
+                                        next.tipe_penyelenggara = 'Komisi';
+                                        next.satelit_id = ra.satelit_id?.toString() || '';
+                                        next.komisi_id = ra.komisi_id.toString();
+                                        next.departemen_id = '';
+                                      } else if (ra.satelit_id) {
+                                        next.tipe_penyelenggara = 'Satelit';
+                                        next.satelit_id = ra.satelit_id.toString();
+                                        next.komisi_id = '';
+                                        next.departemen_id = '';
+                                      }
+                                      return next;
+                                    });
+                                    setRaSearchQuery('');
+                                  }}
                                   className="w-full text-left px-3 py-2.5 hover:bg-violet-50 transition-colors flex flex-col gap-0.5"
                                 >
                                   <div className="flex items-center gap-2">
@@ -1032,7 +1131,39 @@ export default function NewKegiatanPage() {
                                   key={ra.id}
                                   type="button"
                                   disabled={!ra.is_available}
-                                  onClick={() => { if (ra.is_available) { setFormData(prev => ({ ...prev, anggaran_tahunan_id: ra.id })); setRaSearchQuery(''); } }}
+                                  onClick={() => {
+                                    if (ra.is_available) {
+                                      setFormData(prev => {
+                                        const next = { ...prev, anggaran_tahunan_id: ra.id };
+                                        if (ra.jenis_kegiatan_id) {
+                                          const jkIdStr = ra.jenis_kegiatan_id.toString();
+                                          next.jenis_kegiatan_id = jkIdStr;
+                                          setRaLockedJenisId(jkIdStr);
+                                          const jk = jenisKegiatanOptions.find(o => o.id.toString() === jkIdStr);
+                                          if (jk) {
+                                            next.is_published = jk.default_is_published;
+                                            next.butuh_registrasi = jk.default_butuh_registrasi;
+                                          }
+                                        } else {
+                                          setRaLockedJenisId('');
+                                        }
+                                        // Auto-populate Eksekutor dari RA
+                                        if (ra.komisi_id) {
+                                          next.tipe_penyelenggara = 'Komisi';
+                                          next.satelit_id = ra.satelit_id?.toString() || '';
+                                          next.komisi_id = ra.komisi_id.toString();
+                                          next.departemen_id = '';
+                                        } else if (ra.satelit_id) {
+                                          next.tipe_penyelenggara = 'Satelit';
+                                          next.satelit_id = ra.satelit_id.toString();
+                                          next.komisi_id = '';
+                                          next.departemen_id = '';
+                                        }
+                                        return next;
+                                      });
+                                      setRaSearchQuery('');
+                                    }
+                                  }}
                                   className={`w-full text-left px-3 py-2.5 transition-colors flex flex-col gap-0.5 ${
                                     ra.is_available ? 'hover:bg-violet-50 cursor-pointer' : 'opacity-50 cursor-not-allowed bg-slate-50'
                                   }`}
@@ -1073,8 +1204,8 @@ export default function NewKegiatanPage() {
                 <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase">Level Organisasi <span className="text-red-500">*</span></label>
                 <div className="flex bg-slate-50 p-1 rounded-lg border border-slate-200 shadow-inner">
                   {['Satelit', 'Departemen', 'Komisi'].map(type => (
-                    <label key={type} className={`flex-1 flex items-center justify-center p-2 rounded cursor-pointer transition-colors ${formData.tipe_penyelenggara === type ? 'bg-white shadow border border-slate-200 text-blue-700 font-bold' : 'text-slate-500 font-medium hover:text-slate-700'}`}>
-                      <input type="radio" value={type} checked={formData.tipe_penyelenggara === type} onChange={handleRadioChange} className="hidden" />
+                    <label key={type} className={`flex-1 flex items-center justify-center p-2 rounded transition-colors ${formData.tipe_penyelenggara === type ? 'bg-white shadow border border-slate-200 text-blue-700 font-bold' : 'text-slate-500 font-medium hover:text-slate-700'} ${!!formData.anggaran_tahunan_id ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}>
+                      <input type="radio" value={type} checked={formData.tipe_penyelenggara === type} onChange={handleRadioChange} disabled={!!formData.anggaran_tahunan_id} className="hidden" />
                       <span className="text-xs font-['Inter'] uppercase tracking-wide">{type}</span>
                     </label>
                   ))}
@@ -1084,7 +1215,19 @@ export default function NewKegiatanPage() {
               {formData.tipe_penyelenggara === 'Satelit' && (
                 <div className="w-full flex flex-col gap-1.5 animate-in fade-in slide-in-from-top-1">
                   <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase">Pilih Satelit <span className="text-red-500">*</span></label>
-                  <select name="satelit_id" value={formData.satelit_id} onChange={handleInputChange} className="px-3 py-2 bg-slate-50 rounded-lg border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-sm w-full cursor-pointer">
+                  <select
+                    name="satelit_id"
+                    value={formData.satelit_id}
+                    disabled={!!formData.anggaran_tahunan_id}
+                    onChange={(e) => {
+                      handleInputChange(e);
+                      // Reset RA saat satelit berubah
+                      setFormData(prev => ({ ...prev, satelit_id: e.target.value, anggaran_tahunan_id: '' }));
+                      setRaLockedJenisId('');
+                      setRaSearchQuery('');
+                    }}
+                    className={`px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-sm w-full transition-all ${!!formData.anggaran_tahunan_id ? 'bg-slate-100 opacity-70 cursor-not-allowed' : 'bg-slate-50 focus:bg-white cursor-pointer'}`}
+                  >
                     <option value="">-- Pilih --</option>
                     {satelitOptions.map((s) => <option key={s.id} value={s.id}>{s.nama_satelit}</option>)}
                   </select>
@@ -1094,7 +1237,7 @@ export default function NewKegiatanPage() {
               {formData.tipe_penyelenggara === 'Departemen' && (
                 <div className="w-full flex flex-col gap-1.5 animate-in fade-in slide-in-from-top-1">
                   <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase">Pilih Departemen Pusat <span className="text-red-500">*</span></label>
-                  <select name="departemen_id" value={formData.departemen_id} onChange={handleInputChange} className="px-3 py-2 bg-slate-50 rounded-lg border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-sm w-full cursor-pointer">
+                  <select name="departemen_id" value={formData.departemen_id} disabled={!!formData.anggaran_tahunan_id} onChange={handleInputChange} className={`px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-sm w-full transition-all ${!!formData.anggaran_tahunan_id ? 'bg-slate-100 opacity-70 cursor-not-allowed' : 'bg-slate-50 focus:bg-white cursor-pointer'}`}>
                     <option value="">-- Pilih --</option>
                     {departemenOptions.map((d) => <option key={d.id} value={d.id}>{d.nama_departemen}</option>)}
                   </select>
@@ -1105,7 +1248,18 @@ export default function NewKegiatanPage() {
                 <div className="w-full flex flex-col gap-4 animate-in fade-in slide-in-from-top-1">
                   <div className="w-full flex flex-col gap-1.5 border border-blue-100 bg-blue-50/30 p-3 rounded-lg">
                     <label className="text-blue-800 text-xs font-bold font-['Inter'] uppercase">1. Induk Satelit <span className="text-red-500">*</span></label>
-                    <select name="satelit_id" value={formData.satelit_id} onChange={(e) => { handleInputChange(e); setFormData(prev => ({ ...prev, komisi_id: '' })); }} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-sm w-full cursor-pointer">
+                    <select
+                      name="satelit_id"
+                      value={formData.satelit_id}
+                      disabled={!!formData.anggaran_tahunan_id}
+                      onChange={(e) => {
+                        handleInputChange(e);
+                        setFormData(prev => ({ ...prev, satelit_id: e.target.value, komisi_id: '', anggaran_tahunan_id: '' }));
+                        setRaLockedJenisId('');
+                        setRaSearchQuery('');
+                      }}
+                      className={`px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-sm w-full transition-all ${!!formData.anggaran_tahunan_id ? 'bg-slate-100 opacity-70 cursor-not-allowed' : 'bg-white focus:bg-white cursor-pointer'}`}
+                    >
                       <option value="">-- Pilih Satelit Terlebih Dahulu --</option>
                       {satelitOptions.map((s) => <option key={s.id} value={s.id}>{s.nama_satelit}</option>)}
                     </select>
@@ -1113,7 +1267,19 @@ export default function NewKegiatanPage() {
                   
                   <div className="w-full flex flex-col gap-1.5 border border-slate-200 bg-slate-50 p-3 rounded-lg">
                     <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase">2. Pilih Komisi Lokal <span className="text-red-500">*</span></label>
-                    <select name="komisi_id" value={formData.komisi_id} onChange={handleInputChange} disabled={!formData.satelit_id} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-sm w-full cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                    <select
+                      name="komisi_id"
+                      value={formData.komisi_id}
+                      disabled={!formData.satelit_id || !!formData.anggaran_tahunan_id}
+                      onChange={(e) => {
+                        handleInputChange(e);
+                        // Reset RA saat komisi berubah
+                        setFormData(prev => ({ ...prev, komisi_id: e.target.value, anggaran_tahunan_id: '' }));
+                        setRaLockedJenisId('');
+                        setRaSearchQuery('');
+                      }}
+                      className={`px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-sm w-full transition-all ${(!formData.satelit_id || !!formData.anggaran_tahunan_id) ? 'bg-slate-100 opacity-50 cursor-not-allowed' : 'bg-white focus:bg-white cursor-pointer'}`}
+                    >
                       <option value="">{formData.satelit_id ? '-- Pilih Komisi --' : '-- Menunggu Satelit --'}</option>
                       {komisiOptions.filter(k => k.satelit_id === (formData.satelit_id ? parseInt(formData.satelit_id) : null)).map((k) => <option key={k.id} value={k.id}>{k.nama_komisi}</option>)}
                     </select>

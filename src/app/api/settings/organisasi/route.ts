@@ -37,17 +37,19 @@ export async function GET(req: NextRequest) {
 
       let sid = parseInt(satelitId);
       if (!isMultiSatelit && sid !== caller.satelit_id) {
-        // Force sid to user's own satelit to prevent viewing other satelits' BPH
         sid = caller.satelit_id;
       }
 
-      // BPH Satelit (lingkup = 'Satelit', satelit_id = sid)
+      // Cek apakah satelit ini adalah Pusat (satelit_id = 1)
+      // Jabatan Pusat (Gembala Sidang, Majelis, dll) disimpan dengan lingkup='Pusat' dan is_bph_satelit=false
+      // Jabatan satelit biasa disimpan dengan lingkup='Satelit' dan is_bph_satelit=true
       const bphRes = await pool.query(`
         SELECT
           dk.id AS dk_id,
           jab.nama_jabatan,
           jab.lingkup_default,
           jab.is_bph_satelit,
+          dk.lingkup,
           dk.status_jabatan,
           dk.tanggal_mulai_menjabat,
           dk.periode_id,
@@ -59,7 +61,6 @@ export async function GET(req: NextRequest) {
           j.no_hp,
           p.id AS pengurus_id,
           p.id_pengurus,
-          -- cek apakah punya akun sistem
           EXISTS(SELECT 1 FROM pengguna pg WHERE pg.jemaat_id = j.id) AS has_akun
         FROM detail_kepengurusan dk
         JOIN jabatan jab ON dk.jabatan_id = jab.id
@@ -67,20 +68,32 @@ export async function GET(req: NextRequest) {
         JOIN jemaat j ON p.jemaat_id = j.id
         LEFT JOIN periode_kepengurusan per ON dk.periode_id = per.id
         WHERE dk.satelit_id = $1
-          AND dk.lingkup = 'Satelit'
-          AND jab.is_bph_satelit = true
           AND dk.status_jabatan = 'Aktif'
+          AND (
+            -- Jabatan satelit biasa (mis. Gembala Satelit, Wakil Ketua, dll)
+            (dk.lingkup = 'Satelit' AND jab.is_bph_satelit = true)
+            OR
+            -- Jabatan Pusat (Gembala Sidang, Majelis, Bendahara, dll) untuk satelit pusat
+            (dk.lingkup = 'Pusat')
+          )
         ORDER BY 
+          CASE dk.lingkup WHEN 'Pusat' THEN 0 ELSE 1 END ASC,
           CASE jab.nama_jabatan
-            WHEN 'Gembala Satelit' THEN 1
-            WHEN 'Wakil Ketua' THEN 2
-            WHEN 'Sekretaris' THEN 3
-            WHEN 'Bendahara' THEN 4
-            WHEN 'Komisaris' THEN 5
+            WHEN 'Gembala Sidang' THEN 1
+            WHEN 'Wakil Gembala' THEN 2
+            WHEN 'Gembala Satelit' THEN 3
+            WHEN 'Wakil Ketua' THEN 4
+            WHEN 'Sekretaris' THEN 5
+            WHEN 'Bendahara' THEN 6
+            WHEN 'Majelis' THEN 7
+            WHEN 'Komisaris' THEN 8
             ELSE 99
           END ASC,
           dk.catatan ASC
       `, [sid]);
+
+      // Flag apakah ini satelit pusat (ada jabatan lingkup Pusat)
+      const isPusat = bphRes.rows.some((r: any) => r.lingkup === 'Pusat');
 
       // Komisi di satelit ini beserta BPH-nya
       const komisiRes = await pool.query(`
@@ -155,6 +168,7 @@ export async function GET(req: NextRequest) {
         success: true,
         satelit_list: satelitRes.rows,
         bph: bphRes.rows,
+        is_pusat: isPusat,
         komisi: komisiRes.rows,
         rayon: rayonRes.rows,
       });

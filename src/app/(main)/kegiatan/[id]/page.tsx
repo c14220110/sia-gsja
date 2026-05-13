@@ -853,6 +853,40 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
                   </div>
                </div>
 
+               {/* Sumber Anggaran (RA) Widget */}
+               {data.anggaran_tahunan_id && (
+                 <div className="p-6 bg-emerald-50/50 rounded-xl shadow-sm border border-emerald-100 flex flex-col gap-6 relative overflow-hidden">
+                    <div className="absolute right-0 top-0 opacity-[0.03] pointer-events-none">
+                       <span className="material-icons-round text-[150px] text-emerald-900">request_quote</span>
+                    </div>
+                    <h3 className="text-emerald-900 font-bold uppercase tracking-wide border-b border-emerald-100 pb-3 flex items-center gap-2 z-10">
+                       <span className="material-icons-round text-emerald-600">account_balance_wallet</span> Sumber Anggaran (RA)
+                    </h3>
+                    <div className="flex flex-col gap-5 z-10">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs text-emerald-800 font-bold uppercase flex items-center gap-2">
+                           Rancangan Terhubung
+                           <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-widest border ${data.ra_pola === 'Sekali Pakai' ? 'bg-amber-100 text-amber-700 border-amber-200' : 'bg-blue-100 text-blue-700 border-blue-200'}`}>
+                             {data.ra_pola}
+                           </span>
+                        </span>
+                        <div className="text-sm font-semibold text-slate-900 bg-white border border-emerald-100 p-3.5 rounded-lg flex flex-col gap-1">
+                           <span className="text-xs text-slate-500 font-mono">{data.ra_kode}</span>
+                           <span className="font-bold">{data.ra_nama}</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs text-emerald-800 font-bold uppercase">Total Disetujui (RA)</span>
+                        <span className="text-sm font-semibold text-slate-900 bg-white border border-emerald-100 p-3.5 rounded-lg flex items-center gap-2 font-mono">
+                           <span className="material-icons-round text-emerald-500 text-[18px]">payments</span>
+                           {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(data.ra_total || 0)}
+                        </span>
+                      </div>
+                    </div>
+                 </div>
+               )}
+
+
                {/* Dynamic Khotbah Info */}
                {data.nama_jenis_kegiatan?.toLowerCase().includes('kebaktian') && (
                  <div className="p-6 bg-blue-50/50 rounded-xl shadow-sm border border-blue-100 flex flex-col gap-6 relative overflow-hidden">
@@ -1060,7 +1094,6 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
                         <th className="py-4 px-4 font-semibold w-10">No</th>
                         <th className="py-4 px-4 font-semibold">Nama Individu</th>
                         <th className="py-4 px-4 font-semibold">Tugas / Peran Eksklusif</th>
-                        <th className="py-4 px-4 font-semibold">Status Konfirmasi</th>
                         <th className="py-4 px-4 font-semibold text-right">Aksi</th>
                       </tr>
                     </thead>
@@ -1068,13 +1101,35 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
                       {groupedPelayan.map((p: any, index) => {
                         const allRoleIds = p.roles.map((r: any) => r.id);
                         const isAllSelected = allRoleIds.every((rid: number) => selectedRosterIds.has(rid));
+                        const allHadir = p.roles.every((r: any) => r.status_konfirmasi === 'Hadir');
+
+                        // Helper: warna dot per status
+                        const getStatusDot = (status: string) => {
+                          if (status === 'Hadir') return 'bg-emerald-500';
+                          if (status === 'Bersedia') return 'bg-emerald-400';
+                          if (status === 'Berhalangan' || status === 'Tidak Hadir') return 'bg-red-500 animate-pulse';
+                          return 'bg-amber-400 animate-pulse';
+                        };
+                        const getStatusLabel = (status: string) => {
+                          if (status === 'Hadir') return '✓ Hadir';
+                          if (status === 'Bersedia') return '✅ Bersedia';
+                          if (status === 'Berhalangan') return '❌ Berhalangan';
+                          if (status === 'Tidak Hadir') return 'Tidak Hadir';
+                          return '⏳ Menunggu';
+                        };
+                        const getStatusTextColor = (status: string) => {
+                          if (status === 'Hadir') return 'text-emerald-700';
+                          if (status === 'Bersedia') return 'text-emerald-600';
+                          if (status === 'Berhalangan' || status === 'Tidak Hadir') return 'text-red-600';
+                          return 'text-amber-600';
+                        };
 
                         return (
                         <tr key={p.pelayan_id} className={`hover:bg-slate-50/50 transition-colors group ${isAllSelected ? 'bg-blue-50/40' : ''}`}>
                           {/* Checkbox column — hanya saat Ongoing dan belum hadir */}
                           {data.status_kegiatan === 'Ongoing' && isPelayanManager && (
                             <td className="py-4 pl-6 pr-2">
-                              {p.status_konfirmasi !== 'Hadir' ? (
+                              {!allHadir ? (
                                 <input
                                   type="checkbox"
                                   className="w-4 h-4 rounded accent-blue-600 cursor-pointer"
@@ -1106,125 +1161,94 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
                               </div>
                             </div>
                           </td>
-                          <td className="py-4 px-6 flex flex-wrap gap-2">
-                             {p.roles.map((r: any) => (
-                               <div key={r.id} className={`pl-3 pr-1 py-1 flex items-center gap-2 text-xs font-bold rounded uppercase tracking-wide border ${getRoleColor(r.role_kehadiran)}`}>
-                                 {r.role_kehadiran}
-                                 {isPelayanManager && (
-                                   <button 
-                                     onClick={async () => {
-                                        if (!confirm(`Hapus peran ${r.role_kehadiran} untuk ${p.nama_lengkap}?`)) return;
+
+                          {/* ROLE CHIPS — masing-masing chip punya status sendiri */}
+                          <td className="py-3 px-6">
+                            <div className="flex flex-wrap gap-2">
+                              {p.roles.map((r: any) => (
+                                <div key={r.id} className={`flex flex-col gap-1 px-2.5 py-1.5 rounded-lg border ${getRoleColor(r.role_kehadiran)}`}>
+                                  {/* Baris atas: nama role + tombol hapus */}
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-xs font-bold uppercase tracking-wide">{r.role_kehadiran}</span>
+                                    {isPelayanManager && (
+                                      <button
+                                        onClick={async () => {
+                                          if (!confirm(`Hapus peran ${r.role_kehadiran} untuk ${p.nama_lengkap}?`)) return;
+                                          try {
+                                            await fetch(`/api/kegiatan/${id}/pelayan?roster_id=${r.id}`, { method: 'DELETE' });
+                                            fetchPelayan();
+                                          } catch (e) { console.error(e); }
+                                        }}
+                                        className="w-4 h-4 rounded hover:bg-slate-900/10 flex items-center justify-center transition-colors"
+                                        title="Hapus peran ini"
+                                      >
+                                        <span className="material-icons-round text-[11px]">close</span>
+                                      </button>
+                                    )}
+                                  </div>
+                                  {/* Baris bawah: status konfirmasi per role */}
+                                  <div className="flex items-center gap-1">
+                                    <span className={`w-1.5 h-1.5 rounded-full ${getStatusDot(r.status_konfirmasi)}`}></span>
+                                    <span className={`text-[10px] font-semibold leading-none ${getStatusTextColor(r.status_konfirmasi)}`}>
+                                      {getStatusLabel(r.status_konfirmasi)}
+                                    </span>
+                                  </div>
+                                  {/* Hari H: tombol tandai hadir per role */}
+                                  {r.status_konfirmasi !== 'Hadir' && data.status_kegiatan === 'Ongoing' && isPelayanManager && (
+                                    <button
+                                      onClick={async () => {
                                         try {
-                                          await fetch(`/api/kegiatan/${id}/pelayan?roster_id=${r.id}`, { method: 'DELETE' });
+                                          await fetch(`/api/kegiatan/${id}/pelayan`, {
+                                            method: 'PATCH',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ roster_id: r.id, status_konfirmasi: 'Hadir' })
+                                          });
                                           fetchPelayan();
                                         } catch (e) { console.error(e); }
-                                     }}
-                                     className="w-5 h-5 rounded hover:bg-slate-900/10 flex items-center justify-center transition-colors"
-                                     title="Hapus peran ini"
-                                   >
-                                     <span className="material-icons-round text-[12px]">close</span>
-                                   </button>
-                                 )}
-                               </div>
-                             ))}
+                                      }}
+                                      className="mt-0.5 text-[9px] font-black px-1.5 py-0.5 bg-white/70 hover:bg-emerald-50 text-slate-500 hover:text-emerald-700 border border-current/20 rounded transition-colors flex items-center gap-0.5 w-fit"
+                                      title="Tandai Hadir untuk peran ini"
+                                    >
+                                      <span className="material-icons-round text-[10px]">how_to_reg</span> Hadir
+                                    </button>
+                                  )}
+                                  {/* Pra-acara: tombol ganti pelayan jika berhalangan */}
+                                  {!['Ongoing','Menunggu LPJ','Selesai'].includes(data.status_kegiatan) && r.status_konfirmasi === 'Berhalangan' && isPelayanManager && (
+                                    <button
+                                      onClick={() => {
+                                        setFormPelayan({ pelayan_id: '', role_id: String(r.role_id), role_kehadiran: r.role_kehadiran });
+                                        setIsModalOpen(true);
+                                      }}
+                                      className="mt-0.5 text-[9px] font-black px-1.5 py-0.5 bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 rounded transition-colors flex items-center gap-0.5 w-fit"
+                                      title="Cari pengganti"
+                                    >
+                                      <span className="material-icons-round text-[10px]">swap_horiz</span> Ganti
+                                    </button>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
                           </td>
-                          <td className="py-4 px-6">
-                              {/* ── FASE 2: HARI H (Ongoing/pasca) ── */}
-                              {['Ongoing','Menunggu LPJ','Selesai'].includes(data.status_kegiatan) ? (
-                                p.status_konfirmasi === 'Hadir' ? (
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                                    <span className="text-xs font-bold text-emerald-700">Hadir ✓</span>
-                                  </div>
-                                ) : p.status_konfirmasi === 'Tidak Hadir' ? (
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                                    <span className="text-xs font-bold text-red-600">Tidak Hadir</span>
-                                  </div>
-                                ) : (
-                                  <div className="flex items-center gap-1.5 opacity-60">
-                                    <span className="w-2 h-2 rounded-full border border-slate-400"></span>
-                                    <span className="text-xs font-medium text-slate-500">Menunggu Absensi</span>
-                                  </div>
-                                )
-                              ) : (
-                                /* ── FASE 1: PRA-ACARA (RSVP) ── */
-                                p.status_konfirmasi === 'Bersedia' ? (
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                                    <span className="text-xs font-bold text-emerald-700">✅ Bersedia</span>
-                                  </div>
-                                ) : p.status_konfirmasi === 'Berhalangan' ? (
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                                    <span className="text-xs font-bold text-red-600">❌ Berhalangan</span>
-                                  </div>
-                                ) : (
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-                                    <span className="text-xs font-medium text-amber-700">⏳ Menunggu Konfirmasi</span>
-                                  </div>
-                                )
-                              )}
-                           </td>
-                           <td className="py-4 px-6 text-right">
-                               {isPelayanManager && (
-                                 <div className="flex items-center justify-end gap-1">
 
-                                   {/* Fase 1: Pra-Acara — tombol Ganti Pelayan jika Berhalangan */}
-                                   {!['Ongoing','Menunggu LPJ','Selesai'].includes(data.status_kegiatan) && p.status_konfirmasi === 'Berhalangan' && (
-                                     <button
-                                       onClick={() => {
-                                         setFormPelayan({ pelayan_id: '', role_id: String(p.role_id), role_kehadiran: p.role_kehadiran });
-                                         setIsModalOpen(true);
-                                       }}
-                                       className="px-2.5 py-1 rounded-lg bg-orange-50 hover:bg-orange-100 text-orange-700 text-[11px] font-black transition-colors border border-orange-200 flex items-center gap-1"
-                                       title="Cari pengganti untuk peran ini"
-                                     >
-                                       <span className="material-icons-round text-[14px]">swap_horiz</span>
-                                       Ganti Pelayan
-                                     </button>
-                                   )}
-
-                                   {/* Fase 2: Hari H — tombol Tandai Hadir manual */}
-                                   {p.status_konfirmasi !== 'Hadir' && data.status_kegiatan === 'Ongoing' && (
-                                     <button
-                                       onClick={async () => {
-                                         try {
-                                           await fetch(`/api/kegiatan/${id}/pelayan`, {
-                                             method: 'PATCH',
-                                             headers: { 'Content-Type': 'application/json' },
-                                             body: JSON.stringify({ roster_id: p.id, status_konfirmasi: 'Hadir' })
-                                           });
-                                           fetchPelayan();
-                                         } catch (e) { console.error(e); }
-                                       }}
-                                       className="px-2.5 py-1 rounded-lg bg-white hover:bg-emerald-50 text-slate-500 hover:text-emerald-700 text-[11px] font-bold transition-colors border border-slate-200 hover:border-emerald-200 flex items-center gap-1"
-                                       title="Tandai Hadir Manual"
-                                     >
-                                       <span className="material-icons-round text-[14px]">how_to_reg</span>
-                                       Tandai Hadir
-                                     </button>
-                                   )}
-
-                                   <button
-                                     onClick={async () => {
-                                       if (!confirm(`Hapus orang ini sepenuhnya (${p.nama_lengkap}) dari semua jadwal?`)) return;
-                                       try {
-                                         for (const role of p.roles) {
-                                           await fetch(`/api/kegiatan/${id}/pelayan?roster_id=${role.id}`, { method: 'DELETE' });
-                                         }
-                                         fetchPelayan();
-                                       } catch (e) { console.error(e); }
-                                     }}
-                                     className="w-8 h-8 rounded-full hover:bg-red-50 text-red-400 hover:text-red-600 inline-flex items-center justify-center transition-colors shadow-sm bg-white border border-slate-200 hover:border-red-200"
-                                     title="Hapus Orang (Semua Peran)"
-                                   >
-                                      <span className="material-icons-round text-[18px]">delete_outline</span>
-                                   </button>
-                                 </div>
-                               )}
-                           </td>
+                          <td className="py-4 px-6 text-right">
+                            {isPelayanManager && (
+                              <button
+                                onClick={async () => {
+                                  if (!confirm(`Hapus orang ini sepenuhnya (${p.nama_lengkap}) dari semua jadwal?`)) return;
+                                  try {
+                                    for (const role of p.roles) {
+                                      await fetch(`/api/kegiatan/${id}/pelayan?roster_id=${role.id}`, { method: 'DELETE' });
+                                    }
+                                    fetchPelayan();
+                                  } catch (e) { console.error(e); }
+                                }}
+                                className="w-8 h-8 rounded-full hover:bg-red-50 text-red-400 hover:text-red-600 inline-flex items-center justify-center transition-colors shadow-sm bg-white border border-slate-200 hover:border-red-200"
+                                title="Hapus Orang (Semua Peran)"
+                              >
+                                 <span className="material-icons-round text-[18px]">delete_outline</span>
+                              </button>
+                            )}
+                          </td>
                         </tr>
                       )})}
                     </tbody>

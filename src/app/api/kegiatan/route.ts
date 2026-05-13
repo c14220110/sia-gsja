@@ -16,6 +16,7 @@ export async function GET(request: Request) {
   const filterTanggal = searchParams.get('tanggal') || 'Bulan Ini';
   const startDate = searchParams.get('start_date') || '';
   const endDate = searchParams.get('end_date') || '';
+  const modePublik = searchParams.get('mode') === 'publik'; // bypass RBAC satelit untuk halaman jadwal jemaat
   
   const limit = parseInt(searchParams.get('limit') || '10', 10);
   const offset = parseInt(searchParams.get('offset') || '0', 10);
@@ -38,15 +39,28 @@ export async function GET(request: Request) {
     }
 
     // 2. Satelit & RBAC check
-    let finalSatelitId = satelitId;
-    if (!caller.is_super_admin && !caller.permissions.includes('multi_satelit_view')) {
-      finalSatelitId = caller.satelit_id?.toString() || '';
-    }
+    // mode=publik: halaman jadwal jemaat → tampilkan semua satelit, filter is_published otomatis
+    if (modePublik) {
+      // Tambahkan filter is_published otomatis untuk mode publik
+      whereClauses.push(`k.is_published = true`);
+      // satelit_id boleh dikirim sebagai filter opsional dari dropdown
+      if (satelitId) {
+        whereClauses.push(`k.satelit_id = $${paramIndex}`);
+        values.push(satelitId);
+        paramIndex++;
+      }
+    } else {
+      // Mode normal: terapkan RBAC satelit
+      let finalSatelitId = satelitId;
+      if (!caller.is_super_admin && !caller.permissions.includes('multi_satelit_view')) {
+        finalSatelitId = caller.satelit_id?.toString() || '';
+      }
 
-    if (finalSatelitId) {
-      whereClauses.push(`k.satelit_id = $${paramIndex}`);
-      values.push(finalSatelitId);
-      paramIndex++;
+      if (finalSatelitId) {
+        whereClauses.push(`k.satelit_id = $${paramIndex}`);
+        values.push(finalSatelitId);
+        paramIndex++;
+      }
     }
 
     // 3. Penyelenggara (Merge Komisi & Departemen)
@@ -239,6 +253,10 @@ export async function POST(request: Request) {
     const w_selesai = (waktu_selesai && waktu_selesai.trim() !== '') ? waktu_selesai : null;
     
     let s_id = satelit_id ? satelit_id : null;
+    let d_id = tipe_penyelenggara === 'Departemen' && departemen_id ? departemen_id : null;
+    let k_id = tipe_penyelenggara === 'Komisi' && komisi_id ? komisi_id : null;
+    let jk_id = jenis_kegiatan_id;
+
     if (!caller.is_super_admin && !caller.permissions.includes('multi_satelit_view')) {
       if (s_id && s_id.toString() !== caller.satelit_id?.toString()) {
         return NextResponse.json({ success: false, message: 'Akses ditolak: Anda tidak memiliki izin untuk membuat kegiatan di satelit lain.' }, { status: 403 });
@@ -246,8 +264,6 @@ export async function POST(request: Request) {
       s_id = caller.satelit_id;
     }
 
-    const d_id = tipe_penyelenggara === 'Departemen' && departemen_id ? departemen_id : null;
-    const k_id = tipe_penyelenggara === 'Komisi' && komisi_id ? komisi_id : null;
     const pic_id = pic_pengurus_id ? pic_pengurus_id : null;
     const hk_rp = harga_tiket_rp ? parseFloat(harga_tiket_rp) : 0;
     const kp = kuota_peserta && kuota_peserta !== '' ? parseInt(kuota_peserta, 10) : null;
@@ -262,7 +278,7 @@ export async function POST(request: Request) {
     // RA Integrity Check (di dalam transaksi untuk race-condition safety)
     if (ra_id) {
       const raCheck = await client.query(
-        `SELECT id, status, pola_penggunaan FROM public.anggaran_tahunan WHERE id = $1`, [ra_id]
+        `SELECT id, status, pola_penggunaan, jenis_kegiatan_id, satelit_id, komisi_id, departemen_id FROM public.anggaran_tahunan WHERE id = $1`, [ra_id]
       );
       if (raCheck.rows.length === 0) {
         await client.query('ROLLBACK');
@@ -287,9 +303,15 @@ export async function POST(request: Request) {
           }, { status: 409 });
         }
       }
+      
+      // Override Eksekutor & Jenis Kegiatan secara paksa sesuai Master Data RA!
+      if (ra.jenis_kegiatan_id) jk_id = ra.jenis_kegiatan_id;
+      if (ra.satelit_id) s_id = ra.satelit_id;
+      if (ra.komisi_id) k_id = ra.komisi_id;
+      if (ra.departemen_id) d_id = ra.departemen_id;
     }
 
-    const kode_kegiatan = await generateKodeKegiatan(client, jenis_kegiatan_id, tanggal_mulai);
+    const kode_kegiatan = await generateKodeKegiatan(client, jk_id, tanggal_mulai);
 
     const insertKegiatanQuery = `
       INSERT INTO public.kegiatan (
@@ -303,7 +325,7 @@ export async function POST(request: Request) {
     `;
 
     const kegiatanResult = await client.query(insertKegiatanQuery, [
-      kode_kegiatan, nama_kegiatan, jenis_kegiatan_id, s_id, d_id, k_id,
+      kode_kegiatan, nama_kegiatan, jk_id, s_id, d_id, k_id,
       frekuensi_kegiatan, tanggal_mulai, t_selesai, waktu_mulai, w_selesai,
       lokasi_kegiatan, keterangan || null, pic_id, berbayar, status_kegiatan,
       is_published ?? true, butuh_registrasi ?? false, url_banner || null, hk_rp, kp,

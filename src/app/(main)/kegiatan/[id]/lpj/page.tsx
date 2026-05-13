@@ -20,6 +20,9 @@ export default function InputLPJPage() {
   const [items, setItems] = useState<Item[]>([]);
   const [laporan, setLaporan] = useState('');
   const [existingStatus, setExistingStatus] = useState('');
+  const [raInfo, setRaInfo] = useState<any>(null);
+  const [isPrefilled, setIsPrefilled] = useState(false);
+  const [raItemsReference, setRaItemsReference] = useState<any[]>([]);
   const [form, setForm] = useState({ jenis: 'Pengeluaran', coaId: '', coaLabel: '', sumber_dana: 'Kas Mandiri', uraian: '', deskripsi: '', jumlah: 1, satuan: '', harga: 0 });
   const [coaSearch, setCoaSearch] = useState('');
   const [coaOpen, setCoaOpen] = useState(false);
@@ -31,17 +34,23 @@ export default function InputLPJPage() {
       if (j.success) setCoaList(j.data.filter((c: any) => c.tipe_akun === 'Detail' && c.is_active).map((c: any) => ({ id: c.id, label: `${c.kode_akun} — ${c.nama_akun}`, saldo_normal: c.saldo_normal, grup_laporan: c.grup_laporan })));
     });
     fetch(`/api/kegiatan/${id}/lpj`).then(r => r.json()).then(j => {
-      if (j.success && j.data.header) {
-        setLaporan(j.data.header.laporan_naratif || '');
-        setExistingStatus(j.data.header.status_lpj || '');
-      }
-      if (j.success && j.data.items?.length > 0) {
-        setItems(j.data.items.map((it: any) => ({
-          id: String(it.id), jenis: it.jenis_anggaran, coaId: it.coa_id,
-          coaLabel: `${it.kode_akun} — ${it.nama_akun}`, sumber_dana: it.sumber_dana,
-          uraian: it.uraian, deskripsi: it.deskripsi || '', jumlah: it.jumlah,
-          satuan: it.satuan || '', harga: parseFloat(it.harga_satuan), total: it.jumlah * parseFloat(it.harga_satuan)
-        })));
+      if (j.success) {
+        if (j.data.header) {
+          setLaporan(j.data.header.laporan_naratif || '');
+          setExistingStatus(j.data.header.status_lpj || '');
+        }
+        if (j.data.items?.length > 0) {
+          setItems(j.data.items.map((it: any) => ({
+            id: String(it.id || Date.now() + Math.random()), 
+            jenis: it.jenis_anggaran, coaId: it.coa_id,
+            coaLabel: `${it.kode_akun} — ${it.nama_akun}`, sumber_dana: it.sumber_dana,
+            uraian: it.uraian, deskripsi: it.deskripsi || '', jumlah: it.jumlah,
+            satuan: it.satuan || '', harga: parseFloat(it.harga_satuan), total: it.jumlah * parseFloat(it.harga_satuan)
+          })));
+        }
+        setRaInfo(j.data.ra_info || null);
+        setIsPrefilled(j.data.is_prefilled || false);
+        setRaItemsReference(j.data.ra_items_reference || []);
       }
     });
   }, [id]);
@@ -69,6 +78,64 @@ export default function InputLPJPage() {
   const totalP = useMemo(() => items.filter(i => i.jenis === 'Penerimaan').reduce((a, c) => a + c.total, 0), [items]);
   const totalK = useMemo(() => items.filter(i => i.jenis === 'Pengeluaran').reduce((a, c) => a + c.total, 0), [items]);
   const sisa = totalP - totalK;
+
+  // Head-to-head comparison: RA rencana vs LPJ realisasi, dicocokkan per COA
+  const comparisonData = useMemo(() => {
+    if (raItemsReference.length === 0) return [];
+    // Group RA items by coa_id, sum total rencana
+    const raMap: Record<number, { kode_akun: string; nama_akun: string; uraian: string; jenis: string; total_ra: number; harga_satuan_ra: number; jumlah_ra: number; satuan_ra: string }> = {};
+    raItemsReference.forEach((r: any) => {
+      const total = r.jumlah * parseFloat(r.harga_satuan);
+      if (raMap[r.coa_id]) {
+        raMap[r.coa_id].total_ra += total;
+      } else {
+        raMap[r.coa_id] = {
+          kode_akun: r.kode_akun, nama_akun: r.nama_akun, uraian: r.uraian,
+          jenis: r.jenis_anggaran,
+          total_ra: total, harga_satuan_ra: parseFloat(r.harga_satuan),
+          jumlah_ra: r.jumlah, satuan_ra: r.satuan || '-'
+        };
+      }
+    });
+    // Group LPJ items by coa_id, sum total realisasi
+    const lpjMap: Record<number, { uraian: string; total_lpj: number; harga_satuan_lpj: number; jumlah_lpj: number }> = {};
+    items.forEach(i => {
+      if (lpjMap[i.coaId]) {
+        lpjMap[i.coaId].total_lpj += i.total;
+      } else {
+        lpjMap[i.coaId] = { uraian: i.uraian, total_lpj: i.total, harga_satuan_lpj: i.harga, jumlah_lpj: i.jumlah };
+      }
+    });
+    // Merge: all COAs from both RA and LPJ
+    const allCoaIds = new Set([...Object.keys(raMap).map(Number), ...Object.keys(lpjMap).map(Number)]);
+    return Array.from(allCoaIds).map(coaId => {
+      const ra = raMap[coaId];
+      const lpj = lpjMap[coaId];
+      const total_ra = ra?.total_ra ?? 0;
+      const total_lpj = lpj?.total_lpj ?? 0;
+      const selisih = total_lpj - total_ra;
+      return {
+        coaId,
+        kode_akun: ra?.kode_akun ?? items.find(i => i.coaId === coaId)?.coaLabel.split(' — ')[0] ?? '-',
+        nama_akun: ra?.nama_akun ?? items.find(i => i.coaId === coaId)?.coaLabel.split(' — ')[1] ?? '-',
+        uraian_ra: ra?.uraian ?? '-',
+        uraian_lpj: lpj?.uraian ?? '-',
+        jenis: ra?.jenis ?? (items.find(i => i.coaId === coaId)?.jenis ?? 'Pengeluaran'),
+        harga_satuan_ra: ra?.harga_satuan_ra ?? 0,
+        jumlah_ra: ra?.jumlah_ra ?? 0,
+        satuan_ra: ra?.satuan_ra ?? '-',
+        total_ra,
+        harga_satuan_lpj: lpj?.harga_satuan_lpj ?? 0,
+        jumlah_lpj: lpj?.jumlah_lpj ?? 0,
+        total_lpj,
+        selisih,
+        // Penerimaan: surplus if LPJ > RA (lebih banyak masuk), deficit if less
+        // Pengeluaran: surplus if LPJ < RA (lebih hemat), over if LPJ > RA
+        isOver: ra?.jenis === 'Penerimaan' ? total_lpj < total_ra : total_lpj > total_ra,
+        pct: total_ra > 0 ? Math.round((total_lpj / total_ra) * 100) : null
+      };
+    });
+  }, [raItemsReference, items]);
 
   const handleSave = async (action: 'draft' | 'ajukan') => {
     if (items.length === 0) { setSubmitState({ status: 'error', message: 'Minimal 1 item rincian harus diisi.' }); return; }
@@ -122,6 +189,39 @@ export default function InputLPJPage() {
           )}
         </div>
 
+        {/* RA Info Tracking (If Available) */}
+        {raInfo && (
+          <div className="mb-5 bg-emerald-50 border border-emerald-100 p-4 rounded-xl flex flex-col md:flex-row gap-4 justify-between items-center relative overflow-hidden">
+             <div className="absolute -right-4 -bottom-4 opacity-[0.05] pointer-events-none">
+                <span className="material-icons-round text-[100px] text-emerald-900">request_quote</span>
+             </div>
+             <div className="flex flex-col z-10 w-full md:w-auto">
+                <span className="text-xs font-bold text-emerald-800 uppercase tracking-widest mb-1">Rancangan Terhubung</span>
+                <span className="text-sm font-bold text-slate-800">{raInfo.kode} — {raInfo.nama}</span>
+                <span className="text-xs font-medium text-emerald-700 mt-0.5">Pola: {raInfo.pola}</span>
+             </div>
+             
+             {raInfo.pola === 'Bertahap' && (
+               <div className="flex gap-4 z-10 w-full md:w-auto justify-end">
+                  <div className="flex flex-col text-right">
+                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Disetujui</span>
+                     <span className="text-sm font-bold font-mono text-slate-800">{fmt(raInfo.total_disetujui)}</span>
+                  </div>
+                  <div className="w-px h-8 bg-emerald-200"></div>
+                  <div className="flex flex-col text-right">
+                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Terpakai (LPJ Lain)</span>
+                     <span className="text-sm font-bold font-mono text-red-600">{fmt(raInfo.total_terpakai_lain)}</span>
+                  </div>
+                  <div className="w-px h-8 bg-emerald-200"></div>
+                  <div className="flex flex-col text-right">
+                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Sisa Anggaran</span>
+                     <span className="text-sm font-bold font-mono text-emerald-700">{fmt(raInfo.total_disetujui - raInfo.total_terpakai_lain)}</span>
+                  </div>
+               </div>
+             )}
+          </div>
+        )}
+
         {/* Laporan Naratif */}
         <div className="mb-5">
           <label className={lbl}>Laporan Naratif / Catatan Umum <span className="text-slate-400 font-normal normal-case">(opsional)</span></label>
@@ -129,6 +229,122 @@ export default function InputLPJPage() {
             placeholder="Tulis ringkasan pelaksanaan kegiatan, kendala, dan saran..."
             className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm outline-none focus:ring-2 focus:ring-indigo-500 resize-none disabled:bg-slate-50 disabled:text-slate-400" />
         </div>
+
+        {/* RA Reference / Comparison Panel */}
+        {raItemsReference.length > 0 && (
+          <div className="mb-5 rounded-xl overflow-hidden border border-indigo-100">
+            <div className={`px-4 py-2.5 flex items-center gap-2 border-b ${items.length > 0 ? 'bg-indigo-600' : 'bg-blue-50 border-blue-100'}`}>
+              <span className={`material-icons-round text-[18px] ${items.length > 0 ? 'text-white' : 'text-blue-500'}`}>
+                {items.length > 0 ? 'compare_arrows' : 'menu_book'}
+              </span>
+              <p className={`text-xs font-bold uppercase tracking-wide ${items.length > 0 ? 'text-white' : 'text-blue-800'}`}>
+                {items.length > 0 ? 'Perbandingan Anggaran vs Realisasi (Per Sesi) — Head-to-Head per COA' : 'Referensi Rencana Anggaran (RA) — Hanya untuk Panduan'}
+              </p>
+            </div>
+
+            {items.length === 0 ? (
+              // === MODE: Plain Reference (belum ada item LPJ) ===
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs min-w-[600px]">
+                  <thead>
+                    <tr className="bg-blue-50/50 border-b border-blue-100 text-[10px] font-bold text-blue-700 uppercase tracking-widest">
+                      <th className="px-4 py-2 w-[30%]">Uraian (Rencana)</th>
+                      <th className="px-4 py-2 w-[22%]">Akun COA</th>
+                      <th className="px-4 py-2 text-center">Jml</th>
+                      <th className="px-4 py-2">Satuan</th>
+                      <th className="px-4 py-2 text-right">Harga/Satuan</th>
+                      <th className="px-4 py-2 text-right">Total Rencana</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {raItemsReference.map((r: any, i: number) => (
+                      <tr key={i} className="border-b border-blue-50 last:border-0 hover:bg-blue-50/30">
+                        <td className="px-4 py-2 font-medium text-slate-700">{r.uraian}</td>
+                        <td className="px-4 py-2 font-mono text-slate-500">{r.kode_akun} — {r.nama_akun}</td>
+                        <td className="px-4 py-2 text-center text-slate-600">{r.jumlah}</td>
+                        <td className="px-4 py-2 text-slate-500">{r.satuan || '-'}</td>
+                        <td className="px-4 py-2 text-right font-mono text-slate-600">{fmt(parseFloat(r.harga_satuan))}</td>
+                        <td className="px-4 py-2 text-right font-bold font-mono text-blue-700">{fmt(r.jumlah * parseFloat(r.harga_satuan))}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div className="bg-blue-50/50 px-4 py-2 text-[10px] text-blue-600 italic border-t border-blue-100">
+                  ⓘ Ini adalah rencana anggaran dari RA. Isi form di bawah dengan realisasi aktual per sesi kegiatan ini saja.
+                </div>
+              </div>
+            ) : (
+              // === MODE: Head-to-Head Comparison (ada item LPJ) ===
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs min-w-[800px]">
+                  <thead>
+                    <tr className="bg-indigo-50 border-b border-indigo-100 text-[10px] font-bold text-indigo-700 uppercase tracking-widest">
+                      <th className="px-4 py-2.5 w-[20%]">Akun COA</th>
+                      <th className="px-4 py-2.5 w-[14%]">Uraian RA</th>
+                      <th className="px-4 py-2.5 text-right w-[16%]">Anggaran RA<br/><span className="text-indigo-400 normal-case font-normal">(per sesi)</span></th>
+                      <th className="px-4 py-2.5 w-[14%]">Uraian Realisasi</th>
+                      <th className="px-4 py-2.5 text-right w-[16%]">Realisasi LPJ</th>
+                      <th className="px-4 py-2.5 text-right w-[14%]">Selisih</th>
+                      <th className="px-4 py-2.5 text-center w-[6%]">%</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {['Penerimaan', 'Pengeluaran'].map(jenisGroup => {
+                      const rows = comparisonData.filter(c => c.jenis === jenisGroup);
+                      if (rows.length === 0) return null;
+                      return (
+                        <>
+                          <tr key={jenisGroup}>
+                            <td colSpan={7} className={`px-4 py-1.5 text-[10px] font-bold tracking-widest uppercase ${jenisGroup === 'Penerimaan' ? 'bg-emerald-700 text-white' : 'bg-slate-700 text-white'}`}>
+                              {jenisGroup === 'Penerimaan' ? '↑ PENERIMAAN' : '↓ PENGELUARAN'}
+                            </td>
+                          </tr>
+                          {rows.map((row, i) => {
+                            const selisihFmt = row.selisih >= 0 ? `+${fmt(row.selisih)}` : fmt(row.selisih);
+                            // Color: Penerimaan over-budget is good (green), Pengeluaran over-budget is bad (red)
+                            const selisihColor = row.jenis === 'Penerimaan'
+                              ? (row.selisih >= 0 ? 'text-emerald-600' : 'text-red-500')
+                              : (row.selisih <= 0 ? 'text-emerald-600' : 'text-red-500');
+                            const rowBg = row.isOver ? 'bg-red-50/60' : 'bg-emerald-50/30';
+                            return (
+                              <tr key={i} className={`border-b border-slate-100 hover:brightness-95 ${rowBg}`}>
+                                <td className="px-4 py-3 font-mono text-slate-600 text-[11px]">
+                                  <span className="font-bold text-slate-800">{row.kode_akun}</span><br/>
+                                  <span className="text-slate-400">{row.nama_akun}</span>
+                                </td>
+                                <td className="px-4 py-3 text-slate-600">
+                                  {row.uraian_ra}<br/>
+                                  <span className="text-[10px] text-slate-400">{row.jumlah_ra} × {fmt(row.harga_satuan_ra)}</span>
+                                </td>
+                                <td className="px-4 py-3 text-right font-mono font-bold text-indigo-700">{fmt(row.total_ra)}</td>
+                                <td className="px-4 py-3 text-slate-600">{row.total_lpj > 0 ? row.uraian_lpj : <span className="italic text-slate-300">—</span>}</td>
+                                <td className="px-4 py-3 text-right font-mono font-bold text-slate-800">{row.total_lpj > 0 ? fmt(row.total_lpj) : <span className="text-slate-300">—</span>}</td>
+                                <td className={`px-4 py-3 text-right font-mono font-bold ${selisihColor}`}>
+                                  {row.total_lpj > 0 ? selisihFmt : '—'}
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                  {row.pct !== null && row.total_lpj > 0 ? (
+                                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                                      row.isOver ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-700'
+                                    }`}>{row.pct}%</span>
+                                  ) : '—'}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                <div className="bg-indigo-50 px-4 py-2 text-[10px] text-indigo-600 italic border-t border-indigo-100 flex gap-4">
+                  <span>🟢 Hijau = Sesuai / Hemat (Pengeluaran) / Lebih besar (Penerimaan)</span>
+                  <span>🔴 Merah = Melebihi Anggaran (Pengeluaran) / Di bawah target (Penerimaan)</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Form Tambah Item */}
         {isDraft && (
@@ -190,6 +406,7 @@ export default function InputLPJPage() {
                 <select value={form.sumber_dana} onChange={e => setForm(p => ({ ...p, sumber_dana: e.target.value }))} className={sel}>
                   <option value="Kas Mandiri">Kas Mandiri</option>
                   <option value="Kas Pusat">Kas Pusat</option>
+                  <option value="Kontribusi Peserta">Kontribusi Peserta</option>
                 </select>
               </div>
             </div>
@@ -241,6 +458,12 @@ export default function InputLPJPage() {
 
       {/* Rincian Table */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        {isPrefilled && items.length > 0 && isDraft && (
+          <div className="bg-blue-50 border-b border-blue-100 p-3 px-4 flex items-center gap-3">
+             <span className="material-icons-round text-blue-500 text-xl">auto_awesome</span>
+             <p className="text-sm text-blue-800 font-medium">Item di bawah ini secara otomatis diisi (pre-filled) dari Rancangan Anggaran yang telah disetujui. Anda dapat menyesuaikan jumlah dan harga sesuai dengan realisasi pelaksanaan.</p>
+          </div>
+        )}
         <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
           <h2 className="text-base font-bold text-slate-800">Rincian Keuangan Kegiatan</h2>
           <span className="text-xs text-slate-400">{items.length} item</span>
@@ -277,7 +500,7 @@ export default function InputLPJPage() {
                         <tr key={item.id} className="border-b border-slate-100 hover:bg-emerald-50/30">
                           <td className="p-4 pl-6 text-sm font-semibold text-slate-800">{idx + 1}. {item.uraian}<p className="text-xs font-normal text-slate-400">{item.deskripsi}</p></td>
                           <td className="p-4 text-xs font-mono text-slate-500">{item.coaLabel}</td>
-                          <td className="p-4"><span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${item.sumber_dana === 'Kas Pusat' ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : 'bg-emerald-50 text-emerald-600 border-emerald-200'}`}>{item.sumber_dana}</span></td>
+                          <td className="p-4"><span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${item.sumber_dana === 'Kas Pusat' ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : item.sumber_dana === 'Kontribusi Peserta' ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-emerald-50 text-emerald-600 border-emerald-200'}`}>{item.sumber_dana}</span></td>
                           <td className="p-4 text-sm text-center font-medium">{item.jumlah}</td>
                           <td className="p-4 text-sm text-center text-slate-600">{item.satuan}</td>
                           <td className="p-4 text-sm text-right font-mono text-slate-700">{fmt(item.harga)}</td>
@@ -295,7 +518,7 @@ export default function InputLPJPage() {
                         <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50">
                           <td className="p-4 pl-6 text-sm font-semibold text-slate-800">{idx + 1}. {item.uraian}<p className="text-xs font-normal text-slate-400">{item.deskripsi}</p></td>
                           <td className="p-4 text-xs font-mono text-slate-500">{item.coaLabel}</td>
-                          <td className="p-4"><span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${item.sumber_dana === 'Kas Pusat' ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : 'bg-emerald-50 text-emerald-600 border-emerald-200'}`}>{item.sumber_dana}</span></td>
+                          <td className="p-4"><span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${item.sumber_dana === 'Kas Pusat' ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : item.sumber_dana === 'Kontribusi Peserta' ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-emerald-50 text-emerald-600 border-emerald-200'}`}>{item.sumber_dana}</span></td>
                           <td className="p-4 text-sm text-center font-medium">{item.jumlah}</td>
                           <td className="p-4 text-sm text-center text-slate-600">{item.satuan}</td>
                           <td className="p-4 text-sm text-right font-mono text-slate-700">{fmt(item.harga)}</td>

@@ -25,7 +25,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         p.nama_lengkap as pic_name,
         kdi.tema_khotbah,
         kdi.nama_pengkhotbah_1,
-        kdi.nama_pengkhotbah_2
+        kdi.nama_pengkhotbah_2,
+        ra.kode_dokumen as ra_kode,
+        ra.nama_rancangan as ra_nama,
+        ra.pola_penggunaan as ra_pola,
+        ra.total_disetujui as ra_total
       FROM public.kegiatan k
       LEFT JOIN public.jenis_kegiatan jk ON k.jenis_kegiatan_id = jk.id
       LEFT JOIN public.satelit s ON k.satelit_id = s.id
@@ -34,6 +38,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       LEFT JOIN public.pengurus pengurus ON k.pic_pengurus_id = pengurus.id
       LEFT JOIN public.jemaat p ON pengurus.jemaat_id = p.id
       LEFT JOIN public.kegiatan_detail_ibadah kdi ON k.id = kdi.kegiatan_id
+      LEFT JOIN public.anggaran_tahunan ra ON k.anggaran_tahunan_id = ra.id
       WHERE k.id = $1
     `;
 
@@ -119,9 +124,14 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ success: false, message: 'Sumber Anggaran (RA) wajib dipilih saat mengajukan kegiatan.' }, { status: 400 });
     }
 
+    let jk_id = body.jenis_kegiatan_id || null;
+    let s_id = body.satelit_id || null;
+    let d_id = body.departemen_id || null;
+    let k_id = body.komisi_id || null;
+
     if (ra_id) {
       const raCheck = await client.query(
-        `SELECT id, status, pola_penggunaan FROM public.anggaran_tahunan WHERE id = $1`, [ra_id]
+        `SELECT id, status, pola_penggunaan, jenis_kegiatan_id, satelit_id, komisi_id, departemen_id FROM public.anggaran_tahunan WHERE id = $1`, [ra_id]
       );
       if (raCheck.rows.length === 0) {
         await client.query('ROLLBACK');
@@ -146,6 +156,12 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
           }, { status: 409 });
         }
       }
+      
+      // Override Eksekutor & Jenis Kegiatan secara paksa sesuai Master Data RA!
+      if (ra.jenis_kegiatan_id) jk_id = ra.jenis_kegiatan_id;
+      if (ra.satelit_id) s_id = ra.satelit_id;
+      if (ra.komisi_id) k_id = ra.komisi_id;
+      if (ra.departemen_id) d_id = ra.departemen_id;
     }
 
     // 1. Update Tabel Utama Kegiatan
@@ -176,10 +192,10 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     
     await client.query(updateKegiatan, [
       body.nama_kegiatan,
-      body.jenis_kegiatan_id || null,
-      body.satelit_id || null,
-      body.departemen_id || null,
-      body.komisi_id || null,
+      jk_id,
+      s_id,
+      d_id,
+      k_id,
       body.tanggal_mulai,
       body.tanggal_selesai || null,
       body.waktu_mulai || null,

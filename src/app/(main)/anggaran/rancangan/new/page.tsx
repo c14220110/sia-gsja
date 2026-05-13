@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
 import { AlertModal } from '@/components/ui/AlertModal';
@@ -31,6 +31,11 @@ export default function InputAnggaranBaruPage() {
   const [estimasiWaktu, setEstimasiWaktu] = useState('');
   const [form, setForm] = useState({ jenis:'Pengeluaran', coaId:'', coaLabel:'', sumber_dana:'Kas Mandiri', uraian:'', deskripsi:'', jumlah:1, satuan:'', harga:0 });
   const [items, setItems] = useState<RincianItem[]>([]);
+
+  // COA combobox state
+  const [coaQuery, setCoaQuery] = useState('');
+  const [coaOpen, setCoaOpen] = useState(false);
+  const coaRef = useRef<HTMLDivElement>(null);
   
   // RBAC State
   const [userData, setUserData] = useState<any>(null);
@@ -99,7 +104,23 @@ export default function InputAnggaranBaruPage() {
   ), [coaList, form.jenis]);
 
   // Reset COA when jenis changes (avoid wrong-type COA staying selected)
-  useEffect(() => { setForm(p=>({...p,coaId:'',coaLabel:''})); }, [form.jenis]);
+  useEffect(() => { setForm(p=>({...p,coaId:'',coaLabel:''})); setCoaQuery(''); setCoaOpen(false); }, [form.jenis]);
+
+  // Close COA dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (coaRef.current && !coaRef.current.contains(e.target as Node)) setCoaOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  // Filtered COA results based on coaQuery text
+  const coaResults = useMemo(() => {
+    if (!coaQuery.trim()) return filteredCoaList;
+    const q = coaQuery.toLowerCase();
+    return filteredCoaList.filter(c => c.label.toLowerCase().includes(q));
+  }, [filteredCoaList, coaQuery]);
 
   const handleAdd = () => {
     if (!form.coaId) { alert('Akun Perkiraan (COA) wajib dipilih. Ini adalah benang merah antara anggaran dan realisasi jurnal.'); return; }
@@ -113,7 +134,7 @@ export default function InputAnggaranBaruPage() {
   const validateFields = (): boolean => {
     if (!satelitId) { setSubmitState({status:'error',message:'Satelit wajib dipilih.'}); return false; }
     if (!namaRancangan) { setSubmitState({status:'error',message:'Nama Rancangan wajib diisi.'}); return false; }
-    if ((kategoriRa === 'Kegiatan' || kategoriRa === 'Operasional') && (!jenisKegiatanId && !(polaPenggunaan === 'Bertahap' && kategoriRa === 'Kegiatan'))) {
+    if (kategoriRa === 'Kegiatan' && !jenisKegiatanId) {
       setSubmitState({status:'error',message:'Jenis Kegiatan wajib dipilih untuk RA ini.'}); return false; 
     }
     if (items.length === 0) { setSubmitState({status:'error',message:'Minimal harus ada 1 item rincian anggaran.'}); return false; }
@@ -252,16 +273,16 @@ export default function InputAnggaranBaruPage() {
           </div>
           {kategoriRa==='Kegiatan' && <div>
             <label className={labelCls}>Pola Penggunaan <span className="text-red-500">*</span></label>
-            <select value={polaPenggunaan} onChange={e=>setPolaPenggunaan(e.target.value)} className={selectCls+' font-semibold'}>
+            <select value={polaPenggunaan} onChange={e=>{setPolaPenggunaan(e.target.value); setJenisKegiatanId('');}} className={selectCls+' font-semibold'}>
               <option value="Sekali Pakai">Sekali Pakai (1 Event)</option>
               <option value="Bertahap">Bertahap (Multi-Event / Rutin)</option>
             </select>
             <p className="text-[10px] text-slate-400 mt-1">{polaPenggunaan==='Sekali Pakai'?'Misal: Natal, Paskah, Retreat':'Misal: Ibadah Raya 52x, Sekolah Minggu 52x'}</p>
           </div>}
-          {(kategoriRa==='Kegiatan' || kategoriRa==='Operasional') && <div>
-            <label className={labelCls}>Jenis Kegiatan {(polaPenggunaan==='Bertahap' && kategoriRa==='Kegiatan')?<span className="text-slate-400 font-normal">(Multi-Jenis)</span>:<span className="text-red-500">*</span>}</label>
+          {kategoriRa==='Kegiatan' && <div>
+            <label className={labelCls}>Jenis Kegiatan <span className="text-red-500">*</span></label>
             <select value={jenisKegiatanId} onChange={e=>setJenisKegiatanId(e.target.value)} className={selectCls}>
-              <option value="">-- {(polaPenggunaan==='Bertahap' && kategoriRa==='Kegiatan')?'Multi-Jenis (Bebas)':'Pilih Jenis Kegiatan'} --</option>
+              <option value="">-- Pilih Jenis Kegiatan --</option>
               {(() => {
                 const KATEGORI_ORDER = [
                   'Ibadah Rutin',
@@ -270,8 +291,12 @@ export default function InputAnggaranBaruPage() {
                   'Event & Perayaan',
                   'Edukasi & Pelatihan',
                 ];
-                const grouped: Record<string, typeof jenisKegiatanList> = {};
-                jenisKegiatanList.forEach((jk: any) => {
+                let activeList = jenisKegiatanList;
+                if (polaPenggunaan === 'Bertahap') {
+                  activeList = activeList.filter((jk: any) => jk.kategori === 'Ibadah Rutin');
+                }
+                const grouped: Record<string, typeof activeList> = {};
+                activeList.forEach((jk: any) => {
                   const k = jk.kategori || 'Lainnya';
                   if (!grouped[k]) grouped[k] = [];
                   grouped[k].push(jk);
@@ -289,7 +314,7 @@ export default function InputAnggaranBaruPage() {
                 ));
               })()}
             </select>
-            <p className="text-[10px] text-slate-400 mt-1">{(polaPenggunaan==='Bertahap' && kategoriRa==='Kegiatan')?'Biarkan kosong jika RA ini akan dipakai untuk berbagai jenis acara (misal: RA Natal ada ibadah & baksos).':'Kunci RA ini untuk satu jenis kegiatan spesifik.'}</p>
+            <p className="text-[10px] text-slate-400 mt-1">{(polaPenggunaan==='Bertahap')?'Karena ini RA Bertahap, Anda hanya dapat memilih jenis Ibadah Rutin.':'Kunci RA ini untuk satu jenis kegiatan spesifik.'}</p>
           </div>}
         </div>
 
@@ -347,13 +372,79 @@ export default function InputAnggaranBaruPage() {
             </div>
             <div>
               <label className={labelCls}>Akun Perkiraan (COA) <span className="text-red-500">*</span>
-                <span className="ml-1 font-normal normal-case text-slate-400">({form.jenis==='Penerimaan'?'Akun Pendapatan (Kredit)':'Akun Beban (Debit)'} saja)</span>
+                <span className={`ml-1.5 font-normal normal-case text-[10px] px-1.5 py-0.5 rounded font-bold border ${
+                  form.jenis === 'Penerimaan'
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    : 'bg-red-50 text-red-700 border-red-200'
+                }`}>
+                  {form.jenis === 'Penerimaan' ? 'Akun Pendapatan (Kredit)' : 'Akun Beban (Debit)'}
+                </span>
               </label>
-              <select value={form.coaId} onChange={e=>{const s=filteredCoaList.find(c=>c.id===parseInt(e.target.value));setForm(p=>({...p,coaId:e.target.value,coaLabel:s?.label||''}));}} className={`${selectCls} ${!form.coaId?'border-amber-300':''}`}>
-                <option value="">-- Pilih Akun {form.jenis==='Penerimaan'?'Pendapatan':'Beban'} --</option>
-                {filteredCoaList.map(c=><option key={c.id} value={c.id}>{c.label}</option>)}
-              </select>
-              {filteredCoaList.length===0&&coaList.length>0&&<p className="text-[10px] text-amber-600 mt-1">Belum ada akun COA jenis {form.jenis==='Penerimaan'?'Pendapatan (Kredit)':'Beban (Debit)'} yang aktif.</p>}
+              <div className="relative" ref={coaRef}>
+                <div className="relative">
+                  <span className="material-icons-round absolute left-3 top-2.5 text-slate-400 text-[18px]">search</span>
+                  <input
+                    type="text"
+                    value={coaQuery}
+                    onChange={e => {
+                      const val = e.target.value;
+                      setCoaQuery(val);
+                      setCoaOpen(true);
+                      // If user clears the input, also clear selection
+                      if (!val) setForm(p => ({ ...p, coaId: '', coaLabel: '' }));
+                    }}
+                    onFocus={() => setCoaOpen(true)}
+                    placeholder={`Ketik kode atau nama akun ${form.jenis === 'Penerimaan' ? 'pendapatan' : 'beban'}...`}
+                    className={`w-full h-10 pl-10 pr-10 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-indigo-500 ${
+                      form.coaId
+                        ? form.jenis === 'Penerimaan'
+                          ? 'border-emerald-400 bg-emerald-50 text-emerald-900 font-semibold'
+                          : 'border-red-400 bg-red-50 text-red-900 font-semibold'
+                        : 'border-amber-300 bg-white'
+                    }`}
+                  />
+                  {form.coaId && (
+                    <button
+                      type="button"
+                      onClick={() => { setForm(p => ({ ...p, coaId: '', coaLabel: '' })); setCoaQuery(''); setCoaOpen(false); }}
+                      className="absolute right-3 top-2.5 text-slate-400 hover:text-red-500 transition-colors"
+                    >
+                      <span className="material-icons-round text-[18px]">close</span>
+                    </button>
+                  )}
+                </div>
+                {coaOpen && coaResults.length > 0 && (
+                  <div className="absolute z-30 top-full mt-1 w-full bg-white rounded-lg border border-slate-200 shadow-xl max-h-52 overflow-y-auto">
+                    <div className="px-3 py-1.5 bg-slate-50 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider sticky top-0">
+                      {coaResults.length} akun ditemukan · {form.jenis === 'Penerimaan' ? 'Akun Pendapatan' : 'Akun Beban'}
+                    </div>
+                    {coaResults.map(c => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => {
+                          setForm(p => ({ ...p, coaId: c.id.toString(), coaLabel: c.label }));
+                          setCoaQuery(c.label);
+                          setCoaOpen(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 hover:bg-indigo-50 transition-colors border-b border-slate-100 last:border-0 ${
+                          form.coaId === c.id.toString() ? 'bg-indigo-50' : ''
+                        }`}
+                      >
+                        <div className="text-xs font-mono font-bold text-indigo-700">{c.label.split('—')[0].trim()}</div>
+                        <div className="text-sm text-slate-700 truncate">{c.label.split('—').slice(1).join('—').trim()}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {coaOpen && coaQuery && coaResults.length === 0 && (
+                  <div className="absolute z-30 top-full mt-1 w-full bg-white rounded-lg border border-slate-200 shadow-xl p-4 text-center text-sm text-slate-400">
+                    <span className="material-icons-round text-[24px] text-slate-300 block mb-1">search_off</span>
+                    Tidak ada akun {form.jenis === 'Penerimaan' ? 'pendapatan' : 'beban'} yang cocok dengan "{coaQuery}"
+                  </div>
+                )}
+              </div>
+              {filteredCoaList.length === 0 && coaList.length > 0 && <p className="text-[10px] text-amber-600 mt-1">Belum ada akun COA jenis {form.jenis === 'Penerimaan' ? 'Pendapatan (Kredit)' : 'Beban (Debit)'} yang aktif.</p>}
             </div>
             <div>
               <label className={labelCls}>Sumber Dana</label>
@@ -378,9 +469,9 @@ export default function InputAnggaranBaruPage() {
             <div>
               <label className={labelCls}>Jumlah <span className="text-red-500">*</span></label>
               <div className="flex items-center border border-slate-300 rounded-lg overflow-hidden h-10 bg-white">
-                <button type="button" onClick={()=>setForm(p=>({...p,jumlah:Math.max(1,p.jumlah-1)}))} className="w-10 h-full flex justify-center items-center text-slate-500 hover:bg-slate-100 border-r border-slate-300 font-bold">−</button>
-                <input type="number" min={1} value={form.jumlah} onChange={e=>setForm(p=>({...p,jumlah:parseInt(e.target.value)||1}))} className="w-full h-full text-center outline-none text-sm font-semibold"/>
-                <button type="button" onClick={()=>setForm(p=>({...p,jumlah:p.jumlah+1}))} className="w-10 h-full flex justify-center items-center text-slate-500 hover:bg-slate-100 border-l border-slate-300 font-bold">+</button>
+                <button type="button" onClick={()=>setForm(p=>({...p,jumlah:Math.max(1,(Number(p.jumlah)||0)-1)}))} className="w-10 h-full flex justify-center items-center text-slate-500 hover:bg-slate-100 border-r border-slate-300 font-bold">−</button>
+                <input type="number" min={1} value={form.jumlah === 0 ? '' : form.jumlah} onChange={e=>setForm(p=>({...p,jumlah:e.target.value===''?('' as any):parseInt(e.target.value)}))} className="w-full h-full text-center outline-none text-sm font-semibold"/>
+                <button type="button" onClick={()=>setForm(p=>({...p,jumlah:(Number(p.jumlah)||0)+1}))} className="w-10 h-full flex justify-center items-center text-slate-500 hover:bg-slate-100 border-l border-slate-300 font-bold">+</button>
               </div>
             </div>
             <div>
@@ -391,12 +482,12 @@ export default function InputAnggaranBaruPage() {
               <label className={labelCls}>Harga Satuan <span className="text-red-500">*</span></label>
               <div className="relative">
                 <span className="absolute left-3 top-2.5 text-slate-400 text-sm font-semibold">Rp</span>
-                <input type="number" min={0} value={form.harga||''} onChange={e=>setForm(p=>({...p,harga:parseInt(e.target.value)||0}))} className={inputCls+' pl-9 font-mono'}/>
+                <input type="number" min={0} value={form.harga === 0 ? '' : form.harga} onChange={e=>setForm(p=>({...p,harga:e.target.value===''?('' as any):parseInt(e.target.value)}))} className={inputCls+' pl-9 font-mono'}/>
               </div>
             </div>
             <div>
               <label className={labelCls}>Total Estimasi</label>
-              <div className="w-full h-10 px-3 rounded-lg border border-slate-200 bg-slate-100 text-sm font-bold text-slate-700 flex items-center font-mono">{fmt(form.jumlah*form.harga)}</div>
+              <div className="w-full h-10 px-3 rounded-lg border border-slate-200 bg-slate-100 text-sm font-bold text-slate-700 flex items-center font-mono">{fmt((Number(form.jumlah)||0)*(Number(form.harga)||0))}</div>
             </div>
             <div>
               <button onClick={handleAdd} className="w-full h-10 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-sm flex justify-center items-center gap-2 transition-colors shadow-sm">
