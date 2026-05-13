@@ -9,7 +9,7 @@ import pool from '@/lib/db';
  * Kategori C: K/3
  * @returns nominal PPh21 yang harus dipotong per bulan
  */
-const getPph21TER = (brutoBulanan: number, statusPtkp: string): number => {
+const getPph21TER = (brutoBulanan: number, statusPtkp: string): { nominal: number; tarif: number; kategori: 'A' | 'B' | 'C' } => {
   const ptkp = (statusPtkp || 'TK/0').toUpperCase().trim();
 
   // Tentukan Kategori
