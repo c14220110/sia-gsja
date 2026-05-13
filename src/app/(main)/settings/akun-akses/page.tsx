@@ -926,7 +926,7 @@ export default function AkunAksesPage() {
                               </div>
                               <div className="flex flex-col">
                                 <span className={`text-sm font-bold transition-colors ${isChecked ? 'text-slate-900' : 'text-slate-600 group-hover:text-slate-800'}`}>
-                                  {permData.nama_permission.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                                  {permData.nama_permission.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
                                 </span>
                                 <span className="text-xs text-slate-500 mt-0.5 leading-relaxed">{permData.deskripsi}</span>
                               </div>
