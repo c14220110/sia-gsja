@@ -269,7 +269,7 @@ export default function ReviewAnggaranPage({ params }: { params: Promise<{ id: s
 
   return (
     <div className="w-full flex flex-col gap-6 pb-32">
-      <SubmitOverlay status={submitState.status} message={submitState.message} />
+      <SubmitOverlay status={submitState.status} message={submitState.message} onClose={() => setSubmitState({ status: 'idle', message: '' })} />
 
       {/* Confirmation Modal */}
       {confirmAction && (
@@ -333,7 +333,7 @@ export default function ReviewAnggaranPage({ params }: { params: Promise<{ id: s
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
           {[
             ['Kategori RA', data.kategori_ra || '-'],
-            ['Pola Penggunaan', data.pola_penggunaan || '-'],
+            ['Pola Penggunaan', data.pola_penggunaan === 'Sekali Pakai' ? 'Tunggal' : (data.pola_penggunaan || '-')],
             ['Satelit', data.nama_satelit],
             ['Komisi', data.nama_komisi || 'Umum'],
             ['Tahun', data.tahun],

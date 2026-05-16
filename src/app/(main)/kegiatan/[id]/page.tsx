@@ -375,6 +375,13 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [isManagerMode, setIsManagerMode] = useState(false);
 
+  // Ganti RA state
+  const [isGantiRAOpen, setIsGantiRAOpen] = useState(false);
+  const [raOptions, setRaOptions] = useState<any[]>([]);
+  const [isLoadingRA, setIsLoadingRA] = useState(false);
+  const [isSavingRA, setIsSavingRA] = useState(false);
+  const [selectedNewRA, setSelectedNewRA] = useState('');
+
   useEffect(() => {
     fetchDetail();
     fetchPelayan();
@@ -656,8 +663,39 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
     return <div className="p-8 text-center text-slate-500">Kegiatan tidak ditemukan</div>;
   }
 
-  // Format Dates
-  const startDate = new Date(data.tanggal_mulai).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  // Format Dates — smart range untuk multi-hari
+  const formatDateRange = () => {
+    const start = new Date(data.tanggal_mulai);
+    const optsLong = { weekday: 'long' as const, day: 'numeric' as const, month: 'long' as const, year: 'numeric' as const };
+    const optsShort = { day: 'numeric' as const, month: 'long' as const, year: 'numeric' as const };
+    const optsShortMon = { day: 'numeric' as const, month: 'short' as const };
+
+    if (!data.tanggal_selesai) {
+      return start.toLocaleDateString('id-ID', optsLong);
+    }
+    const end = new Date(data.tanggal_selesai);
+    // Normalisasi ke midnight lokal untuk perbandingan
+    const startDay = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+    const endDay = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+    if (startDay.getTime() === endDay.getTime()) {
+      return start.toLocaleDateString('id-ID', optsLong);
+    }
+    // Multi-hari: tampilkan range
+    const d1 = start.getDate();
+    const d2 = end.getDate();
+    const m1 = start.toLocaleDateString('id-ID', { month: 'long' });
+    const m2 = end.toLocaleDateString('id-ID', { month: 'long' });
+    const m1Short = start.toLocaleDateString('id-ID', { month: 'short' });
+    const m2Short = end.toLocaleDateString('id-ID', { month: 'short' });
+    const y1 = start.getFullYear();
+    const y2 = end.getFullYear();
+    const wd1 = start.toLocaleDateString('id-ID', { weekday: 'short' });
+    const wd2 = end.toLocaleDateString('id-ID', { weekday: 'short' });
+    if (y1 !== y2) return `${wd1}, ${d1} ${m1Short} ${y1} – ${wd2}, ${d2} ${m2Short} ${y2}`;
+    if (m1 !== m2) return `${wd1}, ${d1} ${m1Short} – ${wd2}, ${d2} ${m2Short} ${y2}`;
+    return `${wd1}, ${d1} – ${wd2}, ${d2} ${m1} ${y1}`;
+  };
+  const pelaksanaanLabel = formatDateRange();
   const isEditable = ['Draft', 'Menunggu Persetujuan', 'Ditolak'].includes(data.status_kegiatan);
   const isPelayanManager = isEditable || isManagerMode;
   
@@ -723,7 +761,7 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
               </div>
             </div>
             
-            <div className="flex gap-3">
+            <div className="flex gap-3 flex-wrap">
                <a href={`/api/kegiatan/${id}/export`} target="_blank" rel="noopener noreferrer" className="px-5 py-2.5 rounded-lg border border-indigo-600 bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition flex items-center gap-2 text-sm shadow-sm">
                  <span className="material-icons-round text-[18px]">download</span> Export Laporan
                </a>
@@ -732,7 +770,27 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
                    <span className="material-icons-round text-[18px]">edit</span> Edit Kegiatan
                  </Link>
                )}
+               {/* LPJ: Input/Revisi button for panitia */}
+               {data.status_kegiatan === 'Menunggu LPJ' && (!data.status_lpj || ['Draft','Revisi',''].includes(data.status_lpj)) && (
+                 <Link href={`/kegiatan/${id}/lpj`} className="px-5 py-2.5 rounded-lg border border-amber-400 bg-amber-50 text-amber-700 font-bold hover:bg-amber-100 transition flex items-center gap-2 text-sm shadow-sm">
+                   <span className="material-icons-round text-[18px]">assignment</span>
+                   {data.status_lpj === 'Revisi' ? 'Revisi LPJ' : 'Input LPJ'}
+                 </Link>
+               )}
+               {/* LPJ: Lihat LPJ button when submitted */}
+               {data.status_kegiatan === 'Menunggu LPJ' && data.status_lpj === 'Menunggu Review' && (
+                 <Link href={`/kegiatan/${id}/lpj/review`} className="px-5 py-2.5 rounded-lg border border-emerald-500 bg-emerald-50 text-emerald-700 font-bold hover:bg-emerald-100 transition flex items-center gap-2 text-sm shadow-sm">
+                   <span className="material-icons-round text-[18px]">fact_check</span> Review LPJ
+                 </Link>
+               )}
+               {/* LPJ: View when Selesai */}
+               {data.status_kegiatan === 'Selesai' && data.status_lpj === 'Disetujui' && (
+                 <Link href={`/kegiatan/${id}/lpj/view`} className="px-5 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-700 font-bold hover:bg-slate-50 transition flex items-center gap-2 text-sm shadow-sm">
+                   <span className="material-icons-round text-[18px]">receipt_long</span> Lihat LPJ
+                 </Link>
+               )}
             </div>
+
           </div>
           
           {/* Quick Highlight Bar */}
@@ -743,7 +801,7 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
                </div>
                <div className="flex flex-col">
                  <span className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-0.5">Pelaksanaan</span>
-                 <span className="text-[15px] font-bold text-slate-900">{startDate}</span>
+                 <span className="text-[15px] font-bold text-slate-900">{pelaksanaanLabel}</span>
                </div>
              </div>
              
@@ -859,16 +917,52 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
                     <div className="absolute right-0 top-0 opacity-[0.03] pointer-events-none">
                        <span className="material-icons-round text-[150px] text-emerald-900">request_quote</span>
                     </div>
-                    <h3 className="text-emerald-900 font-bold uppercase tracking-wide border-b border-emerald-100 pb-3 flex items-center gap-2 z-10">
-                       <span className="material-icons-round text-emerald-600">account_balance_wallet</span> Sumber Anggaran (RA)
-                    </h3>
+                    <div className="flex justify-between items-center border-b border-emerald-100 pb-3 z-10">
+                      <h3 className="text-emerald-900 font-bold uppercase tracking-wide flex items-center gap-2">
+                         <span className="material-icons-round text-emerald-600">account_balance_wallet</span> Sumber Anggaran (RA)
+                      </h3>
+                      {/* Tombol Ganti RA — hanya jika RA dibatalkan & kegiatan belum berjalan */}
+                      {data.ra_status === 'Dibatalkan' && ['Draft', 'Menunggu Persetujuan', 'Akan Datang'].includes(data.status_kegiatan) && (
+                        <button
+                          onClick={async () => {
+                            setIsGantiRAOpen(true);
+                            setSelectedNewRA('');
+                            if (raOptions.length === 0) {
+                              setIsLoadingRA(true);
+                              try {
+                                const res = await fetch(`/api/anggaran/tahunan?satelit_id=${data.satelit_id}&status=Disetujui Penuh,Disetujui Sebagian`);
+                                const json = await res.json();
+                                if (json.success) setRaOptions((json.data || []).filter((r: any) => r.id !== data.anggaran_tahunan_id));
+                              } catch(e) { console.error(e); } finally { setIsLoadingRA(false); }
+                            }
+                          }}
+                          className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 transition-colors shadow-sm"
+                        >
+                          <span className="material-icons-round text-[14px]">swap_horiz</span> Ganti RA
+                        </button>
+                      )}
+                    </div>
                     <div className="flex flex-col gap-5 z-10">
+                      {/* Warning jika RA sudah dibatalkan */}
+                      {data.ra_status === 'Dibatalkan' && (
+                        <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                          <span className="material-icons-round text-red-500 text-[16px] mt-0.5 shrink-0">warning</span>
+                          <p className="text-xs text-red-700 font-medium">RA terhubung sudah <strong>Dibatalkan</strong>. Kegiatan ini tidak memiliki plafon anggaran aktif. Silakan ganti ke RA baru yang sudah disetujui.</p>
+                        </div>
+                      )}
                       <div className="flex flex-col gap-1">
                         <span className="text-xs text-emerald-800 font-bold uppercase flex items-center gap-2">
                            Rancangan Terhubung
                            <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-widest border ${data.ra_pola === 'Sekali Pakai' ? 'bg-amber-100 text-amber-700 border-amber-200' : 'bg-blue-100 text-blue-700 border-blue-200'}`}>
-                             {data.ra_pola}
+                             {data.ra_pola === 'Sekali Pakai' ? 'Acara Tunggal' : data.ra_pola}
                            </span>
+                           {data.ra_status && (
+                             <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-widest border ${
+                               data.ra_status === 'Dibatalkan' ? 'bg-red-100 text-red-700 border-red-200' :
+                               data.ra_status === 'Disetujui Penuh' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
+                               'bg-blue-100 text-blue-700 border-blue-200'
+                             }`}>{data.ra_status}</span>
+                           )}
                         </span>
                         <div className="text-sm font-semibold text-slate-900 bg-white border border-emerald-100 p-3.5 rounded-lg flex flex-col gap-1">
                            <span className="text-xs text-slate-500 font-mono">{data.ra_kode}</span>
@@ -883,6 +977,85 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
                         </span>
                       </div>
                     </div>
+                 </div>
+               )}
+
+               {/* Modal Ganti RA */}
+               {isGantiRAOpen && (
+                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setIsGantiRAOpen(false)}>
+                   <div className="bg-white rounded-xl shadow-xl w-full max-w-lg flex flex-col" onClick={e => e.stopPropagation()}>
+                     <div className="p-5 border-b border-slate-100 flex justify-between items-center">
+                       <div>
+                         <h3 className="font-black text-slate-900 text-lg">Ganti Rancangan Anggaran</h3>
+                         <p className="text-xs text-slate-500 mt-0.5">Pilih RA baru pengganti <span className="font-bold text-red-600">{data.ra_kode}</span> yang telah dibatalkan.</p>
+                       </div>
+                       <button onClick={() => setIsGantiRAOpen(false)} className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400">
+                         <span className="material-icons-round text-[18px]">close</span>
+                       </button>
+                     </div>
+                     <div className="p-5 flex flex-col gap-4">
+                       {isLoadingRA ? (
+                         <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-slate-200 border-t-indigo-600 rounded-full animate-spin"/></div>
+                       ) : raOptions.length === 0 ? (
+                         <div className="text-center py-8 text-slate-500">
+                           <span className="material-icons-round text-4xl text-slate-300 mb-2 block">search_off</span>
+                           <p className="text-sm">Tidak ada RA aktif yang tersedia.<br/>Buat dan ajukan RA baru terlebih dahulu.</p>
+                         </div>
+                       ) : (
+                         <div className="flex flex-col gap-2 max-h-72 overflow-y-auto">
+                           {raOptions.map((ra: any) => (
+                             <label key={ra.id} className={`flex items-start gap-3 p-3.5 rounded-xl border-2 cursor-pointer transition-all ${
+                               selectedNewRA === ra.id ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200 hover:border-indigo-200 hover:bg-slate-50'
+                             }`}>
+                               <input type="radio" name="ra_pilihan" value={ra.id} checked={selectedNewRA === ra.id}
+                                 onChange={() => setSelectedNewRA(ra.id)} className="mt-0.5 accent-indigo-600" />
+                               <div className="flex flex-col gap-0.5">
+                                 <span className="text-xs font-mono text-slate-500">{ra.kode_dokumen}</span>
+                                 <span className="text-sm font-bold text-slate-900">{ra.nama_rancangan}</span>
+                                 <span className="text-xs text-emerald-700 font-semibold">
+                                   {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(ra.total_disetujui || ra.total_anggaran || 0)}
+                                   <span className={`ml-2 px-1.5 py-0.5 rounded text-[9px] font-bold border ${
+                                     ra.status === 'Disetujui Penuh' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-blue-100 text-blue-700 border-blue-200'
+                                   }`}>{ra.status}</span>
+                                 </span>
+                               </div>
+                             </label>
+                           ))}
+                         </div>
+                       )}
+                     </div>
+                     <div className="p-5 border-t border-slate-100 flex justify-end gap-3">
+                       <button onClick={() => setIsGantiRAOpen(false)} className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 font-semibold text-sm hover:bg-slate-50">
+                         Batal
+                       </button>
+                       <button
+                         disabled={!selectedNewRA || isSavingRA}
+                         onClick={async () => {
+                           if (!selectedNewRA) return;
+                           setIsSavingRA(true);
+                           try {
+                             const res = await fetch(`/api/kegiatan/${id}`, {
+                               method: 'PATCH',
+                               headers: { 'Content-Type': 'application/json' },
+                               body: JSON.stringify({ anggaran_tahunan_id: selectedNewRA })
+                             });
+                             const json = await res.json();
+                             if (json.success) {
+                               setIsGantiRAOpen(false);
+                               setRaOptions([]);
+                               fetchDetail();
+                             } else {
+                               alert(json.message || 'Gagal mengganti RA.');
+                             }
+                           } catch(e) { alert('Kesalahan jaringan.'); } finally { setIsSavingRA(false); }
+                         }}
+                         className="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-sm flex items-center gap-2 transition-colors"
+                       >
+                         {isSavingRA ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/> : <span className="material-icons-round text-[16px]">swap_horiz</span>}
+                         Konfirmasi Ganti RA
+                       </button>
+                     </div>
+                   </div>
                  </div>
                )}
 

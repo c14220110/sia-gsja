@@ -29,7 +29,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         ra.kode_dokumen as ra_kode,
         ra.nama_rancangan as ra_nama,
         ra.pola_penggunaan as ra_pola,
-        ra.total_disetujui as ra_total
+        ra.total_disetujui as ra_total,
+        ra.status as ra_status,
+        kl.status_lpj
       FROM public.kegiatan k
       LEFT JOIN public.jenis_kegiatan jk ON k.jenis_kegiatan_id = jk.id
       LEFT JOIN public.satelit s ON k.satelit_id = s.id
@@ -39,6 +41,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       LEFT JOIN public.jemaat p ON pengurus.jemaat_id = p.id
       LEFT JOIN public.kegiatan_detail_ibadah kdi ON k.id = kdi.kegiatan_id
       LEFT JOIN public.anggaran_tahunan ra ON k.anggaran_tahunan_id = ra.id
+      LEFT JOIN public.kegiatan_lpj kl ON k.id = kl.kegiatan_id
       WHERE k.id = $1
     `;
 
@@ -65,10 +68,45 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   try {
     const body = await request.json();
-    const { status_kegiatan, alasan_pembatalan } = body;
+    const { status_kegiatan, alasan_pembatalan, anggaran_tahunan_id } = body;
+
+    // ── Ganti RA: hanya update anggaran_tahunan_id tanpa perlu status ──
+    if (!status_kegiatan && anggaran_tahunan_id) {
+      await pool.query(
+        `UPDATE public.kegiatan SET anggaran_tahunan_id = $1 WHERE id = $2`,
+        [anggaran_tahunan_id, id]
+      );
+      return NextResponse.json({ success: true, message: 'Sumber anggaran berhasil diganti.' });
+    }
 
     if (!status_kegiatan) {
       return NextResponse.json({ success: false, message: 'Status wajib diisi' }, { status: 400 });
+    }
+
+    // ── Guard: saat Terima & Publish (→ Akan Datang), pastikan RA aktif ──
+    if (status_kegiatan === 'Akan Datang') {
+      const raCheck = await pool.query(`
+        SELECT ra.status AS ra_status, k.nama_kegiatan
+        FROM public.kegiatan k
+        LEFT JOIN public.anggaran_tahunan ra ON k.anggaran_tahunan_id = ra.id
+        WHERE k.id = $1
+      `, [id]);
+
+      if (raCheck.rows.length > 0) {
+        const { ra_status } = raCheck.rows[0];
+        if (ra_status === 'Dibatalkan') {
+          return NextResponse.json({
+            success: false,
+            message: 'Kegiatan tidak dapat disetujui. Rancangan Anggaran (RA) yang terhubung sudah Dibatalkan. Minta pembuat untuk mengganti RA dengan yang baru dan aktif terlebih dahulu.'
+          }, { status: 400 });
+        }
+        if (!ra_status) {
+          return NextResponse.json({
+            success: false,
+            message: 'Kegiatan tidak dapat disetujui. Belum ada Rancangan Anggaran (RA) yang terhubung. Minta pembuat untuk memilih RA terlebih dahulu.'
+          }, { status: 400 });
+        }
+      }
     }
 
     if (status_kegiatan === 'Dibatalkan') {

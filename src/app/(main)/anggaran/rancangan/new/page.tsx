@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
 import { AlertModal } from '@/components/ui/AlertModal';
@@ -96,12 +96,22 @@ export default function InputAnggaranBaruPage() {
   }, [komisiList, userData]);
 
 
-  // Filter COA by jenis: Penerimaan → Kredit (income), Pengeluaran → Debit (expense)
-  // Both must be grup_laporan = 'Laba Rugi' for budget items
-  const filteredCoaList = useMemo(() => coaList.filter(c =>
-    c.grup_laporan === 'Laba Rugi' &&
-    (form.jenis === 'Penerimaan' ? c.saldo_normal === 'Kredit' : c.saldo_normal === 'Debit')
-  ), [coaList, form.jenis]);
+  // Filter COA by jenis using kode_akun prefix — more reliable than saldo_normal
+  // which has a known data issue on group 50000 (saldo_normal='Kredit' but should be 'Debit').
+  // Penerimaan  → 4xxxxx (Pendapatan) | 7xxxxx (Pendapatan Luar Usaha)
+  // Pengeluaran → 5xxxxx (Beban Pelayanan) | 6xxxxx (Beban Operasional) | 8xxxxx (Beban Luar Usaha) | 12xxxx (Aset Tetap/CapEx)
+  const filteredCoaList = useMemo(() => {
+    const prefixPenerimaan = ['4', '7'];
+    const prefixPengeluaran = ['5', '6', '8', '12'];
+    return coaList.filter(c => {
+      const kode = c.label.split('—')[0].trim();
+      if (form.jenis === 'Penerimaan') {
+        return prefixPenerimaan.some(p => kode.startsWith(p));
+      } else {
+        return prefixPengeluaran.some(p => kode.startsWith(p));
+      }
+    });
+  }, [coaList, form.jenis]);
 
   // Reset COA when jenis changes (avoid wrong-type COA staying selected)
   useEffect(() => { setForm(p=>({...p,coaId:'',coaLabel:''})); setCoaQuery(''); setCoaOpen(false); }, [form.jenis]);
@@ -129,6 +139,22 @@ export default function InputAnggaranBaruPage() {
     setItems(p=>[...p,{id:Date.now().toString(),jenis:form.jenis as 'Penerimaan'|'Pengeluaran',coaId:parseInt(form.coaId),coa:form.coaLabel,sumber_dana:form.sumber_dana,uraian:form.uraian,deskripsi:form.deskripsi,jumlah:form.jumlah,satuan:form.satuan,harga:form.harga,total:form.jumlah*form.harga}]);
     setForm(p=>({...p,uraian:'',deskripsi:'',jumlah:1,satuan:'',harga:0}));
   };
+
+  // Inline edit state
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValues, setEditValues] = useState<{ uraian: string; deskripsi: string; jumlah: number; satuan: string; harga: number }>({ uraian: '', deskripsi: '', jumlah: 1, satuan: '', harga: 0 });
+
+  const handleStartEdit = useCallback((item: RincianItem) => {
+    setEditingId(item.id);
+    setEditValues({ uraian: item.uraian, deskripsi: item.deskripsi, jumlah: item.jumlah, satuan: item.satuan, harga: item.harga });
+  }, []);
+
+  const handleEditSave = useCallback((id: string) => {
+    if (!editValues.uraian.trim()) { alert('Uraian tidak boleh kosong!'); return; }
+    if (editValues.jumlah <= 0 || editValues.harga <= 0) { alert('Jumlah dan Harga harus lebih dari 0!'); return; }
+    setItems(prev => prev.map(i => i.id === id ? { ...i, ...editValues, total: editValues.jumlah * editValues.harga } : i));
+    setEditingId(null);
+  }, [editValues]);
 
   // Pre-validate fields before showing confirmation or saving
   const validateFields = (): boolean => {
@@ -266,18 +292,16 @@ export default function InputAnggaranBaruPage() {
             <select value={kategoriRa} onChange={e=>{setKategoriRa(e.target.value);if(e.target.value!=='Kegiatan')setPolaPenggunaan('-');else setPolaPenggunaan('Sekali Pakai');}} className={selectCls+' font-semibold'}>
               <option value="Kegiatan">Kegiatan</option>
               <option value="Operasional">Operasional</option>
-              <option value="Proyek">Proyek</option>
+              <option value="Pengembangan">Pengembangan</option>
               <option value="Penggajian">Penggajian</option>
             </select>
-            <p className="text-[10px] text-slate-400 mt-1">{kategoriRa==='Kegiatan'?'Harus ditarik oleh Modul Kegiatan':kategoriRa==='Operasional'?'Dicairkan langsung via jurnal':kategoriRa==='Proyek'?'Pencairan bertahap per termin':'Pencairan bulanan via payroll'}</p>
           </div>
           {kategoriRa==='Kegiatan' && <div>
             <label className={labelCls}>Pola Penggunaan <span className="text-red-500">*</span></label>
             <select value={polaPenggunaan} onChange={e=>{setPolaPenggunaan(e.target.value); setJenisKegiatanId('');}} className={selectCls+' font-semibold'}>
-              <option value="Sekali Pakai">Sekali Pakai (1 Event)</option>
+              <option value="Sekali Pakai">Tunggal (1 Event)</option>
               <option value="Bertahap">Bertahap (Multi-Event / Rutin)</option>
             </select>
-            <p className="text-[10px] text-slate-400 mt-1">{polaPenggunaan==='Sekali Pakai'?'Misal: Natal, Paskah, Retreat':'Misal: Ibadah Raya 52x, Sekolah Minggu 52x'}</p>
           </div>}
           {kategoriRa==='Kegiatan' && <div>
             <label className={labelCls}>Jenis Kegiatan <span className="text-red-500">*</span></label>
@@ -314,7 +338,7 @@ export default function InputAnggaranBaruPage() {
                 ));
               })()}
             </select>
-            <p className="text-[10px] text-slate-400 mt-1">{(polaPenggunaan==='Bertahap')?'Karena ini RA Bertahap, Anda hanya dapat memilih jenis Ibadah Rutin.':'Kunci RA ini untuk satu jenis kegiatan spesifik.'}</p>
+
           </div>}
         </div>
 
@@ -372,13 +396,7 @@ export default function InputAnggaranBaruPage() {
             </div>
             <div>
               <label className={labelCls}>Akun Perkiraan (COA) <span className="text-red-500">*</span>
-                <span className={`ml-1.5 font-normal normal-case text-[10px] px-1.5 py-0.5 rounded font-bold border ${
-                  form.jenis === 'Penerimaan'
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                    : 'bg-red-50 text-red-700 border-red-200'
-                }`}>
-                  {form.jenis === 'Penerimaan' ? 'Akun Pendapatan (Kredit)' : 'Akun Beban (Debit)'}
-                </span>
+
               </label>
               <div className="relative" ref={coaRef}>
                 <div className="relative">
@@ -449,8 +467,10 @@ export default function InputAnggaranBaruPage() {
             <div>
               <label className={labelCls}>Sumber Dana</label>
               <select value={form.sumber_dana} onChange={e=>setForm(p=>({...p,sumber_dana:e.target.value}))} className={selectCls}>
-                <option value="Kas Mandiri">Kas Mandiri (Komisi/Satelit)</option>
+                <option value="Kas Mandiri">Kas Satelit/Komisi</option>
                 <option value="Plafon Pusat">Plafon Pusat (Subsidi)</option>
+                <option value="Kontribusi Peserta">Kontribusi Peserta / Jemaat</option>
+                <option value="Sponsor / Donatur">Sponsor / Donatur Eksternal</option>
               </select>
             </div>
           </div>
@@ -482,7 +502,7 @@ export default function InputAnggaranBaruPage() {
               <label className={labelCls}>Harga Satuan <span className="text-red-500">*</span></label>
               <div className="relative">
                 <span className="absolute left-3 top-2.5 text-slate-400 text-sm font-semibold">Rp</span>
-                <input type="number" min={0} value={form.harga === 0 ? '' : form.harga} onChange={e=>setForm(p=>({...p,harga:e.target.value===''?('' as any):parseInt(e.target.value)}))} className={inputCls+' pl-9 font-mono'}/>
+                <input type="number" min={0} step={1} value={form.harga === 0 ? '' : form.harga} onChange={e => setForm(p => ({ ...p, harga: e.target.value === '' ? ('' as any) : Math.round(Number(e.target.value)) }))} className={inputCls+' pl-9 font-mono'}/>
               </div>
             </div>
             <div>
@@ -514,35 +534,77 @@ export default function InputAnggaranBaruPage() {
               </tr>
             </thead>
             <tbody>
-              {items.length===0 ? (
-                <tr><td colSpan={8} className="p-12 text-center text-slate-400 bg-slate-50/50">
-                  <div className="flex flex-col items-center gap-2">
-                    <span className="material-icons-round text-4xl text-slate-300">receipt_long</span>
-                    <p>Belum ada item. Lengkapi form di atas lalu klik "+ Tambah".</p>
-                  </div>
-                </td></tr>
-              ) : (<>
-                {penItems.length>0&&<><tr><td colSpan={8} className="px-4 py-1.5 bg-emerald-50 border-b border-emerald-100 text-[10px] font-bold text-emerald-700">↑ PENERIMAAN</td></tr>
-                {penItems.map((item,idx)=><tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="p-4 pl-6 text-sm font-semibold text-slate-800">{idx+1}. {item.uraian}<p className="text-xs font-normal text-slate-400">{item.deskripsi}</p></td>
-                  <td className="p-4 text-xs font-mono text-slate-500">{item.coa}</td>
-                  <td className="p-4"><span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${item.sumber_dana==='Plafon Pusat'?'bg-indigo-50 text-indigo-600 border-indigo-200':'bg-emerald-50 text-emerald-600 border-emerald-200'}`}>{item.sumber_dana}</span></td>
-                  <td className="p-4 text-sm text-center font-medium">{item.jumlah}</td><td className="p-4 text-sm text-center text-slate-600">{item.satuan}</td>
-                  <td className="p-4 text-sm text-right font-mono text-slate-700">{fmt(item.harga)}</td>
-                  <td className="p-4 text-sm text-right font-bold font-mono text-emerald-600">{fmt(item.total)}</td>
-                  <td className="p-4 text-center"><button onClick={()=>setItems(items.filter(i=>i.id!==item.id))} className="w-7 h-7 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 flex justify-center items-center mx-auto"><span className="material-icons-round text-[16px]">delete</span></button></td>
-                </tr>)}</>}
-                {kelItems.length>0&&<><tr><td colSpan={8} className="px-4 py-1.5 bg-red-50 border-b border-red-100 border-t border-t-slate-200 text-[10px] font-bold text-red-700">↓ PENGELUARAN</td></tr>
-                {kelItems.map((item,idx)=><tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="p-4 pl-6 text-sm font-semibold text-slate-800">{idx+1}. {item.uraian}<p className="text-xs font-normal text-slate-400">{item.deskripsi}</p></td>
-                  <td className="p-4 text-xs font-mono text-slate-500">{item.coa}</td>
-                  <td className="p-4"><span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${item.sumber_dana==='Plafon Pusat'?'bg-indigo-50 text-indigo-600 border-indigo-200':'bg-emerald-50 text-emerald-600 border-emerald-200'}`}>{item.sumber_dana}</span></td>
-                  <td className="p-4 text-sm text-center font-medium">{item.jumlah}</td><td className="p-4 text-sm text-center text-slate-600">{item.satuan}</td>
-                  <td className="p-4 text-sm text-right font-mono text-slate-700">{fmt(item.harga)}</td>
-                  <td className="p-4 text-sm text-right font-bold font-mono text-slate-800">{fmt(item.total)}</td>
-                  <td className="p-4 text-center"><button onClick={()=>setItems(items.filter(i=>i.id!==item.id))} className="w-7 h-7 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 flex justify-center items-center mx-auto"><span className="material-icons-round text-[16px]">delete</span></button></td>
-                </tr>)}</>}
-              </>)}
+              {items.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="p-12 text-center text-slate-400 bg-slate-50/50">
+                    <div className="flex flex-col items-center gap-2">
+                      <span className="material-icons-round text-4xl text-slate-300">receipt_long</span>
+                      <p>Belum ada item. Lengkapi form di atas lalu klik "+ Tambah".</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                <>
+                  {penItems.length > 0 ? (
+                    <>
+                      <tr><td colSpan={8} className="px-4 py-1.5 bg-emerald-50 border-b border-emerald-100 text-[10px] font-bold text-emerald-700">↑ PENERIMAAN</td></tr>
+                      {penItems.map((item, idx) => editingId === item.id ? (
+                        <tr key={item.id} className="border-b border-emerald-200 bg-emerald-50/40">
+                          <td className="p-3 pl-6" colSpan={2}>
+                            <input type="text" value={editValues.uraian} onChange={e => setEditValues(p => ({ ...p, uraian: e.target.value }))} placeholder="Uraian" className="w-full mb-1 px-2 py-1 border border-emerald-300 rounded text-sm outline-none focus:ring-1 focus:ring-emerald-500" />
+                            <input type="text" value={editValues.deskripsi} onChange={e => setEditValues(p => ({ ...p, deskripsi: e.target.value }))} placeholder="Deskripsi (opsional)" className="w-full px-2 py-1 border border-slate-200 rounded text-xs outline-none" />
+                          </td>
+                          <td className="p-3"><select disabled className="px-2 py-1 border border-slate-200 rounded text-xs bg-slate-50 w-full"><option>{item.sumber_dana}</option></select></td>
+                          <td className="p-3 text-center"><input type="number" min={1} step={1} value={editValues.jumlah} onChange={e => setEditValues(p => ({ ...p, jumlah: Math.round(Number(e.target.value)) || 1 }))} className="w-16 px-2 py-1 border border-emerald-300 rounded text-sm text-center outline-none" /></td>
+                          <td className="p-3 text-center"><input type="text" value={editValues.satuan} onChange={e => setEditValues(p => ({ ...p, satuan: e.target.value }))} placeholder="satuan" className="w-20 px-2 py-1 border border-slate-200 rounded text-xs outline-none" /></td>
+                          <td className="p-3 text-right"><input type="number" min={0} step={1} value={editValues.harga || ''} onChange={e => setEditValues(p => ({ ...p, harga: Math.round(Number(e.target.value)) || 0 }))} className="w-28 px-2 py-1 border border-emerald-300 rounded text-sm text-right font-mono outline-none" /></td>
+                          <td className="p-3 text-right font-bold font-mono text-emerald-600 text-sm">{fmt(editValues.jumlah * editValues.harga)}</td>
+                          <td className="p-3 text-center"><div className="flex items-center justify-center gap-1"><button onClick={() => handleEditSave(item.id)} className="w-7 h-7 rounded bg-emerald-600 text-white flex justify-center items-center hover:bg-emerald-700"><span className="material-icons-round text-[14px]">check</span></button><button onClick={() => setEditingId(null)} className="w-7 h-7 rounded bg-slate-200 text-slate-600 flex justify-center items-center hover:bg-slate-300"><span className="material-icons-round text-[14px]">close</span></button></div></td>
+                        </tr>
+                      ) : (
+                        <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50 group">
+                          <td className="p-4 pl-6 text-sm font-semibold text-slate-800">{idx + 1}. {item.uraian}<p className="text-xs font-normal text-slate-400">{item.deskripsi}</p></td>
+                          <td className="p-4 text-xs font-mono text-slate-500">{item.coa}</td>
+                          <td className="p-4"><span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${item.sumber_dana === 'Plafon Pusat' ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : 'bg-emerald-50 text-emerald-600 border-emerald-200'}`}>{item.sumber_dana}</span></td>
+                          <td className="p-4 text-sm text-center font-medium">{item.jumlah}</td><td className="p-4 text-sm text-center text-slate-600">{item.satuan}</td>
+                          <td className="p-4 text-sm text-right font-mono text-slate-700">{fmt(item.harga)}</td>
+                          <td className="p-4 text-sm text-right font-bold font-mono text-emerald-600">{fmt(item.total)}</td>
+                          <td className="p-4 text-center"><div className="flex items-center justify-center gap-1"><button onClick={() => handleStartEdit(item)} title="Edit" className="w-7 h-7 rounded text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 flex justify-center items-center"><span className="material-icons-round text-[16px]">edit</span></button><button onClick={() => setItems(items.filter(i => i.id !== item.id))} title="Hapus" className="w-7 h-7 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 flex justify-center items-center"><span className="material-icons-round text-[16px]">delete</span></button></div></td>
+                        </tr>
+                      ))}
+                    </>
+                  ) : null}
+                  {kelItems.length > 0 ? (
+                    <>
+                      <tr><td colSpan={8} className="px-4 py-1.5 bg-red-50 border-b border-red-100 border-t border-t-slate-200 text-[10px] font-bold text-red-700">↓ PENGELUARAN</td></tr>
+                      {kelItems.map((item, idx) => editingId === item.id ? (
+                        <tr key={item.id} className="border-b border-indigo-200 bg-indigo-50/30">
+                          <td className="p-3 pl-6" colSpan={2}>
+                            <input type="text" value={editValues.uraian} onChange={e => setEditValues(p => ({ ...p, uraian: e.target.value }))} placeholder="Uraian" className="w-full mb-1 px-2 py-1 border border-indigo-300 rounded text-sm outline-none focus:ring-1 focus:ring-indigo-500" />
+                            <input type="text" value={editValues.deskripsi} onChange={e => setEditValues(p => ({ ...p, deskripsi: e.target.value }))} placeholder="Deskripsi (opsional)" className="w-full px-2 py-1 border border-slate-200 rounded text-xs outline-none" />
+                          </td>
+                          <td className="p-3"><select disabled className="px-2 py-1 border border-slate-200 rounded text-xs bg-slate-50 w-full"><option>{item.sumber_dana}</option></select></td>
+                          <td className="p-3 text-center"><input type="number" min={1} step={1} value={editValues.jumlah} onChange={e => setEditValues(p => ({ ...p, jumlah: Math.round(Number(e.target.value)) || 1 }))} className="w-16 px-2 py-1 border border-indigo-300 rounded text-sm text-center outline-none" /></td>
+                          <td className="p-3 text-center"><input type="text" value={editValues.satuan} onChange={e => setEditValues(p => ({ ...p, satuan: e.target.value }))} placeholder="satuan" className="w-20 px-2 py-1 border border-slate-200 rounded text-xs outline-none" /></td>
+                          <td className="p-3 text-right"><input type="number" min={0} step={1} value={editValues.harga || ''} onChange={e => setEditValues(p => ({ ...p, harga: Math.round(Number(e.target.value)) || 0 }))} className="w-28 px-2 py-1 border border-indigo-300 rounded text-sm text-right font-mono outline-none" /></td>
+                          <td className="p-3 text-right font-bold font-mono text-slate-800 text-sm">{fmt(editValues.jumlah * editValues.harga)}</td>
+                          <td className="p-3 text-center"><div className="flex items-center justify-center gap-1"><button onClick={() => handleEditSave(item.id)} className="w-7 h-7 rounded bg-indigo-600 text-white flex justify-center items-center hover:bg-indigo-700"><span className="material-icons-round text-[14px]">check</span></button><button onClick={() => setEditingId(null)} className="w-7 h-7 rounded bg-slate-200 text-slate-600 flex justify-center items-center hover:bg-slate-300"><span className="material-icons-round text-[14px]">close</span></button></div></td>
+                        </tr>
+                      ) : (
+                        <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50 group">
+                          <td className="p-4 pl-6 text-sm font-semibold text-slate-800">{idx + 1}. {item.uraian}<p className="text-xs font-normal text-slate-400">{item.deskripsi}</p></td>
+                          <td className="p-4 text-xs font-mono text-slate-500">{item.coa}</td>
+                          <td className="p-4"><span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${item.sumber_dana === 'Plafon Pusat' ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : 'bg-emerald-50 text-emerald-600 border-emerald-200'}`}>{item.sumber_dana}</span></td>
+                          <td className="p-4 text-sm text-center font-medium">{item.jumlah}</td><td className="p-4 text-sm text-center text-slate-600">{item.satuan}</td>
+                          <td className="p-4 text-sm text-right font-mono text-slate-700">{fmt(item.harga)}</td>
+                          <td className="p-4 text-sm text-right font-bold font-mono text-slate-800">{fmt(item.total)}</td>
+                          <td className="p-4 text-center"><div className="flex items-center justify-center gap-1"><button onClick={() => handleStartEdit(item)} title="Edit" className="w-7 h-7 rounded text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 flex justify-center items-center"><span className="material-icons-round text-[16px]">edit</span></button><button onClick={() => setItems(items.filter(i => i.id !== item.id))} title="Hapus" className="w-7 h-7 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 flex justify-center items-center"><span className="material-icons-round text-[16px]">delete</span></button></div></td>
+                        </tr>
+                      ))}
+                    </>
+                  ) : null}
+                </>
+              )}
             </tbody>
           </table>
         </div>

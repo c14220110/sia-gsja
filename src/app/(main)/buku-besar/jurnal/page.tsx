@@ -41,6 +41,7 @@ export default function JurnalUmumPage() {
   const [kegiatanOptions, setKegiatanOptions] = useState<any[]>([]);
 
   const [submitState, setSubmitState] = useState<{ status: 'idle'|'loading'|'success'|'error', message: string }>({ status: 'idle', message: '' });
+  const [canManage, setCanManage] = useState(false);
   
   // Custom Modals
   const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title: string; message: React.ReactNode; isAlertOnly: boolean; onConfirm: () => void }>({ isOpen: false, title: '', message: '', isAlertOnly: false, onConfirm: () => {} });
@@ -48,6 +49,9 @@ export default function JurnalUmumPage() {
   useEffect(() => {
     fetchJurnalList();
     fetchOptions();
+    fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(auth => {
+      if (auth?.is_super_admin || auth?.permissions?.includes('buku_besar_manage')) setCanManage(true);
+    });
   }, []);
 
   const fetchJurnalList = async () => {
@@ -175,10 +179,12 @@ export default function JurnalUmumPage() {
           <div className="text-slate-500 text-base font-medium font-['Inter'] leading-6">Catat dan pantau transaksi keuangan lintas satelit dan kegiatan</div>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={handleCreateNew} className="px-5 py-2.5 bg-slate-700 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none">
-            <span className="material-icons-round text-white text-[20px]">add</span>
-            <span className="text-white text-sm font-bold font-['Inter'] leading-5">Jurnal Baru</span>
-          </button>
+          {canManage && (
+            <button onClick={handleCreateNew} className="px-5 py-2.5 bg-slate-700 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none">
+              <span className="material-icons-round text-white text-[20px]">add</span>
+              <span className="text-white text-sm font-bold font-['Inter'] leading-5">Jurnal Baru</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -214,19 +220,21 @@ export default function JurnalUmumPage() {
                           <span className="material-icons-round text-[20px]">visibility</span>
                         </button>
                         
-                        {j.status === 'Draft' ? (
-                          <>
-                            <button onClick={() => handleEdit(j.id)} className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors" title="Edit Jurnal (Draft)">
-                              <span className="material-icons-round text-[20px]">edit</span>
+                        {canManage && (
+                          j.status === 'Draft' ? (
+                            <>
+                              <button onClick={() => handleEdit(j.id)} className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors" title="Edit Jurnal (Draft)">
+                                <span className="material-icons-round text-[20px]">edit</span>
+                              </button>
+                              <button onClick={() => handleDelete(j.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Hapus Jurnal (Draft)">
+                                <span className="material-icons-round text-[20px]">delete_outline</span>
+                              </button>
+                            </>
+                          ) : (
+                            <button onClick={() => handleReverse(j.id)} className="p-1.5 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors" title="Jurnal Pembalik (Reverse Posted)">
+                              <span className="material-icons-round text-[20px]">sync_alt</span>
                             </button>
-                            <button onClick={() => handleDelete(j.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Hapus Jurnal (Draft)">
-                              <span className="material-icons-round text-[20px]">delete_outline</span>
-                            </button>
-                          </>
-                        ) : (
-                          <button onClick={() => handleReverse(j.id)} className="p-1.5 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors" title="Jurnal Pembalik (Reverse Posted)">
-                            <span className="material-icons-round text-[20px]">sync_alt</span>
-                          </button>
+                          )
                         )}
                       </div>
                     </td>

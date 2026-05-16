@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 
 export async function GET(req: Request) {
+  const caller = getCallerFromRequest(req);
+  if (!caller) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
@@ -48,6 +52,9 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const caller = getCallerFromRequest(req);
+  if (!caller) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+
   const client = await pool.connect();
   try {
     const body = await req.json();
@@ -97,8 +104,7 @@ export async function POST(req: Request) {
     }
     const nomor_referensi = `${prefix}${nextNum.toString().padStart(4, '0')}`;
 
-    // Note: Temporary hardcode created_by = 1 since we don't have auth context here yet
-    const created_by = 1; 
+    const created_by = caller.user_id;
 
     // Insert Header
     const headerRes = await client.query(
@@ -142,6 +148,9 @@ export async function POST(req: Request) {
 }
 
 export async function PUT(req: Request) {
+  const caller = getCallerFromRequest(req);
+  if (!caller) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+
   const client = await pool.connect();
   try {
     const body = await req.json();
@@ -187,7 +196,7 @@ export async function PUT(req: Request) {
     
     if (status === 'Posted') {
        postedByQuery = `, posted_by = $${queryArgs + 1}, posted_at = CURRENT_TIMESTAMP`;
-       postedParams.push(1); // hardcode user id 1
+       postedParams.push(caller.user_id);
     }
 
     await client.query(
@@ -228,6 +237,9 @@ export async function PUT(req: Request) {
 }
 
 export async function DELETE(req: Request) {
+  const caller = getCallerFromRequest(req);
+  if (!caller) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');

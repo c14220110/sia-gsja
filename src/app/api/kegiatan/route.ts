@@ -120,6 +120,7 @@ export async function GET(request: Request) {
       LEFT JOIN public.kegiatan_lpj lpj ON k.id = lpj.kegiatan_id
       LEFT JOIN public.pengurus pengurus ON k.pic_pengurus_id = pengurus.id
       LEFT JOIN public.jemaat pic_person ON pengurus.jemaat_id = pic_person.id
+      LEFT JOIN public.anggaran_tahunan ra ON k.anggaran_tahunan_id = ra.id
     `;
 
     const countResult = await pool.query(
@@ -153,7 +154,10 @@ export async function GET(request: Request) {
         d.nama_departemen,
         kom.nama_komisi,
         pic_person.nama_lengkap AS pic_name,
-        lpj.kegiatan_id AS is_lpj_submitted
+        lpj.kegiatan_id AS is_lpj_submitted,
+        lpj.status_lpj,
+        ra.kode_dokumen AS ra_kode,
+        ra.status AS ra_status
       FROM public.kegiatan k
       ${joinClauses}
       ${whereString}

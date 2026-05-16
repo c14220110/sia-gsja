@@ -309,7 +309,7 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
           {kategoriRa==='Kegiatan' && <div>
             <label className={labelCls}>Pola Penggunaan <span className="text-red-500">*</span></label>
             <select value={polaPenggunaan} onChange={e=>setPolaPenggunaan(e.target.value)} disabled={isHeaderLocked} className={selectCls+' font-semibold'}>
-              <option value="Sekali Pakai">Sekali Pakai (1 Event)</option>
+              <option value="Sekali Pakai">Tunggal (1 Event)</option>
               <option value="Bertahap">Bertahap (Multi-Event / Rutin)</option>
             </select>
             <p className="text-[10px] text-slate-400 mt-1">{polaPenggunaan==='Sekali Pakai'?'Misal: Natal, Paskah, Retreat':'Misal: Ibadah Raya 52x, Sekolah Minggu 52x'}</p>
@@ -381,8 +381,10 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
             <div>
               <label className={labelCls}>Sumber Dana</label>
               <select value={form.sumber_dana} onChange={e=>setForm(p=>({...p,sumber_dana:e.target.value}))} className={selectCls}>
-                <option value="Kas Mandiri">Kas Mandiri (Komisi/Satelit)</option>
+                <option value="Kas Mandiri">Kas Satelit/Komisi</option>
                 <option value="Plafon Pusat">Plafon Pusat (Subsidi)</option>
+                <option value="Kontribusi Peserta">Kontribusi Peserta / Jemaat</option>
+                <option value="Sponsor / Donatur">Sponsor / Donatur Eksternal</option>
               </select>
             </div>
           </div>
@@ -402,7 +404,7 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
               <label className={labelCls}>Jumlah <span className="text-red-500">*</span></label>
               <div className="flex items-center border border-slate-300 rounded-lg overflow-hidden h-10 bg-white">
                 <button type="button" onClick={()=>setForm(p=>({...p,jumlah:Math.max(1,p.jumlah-1)}))} className="w-10 h-full flex justify-center items-center text-slate-500 hover:bg-slate-100 border-r border-slate-300 font-bold">−</button>
-                <input type="number" min={1} value={form.jumlah} onChange={e=>setForm(p=>({...p,jumlah:parseInt(e.target.value)||1}))} className="w-full h-full text-center outline-none text-sm font-semibold"/>
+                <input type="number" min={1} step={1} value={form.jumlah} onChange={e => setForm(p => ({ ...p, jumlah: Math.round(Number(e.target.value)) || 1 }))} className="w-full h-full text-center outline-none text-sm font-semibold"/>
                 <button type="button" onClick={()=>setForm(p=>({...p,jumlah:p.jumlah+1}))} className="w-10 h-full flex justify-center items-center text-slate-500 hover:bg-slate-100 border-l border-slate-300 font-bold">+</button>
               </div>
             </div>
@@ -414,7 +416,7 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
               <label className={labelCls}>Harga Satuan <span className="text-red-500">*</span></label>
               <div className="relative">
                 <span className="absolute left-3 top-2.5 text-slate-400 text-sm font-semibold">Rp</span>
-                <input type="number" min={0} value={form.harga||''} onChange={e=>setForm(p=>({...p,harga:parseInt(e.target.value)||0}))} className={inputCls+' pl-9 font-mono'}/>
+                <input type="number" min={0} step={1} value={form.harga||''} onChange={e => setForm(p => ({ ...p, harga: Math.round(Number(e.target.value)) || 0 }))} className={inputCls+' pl-9 font-mono'}/>
               </div>
             </div>
             <div>

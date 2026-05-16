@@ -8,8 +8,8 @@ export async function GET(request: NextRequest) {
     if (!caller) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
     }
-    if (!caller.is_super_admin) {
-      return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
+    if (!caller.is_super_admin && !caller.permissions?.includes('audit_log_view')) {
+      return NextResponse.json({ success: false, message: 'Forbidden: Requires audit_log_view permission' }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);

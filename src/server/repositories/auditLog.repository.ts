@@ -1,7 +1,8 @@
 import pool from '@/lib/db';
 
 export type AuditAction = 'CREATE' | 'UPDATE' | 'DEACTIVATE';
-export type AnggaranAuditAksi = 'Dibuat' | 'Diajukan' | 'Disetujui Penuh' | 'Disetujui Sebagian' | 'Ditolak' | 'Revisi' | 'Direvisi & Diajukan Ulang' | 'Dihapus';
+export type AnggaranAuditAksi = 'Dibuat' | 'Diajukan' | 'Disetujui Penuh' | 'Disetujui Sebagian' | 'Ditolak' | 'Revisi' | 'Direvisi & Diajukan Ulang' | 'Dihapus' | 'Dibatalkan';
+export type LpjAuditAksi = 'Dibuat' | 'Diajukan' | 'Direvisi & Diajukan Ulang' | 'Disetujui' | 'Revisi';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Interfaces
@@ -48,6 +49,18 @@ export interface InsertAnggaranAuditLogParams {
   keterangan?:    string;
 }
 
+export interface InsertLpjAuditLogParams {
+  kegiatan_id:    number;
+  aksi:           LpjAuditAksi;
+  status_sebelum: string | null;
+  status_sesudah: string;
+  user_id:        number;
+  nama_pelaksana: string;
+  role_id:        number;
+  nama_role:      string;
+  keterangan?:    string;
+}
+
 export interface AuditLogEntry {
   id:             number;
   entity_id:      number;
@@ -76,6 +89,20 @@ export interface AnggaranAuditLogEntry {
   nama_role:       string;
   satelit_id:      number;
   nama_satelit:    string;
+  keterangan:      string | null;
+  created_at:      string;
+}
+
+export interface LpjAuditLogEntry {
+  id:              number;
+  kegiatan_id:     number;
+  aksi:            string;
+  status_sebelum:  string | null;
+  status_sesudah:  string;
+  user_id:         number;
+  nama_pelaksana:  string;
+  role_id:         number;
+  nama_role:       string;
   keterangan:      string | null;
   created_at:      string;
 }
@@ -408,8 +435,32 @@ export class AuditLogRepository {
     const res = await pool.query(
       `SELECT * FROM anggaran_audit_log
        WHERE anggaran_id = $1
-       ORDER BY created_at ASC`,
+       ORDER BY created_at ASC, id ASC`,
       [anggaran_id]
+    );
+    return res.rows;
+  }
+
+  // ── INSERT LPJ AUDIT LOG ──────────────────────────────────────────────────
+
+  async insertLpjAuditLog(params: InsertLpjAuditLogParams): Promise<void> {
+    const { kegiatan_id, aksi, status_sebelum, status_sesudah, user_id, nama_pelaksana, role_id, nama_role, keterangan } = params;
+    await pool.query(
+      `INSERT INTO public.kegiatan_lpj_audit_log
+         (kegiatan_id, aksi, status_sebelum, status_sesudah, user_id, nama_pelaksana, role_id, nama_role, keterangan)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [kegiatan_id, aksi, status_sebelum, status_sesudah, user_id, nama_pelaksana, role_id, nama_role, keterangan ?? null]
+    );
+  }
+
+  // ── GET LPJ TIMELINE ──────────────────────────────────────────────────────
+
+  async getLpjTimeline(kegiatan_id: number): Promise<LpjAuditLogEntry[]> {
+    const res = await pool.query(
+      `SELECT * FROM public.kegiatan_lpj_audit_log
+       WHERE kegiatan_id = $1
+       ORDER BY created_at ASC, id ASC`,
+      [kegiatan_id]
     );
     return res.rows;
   }

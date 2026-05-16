@@ -122,6 +122,7 @@ export default function NewJemaatPage() {
 
   // Auth State
   const [userData, setUserData] = useState<any>(null);
+  const [hasAccess, setHasAccess] = useState<boolean | null>(null);
 
   // Form State mapped to exact Schema
   const [formData, setFormData] = useState({
@@ -189,9 +190,19 @@ export default function NewJemaatPage() {
           if (authData.role_name === 'GEMBALA SATELIT') {
             setFormData(prev => ({ ...prev, satelit_id: authData.satelit_id?.toString() || '' }));
           }
+          
+          // RBAC Check for jemaat_create
+          if (authData.is_super_admin || authData.permissions?.includes('jemaat_create')) {
+            setHasAccess(true);
+          } else {
+            setHasAccess(false);
+          }
+        } else {
+          setHasAccess(false);
         }
       } catch (error) {
         console.error('Failed to fetch initial data', error);
+        setHasAccess(false);
       }
     };
     fetchOptionsAndUser();
@@ -337,6 +348,19 @@ export default function NewJemaatPage() {
       setIsSubmitting(false);
     }
   };
+
+  if (hasAccess === false) {
+    return (
+      <div className="w-full py-20 flex flex-col items-center justify-center text-slate-500 gap-4">
+        <span className="material-icons-round text-6xl text-rose-300">gpp_bad</span>
+        <h2 className="text-xl font-bold text-slate-700">Akses Ditolak</h2>
+        <p className="text-sm">Anda tidak memiliki wewenang (jemaat_create) untuk mendaftarkan jemaat baru.</p>
+        <Link href="/jemaat" className="mt-4 px-6 py-2 bg-slate-800 text-white rounded-lg font-medium hover:bg-slate-700 transition-colors">
+          Kembali ke Data Jemaat
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full flex flex-col gap-6 pb-10">

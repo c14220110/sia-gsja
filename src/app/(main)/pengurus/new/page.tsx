@@ -82,6 +82,8 @@ export default function NewPengurusPage() {
 
   const [selectedJemaat, setSelectedJemaat] = useState<any>(null);
   const [jemaatSearchQuery, setJemaatSearchQuery] = useState('');
+  
+  const [hasAccess, setHasAccess] = useState<boolean | null>(null);
 
   // Multi-jabatan list
   const [jabatanList, setJabatanList] = useState<JabatanEntry[]>([defaultJabatanEntry()]);
@@ -95,20 +97,36 @@ export default function NewPengurusPage() {
   useEffect(() => {
     const fetchOptions = async () => {
       try {
-        const [resJab, resPer, resKom, resDep, resSat] = await Promise.all([
+        const [resJab, resPer, resKom, resDep, resSat, resUser] = await Promise.all([
           fetch('/api/options?type=jabatan'),
           fetch('/api/options?type=periode_kepengurusan'),
           fetch('/api/options?type=komisi'),
           fetch('/api/options?type=departemen'),
           fetch('/api/options?type=satelit'),
+          fetch('/api/auth/me'),
         ]);
         const [jabData, perData, komData, depData, satData] = await Promise.all([resJab.json(), resPer.json(), resKom.json(), resDep.json(), resSat.json()]);
+        const authData = resUser.ok ? await resUser.json() : null;
+
         if (jabData.success) setJabatanOptions(jabData.data);
         if (perData.success) setPeriodeOptions(perData.data);
         if (komData.success) setKomisiOptions(komData.data);
         if (depData.success) setDepartemenOptions(depData.data);
         if (satData.success) setSatelitOptions(satData.data);
-      } catch (e) { console.error('Failed to fetch options', e); }
+
+        if (authData) {
+          if (authData.is_super_admin || authData.permissions?.includes('pengurus_manage')) {
+            setHasAccess(true);
+          } else {
+            setHasAccess(false);
+          }
+        } else {
+          setHasAccess(false);
+        }
+      } catch (e) { 
+        console.error('Failed to fetch options', e); 
+        setHasAccess(false);
+      }
     };
     fetchOptions();
   }, []);
@@ -182,6 +200,19 @@ export default function NewPengurusPage() {
       setIsSubmitting(false);
     }
   };
+
+  if (hasAccess === false) {
+    return (
+      <div className="w-full py-20 flex flex-col items-center justify-center text-slate-500 gap-4">
+        <span className="material-icons-round text-6xl text-rose-300">gpp_bad</span>
+        <h2 className="text-xl font-bold text-slate-700">Akses Ditolak</h2>
+        <p className="text-sm">Anda tidak memiliki wewenang (pengurus_manage) untuk menambahkan pengurus baru.</p>
+        <Link href="/pengurus" className="mt-4 px-6 py-2 bg-slate-800 text-white rounded-lg font-medium hover:bg-slate-700 transition-colors">
+          Kembali ke Database Pengurus
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full flex flex-col gap-6 pb-10">

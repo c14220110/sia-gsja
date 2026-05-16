@@ -305,12 +305,13 @@ export default function KegiatanPage() {
             <div className="text-slate-500 text-base font-medium font-['Inter'] leading-6">Sistem Informasi Manajemen Jadwal & Kegiatan Gereja</div>
           </div>
           <div className="flex items-center gap-3">
-            <Link href="/kegiatan/validasi-pembayaran" className="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-lg flex justify-center items-center gap-2 hover:bg-slate-50 transition-colors shadow-sm focus:ring-2 focus:ring-slate-400 focus:outline-none">
-              <span className="material-icons-round text-sky-600 text-[20px]">price_check</span>
-              <span className="text-sm font-bold font-['Inter'] leading-5">Validasi Pembayaran</span>
-            </Link>
-            {/* TODO: Add proper permission check for kegiatan_create */}
-            {(hasPermission('jemaat_create') || true) && (
+            {hasPermission('kegiatan_manage') && (
+              <Link href="/kegiatan/validasi-pembayaran" className="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-lg flex justify-center items-center gap-2 hover:bg-slate-50 transition-colors shadow-sm focus:ring-2 focus:ring-slate-400 focus:outline-none">
+                <span className="material-icons-round text-sky-600 text-[20px]">price_check</span>
+                <span className="text-sm font-bold font-['Inter'] leading-5">Validasi Pembayaran</span>
+              </Link>
+            )}
+            {hasPermission('kegiatan_create') && (
               <Link href="/kegiatan/new" className="px-5 py-2.5 bg-slate-700 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none">
                 <span className="material-icons-round text-white text-[20px]">add</span>
                 <span className="text-white text-sm font-bold font-['Inter'] leading-5">Tambah Kegiatan Baru</span>
@@ -617,8 +618,19 @@ export default function KegiatanPage() {
                   </div>
                   
                   {/* Kolom 2: Status */}
-                  <div className="w-[200px] shrink-0 flex items-center justify-start pr-4">
+                  <div className="w-[200px] shrink-0 flex flex-col items-start justify-center pr-4 gap-1">
                      {renderStatusBadge(displayStatus)}
+                     {/* Sub-badge status LPJ */}
+                     {kegiatan.status_lpj && kegiatan.status_kegiatan === 'Menunggu LPJ' && (
+                       <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full border whitespace-nowrap ${
+                         kegiatan.status_lpj === 'Menunggu Review' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                         kegiatan.status_lpj === 'Revisi' ? 'bg-red-50 text-red-600 border-red-200' :
+                         kegiatan.status_lpj === 'Disetujui' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                         'bg-slate-50 text-slate-500 border-slate-200'
+                       }`}>
+                         LPJ: {kegiatan.status_lpj}
+                       </span>
+                     )}
                   </div>
                   
                   {/* Kolom 3: Informasi Kegiatan (Nama + ID + Lokasi) */}
@@ -626,6 +638,20 @@ export default function KegiatanPage() {
                      <span className="text-slate-900 font-bold text-sm capitalize mb-1" title={kegiatan.nama_kegiatan}>{kegiatan.nama_kegiatan}</span>
                      <div className="flex flex-col gap-0.5">
                        <span className="text-slate-400 text-[11px] font-['Liberation_Mono'] tracking-wide">ID: {kegiatan.kode_kegiatan}</span>
+                       {/* Badge RA — hanya tampil jika ada RA terhubung */}
+                       {kegiatan.ra_kode && (
+                         <span className={`inline-flex items-center gap-1 w-fit px-1.5 py-0.5 rounded text-[10px] font-bold border ${
+                           kegiatan.ra_status === 'Dibatalkan'
+                             ? 'bg-red-50 text-red-600 border-red-200'
+                             : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                         }`}>
+                           <span className="material-icons-round text-[10px]">
+                             {kegiatan.ra_status === 'Dibatalkan' ? 'cancel' : 'receipt_long'}
+                           </span>
+                           {kegiatan.ra_kode}
+                           {kegiatan.ra_status === 'Dibatalkan' && <span className="ml-0.5">✗ RA Dibatalkan</span>}
+                         </span>
+                       )}
                        <span className="text-slate-500 text-xs font-medium line-clamp-1 mt-1 flex items-center gap-1"><span className="material-icons-round text-[14px]">place</span> {kegiatan.lokasi_kegiatan || '-'}</span>
                      </div>
                   </div>
@@ -670,10 +696,9 @@ export default function KegiatanPage() {
                           {displayStatus === 'Draft' && (
                             <>
                               <Link href={`/kegiatan/${kegiatan.id}/edit`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Detail Draft</Link>
-                              <Link href={`/kegiatan/${kegiatan.id}/edit`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">edit</span>Edit Kegiatan</Link>
-                              <button onClick={() => handleUpdateStatus(kegiatan.id, 'Menunggu Persetujuan')} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-blue-500">send</span>Ajukan Jadwal Acara</button>
-                              <div className="w-full h-px bg-slate-100 my-1"></div>
-                              <button onClick={() => handleDeleteDraft(kegiatan.id)} className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-red-400">delete</span>Hapus Data</button>
+                              {hasPermission('kegiatan_manage') && <Link href={`/kegiatan/${kegiatan.id}/edit`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">edit</span>Edit Kegiatan</Link>}
+                              {hasPermission('kegiatan_manage') && <button onClick={() => handleUpdateStatus(kegiatan.id, 'Menunggu Persetujuan')} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-blue-500">send</span>Ajukan Jadwal Acara</button>}
+                              {hasPermission('kegiatan_manage') && <><div className="w-full h-px bg-slate-100 my-1"></div><button onClick={() => handleDeleteDraft(kegiatan.id)} className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-red-400">delete</span>Hapus Data</button></>}
                             </>
                           )}
 
@@ -681,10 +706,10 @@ export default function KegiatanPage() {
                           {displayStatus === 'Menunggu Persetujuan' && (
                             <>
                               <Link href={`/kegiatan/${kegiatan.id}/edit?mode=view`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Proposal Acara</Link>
-                              <Link href={`/kegiatan/${kegiatan.id}/edit`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">edit</span>Edit Kegiatan</Link>
-                              <div className="w-full h-px bg-slate-100 my-1"></div>
-                              <button onClick={() => handleUpdateStatus(kegiatan.id, 'Akan Datang')} className="w-full text-left px-4 py-2 hover:bg-emerald-50 text-emerald-700 text-sm flex items-center gap-2 font-bold"><span className="material-icons-round text-[18px] text-emerald-600">check_circle</span>Terima & Publish (ACC)</button>
-                              <button onClick={() => handleUpdateStatus(kegiatan.id, 'Ditolak')} className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 text-sm flex items-center gap-2 font-bold"><span className="material-icons-round text-[18px] text-red-600">cancel</span>Tolak Pengajuan</button>
+                              {hasPermission('kegiatan_manage') && <Link href={`/kegiatan/${kegiatan.id}/edit`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">edit</span>Edit Kegiatan</Link>}
+                              {hasPermission('kegiatan_manage') && <div className="w-full h-px bg-slate-100 my-1"></div>}
+                              {hasPermission('kegiatan_manage') && <button onClick={() => handleUpdateStatus(kegiatan.id, 'Akan Datang')} className="w-full text-left px-4 py-2 hover:bg-emerald-50 text-emerald-700 text-sm flex items-center gap-2 font-bold"><span className="material-icons-round text-[18px] text-emerald-600">check_circle</span>Terima & Publish (ACC)</button>}
+                              {hasPermission('kegiatan_manage') && <button onClick={() => handleUpdateStatus(kegiatan.id, 'Ditolak')} className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 text-sm flex items-center gap-2 font-bold"><span className="material-icons-round text-[18px] text-red-600">cancel</span>Tolak Pengajuan</button>}
                             </>
                           )}
 
@@ -692,7 +717,7 @@ export default function KegiatanPage() {
                           {displayStatus === 'Ditolak' && (
                             <>
                               <Link href={`/kegiatan/${kegiatan.id}`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Acara</Link>
-                              <button onClick={() => handleDeleteDraft(kegiatan.id)} className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-red-400">delete</span>Hapus Data</button>
+                              {hasPermission('kegiatan_manage') && <button onClick={() => handleDeleteDraft(kegiatan.id)} className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-red-400">delete</span>Hapus Data</button>}
                             </>
                           )}
 
@@ -700,21 +725,22 @@ export default function KegiatanPage() {
                           {(displayStatus === 'Akan Datang' || displayStatus === 'Menunggu Dimulai') && (
                             <>
                               <Link href={`/kegiatan/${kegiatan.id}`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Detail</Link>
-                              <Link href={`/kegiatan/${kegiatan.id}?tab=pelayan&mode=manage`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-indigo-400">groups</span>Kelola Pelayan &amp; Peserta</Link>
-                              <div className="w-full h-px bg-slate-100 my-1"></div>
-                              {/* Tombol Mulai Acara — lebih mencolok saat sudah waktunya */}
-                              <button
-                                onClick={() => handleUpdateStatus(kegiatan.id, 'Ongoing')}
-                                className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 font-black transition-colors ${
-                                  displayStatus === 'Menunggu Dimulai'
-                                    ? 'hover:bg-amber-50 text-amber-700 bg-amber-50/50'
-                                    : 'hover:bg-emerald-50 text-emerald-700'
-                                }`}
-                              >
-                                <span className={`material-icons-round text-[18px] ${displayStatus === 'Menunggu Dimulai' ? 'text-amber-600' : 'text-emerald-600'}`}>play_circle</span>
-                                {displayStatus === 'Menunggu Dimulai' ? '⚡ MULAI ACARA SEKARANG!' : 'Mulai Acara (Buka Absensi)'}
-                              </button>
-                              <button onClick={() => setCancelModal({ isOpen: true, kegiatanId: kegiatan.id, reason: '' })} className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-red-400">block</span>Batalkan Kegiatan</button>
+                              {hasPermission('kegiatan_manage') && <Link href={`/kegiatan/${kegiatan.id}?tab=pelayan&mode=manage`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-indigo-400">groups</span>Kelola Pelayan &amp; Peserta</Link>}
+                              {hasPermission('kegiatan_manage') && <div className="w-full h-px bg-slate-100 my-1"></div>}
+                              {hasPermission('kegiatan_manage') && (
+                                <button
+                                  onClick={() => handleUpdateStatus(kegiatan.id, 'Ongoing')}
+                                  className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 font-black transition-colors ${
+                                    displayStatus === 'Menunggu Dimulai'
+                                      ? 'hover:bg-amber-50 text-amber-700 bg-amber-50/50'
+                                      : 'hover:bg-emerald-50 text-emerald-700'
+                                  }`}
+                                >
+                                  <span className={`material-icons-round text-[18px] ${displayStatus === 'Menunggu Dimulai' ? 'text-amber-600' : 'text-emerald-600'}`}>play_circle</span>
+                                  {displayStatus === 'Menunggu Dimulai' ? '⚡ MULAI ACARA SEKARANG!' : 'Mulai Acara (Buka Absensi)'}
+                                </button>
+                              )}
+                              {hasPermission('kegiatan_manage') && <button onClick={() => setCancelModal({ isOpen: true, kegiatanId: kegiatan.id, reason: '' })} className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-red-400">block</span>Batalkan Kegiatan</button>}
                             </>
                           )}
 
@@ -726,28 +752,34 @@ export default function KegiatanPage() {
                                 <span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Detail
                               </Link>
 
-                              <div className="w-full h-px bg-slate-100 my-1"></div>
+                              {hasPermission('kegiatan_absensi') && <div className="w-full h-px bg-slate-100 my-1"></div>}
 
-                              {/* 2. INPUT ABSENSI JEMAAT — Primary Action (bold only) */}
-                              <Link href={`/kegiatan/${kegiatan.id}/absen`} className="w-full text-left px-4 py-2.5 hover:bg-blue-50 text-blue-700 text-sm flex items-center gap-2 font-black">
-                                <span className="material-icons-round text-[18px] text-blue-600">qr_code_scanner</span>
-                                <span>INPUT ABSENSI JEMAAT</span>
-                              </Link>
+                              {/* 2. INPUT ABSENSI JEMAAT */}
+                              {hasPermission('kegiatan_absensi') && (
+                                <Link href={`/kegiatan/${kegiatan.id}/absen`} className="w-full text-left px-4 py-2.5 hover:bg-blue-50 text-blue-700 text-sm flex items-center gap-2 font-black">
+                                  <span className="material-icons-round text-[18px] text-blue-600">qr_code_scanner</span>
+                                  <span>INPUT ABSENSI JEMAAT</span>
+                                </Link>
+                              )}
 
-                              {/* 3. Absensi Tim Pelayan — Deep-link ke tab pelayan */}
-                              <Link href={`/kegiatan/${kegiatan.id}?tab=pelayan&mode=manage`} className="w-full text-left px-4 py-2 hover:bg-indigo-50 text-indigo-700 text-sm flex items-center gap-2">
-                                <span className="material-icons-round text-[18px] text-indigo-500">groups</span>Absensi Tim Pelayan
-                              </Link>
+                              {/* 3. Absensi Tim Pelayan */}
+                              {hasPermission('kegiatan_absensi') && (
+                                <Link href={`/kegiatan/${kegiatan.id}?tab=pelayan&mode=manage`} className="w-full text-left px-4 py-2 hover:bg-indigo-50 text-indigo-700 text-sm flex items-center gap-2">
+                                  <span className="material-icons-round text-[18px] text-indigo-500">groups</span>Absensi Tim Pelayan
+                                </Link>
+                              )}
 
-                              <div className="w-full h-px bg-slate-100 my-1"></div>
+                              {hasPermission('kegiatan_manage') && <div className="w-full h-px bg-slate-100 my-1"></div>}
 
                               {/* 4. Akhiri Kegiatan */}
-                              <button
-                                onClick={() => handleUpdateStatus(kegiatan.id, 'Menunggu LPJ')}
-                                className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 text-sm flex items-center gap-2"
-                              >
-                                <span className="material-icons-round text-[18px] text-red-400">stop_circle</span>Akhiri Kegiatan
-                              </button>
+                              {hasPermission('kegiatan_manage') && (
+                                <button
+                                  onClick={() => handleUpdateStatus(kegiatan.id, 'Menunggu LPJ')}
+                                  className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 text-sm flex items-center gap-2"
+                                >
+                                  <span className="material-icons-round text-[18px] text-red-400">stop_circle</span>Akhiri Kegiatan
+                                </button>
+                              )}
                             </>
                           )}
 
@@ -755,9 +787,21 @@ export default function KegiatanPage() {
                           {displayStatus === 'Menunggu LPJ' && (
                             <>
                               <Link href={`/kegiatan/${kegiatan.id}`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Detail</Link>
-                              <Link href={`/kegiatan/${kegiatan.id}/absensi-susulan`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">how_to_reg</span>Absensi Susulan</Link>
-                              <div className="w-full h-px bg-slate-100 my-1"></div>
-                              <Link href={`/kegiatan/${kegiatan.id}/lpj`} className="w-full text-left px-4 py-2 hover:bg-amber-50 text-amber-700 text-sm flex items-center gap-2 font-bold"><span className="material-icons-round text-[18px] text-amber-600">description</span>Input LPJ</Link>
+                              {hasPermission('kegiatan_absensi') && <Link href={`/kegiatan/${kegiatan.id}/absensi-susulan`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">how_to_reg</span>Absensi Susulan</Link>}
+                              {hasPermission('kegiatan_lpj') && <div className="w-full h-px bg-slate-100 my-1" />}
+                              {/* Input LPJ: tampil jika belum ada atau status Draft/Revisi */}
+                              {hasPermission('kegiatan_lpj') && (!kegiatan.status_lpj || ['Draft','Revisi'].includes(kegiatan.status_lpj)) && (
+                                <Link href={`/kegiatan/${kegiatan.id}/lpj`} className="w-full text-left px-4 py-2 hover:bg-amber-50 text-amber-700 text-sm flex items-center gap-2 font-bold">
+                                  <span className="material-icons-round text-[18px] text-amber-600">{kegiatan.status_lpj === 'Revisi' ? 'replay' : 'description'}</span>
+                                  {kegiatan.status_lpj === 'Revisi' ? 'Revisi LPJ' : 'Input LPJ'}
+                                </Link>
+                              )}
+                              {/* Review LPJ: tampil jika sudah diajukan dan menunggu review */}
+                              {hasPermission('kegiatan_manage') && kegiatan.status_lpj === 'Menunggu Review' && (
+                                <Link href={`/kegiatan/${kegiatan.id}/lpj/review`} className="w-full text-left px-4 py-2 hover:bg-emerald-50 text-emerald-700 text-sm flex items-center gap-2 font-bold">
+                                  <span className="material-icons-round text-[18px] text-emerald-600">fact_check</span>Review LPJ
+                                </Link>
+                              )}
                             </>
                           )}
 

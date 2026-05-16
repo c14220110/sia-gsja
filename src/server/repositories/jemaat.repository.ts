@@ -26,6 +26,7 @@ export interface JemaatFilterParams {
   status_baptis?: string;
   jenis_kelamin?: string;
   rentang_umur?: string;
+  hide_dummy?: boolean;
   limit?: number;
   offset?: number;
 }
@@ -121,6 +122,10 @@ export class JemaatRepository {
       } else if (rentang_umur === 'lansia') {
         whereClauses.push(`EXTRACT(YEAR FROM age(current_date, j.tanggal_lahir)) > 55`);
       }
+    }
+
+    if (params.hide_dummy) {
+      whereClauses.push(`j.jemaat_id NOT ILIKE '%dum%'`);
     }
 
     if (whereClauses.length > 0) {

@@ -40,6 +40,11 @@ export default function RancanganAnggaranPage() {
   const [deleteTarget, setDeleteTarget] = useState<AnggaranItem | null>(null);
   const [deleteState, setDeleteState] = useState<{status:'idle'|'loading'|'success'|'error';message:string}>({status:'idle',message:''});
 
+  // Batalkan state
+  const [batalTarget, setBatalTarget] = useState<AnggaranItem | null>(null);
+  const [batalState, setBatalState] = useState<{status:'idle'|'loading'|'success'|'error';message:string}>({status:'idle',message:''});
+  const [alasanBatal, setAlasanBatal] = useState('');
+
   // Timeline state
   const [timelineId, setTimelineId] = useState<string | null>(null);
 
@@ -76,7 +81,7 @@ export default function RancanganAnggaranPage() {
   const tahunOptions = Array.from(new Set(data.map(d => String(d.tahun)))).sort().reverse();
   const satelitOptions = Array.from(new Set(data.map(d => d.satelit))).sort();
   const komisiOptions = Array.from(new Set(data.filter(d => d.komisi && (!filterSatelit || d.satelit === filterSatelit)).map(d => d.komisi as string))).sort();
-  const statusOptions = ['Draft', 'Menunggu Review', 'Sedang Direviu', 'Revisi', 'Disetujui Sebagian', 'Disetujui Penuh', 'Ditolak'];
+  const statusOptions = ['Draft', 'Menunggu Review', 'Sedang Direviu', 'Revisi', 'Disetujui Sebagian', 'Disetujui Penuh', 'Ditolak', 'Dibatalkan'];
 
   // Filter data
   const filteredData = data.filter(item => {
@@ -107,6 +112,8 @@ export default function RancanganAnggaranPage() {
         return <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-600 flex items-center gap-1.5 w-max"><span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>DISETUJUI PENUH</span>;
       case 'Ditolak':
         return <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-600 flex items-center gap-1.5 w-max"><span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>DITOLAK</span>;
+      case 'Dibatalkan':
+        return <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-zinc-100 text-zinc-500 flex items-center gap-1.5 w-max"><span className="w-1.5 h-1.5 rounded-full bg-zinc-400"></span>DIBATALKAN</span>;
       default:
         return <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 flex items-center gap-1.5 w-max"><span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>{status.toUpperCase()}</span>;
     }
@@ -136,6 +143,41 @@ export default function RancanganAnggaranPage() {
     }
   };
 
+  // Batalkan RA
+  const handleBatalkan = async () => {
+    if (!batalTarget || !alasanBatal.trim()) return;
+    setBatalState({ status: 'loading', message: 'Membatalkan rancangan anggaran...' });
+    setBatalTarget(null);
+    try {
+      const res = await fetch(`/api/anggaran/tahunan/${batalTarget.id}/batalkan`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ alasan: alasanBatal }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setData(prev => prev.map(d => d.id === batalTarget.id ? { ...d, status: 'Dibatalkan' } : d));
+        setBatalState({ status: 'success', message: json.message });
+      } else {
+        setBatalState({ status: 'error', message: json.message || 'Gagal membatalkan.' });
+      }
+    } catch (e: any) {
+      setBatalState({ status: 'error', message: 'Kesalahan jaringan: ' + e.message });
+    } finally {
+      setAlasanBatal('');
+    }
+  };
+
+  // Role helpers for UI guards
+  const ALLOWED_STATUS_PEMBUAT  = ['Draft', 'Menunggu Review'];
+  const ALLOWED_STATUS_APPROVER = ['Draft', 'Menunggu Review', 'Disetujui', 'Disetujui Penuh', 'Disetujui Sebagian'];
+  const isApprover = userRoleId ? [1, 2, 3, 5].includes(userRoleId) : false;
+  const canBatalkanItem = (item: AnggaranItem) => {
+    if (item.status === 'Dibatalkan') return false;
+    if (isApprover) return ALLOWED_STATUS_APPROVER.includes(item.status);
+    return ALLOWED_STATUS_PEMBUAT.includes(item.status) && [1, 5, 6, 8, 9].includes(userRoleId || 0);
+  };
+
   return (
     <div className="w-full flex flex-col gap-6 relative overflow-hidden">
       {/* ⚠️ AlertModal konfirmasi hapus (Lottie Warning) */}
@@ -154,12 +196,47 @@ export default function RancanganAnggaranPage() {
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}
       />
-      {/* ✅❌ SubmitOverlay feedback (Success/Error Lottie) */}
-      <SubmitOverlay
-        status={deleteState.status}
-        message={deleteState.message}
-        onClose={() => setDeleteState({ status: 'idle', message: '' })}
-      />
+      {/* ✅❌ SubmitOverlay feedback delete */}
+      <SubmitOverlay status={deleteState.status} message={deleteState.message} onClose={() => setDeleteState({ status: 'idle', message: '' })} />
+      {/* ✅❌ SubmitOverlay feedback batalkan */}
+      <SubmitOverlay status={batalState.status} message={batalState.message} onClose={() => setBatalState({ status: 'idle', message: '' })} />
+
+      {/* Modal Batalkan RA */}
+      {batalTarget && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6 flex flex-col gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                <span className="material-icons-round text-red-500 text-[22px]">cancel</span>
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-slate-800">Batalkan Rancangan Anggaran?</h3>
+                <p className="text-xs text-slate-500 mt-0.5">Status <strong>{batalTarget.kode_dokumen}</strong> akan berubah menjadi <strong>Dibatalkan</strong>.</p>
+              </div>
+            </div>
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800">
+              <span className="material-icons-round text-[14px] text-amber-500 mr-1 align-middle">warning</span>
+              Jika RA ini terhubung ke kegiatan, plafonnya otomatis menjadi <strong>Rp 0</strong>.
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block mb-1.5">Alasan Pembatalan <span className="text-red-500">*</span></label>
+              <textarea
+                value={alasanBatal}
+                onChange={e => setAlasanBatal(e.target.value)}
+                placeholder="Contoh: RA digantikan dengan versi revisi yang lebih baru..."
+                className="w-full p-3 rounded-lg border border-slate-200 text-sm text-slate-700 focus:ring-2 focus:ring-red-300 focus:outline-none resize-none bg-white"
+                rows={3}
+                autoFocus
+              />
+              {!alasanBatal.trim() && <p className="text-[11px] text-red-500 mt-1">Alasan wajib diisi.</p>}
+            </div>
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => { setBatalTarget(null); setAlasanBatal(''); }} className="px-4 py-2 rounded-lg border border-slate-300 text-sm font-semibold text-slate-600 hover:bg-slate-50">Batal</button>
+              <button onClick={handleBatalkan} disabled={!alasanBatal.trim()} className="px-5 py-2 rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-bold text-white transition-colors">Ya, Batalkan RA</button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="w-full flex justify-between items-start">
         <div className="flex flex-col gap-1">
           <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Daftar Rancangan Anggaran</h1>
@@ -370,6 +447,13 @@ export default function RancanganAnggaranPage() {
                                 <div className="w-full h-px bg-slate-100 my-1"></div>
                                 <button onClick={() => { setOpenMenuId(null); setDeleteTarget(item); }} className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 text-sm flex items-center gap-2">
                                   <span className="material-icons-round text-[18px] text-red-400">delete</span>Hapus Permanen
+                                </button>
+                              </>)}
+                              {/* Batalkan — berdasarkan role + status */}
+                              {canBatalkanItem(item) && (<>
+                                <div className="w-full h-px bg-slate-100 my-1"></div>
+                                <button onClick={() => { setOpenMenuId(null); setAlasanBatal(''); setBatalTarget(item); }} className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 text-sm flex items-center gap-2">
+                                  <span className="material-icons-round text-[18px] text-red-400">cancel</span>Batalkan RA
                                 </button>
                               </>)}
                             </div>

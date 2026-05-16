@@ -7,6 +7,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   if (!caller) {
     return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
   }
+  if (!caller.is_super_admin && !caller.permissions.includes('pegawai_view')) {
+    return NextResponse.json({ success: false, message: 'Akses Ditolak: Anda tidak memiliki izin melihat data pegawai' }, { status: 403 });
+  }
 
   const unwrappedParams = await params;
   const id = unwrappedParams.id;
@@ -41,6 +44,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const caller = getCallerFromRequest(request);
   if (!caller) {
     return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  }
+  if (!caller.is_super_admin && !caller.permissions.includes('pegawai_approval')) {
+    return NextResponse.json({ success: false, message: 'Akses Ditolak: Anda tidak memiliki izin approval pegawai' }, { status: 403 });
   }
 
   const unwrappedParams = await params;
@@ -99,6 +105,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   const caller = getCallerFromRequest(request);
   if (!caller) {
     return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  }
+  if (!caller.is_super_admin && !caller.permissions.includes('pegawai_edit')) {
+    return NextResponse.json({ success: false, message: 'Akses Ditolak: Anda tidak memiliki izin mengedit data pegawai' }, { status: 403 });
   }
 
   const unwrappedParams = await params;

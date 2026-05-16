@@ -20,37 +20,56 @@ export default function InputLPJPage() {
   const [items, setItems] = useState<Item[]>([]);
   const [laporan, setLaporan] = useState('');
   const [existingStatus, setExistingStatus] = useState('');
+  const [catatanReviewer, setCatatanReviewer] = useState<string | null>(null);
+  const [reviewedByNama, setReviewedByNama] = useState<string | null>(null);
   const [raInfo, setRaInfo] = useState<any>(null);
   const [isPrefilled, setIsPrefilled] = useState(false);
   const [raItemsReference, setRaItemsReference] = useState<any[]>([]);
+  const [showRiwayat, setShowRiwayat] = useState(false);
+  const [timeline, setTimeline] = useState<any[]>([]);
+  const [timelineLoading, setTimelineLoading] = useState(false);
   const [form, setForm] = useState({ jenis: 'Pengeluaran', coaId: '', coaLabel: '', sumber_dana: 'Kas Mandiri', uraian: '', deskripsi: '', jumlah: 1, satuan: '', harga: 0 });
   const [coaSearch, setCoaSearch] = useState('');
   const [coaOpen, setCoaOpen] = useState(false);
 
-  // Fetch kegiatan info + existing LPJ
+  // Fetch semua data secara paralel (eliminasi waterfall)
   useEffect(() => {
-    fetch(`/api/kegiatan/${id}`).then(r => r.json()).then(j => { if (j.success) setKegiatan(j.data); });
-    fetch(`/api/buku-besar/coa`).then(r => r.json()).then(j => {
-      if (j.success) setCoaList(j.data.filter((c: any) => c.tipe_akun === 'Detail' && c.is_active).map((c: any) => ({ id: c.id, label: `${c.kode_akun} — ${c.nama_akun}`, saldo_normal: c.saldo_normal, grup_laporan: c.grup_laporan })));
-    });
-    fetch(`/api/kegiatan/${id}/lpj`).then(r => r.json()).then(j => {
-      if (j.success) {
-        if (j.data.header) {
-          setLaporan(j.data.header.laporan_naratif || '');
-          setExistingStatus(j.data.header.status_lpj || '');
+    Promise.all([
+      fetch(`/api/kegiatan/${id}`).then(r => r.json()),
+      fetch(`/api/buku-besar/coa`).then(r => r.json()),
+      fetch(`/api/kegiatan/${id}/lpj`).then(r => r.json()),
+    ]).then(([keg, coa, lpj]) => {
+      // Kegiatan info
+      if (keg.success) setKegiatan(keg.data);
+
+      // COA list
+      if (coa.success) {
+        setCoaList(coa.data
+          .filter((c: any) => c.tipe_akun === 'Detail' && c.is_active)
+          .map((c: any) => ({ id: c.id, label: `${c.kode_akun} — ${c.nama_akun}`, saldo_normal: c.saldo_normal, grup_laporan: c.grup_laporan }))
+        );
+      }
+
+      // LPJ data
+      if (lpj.success) {
+        if (lpj.data.header) {
+          setLaporan(lpj.data.header.laporan_naratif || '');
+          setExistingStatus(lpj.data.header.status_lpj || '');
+          setCatatanReviewer(lpj.data.header.catatan_reviewer || null);
+          setReviewedByNama(lpj.data.header.reviewed_by_nama || null);
         }
-        if (j.data.items?.length > 0) {
-          setItems(j.data.items.map((it: any) => ({
-            id: String(it.id || Date.now() + Math.random()), 
+        if (lpj.data.items?.length > 0) {
+          setItems(lpj.data.items.map((it: any) => ({
+            id: String(it.id || Date.now() + Math.random()),
             jenis: it.jenis_anggaran, coaId: it.coa_id,
             coaLabel: `${it.kode_akun} — ${it.nama_akun}`, sumber_dana: it.sumber_dana,
             uraian: it.uraian, deskripsi: it.deskripsi || '', jumlah: it.jumlah,
             satuan: it.satuan || '', harga: parseFloat(it.harga_satuan), total: it.jumlah * parseFloat(it.harga_satuan)
           })));
         }
-        setRaInfo(j.data.ra_info || null);
-        setIsPrefilled(j.data.is_prefilled || false);
-        setRaItemsReference(j.data.ra_items_reference || []);
+        setRaInfo(lpj.data.ra_info || null);
+        setIsPrefilled(lpj.data.is_prefilled || false);
+        setRaItemsReference(lpj.data.ra_items_reference || []);
       }
     });
   }, [id]);
@@ -74,6 +93,68 @@ export default function InputLPJPage() {
     setItems(p => [...p, { id: Date.now().toString(), jenis: form.jenis as any, coaId: parseInt(form.coaId), coaLabel: form.coaLabel, sumber_dana: form.sumber_dana, uraian: form.uraian, deskripsi: form.deskripsi, jumlah: form.jumlah, satuan: form.satuan, harga: form.harga, total: form.jumlah * form.harga }]);
     setForm(p => ({ ...p, uraian: '', deskripsi: '', jumlah: 1, satuan: '', harga: 0 }));
   }, [form]);
+
+  // Salin satu baris RA ke LPJ items
+  const handleSalinSatuItem = useCallback((r: any) => {
+    const newItem: Item = {
+      id: Date.now().toString() + Math.random(),
+      jenis: r.jenis_anggaran as 'Penerimaan' | 'Pengeluaran',
+      coaId: r.coa_id,
+      coaLabel: `${r.kode_akun} — ${r.nama_akun}`,
+      sumber_dana: r.sumber_dana || 'Kas Mandiri',
+      uraian: r.uraian,
+      deskripsi: r.deskripsi || '',
+      jumlah: r.jumlah,
+      satuan: r.satuan || '',
+      harga: parseFloat(r.harga_satuan),
+      total: r.jumlah * parseFloat(r.harga_satuan),
+    };
+    setItems(p => [...p, newItem]);
+  }, []);
+
+  // Salin semua baris RA ke LPJ items (bulk copy)
+  const [salinDone, setSalinDone] = useState(false);
+  const handleSalinSemua = useCallback(() => {
+    if (raItemsReference.length === 0) return;
+    const newItems: Item[] = raItemsReference.map((r: any) => ({
+      id: Date.now().toString() + Math.random(),
+      jenis: r.jenis_anggaran as 'Penerimaan' | 'Pengeluaran',
+      coaId: r.coa_id,
+      coaLabel: `${r.kode_akun} — ${r.nama_akun}`,
+      sumber_dana: r.sumber_dana || 'Kas Mandiri',
+      uraian: r.uraian,
+      deskripsi: r.deskripsi || '',
+      jumlah: r.jumlah,
+      satuan: r.satuan || '',
+      harga: parseFloat(r.harga_satuan),
+      total: r.jumlah * parseFloat(r.harga_satuan),
+    }));
+    if (items.length > 0) {
+      if (!confirm(`Tabel rincian sudah ada ${items.length} item. Ganti semua dengan data dari Anggaran?`)) return;
+    }
+    setItems(newItems);
+    setSalinDone(true);
+    setTimeout(() => setSalinDone(false), 2500);
+  }, [raItemsReference, items]);
+
+  // Inline edit state
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValues, setEditValues] = useState<{ uraian: string; deskripsi: string; jumlah: number; satuan: string; harga: number }>({ uraian: '', deskripsi: '', jumlah: 1, satuan: '', harga: 0 });
+
+  const handleStartEdit = (item: Item) => {
+    setEditingId(item.id);
+    setEditValues({ uraian: item.uraian, deskripsi: item.deskripsi, jumlah: item.jumlah, satuan: item.satuan, harga: item.harga });
+  };
+
+  const handleEditSave = (id: string) => {
+    if (!editValues.uraian.trim()) { alert('Uraian tidak boleh kosong!'); return; }
+    if (editValues.jumlah <= 0 || editValues.harga <= 0) { alert('Jumlah dan Harga harus lebih dari 0!'); return; }
+    setItems(prev => prev.map(i => i.id === id
+      ? { ...i, ...editValues, total: editValues.jumlah * editValues.harga }
+      : i
+    ));
+    setEditingId(null);
+  };
 
   const totalP = useMemo(() => items.filter(i => i.jenis === 'Penerimaan').reduce((a, c) => a + c.total, 0), [items]);
   const totalK = useMemo(() => items.filter(i => i.jenis === 'Pengeluaran').reduce((a, c) => a + c.total, 0), [items]);
@@ -137,9 +218,10 @@ export default function InputLPJPage() {
     });
   }, [raItemsReference, items]);
 
-  const handleSave = async (action: 'draft' | 'ajukan') => {
+  const handleSave = async (action: 'draft' | 'ajukan' | 'ajukan_ulang') => {
     if (items.length === 0) { setSubmitState({ status: 'error', message: 'Minimal 1 item rincian harus diisi.' }); return; }
-    setSubmitState({ status: 'loading', message: action === 'ajukan' ? 'Mengajukan LPJ...' : 'Menyimpan draft...' });
+    const msgMap: Record<string, string> = { draft: 'Menyimpan draft...', ajukan: 'Mengajukan LPJ...', ajukan_ulang: 'Mengajukan ulang LPJ...' };
+    setSubmitState({ status: 'loading', message: msgMap[action] });
     try {
       const res = await fetch(`/api/kegiatan/${id}/lpj`, {
         method: 'POST',
@@ -152,7 +234,12 @@ export default function InputLPJPage() {
       const json = await res.json();
       if (json.success) {
         setSubmitState({ status: 'success', message: json.message });
-        setTimeout(() => router.push('/kegiatan'), 1800);
+        if (action !== 'draft') {
+          setTimeout(() => router.push('/kegiatan'), 1800);
+        } else {
+          setExistingStatus('Draft');
+          setTimeout(() => setSubmitState({ status: 'idle', message: '' }), 1500);
+        }
       } else {
         setSubmitState({ status: 'error', message: json.message });
       }
@@ -161,7 +248,22 @@ export default function InputLPJPage() {
     }
   };
 
+  const handleOpenRiwayat = async () => {
+    setShowRiwayat(true);
+    if (timeline.length === 0) {
+      setTimelineLoading(true);
+      try {
+        const res = await fetch(`/api/kegiatan/${id}/lpj/timeline`);
+        const json = await res.json();
+        if (json.success) setTimeline(json.data);
+      } catch {}
+      setTimelineLoading(false);
+    }
+  };
+
   const isDraft = existingStatus === '' || existingStatus === 'Draft';
+  const isRevisi = existingStatus === 'Revisi';
+
 
   return (
     <div className="w-full flex flex-col gap-6 pb-32">
@@ -183,10 +285,18 @@ export default function InputLPJPage() {
             <p className="text-xs text-slate-400 font-['Public_Sans'] mt-0.5">{kegiatan ? `${kegiatan.nama_kegiatan} · ${kegiatan.kode_kegiatan}` : 'Memuat data kegiatan...'}</p>
           </div>
           {existingStatus && (
-            <span className={`ml-auto px-3 py-1 rounded-full text-xs font-bold border ${existingStatus === 'Menunggu Review' ? 'bg-amber-50 text-amber-700 border-amber-200' : existingStatus === 'Disetujui' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
+            <span className={`ml-auto px-3 py-1 rounded-full text-xs font-bold border ${
+              existingStatus === 'Menunggu Review' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+              existingStatus === 'Disetujui' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+              existingStatus === 'Revisi' ? 'bg-red-50 text-red-700 border-red-200' :
+              'bg-slate-100 text-slate-600 border-slate-200'
+            }`}>
               Status LPJ: {existingStatus}
             </span>
           )}
+          <button onClick={handleOpenRiwayat} className="ml-2 w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-100 hover:text-indigo-600 transition-colors" title="Lihat Riwayat">
+            <span className="material-icons-round text-[18px]">history</span>
+          </button>
         </div>
 
         {/* RA Info Tracking (If Available) */}
@@ -198,7 +308,7 @@ export default function InputLPJPage() {
              <div className="flex flex-col z-10 w-full md:w-auto">
                 <span className="text-xs font-bold text-emerald-800 uppercase tracking-widest mb-1">Rancangan Terhubung</span>
                 <span className="text-sm font-bold text-slate-800">{raInfo.kode} — {raInfo.nama}</span>
-                <span className="text-xs font-medium text-emerald-700 mt-0.5">Pola: {raInfo.pola}</span>
+                <span className="text-xs font-medium text-emerald-700 mt-0.5">Pola: {raInfo.pola === 'Sekali Pakai' ? 'Tunggal' : raInfo.pola}</span>
              </div>
              
              {raInfo.pola === 'Bertahap' && (
@@ -222,6 +332,18 @@ export default function InputLPJPage() {
           </div>
         )}
 
+        {/* Catatan Revisi dari Majelis */}
+        {isRevisi && catatanReviewer && (
+          <div className="mb-5 bg-red-50 border border-red-200 rounded-xl p-4 flex gap-3">
+            <span className="material-icons-round text-red-500 text-[22px] shrink-0 mt-0.5">rate_review</span>
+            <div>
+              <p className="text-xs font-bold text-red-700 uppercase tracking-wider mb-1">Catatan Revisi dari Majelis</p>
+              <p className="text-sm text-red-800 font-medium">&ldquo;{catatanReviewer}&rdquo;</p>
+              {reviewedByNama && <p className="text-[11px] text-red-500 mt-1">&mdash; {reviewedByNama}</p>}
+            </div>
+          </div>
+        )}
+
         {/* Laporan Naratif */}
         <div className="mb-5">
           <label className={lbl}>Laporan Naratif / Catatan Umum <span className="text-slate-400 font-normal normal-case">(opsional)</span></label>
@@ -230,119 +352,69 @@ export default function InputLPJPage() {
             className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm outline-none focus:ring-2 focus:ring-indigo-500 resize-none disabled:bg-slate-50 disabled:text-slate-400" />
         </div>
 
-        {/* RA Reference / Comparison Panel */}
         {raItemsReference.length > 0 && (
-          <div className="mb-5 rounded-xl overflow-hidden border border-indigo-100">
-            <div className={`px-4 py-2.5 flex items-center gap-2 border-b ${items.length > 0 ? 'bg-indigo-600' : 'bg-blue-50 border-blue-100'}`}>
-              <span className={`material-icons-round text-[18px] ${items.length > 0 ? 'text-white' : 'text-blue-500'}`}>
-                {items.length > 0 ? 'compare_arrows' : 'menu_book'}
-              </span>
-              <p className={`text-xs font-bold uppercase tracking-wide ${items.length > 0 ? 'text-white' : 'text-blue-800'}`}>
-                {items.length > 0 ? 'Perbandingan Anggaran vs Realisasi (Per Sesi) — Head-to-Head per COA' : 'Referensi Rencana Anggaran (RA) — Hanya untuk Panduan'}
-              </p>
+          <div className="mb-5 border border-blue-100 rounded-xl overflow-hidden shadow-sm">
+            <div className="bg-blue-50 px-4 py-2.5 flex items-center justify-between gap-2 border-b border-blue-100">
+              <div className="flex items-center gap-2">
+                <span className="material-icons-round text-blue-500 text-[18px]">menu_book</span>
+                <p className="text-xs font-bold text-blue-800 uppercase tracking-wide">Referensi Rencana Anggaran (RA) — Hanya untuk Panduan</p>
+              </div>
+              {isDraft && (
+                <button
+                  onClick={handleSalinSemua}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm ${
+                    salinDone
+                      ? 'bg-emerald-500 text-white border border-emerald-400'
+                      : 'bg-white text-blue-700 border border-blue-300 hover:bg-blue-600 hover:text-white hover:border-blue-600'
+                  }`}
+                >
+                  <span className="material-icons-round text-[14px]">{salinDone ? 'check_circle' : 'auto_awesome'}</span>
+                  {salinDone ? 'Tersalin!' : 'Salin Semua ke LPJ'}
+                </button>
+              )}
             </div>
-
-            {items.length === 0 ? (
-              // === MODE: Plain Reference (belum ada item LPJ) ===
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs min-w-[600px]">
-                  <thead>
-                    <tr className="bg-blue-50/50 border-b border-blue-100 text-[10px] font-bold text-blue-700 uppercase tracking-widest">
-                      <th className="px-4 py-2 w-[30%]">Uraian (Rencana)</th>
-                      <th className="px-4 py-2 w-[22%]">Akun COA</th>
-                      <th className="px-4 py-2 text-center">Jml</th>
-                      <th className="px-4 py-2">Satuan</th>
-                      <th className="px-4 py-2 text-right">Harga/Satuan</th>
-                      <th className="px-4 py-2 text-right">Total Rencana</th>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs min-w-[600px]">
+                <thead>
+                  <tr className="bg-blue-50/50 border-b border-blue-100 text-[10px] font-bold text-blue-700 uppercase tracking-widest">
+                    <th className="px-4 py-2 w-[28%]">Uraian (Rencana)</th>
+                    <th className="px-4 py-2 w-[20%]">Akun COA</th>
+                    <th className="px-4 py-2 text-center">Jml</th>
+                    <th className="px-4 py-2">Satuan</th>
+                    <th className="px-4 py-2 text-right">Harga/Satuan</th>
+                    <th className="px-4 py-2 text-right">Total Rencana</th>
+                    {isDraft && <th className="px-4 py-2 text-center">Salin</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {raItemsReference.map((r: any, i: number) => (
+                    <tr key={i} className="border-b border-blue-50 last:border-0 hover:bg-blue-50/30 group">
+                      <td className="px-4 py-2 font-medium text-slate-700">{r.uraian}</td>
+                      <td className="px-4 py-2 font-mono text-slate-500">{r.kode_akun} — {r.nama_akun}</td>
+                      <td className="px-4 py-2 text-center text-slate-600">{r.jumlah}</td>
+                      <td className="px-4 py-2 text-slate-500">{r.satuan || '-'}</td>
+                      <td className="px-4 py-2 text-right font-mono text-slate-600">{fmt(parseFloat(r.harga_satuan))}</td>
+                      <td className="px-4 py-2 text-right font-bold font-mono text-blue-700">{fmt(r.jumlah * parseFloat(r.harga_satuan))}</td>
+                      {isDraft && (
+                        <td className="px-4 py-2 text-center">
+                          <button
+                            onClick={() => handleSalinSatuItem(r)}
+                            title="Salin baris ini ke LPJ"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center gap-1 px-2 py-1 rounded bg-blue-100 text-blue-700 hover:bg-blue-600 hover:text-white text-[10px] font-bold"
+                          >
+                            <span className="material-icons-round text-[12px]">south</span> Salin
+                          </button>
+                        </td>
+                      )}
                     </tr>
-                  </thead>
-                  <tbody>
-                    {raItemsReference.map((r: any, i: number) => (
-                      <tr key={i} className="border-b border-blue-50 last:border-0 hover:bg-blue-50/30">
-                        <td className="px-4 py-2 font-medium text-slate-700">{r.uraian}</td>
-                        <td className="px-4 py-2 font-mono text-slate-500">{r.kode_akun} — {r.nama_akun}</td>
-                        <td className="px-4 py-2 text-center text-slate-600">{r.jumlah}</td>
-                        <td className="px-4 py-2 text-slate-500">{r.satuan || '-'}</td>
-                        <td className="px-4 py-2 text-right font-mono text-slate-600">{fmt(parseFloat(r.harga_satuan))}</td>
-                        <td className="px-4 py-2 text-right font-bold font-mono text-blue-700">{fmt(r.jumlah * parseFloat(r.harga_satuan))}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <div className="bg-blue-50/50 px-4 py-2 text-[10px] text-blue-600 italic border-t border-blue-100">
-                  ⓘ Ini adalah rencana anggaran dari RA. Isi form di bawah dengan realisasi aktual per sesi kegiatan ini saja.
-                </div>
-              </div>
-            ) : (
-              // === MODE: Head-to-Head Comparison (ada item LPJ) ===
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs min-w-[800px]">
-                  <thead>
-                    <tr className="bg-indigo-50 border-b border-indigo-100 text-[10px] font-bold text-indigo-700 uppercase tracking-widest">
-                      <th className="px-4 py-2.5 w-[20%]">Akun COA</th>
-                      <th className="px-4 py-2.5 w-[14%]">Uraian RA</th>
-                      <th className="px-4 py-2.5 text-right w-[16%]">Anggaran RA<br/><span className="text-indigo-400 normal-case font-normal">(per sesi)</span></th>
-                      <th className="px-4 py-2.5 w-[14%]">Uraian Realisasi</th>
-                      <th className="px-4 py-2.5 text-right w-[16%]">Realisasi LPJ</th>
-                      <th className="px-4 py-2.5 text-right w-[14%]">Selisih</th>
-                      <th className="px-4 py-2.5 text-center w-[6%]">%</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {['Penerimaan', 'Pengeluaran'].map(jenisGroup => {
-                      const rows = comparisonData.filter(c => c.jenis === jenisGroup);
-                      if (rows.length === 0) return null;
-                      return (
-                        <>
-                          <tr key={jenisGroup}>
-                            <td colSpan={7} className={`px-4 py-1.5 text-[10px] font-bold tracking-widest uppercase ${jenisGroup === 'Penerimaan' ? 'bg-emerald-700 text-white' : 'bg-slate-700 text-white'}`}>
-                              {jenisGroup === 'Penerimaan' ? '↑ PENERIMAAN' : '↓ PENGELUARAN'}
-                            </td>
-                          </tr>
-                          {rows.map((row, i) => {
-                            const selisihFmt = row.selisih >= 0 ? `+${fmt(row.selisih)}` : fmt(row.selisih);
-                            // Color: Penerimaan over-budget is good (green), Pengeluaran over-budget is bad (red)
-                            const selisihColor = row.jenis === 'Penerimaan'
-                              ? (row.selisih >= 0 ? 'text-emerald-600' : 'text-red-500')
-                              : (row.selisih <= 0 ? 'text-emerald-600' : 'text-red-500');
-                            const rowBg = row.isOver ? 'bg-red-50/60' : 'bg-emerald-50/30';
-                            return (
-                              <tr key={i} className={`border-b border-slate-100 hover:brightness-95 ${rowBg}`}>
-                                <td className="px-4 py-3 font-mono text-slate-600 text-[11px]">
-                                  <span className="font-bold text-slate-800">{row.kode_akun}</span><br/>
-                                  <span className="text-slate-400">{row.nama_akun}</span>
-                                </td>
-                                <td className="px-4 py-3 text-slate-600">
-                                  {row.uraian_ra}<br/>
-                                  <span className="text-[10px] text-slate-400">{row.jumlah_ra} × {fmt(row.harga_satuan_ra)}</span>
-                                </td>
-                                <td className="px-4 py-3 text-right font-mono font-bold text-indigo-700">{fmt(row.total_ra)}</td>
-                                <td className="px-4 py-3 text-slate-600">{row.total_lpj > 0 ? row.uraian_lpj : <span className="italic text-slate-300">—</span>}</td>
-                                <td className="px-4 py-3 text-right font-mono font-bold text-slate-800">{row.total_lpj > 0 ? fmt(row.total_lpj) : <span className="text-slate-300">—</span>}</td>
-                                <td className={`px-4 py-3 text-right font-mono font-bold ${selisihColor}`}>
-                                  {row.total_lpj > 0 ? selisihFmt : '—'}
-                                </td>
-                                <td className="px-4 py-3 text-center">
-                                  {row.pct !== null && row.total_lpj > 0 ? (
-                                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                                      row.isOver ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-700'
-                                    }`}>{row.pct}%</span>
-                                  ) : '—'}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </>
-                      );
-                    })}
-                  </tbody>
-                </table>
-                <div className="bg-indigo-50 px-4 py-2 text-[10px] text-indigo-600 italic border-t border-indigo-100 flex gap-4">
-                  <span>🟢 Hijau = Sesuai / Hemat (Pengeluaran) / Lebih besar (Penerimaan)</span>
-                  <span>🔴 Merah = Melebihi Anggaran (Pengeluaran) / Di bawah target (Penerimaan)</span>
-                </div>
-              </div>
-            )}
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="bg-blue-50/50 px-4 py-2 text-[10px] text-blue-600 italic border-t border-blue-100 flex items-center gap-2">
+              <span className="material-icons-round text-[12px]">info</span>
+              Data di atas adalah rencana dari RA. Gunakan tombol “Salin” atau “Salin Semua”, lalu sesuaikan jumlah/harga sesuai realisasi aktual.
+            </div>
           </div>
         )}
 
@@ -404,7 +476,7 @@ export default function InputLPJPage() {
               <div>
                 <label className={lbl}>Sumber Dana</label>
                 <select value={form.sumber_dana} onChange={e => setForm(p => ({ ...p, sumber_dana: e.target.value }))} className={sel}>
-                  <option value="Kas Mandiri">Kas Mandiri</option>
+                  <option value="Kas Mandiri">Kas Satelit/Komisi</option>
                   <option value="Kas Pusat">Kas Pusat</option>
                   <option value="Kontribusi Peserta">Kontribusi Peserta</option>
                 </select>
@@ -427,7 +499,7 @@ export default function InputLPJPage() {
                 <label className={lbl}>Jumlah <span className="text-red-500">*</span></label>
                 <div className="flex items-center border border-slate-300 rounded-lg overflow-hidden h-10 bg-white">
                   <button type="button" onClick={() => setForm(p => ({ ...p, jumlah: Math.max(1, p.jumlah - 1) }))} className="w-10 h-full flex justify-center items-center text-slate-500 hover:bg-slate-100 border-r border-slate-300 font-bold">−</button>
-                  <input type="number" min={1} value={form.jumlah} onChange={e => setForm(p => ({ ...p, jumlah: parseInt(e.target.value) || 1 }))} className="w-full h-full text-center outline-none text-sm font-semibold" />
+                  <input type="number" min={1} step={1} value={form.jumlah} onChange={e => setForm(p => ({ ...p, jumlah: Math.round(Number(e.target.value)) || 1 }))} className="w-full h-full text-center outline-none text-sm font-semibold" />
                   <button type="button" onClick={() => setForm(p => ({ ...p, jumlah: p.jumlah + 1 }))} className="w-10 h-full flex justify-center items-center text-slate-500 hover:bg-slate-100 border-l border-slate-300 font-bold">+</button>
                 </div>
               </div>
@@ -439,7 +511,7 @@ export default function InputLPJPage() {
                 <label className={lbl}>Harga Satuan <span className="text-red-500">*</span></label>
                 <div className="relative">
                   <span className="absolute left-3 top-2.5 text-slate-400 text-sm font-semibold">Rp</span>
-                  <input type="number" min={0} value={form.harga || ''} onChange={e => setForm(p => ({ ...p, harga: parseInt(e.target.value) || 0 }))} className={inp + ' pl-9 font-mono'} />
+                  <input type="number" min={0} step={1} value={form.harga || ''} onChange={e => setForm(p => ({ ...p, harga: Math.round(Number(e.target.value)) || 0 }))} className={inp + ' pl-9 font-mono'} />
                 </div>
               </div>
               <div>
@@ -458,12 +530,6 @@ export default function InputLPJPage() {
 
       {/* Rincian Table */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        {isPrefilled && items.length > 0 && isDraft && (
-          <div className="bg-blue-50 border-b border-blue-100 p-3 px-4 flex items-center gap-3">
-             <span className="material-icons-round text-blue-500 text-xl">auto_awesome</span>
-             <p className="text-sm text-blue-800 font-medium">Item di bawah ini secara otomatis diisi (pre-filled) dari Rancangan Anggaran yang telah disetujui. Anda dapat menyesuaikan jumlah dan harga sesuai dengan realisasi pelaksanaan.</p>
-          </div>
-        )}
         <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
           <h2 className="text-base font-bold text-slate-800">Rincian Keuangan Kegiatan</h2>
           <span className="text-xs text-slate-400">{items.length} item</span>
@@ -497,7 +563,36 @@ export default function InputLPJPage() {
                     <>
                       <tr><td colSpan={isDraft ? 8 : 7} className="px-4 py-2 bg-emerald-700 text-white text-[10px] font-bold tracking-widest uppercase">↑ PENERIMAAN</td></tr>
                       {items.filter(i => i.jenis === 'Penerimaan').map((item, idx) => (
-                        <tr key={item.id} className="border-b border-slate-100 hover:bg-emerald-50/30">
+                        editingId === item.id ? (
+                          <tr key={item.id} className="border-b border-emerald-200 bg-emerald-50/40">
+                            <td className="p-3 pl-6" colSpan={2}>
+                              <input type="text" value={editValues.uraian} onChange={e => setEditValues(p => ({ ...p, uraian: e.target.value }))} placeholder="Uraian" className="w-full mb-1 px-2 py-1 border border-emerald-300 rounded text-sm outline-none focus:ring-1 focus:ring-emerald-500" />
+                              <input type="text" value={editValues.deskripsi} onChange={e => setEditValues(p => ({ ...p, deskripsi: e.target.value }))} placeholder="Deskripsi (opsional)" className="w-full px-2 py-1 border border-slate-200 rounded text-xs outline-none focus:ring-1 focus:ring-emerald-500" />
+                            </td>
+                            <td className="p-3">
+                              <select value={item.sumber_dana} disabled className="px-2 py-1 border border-slate-200 rounded text-xs bg-slate-50 w-full">
+                                <option>{item.sumber_dana}</option>
+                              </select>
+                            </td>
+                            <td className="p-3 text-center">
+                              <input type="number" min={1} step={1} value={editValues.jumlah} onChange={e => setEditValues(p => ({ ...p, jumlah: Math.round(Number(e.target.value)) || 1 }))} className="w-16 px-2 py-1 border border-emerald-300 rounded text-sm text-center outline-none focus:ring-1 focus:ring-emerald-500" />
+                            </td>
+                            <td className="p-3 text-center">
+                              <input type="text" value={editValues.satuan} onChange={e => setEditValues(p => ({ ...p, satuan: e.target.value }))} placeholder="satuan" className="w-20 px-2 py-1 border border-slate-200 rounded text-xs outline-none" />
+                            </td>
+                            <td className="p-3 text-right">
+                              <input type="number" min={0} step={1} value={editValues.harga || ''} onChange={e => setEditValues(p => ({ ...p, harga: Math.round(Number(e.target.value)) || 0 }))} className="w-28 px-2 py-1 border border-emerald-300 rounded text-sm text-right font-mono outline-none focus:ring-1 focus:ring-emerald-500" />
+                            </td>
+                            <td className="p-3 text-right font-bold font-mono text-emerald-600 text-sm">{fmt(editValues.jumlah * editValues.harga)}</td>
+                            <td className="p-3 text-center">
+                              <div className="flex items-center justify-center gap-1">
+                                <button onClick={() => handleEditSave(item.id)} title="Simpan" className="w-7 h-7 rounded bg-emerald-600 text-white flex justify-center items-center hover:bg-emerald-700"><span className="material-icons-round text-[14px]">check</span></button>
+                                <button onClick={() => setEditingId(null)} title="Batal" className="w-7 h-7 rounded bg-slate-200 text-slate-600 flex justify-center items-center hover:bg-slate-300"><span className="material-icons-round text-[14px]">close</span></button>
+                              </div>
+                            </td>
+                          </tr>
+                        ) : (
+                        <tr key={item.id} className="border-b border-slate-100 hover:bg-emerald-50/30 group">
                           <td className="p-4 pl-6 text-sm font-semibold text-slate-800">{idx + 1}. {item.uraian}<p className="text-xs font-normal text-slate-400">{item.deskripsi}</p></td>
                           <td className="p-4 text-xs font-mono text-slate-500">{item.coaLabel}</td>
                           <td className="p-4"><span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${item.sumber_dana === 'Kas Pusat' ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : item.sumber_dana === 'Kontribusi Peserta' ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-emerald-50 text-emerald-600 border-emerald-200'}`}>{item.sumber_dana}</span></td>
@@ -505,8 +600,14 @@ export default function InputLPJPage() {
                           <td className="p-4 text-sm text-center text-slate-600">{item.satuan}</td>
                           <td className="p-4 text-sm text-right font-mono text-slate-700">{fmt(item.harga)}</td>
                           <td className="p-4 text-sm text-right font-bold font-mono text-emerald-600">{fmt(item.total)}</td>
-                          {isDraft && <td className="p-4 text-center"><button onClick={() => setItems(items.filter(i => i.id !== item.id))} className="w-7 h-7 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 flex justify-center items-center mx-auto"><span className="material-icons-round text-[16px]">delete</span></button></td>}
+                          {isDraft && <td className="p-4 text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              <button onClick={() => handleStartEdit(item)} title="Edit" className="w-7 h-7 rounded text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 flex justify-center items-center"><span className="material-icons-round text-[16px]">edit</span></button>
+                              <button onClick={() => setItems(items.filter(i => i.id !== item.id))} title="Hapus" className="w-7 h-7 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 flex justify-center items-center"><span className="material-icons-round text-[16px]">delete</span></button>
+                            </div>
+                          </td>}
                         </tr>
+                        )
                       ))}
                     </>
                   )}
@@ -515,7 +616,36 @@ export default function InputLPJPage() {
                     <>
                       <tr><td colSpan={isDraft ? 8 : 7} className="px-4 py-2 bg-slate-800 text-white text-[10px] font-bold tracking-widest uppercase">↓ PENGELUARAN</td></tr>
                       {items.filter(i => i.jenis === 'Pengeluaran').map((item, idx) => (
-                        <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50">
+                        editingId === item.id ? (
+                          <tr key={item.id} className="border-b border-indigo-200 bg-indigo-50/30">
+                            <td className="p-3 pl-6" colSpan={2}>
+                              <input type="text" value={editValues.uraian} onChange={e => setEditValues(p => ({ ...p, uraian: e.target.value }))} placeholder="Uraian" className="w-full mb-1 px-2 py-1 border border-indigo-300 rounded text-sm outline-none focus:ring-1 focus:ring-indigo-500" />
+                              <input type="text" value={editValues.deskripsi} onChange={e => setEditValues(p => ({ ...p, deskripsi: e.target.value }))} placeholder="Deskripsi (opsional)" className="w-full px-2 py-1 border border-slate-200 rounded text-xs outline-none focus:ring-1 focus:ring-indigo-500" />
+                            </td>
+                            <td className="p-3">
+                              <select value={item.sumber_dana} disabled className="px-2 py-1 border border-slate-200 rounded text-xs bg-slate-50 w-full">
+                                <option>{item.sumber_dana}</option>
+                              </select>
+                            </td>
+                            <td className="p-3 text-center">
+                              <input type="number" min={1} step={1} value={editValues.jumlah} onChange={e => setEditValues(p => ({ ...p, jumlah: Math.round(Number(e.target.value)) || 1 }))} className="w-16 px-2 py-1 border border-indigo-300 rounded text-sm text-center outline-none focus:ring-1 focus:ring-indigo-500" />
+                            </td>
+                            <td className="p-3 text-center">
+                              <input type="text" value={editValues.satuan} onChange={e => setEditValues(p => ({ ...p, satuan: e.target.value }))} placeholder="satuan" className="w-20 px-2 py-1 border border-slate-200 rounded text-xs outline-none" />
+                            </td>
+                            <td className="p-3 text-right">
+                              <input type="number" min={0} step={1} value={editValues.harga || ''} onChange={e => setEditValues(p => ({ ...p, harga: Math.round(Number(e.target.value)) || 0 }))} className="w-28 px-2 py-1 border border-indigo-300 rounded text-sm text-right font-mono outline-none focus:ring-1 focus:ring-indigo-500" />
+                            </td>
+                            <td className="p-3 text-right font-bold font-mono text-slate-800 text-sm">{fmt(editValues.jumlah * editValues.harga)}</td>
+                            <td className="p-3 text-center">
+                              <div className="flex items-center justify-center gap-1">
+                                <button onClick={() => handleEditSave(item.id)} title="Simpan" className="w-7 h-7 rounded bg-indigo-600 text-white flex justify-center items-center hover:bg-indigo-700"><span className="material-icons-round text-[14px]">check</span></button>
+                                <button onClick={() => setEditingId(null)} title="Batal" className="w-7 h-7 rounded bg-slate-200 text-slate-600 flex justify-center items-center hover:bg-slate-300"><span className="material-icons-round text-[14px]">close</span></button>
+                              </div>
+                            </td>
+                          </tr>
+                        ) : (
+                        <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50 group">
                           <td className="p-4 pl-6 text-sm font-semibold text-slate-800">{idx + 1}. {item.uraian}<p className="text-xs font-normal text-slate-400">{item.deskripsi}</p></td>
                           <td className="p-4 text-xs font-mono text-slate-500">{item.coaLabel}</td>
                           <td className="p-4"><span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${item.sumber_dana === 'Kas Pusat' ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : item.sumber_dana === 'Kontribusi Peserta' ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-emerald-50 text-emerald-600 border-emerald-200'}`}>{item.sumber_dana}</span></td>
@@ -523,8 +653,14 @@ export default function InputLPJPage() {
                           <td className="p-4 text-sm text-center text-slate-600">{item.satuan}</td>
                           <td className="p-4 text-sm text-right font-mono text-slate-700">{fmt(item.harga)}</td>
                           <td className="p-4 text-sm text-right font-bold font-mono text-slate-800">{fmt(item.total)}</td>
-                          {isDraft && <td className="p-4 text-center"><button onClick={() => setItems(items.filter(i => i.id !== item.id))} className="w-7 h-7 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 flex justify-center items-center mx-auto"><span className="material-icons-round text-[16px]">delete</span></button></td>}
+                          {isDraft && <td className="p-4 text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              <button onClick={() => handleStartEdit(item)} title="Edit" className="w-7 h-7 rounded text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 flex justify-center items-center"><span className="material-icons-round text-[16px]">edit</span></button>
+                              <button onClick={() => setItems(items.filter(i => i.id !== item.id))} title="Hapus" className="w-7 h-7 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 flex justify-center items-center"><span className="material-icons-round text-[16px]">delete</span></button>
+                            </div>
+                          </td>}
                         </tr>
+                        )
                       ))}
                     </>
                   )}
@@ -537,17 +673,22 @@ export default function InputLPJPage() {
         {/* Summary Footer */}
         <div className="bg-slate-900 p-4 flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex gap-3 w-full md:w-auto">
-            {isDraft ? (
+            {(isDraft || isRevisi) ? (
               <>
                 <button onClick={() => handleSave('draft')} className="px-5 py-2.5 rounded-lg border border-slate-700 text-white font-semibold hover:bg-slate-800 transition-colors text-sm flex items-center gap-2">
                   <span className="material-icons-round text-[18px]">save</span> Simpan Draft
                 </button>
-                <button onClick={() => handleSave('ajukan')} className="px-5 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-semibold transition-colors text-sm flex items-center gap-2 shadow-sm">
-                  <span className="material-icons-round text-[18px]">send</span> Ajukan LPJ
+                <button onClick={() => handleSave(isRevisi ? 'ajukan_ulang' : 'ajukan')} className="px-5 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-semibold transition-colors text-sm flex items-center gap-2 shadow-sm">
+                  <span className="material-icons-round text-[18px]">{isRevisi ? 'replay' : 'send'}</span>
+                  {isRevisi ? 'Ajukan Ulang LPJ' : 'Ajukan LPJ'}
                 </button>
               </>
             ) : (
-              <span className={`px-4 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 ${existingStatus === 'Menunggu Review' ? 'bg-amber-500 text-white' : 'bg-emerald-600 text-white'}`}>
+              <span className={`px-4 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 ${
+                existingStatus === 'Menunggu Review' ? 'bg-amber-500 text-white' :
+                existingStatus === 'Disetujui' ? 'bg-emerald-600 text-white' :
+                'bg-slate-700 text-white'
+              }`}>
                 <span className="material-icons-round text-[18px]">{existingStatus === 'Menunggu Review' ? 'hourglass_empty' : 'check_circle'}</span>
                 LPJ {existingStatus}
               </span>
@@ -571,6 +712,98 @@ export default function InputLPJPage() {
           </div>
         </div>
       </div>
+
+      {/* Riwayat Slide-Over Drawer */}
+      {showRiwayat && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setShowRiwayat(false)} />
+          <div className="relative bg-white w-full max-w-md h-full shadow-2xl flex flex-col">
+            <div className="p-5 border-b border-slate-200 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center">
+                  <span className="material-icons-round text-indigo-600 text-[20px]">history</span>
+                </div>
+                <div>
+                  <h2 className="font-black text-slate-800 text-base">Riwayat Dokumen LPJ</h2>
+                  <p className="text-xs text-slate-400">{timeline.length} aktivitas tercatat</p>
+                </div>
+              </div>
+              <button onClick={() => setShowRiwayat(false)} className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-500">
+                <span className="material-icons-round text-[20px]">close</span>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-5">
+              {timelineLoading ? (
+                <div className="flex items-center justify-center h-32 gap-2 text-slate-400">
+                  <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                  Memuat riwayat...
+                </div>
+              ) : timeline.length === 0 ? (
+                <div className="text-center text-slate-400 py-12">
+                  <span className="material-icons-round text-4xl text-slate-300 block mb-2">history_toggle_off</span>
+                  Belum ada riwayat tercatat.
+                </div>
+              ) : (
+                <div className="relative pl-8">
+                  <div className="absolute left-3.5 top-0 bottom-0 w-0.5 bg-slate-200" />
+                  {timeline.map((entry) => {
+                    const colorMap: Record<string, string> = {
+                      'Dibuat': 'bg-slate-500', 'Diajukan': 'bg-amber-500',
+                      'Direvisi & Diajukan Ulang': 'bg-blue-500',
+                      'Revisi': 'bg-red-500', 'Disetujui': 'bg-emerald-500',
+                    };
+                    const iconMap: Record<string, string> = {
+                      'Dibuat': 'add', 'Diajukan': 'send',
+                      'Direvisi & Diajukan Ulang': 'replay',
+                      'Revisi': 'rate_review', 'Disetujui': 'check_circle',
+                    };
+                    const color = colorMap[entry.aksi] || 'bg-slate-400';
+                    const icon = iconMap[entry.aksi] || 'circle';
+                    return (
+                      <div key={entry.id} className="mb-5 relative">
+                        <div className={`absolute -left-8 w-7 h-7 rounded-full ${color} flex items-center justify-center shadow`}>
+                          <span className="material-icons-round text-white text-[13px]">{icon}</span>
+                        </div>
+                        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+                          <div className="flex items-center gap-2 mb-2 flex-wrap">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold text-white ${color}`}>{entry.aksi}</span>
+                            <span className="text-[11px] text-slate-400 ml-auto">{new Date(entry.created_at).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                          </div>
+                          {entry.status_sebelum && (
+                            <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
+                              <span className="px-2 py-0.5 bg-slate-100 rounded font-medium">{entry.status_sebelum}</span>
+                              <span className="material-icons-round text-[14px]">arrow_forward</span>
+                              <span className="px-2 py-0.5 bg-slate-800 text-white rounded font-bold">{entry.status_sesudah}</span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2 text-xs text-slate-500">
+                            <span className="material-icons-round text-[14px]">person</span>
+                            <span>{entry.nama_pelaksana}</span>
+                            <span className="text-slate-300">•</span>
+                            <span>{entry.nama_role}</span>
+                          </div>
+                          {entry.keterangan && (
+                            <div className="mt-2 bg-amber-50 border-l-2 border-amber-400 pl-2 py-1 rounded-r">
+                              <p className="text-[11px] font-bold text-amber-700 uppercase tracking-wide">Catatan Reviewer</p>
+                              <p className="text-xs text-amber-900">&ldquo;{entry.keterangan}&rdquo;</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            <div className="p-4 border-t border-slate-200">
+              <button onClick={() => setShowRiwayat(false)} className="w-full py-2.5 bg-slate-900 text-white rounded-lg font-bold text-sm flex items-center justify-center gap-2 hover:bg-slate-800 transition-colors">
+                <span className="material-icons-round text-[16px]">close</span> Tutup Riwayat
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

@@ -63,7 +63,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     // 1. Fetch Kegiatan Basic Info
     const kRes = await pool.query(`
       SELECT 
-        k.kode_kegiatan, k.nama_kegiatan, k.tanggal_mulai, k.waktu_mulai, k.waktu_selesai, k.frekuensi_kegiatan, k.lokasi_kegiatan, k.status_kegiatan, k.keterangan,
+        k.kode_kegiatan, k.nama_kegiatan, k.tanggal_mulai, k.tanggal_selesai, k.waktu_mulai, k.waktu_selesai, k.frekuensi_kegiatan, k.lokasi_kegiatan, k.status_kegiatan, k.keterangan,
         jk.nama_jenis_kegiatan,
         s.nama_satelit, s.kode_satelit,
         jp.nama_lengkap as nama_pic_pengurus, k.pic_pengurus_id

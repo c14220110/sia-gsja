@@ -426,6 +426,10 @@ export default function NewKegiatanPage() {
     if (type === 'checkbox') {
       const checked = (e.target as HTMLInputElement).checked;
       setFormData(prev => ({ ...prev, [name]: checked }));
+    } else if ((name === 'harga_tiket_rp' || name === 'kuota_peserta') && type === 'number') {
+      // Prevent float precision bug (e.g. 49999.999... → parseInt → 49999)
+      const rounded = value === '' ? '' : String(Math.round(Number(value)));
+      setFormData(prev => ({ ...prev, [name]: rounded }));
     } else {
       setFormData(prev => {
         let newData = { ...prev, [name]: value };
@@ -1018,7 +1022,7 @@ export default function NewKegiatanPage() {
                         selectedRA.pola_penggunaan === 'Bertahap' 
                           ? 'bg-blue-100 text-blue-700 border border-blue-200' 
                           : 'bg-amber-100 text-amber-700 border border-amber-200'
-                      }`}>{selectedRA.pola_penggunaan}</span>
+                      }`}>{selectedRA.pola_penggunaan === 'Sekali Pakai' ? 'Tunggal' : selectedRA.pola_penggunaan}</span>
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                         selectedRA.status === 'Disetujui Penuh' 
                           ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' 
@@ -1125,7 +1129,7 @@ export default function NewKegiatanPage() {
                           )}
                           {sekaliPakaiRA.length > 0 && (
                             <>
-                              <div className="px-3 py-1.5 bg-amber-50 text-[10px] font-bold text-amber-600 uppercase tracking-wider sticky top-0 z-10">📌 Sekali Pakai</div>
+                              <div className="px-3 py-1.5 bg-amber-50 text-[10px] font-bold text-amber-600 uppercase tracking-wider sticky top-0 z-10">📌 Acara Tunggal</div>
                               {sekaliPakaiRA.map(ra => (
                                 <button
                                   key={ra.id}
@@ -1354,7 +1358,7 @@ export default function NewKegiatanPage() {
                     <label className="text-blue-800 text-xs font-bold font-['Inter'] uppercase">Harga Tiket (Rp)</label>
                     <div className="relative">
                       <span className="absolute left-4 top-3 text-slate-500 text-sm font-bold">Rp</span>
-                      <input type="number" min="0" name="harga_tiket_rp" value={formData.harga_tiket_rp} onChange={handleInputChange} placeholder="0" className="pl-11 pr-4 py-3 bg-white rounded-lg border border-blue-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-['Inter'] text-sm w-full transition-all" />
+                      <input type="number" min="0" step="1" name="harga_tiket_rp" value={formData.harga_tiket_rp} onChange={handleInputChange} placeholder="0" className="pl-11 pr-4 py-3 bg-white rounded-lg border border-blue-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-['Inter'] text-sm w-full transition-all" />
                     </div>
                  </div>
               </div>

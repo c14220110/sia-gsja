@@ -13,6 +13,7 @@ export default function MembersPage() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [hideDummy, setHideDummy] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [submitState, setSubmitState] = useState<{ status: 'idle'|'loading'|'success'|'error', message: string, errors?: any }>({ status: 'idle', message: '' });
 
@@ -93,7 +94,7 @@ export default function MembersPage() {
   // Reset page to 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, filterSatelit, filterKomisi, filterStatusJemaat, filterStatusBaptis, filterGender, filterUmur]);
+  }, [debouncedSearch, filterSatelit, filterKomisi, filterStatusJemaat, filterStatusBaptis, filterGender, filterUmur, hideDummy]);
 
   // Fetch Data
   useEffect(() => {
@@ -108,6 +109,7 @@ export default function MembersPage() {
         if (filterStatusBaptis) queryParams.append('status_baptis', filterStatusBaptis);
         if (filterGender) queryParams.append('jenis_kelamin', filterGender);
         if (filterUmur) queryParams.append('rentang_umur', filterUmur);
+        if (hideDummy) queryParams.append('hide_dummy', 'true');
         
         queryParams.append('limit', limit.toString());
         queryParams.append('offset', ((currentPage - 1) * limit).toString());
@@ -128,7 +130,7 @@ export default function MembersPage() {
     };
 
     fetchData();
-  }, [debouncedSearch, filterSatelit, filterKomisi, filterStatusJemaat, filterStatusBaptis, filterGender, filterUmur, currentPage]);
+  }, [debouncedSearch, filterSatelit, filterKomisi, filterStatusJemaat, filterStatusBaptis, filterGender, filterUmur, hideDummy, currentPage]);
 
   const handleToggleStatus = (id: number, currentStatus: string) => {
     const newStatus = currentStatus === 'Aktif' ? 'Tidak Aktif' : 'Aktif';
@@ -287,6 +289,15 @@ export default function MembersPage() {
         >
           <span className={`material-icons-round text-[20px] transition-colors ${showAdvancedFilters ? 'text-slate-800' : 'text-slate-500 group-hover:text-slate-700'}`}>tune</span>
           <span className={`text-sm font-medium font-['Public_Sans'] transition-colors ${showAdvancedFilters ? 'text-slate-900' : 'text-slate-600 group-hover:text-slate-800'}`}>More Filters</span>
+        </button>
+
+        {/* Hide Dummy Toggle */}
+        <button 
+          onClick={() => setHideDummy(!hideDummy)}
+          className={`px-4 py-2.5 border rounded-lg flex items-center gap-2 transition-colors ${hideDummy ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600'}`}
+        >
+          <span className="material-icons-round text-[20px]">{hideDummy ? 'visibility_off' : 'visibility'}</span>
+          <span className="text-sm font-medium font-['Public_Sans']">Hide Dummy Data</span>
         </button>
       </div>
 

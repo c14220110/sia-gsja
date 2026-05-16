@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect, useMemo, use } from 'react';
 import Link from 'next/link';
+import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
 import AnggaranTimeline from '@/components/anggaran/AnggaranTimeline';
 
 const fmt = (n: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
@@ -8,13 +9,14 @@ const fmt = (n: number) => new Intl.NumberFormat('id-ID', { style: 'currency', c
 // Status badge with appropriate colors
 const getStatusBadge = (status: string) => {
   const map: Record<string, { bg: string; text: string; dot: string }> = {
-    'Draft': { bg: 'bg-slate-100', text: 'text-slate-600', dot: 'bg-slate-400' },
-    'Menunggu Review': { bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500' },
-    'Sedang Direviu': { bg: 'bg-blue-50', text: 'text-blue-700', dot: 'bg-blue-500' },
-    'Revisi': { bg: 'bg-orange-50', text: 'text-orange-700', dot: 'bg-orange-500' },
-    'Disetujui Penuh': { bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500' },
-    'Disetujui Sebagian': { bg: 'bg-teal-50', text: 'text-teal-700', dot: 'bg-teal-500' },
-    'Ditolak': { bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500' },
+    'Draft':             { bg: 'bg-slate-100',   text: 'text-slate-600',   dot: 'bg-slate-400' },
+    'Menunggu Review':   { bg: 'bg-amber-50',    text: 'text-amber-700',   dot: 'bg-amber-500' },
+    'Sedang Direviu':    { bg: 'bg-blue-50',     text: 'text-blue-700',    dot: 'bg-blue-500' },
+    'Revisi':            { bg: 'bg-orange-50',   text: 'text-orange-700',  dot: 'bg-orange-500' },
+    'Disetujui Penuh':   { bg: 'bg-emerald-50',  text: 'text-emerald-700', dot: 'bg-emerald-500' },
+    'Disetujui Sebagian':{ bg: 'bg-teal-50',     text: 'text-teal-700',    dot: 'bg-teal-500' },
+    'Ditolak':           { bg: 'bg-red-50',      text: 'text-red-700',     dot: 'bg-red-500' },
+    'Dibatalkan':        { bg: 'bg-zinc-100',    text: 'text-zinc-600',    dot: 'bg-zinc-400' },
   };
   const s = map[status] || map['Draft'];
   return (
@@ -41,8 +43,10 @@ const getKategoriBadge = (kategori: string) => {
 };
 
 // Role groups
-const REVIEWER_ROLES = [1, 3, 5]; // Super Admin, Gembala/Majelis, Bendahara Pusat
-const PEMBUAT_ROLES = [1, 5, 6, 8, 9]; // Super Admin, Bendahara Pusat, Bendahara Satelit, Ketua Komisi, Ketua Departemen
+const ROLES_APPROVER = [1, 2, 3, 5]; // Super Admin, Majelis, Gembala, Bendahara Pusat
+const ROLES_PEMBUAT  = [1, 5, 6, 8, 9]; // Super Admin, Bendahara Pusat, Bendahara Satelit, Ketua Komisi, Ketua Dept
+const ALLOWED_STATUS_PEMBUAT  = ['Draft', 'Menunggu Review'];
+const ALLOWED_STATUS_APPROVER = ['Draft', 'Menunggu Review', 'Disetujui', 'Disetujui Penuh', 'Disetujui Sebagian'];
 
 export default function ViewAnggaranPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -51,6 +55,11 @@ export default function ViewAnggaranPage({ params }: { params: Promise<{ id: str
   const [isLoading, setIsLoading] = useState(true);
   const [userData, setUserData] = useState<any>(null);
   const [showTimeline, setShowTimeline] = useState(false);
+
+  // Batalkan RA state
+  const [showBatalModal, setShowBatalModal] = useState(false);
+  const [alasanBatal, setAlasanBatal] = useState('');
+  const [batalState, setBatalState] = useState<{ status: 'idle'|'loading'|'success'|'error'; message: string }>({ status: 'idle', message: '' });
 
   useEffect(() => {
     Promise.all([
@@ -71,14 +80,56 @@ export default function ViewAnggaranPage({ params }: { params: Promise<{ id: str
   const margin = totalP > 0 ? ((totalP - totalK) / totalP) * 100 : 0;
 
   // Determine user capabilities
-  const isReviewer = userData ? REVIEWER_ROLES.includes(userData.role_id) : false;
-  const isPembuat = userData ? PEMBUAT_ROLES.includes(userData.role_id) : false;
+  const isApprover = userData ? ROLES_APPROVER.includes(userData.role_id) || userData.is_super_admin : false;
+  const isPembuat  = userData ? ROLES_PEMBUAT.includes(userData.role_id) : false;
   const status = data?.status || '';
 
   // Action permissions
-  const canEdit = isPembuat && ['Draft', 'Revisi'].includes(status);
-  const canReview = isReviewer && status === 'Menunggu Review';
-  const isFinal = ['Disetujui Penuh', 'Disetujui Sebagian', 'Ditolak'].includes(status);
+  const canEdit    = isPembuat && ['Draft', 'Revisi'].includes(status);
+  const canReview  = isApprover && status === 'Menunggu Review';
+  const isFinal    = ['Disetujui Penuh', 'Disetujui Sebagian', 'Ditolak', 'Dibatalkan'].includes(status);
+  // Show review columns when RA has been through reviewer decision
+  const isReviewed  = ['Disetujui Penuh', 'Disetujui Sebagian', 'Ditolak', 'Revisi'].includes(status);
+
+  const getItemStatusBadge = (s: string) => {
+    const map: Record<string, string> = {
+      'ACC':          'bg-emerald-100 text-emerald-700 border-emerald-200',
+      'ACC_DIPOTONG': 'bg-blue-100 text-blue-700 border-blue-200',
+      'Ditolak':      'bg-red-100 text-red-700 border-red-200',
+      'Revisi':       'bg-amber-100 text-amber-700 border-amber-200',
+    };
+    return map[s] || 'bg-slate-100 text-slate-500 border-slate-200';
+  };
+
+  // Batalkan permission
+  const canBatalkan = !isFinal && (
+    (isApprover && ALLOWED_STATUS_APPROVER.includes(status)) ||
+    (isPembuat  && ALLOWED_STATUS_PEMBUAT.includes(status))
+  );
+
+  const handleBatalkan = async () => {
+    if (!alasanBatal.trim()) return;
+    setBatalState({ status: 'loading', message: 'Membatalkan rancangan anggaran...' });
+    try {
+      const res = await fetch(`/api/anggaran/tahunan/${id}/batalkan`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ alasan: alasanBatal }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setBatalState({ status: 'success', message: json.message });
+        setShowBatalModal(false);
+        setTimeout(() => { window.location.href = '/anggaran/rancangan'; }, 2000);
+      } else {
+        setBatalState({ status: 'error', message: json.message || 'Gagal membatalkan RA.' });
+        setShowBatalModal(false);
+      }
+    } catch (e: any) {
+      setBatalState({ status: 'error', message: 'Kesalahan jaringan: ' + e.message });
+      setShowBatalModal(false);
+    }
+  };
 
   if (isLoading) {
     return <div className="p-10 text-center text-slate-500 flex flex-col items-center"><div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4"></div>Memuat Detail Rancangan Anggaran...</div>;
@@ -97,6 +148,63 @@ export default function ViewAnggaranPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="w-full flex flex-col gap-6 pb-32">
+      <SubmitOverlay
+        status={batalState.status}
+        message={batalState.message}
+        onClose={() => setBatalState({ status: 'idle', message: '' })}
+      />
+
+      {/* Modal Batalkan RA */}
+      {showBatalModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6 flex flex-col gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                <span className="material-icons-round text-red-500 text-[22px]">cancel</span>
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-slate-800">Batalkan Rancangan Anggaran?</h3>
+                <p className="text-xs text-slate-500 mt-0.5">Status RA akan berubah menjadi <strong>Dibatalkan</strong> dan tidak dapat diajukan ulang.</p>
+              </div>
+            </div>
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800">
+              <span className="material-icons-round text-[14px] text-amber-500 mr-1 align-middle">warning</span>
+              Jika RA ini sudah terhubung ke sebuah kegiatan, plafon anggaran kegiatan tersebut akan otomatis menjadi <strong>Rp 0</strong>.
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block mb-1.5">
+                Alasan Pembatalan <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                value={alasanBatal}
+                onChange={e => setAlasanBatal(e.target.value)}
+                placeholder="Contoh: RA digantikan dengan versi revisi yang lebih baru..."
+                className="w-full p-3 rounded-lg border border-slate-200 text-sm text-slate-700 focus:ring-2 focus:ring-red-300 focus:outline-none resize-none bg-white"
+                rows={3}
+                autoFocus
+              />
+              {!alasanBatal.trim() && (
+                <p className="text-[11px] text-red-500 mt-1">Alasan wajib diisi sebelum membatalkan.</p>
+              )}
+            </div>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => { setShowBatalModal(false); setAlasanBatal(''); }}
+                className="px-4 py-2 rounded-lg border border-slate-300 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleBatalkan}
+                disabled={!alasanBatal.trim()}
+                className="px-5 py-2 rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-bold text-white transition-colors"
+              >
+                Ya, Batalkan RA
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Header Area */}
       <div className="w-full flex flex-col justify-start items-start gap-4">
         <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-['Inter'] leading-4">
@@ -143,7 +251,7 @@ export default function ViewAnggaranPage({ params }: { params: Promise<{ id: str
           </div>
           <div>
             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Pola Penggunaan</div>
-            <div className="text-sm font-semibold text-slate-700">{data.pola_penggunaan || '-'}</div>
+            <div className="text-sm font-semibold text-slate-700">{data.pola_penggunaan === 'Sekali Pakai' ? 'Tunggal' : (data.pola_penggunaan || '-')}</div>
           </div>
           <div>
             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Estimasi Pelaksanaan</div>
@@ -184,42 +292,84 @@ export default function ViewAnggaranPage({ params }: { params: Promise<{ id: str
           <table className="w-full text-left border-collapse min-w-[1000px]">
             <thead>
               <tr className="bg-white border-b border-slate-200 text-xs font-bold text-slate-500 tracking-wider">
-                <th className="p-4 w-[30%]">URAIAN</th><th className="p-4 w-[18%]">AKUN</th><th className="p-4 w-[12%]">SUMBER DANA</th>
-                <th className="p-4 w-[6%] text-center">JML</th><th className="p-4 w-[8%] text-center">SATUAN</th>
-                <th className="p-4 w-[12%] text-right">HARGA</th><th className="p-4 w-[14%] text-right">TOTAL</th>
+                <th className="p-4 w-[28%]">URAIAN</th><th className="p-4 w-[16%]">AKUN</th><th className="p-4 w-[10%]">SUMBER DANA</th>
+                <th className="p-4 w-[5%] text-center">JML</th><th className="p-4 w-[7%] text-center">SATUAN</th>
+                <th className="p-4 w-[11%] text-right">HARGA</th><th className="p-4 w-[11%] text-right">TOTAL</th>
+                {isReviewed && <>
+                  <th className="p-4 w-[8%] text-center bg-indigo-50 text-indigo-600 border-l border-indigo-100">STATUS</th>
+                  <th className="p-4 w-[11%] text-right bg-indigo-50 text-indigo-600">DISETUJUI</th>
+                  <th className="p-4 w-[13%] bg-indigo-50 text-indigo-600">CATATAN</th>
+                </>}
               </tr>
             </thead>
             <tbody>
               {items.length === 0 ? (
-                <tr><td colSpan={7} className="p-12 text-center text-slate-400">
+                <tr><td colSpan={isReviewed ? 10 : 7} className="p-12 text-center text-slate-400">
                   <div className="flex flex-col items-center gap-2">
                     <span className="material-icons-round text-4xl text-slate-300">receipt_long</span>
                     <p>Tidak ada rincian data</p>
                   </div>
                 </td></tr>
               ) : (<>
-                {penItems.length > 0 && <><tr><td colSpan={7} className="px-4 py-1.5 bg-emerald-50 border-b border-emerald-100 text-[10px] font-bold text-emerald-700">↑ PENERIMAAN</td></tr>
-                {penItems.map((item: any, idx: number) => <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50">
+                {penItems.length > 0 && <><tr><td colSpan={isReviewed ? 10 : 7} className="px-4 py-1.5 bg-emerald-50 border-b border-emerald-100 text-[10px] font-bold text-emerald-700">↑ PENERIMAAN</td></tr>
+                {penItems.map((item: any, idx: number) => <tr key={item.id} className={`border-b border-slate-100 hover:bg-slate-50 transition-colors ${isReviewed ? (item.status_item === 'ACC' ? 'bg-emerald-50/30' : item.status_item === 'ACC_DIPOTONG' ? 'bg-blue-50/30' : item.status_item === 'Ditolak' ? 'bg-red-50/30' : item.status_item === 'Revisi' ? 'bg-amber-50/30' : '') : ''}`}>
                   <td className="p-4 pl-6 text-sm font-semibold text-slate-800">{idx + 1}. {item.uraian}<p className="text-xs font-normal text-slate-400">{item.deskripsi}</p></td>
                   <td className="p-4 text-xs font-mono text-slate-500">{item.kode_akun} — {item.nama_akun}</td>
                   <td className="p-4"><span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${item.sumber_dana === 'Plafon Pusat' ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : 'bg-emerald-50 text-emerald-600 border-emerald-200'}`}>{item.sumber_dana}</span></td>
                   <td className="p-4 text-sm text-center font-medium">{item.jumlah}</td><td className="p-4 text-sm text-center text-slate-600">{item.satuan}</td>
                   <td className="p-4 text-sm text-right font-mono text-slate-700">{fmt(Number(item.harga_satuan))}</td>
                   <td className="p-4 text-sm text-right font-bold font-mono text-emerald-600">{fmt(Number(item.total))}</td>
+                  {isReviewed && <>
+                    <td className="p-4 text-center align-top border-l border-indigo-100">
+                      {item.status_item ? <span className={`inline-block px-2 py-1 rounded-full text-[10px] font-bold border whitespace-nowrap ${getItemStatusBadge(item.status_item)}`}>{item.status_item}</span> : <span className="text-slate-300 text-xs">—</span>}
+                    </td>
+                    <td className="p-4 text-sm text-right font-bold font-mono align-top">
+                      {item.nominal_disetujui != null ? (
+                        <><span className={item.status_item === 'ACC_DIPOTONG' ? 'text-blue-700' : item.status_item === 'Ditolak' ? 'text-red-500 line-through' : 'text-emerald-600'}>{fmt(Number(item.nominal_disetujui))}</span>
+                        {item.status_item === 'ACC_DIPOTONG' && <span className="block text-[9px] text-red-400 font-normal">↓ potong {fmt(Number(item.total) - Number(item.nominal_disetujui))}</span>}</>
+                      ) : <span className="text-slate-300 text-xs">—</span>}
+                    </td>
+                    <td className="p-4 text-xs text-slate-600 align-top">{item.catatan_reviewer || <span className="text-slate-300">—</span>}</td>
+                  </>}
                 </tr>)}</>}
-                {kelItems.length > 0 && <><tr><td colSpan={7} className="px-4 py-1.5 bg-red-50 border-b border-red-100 border-t border-t-slate-200 text-[10px] font-bold text-red-700">↓ PENGELUARAN</td></tr>
-                {kelItems.map((item: any, idx: number) => <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50">
+                {kelItems.length > 0 && <><tr><td colSpan={isReviewed ? 10 : 7} className="px-4 py-1.5 bg-red-50 border-b border-red-100 border-t border-t-slate-200 text-[10px] font-bold text-red-700">↓ PENGELUARAN</td></tr>
+                {kelItems.map((item: any, idx: number) => <tr key={item.id} className={`border-b border-slate-100 hover:bg-slate-50 transition-colors ${isReviewed ? (item.status_item === 'ACC' ? 'bg-emerald-50/30' : item.status_item === 'ACC_DIPOTONG' ? 'bg-blue-50/30' : item.status_item === 'Ditolak' ? 'bg-red-50/30' : item.status_item === 'Revisi' ? 'bg-amber-50/30' : '') : ''}`}>
                   <td className="p-4 pl-6 text-sm font-semibold text-slate-800">{idx + 1}. {item.uraian}<p className="text-xs font-normal text-slate-400">{item.deskripsi}</p></td>
                   <td className="p-4 text-xs font-mono text-slate-500">{item.kode_akun} — {item.nama_akun}</td>
                   <td className="p-4"><span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${item.sumber_dana === 'Plafon Pusat' ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : 'bg-emerald-50 text-emerald-600 border-emerald-200'}`}>{item.sumber_dana}</span></td>
                   <td className="p-4 text-sm text-center font-medium">{item.jumlah}</td><td className="p-4 text-sm text-center text-slate-600">{item.satuan}</td>
                   <td className="p-4 text-sm text-right font-mono text-slate-700">{fmt(Number(item.harga_satuan))}</td>
                   <td className="p-4 text-sm text-right font-bold font-mono text-slate-800">{fmt(Number(item.total))}</td>
+                  {isReviewed && <>
+                    <td className="p-4 text-center align-top border-l border-indigo-100">
+                      {item.status_item ? <span className={`inline-block px-2 py-1 rounded-full text-[10px] font-bold border whitespace-nowrap ${getItemStatusBadge(item.status_item)}`}>{item.status_item}</span> : <span className="text-slate-300 text-xs">—</span>}
+                    </td>
+                    <td className="p-4 text-sm text-right font-bold font-mono align-top">
+                      {item.nominal_disetujui != null ? (
+                        <><span className={item.status_item === 'ACC_DIPOTONG' ? 'text-blue-700' : item.status_item === 'Ditolak' ? 'text-red-500 line-through' : 'text-slate-800'}>{fmt(Number(item.nominal_disetujui))}</span>
+                        {item.status_item === 'ACC_DIPOTONG' && <span className="block text-[9px] text-red-400 font-normal">↓ potong {fmt(Number(item.total) - Number(item.nominal_disetujui))}</span>}</>
+                      ) : <span className="text-slate-300 text-xs">—</span>}
+                    </td>
+                    <td className="p-4 text-xs text-slate-600 align-top">{item.catatan_reviewer || <span className="text-slate-300">—</span>}</td>
+                  </>}
                 </tr>)}</>}
               </>)}
             </tbody>
           </table>
         </div>
+
+        {/* Catatan Umum Reviewer — tampil jika RA sudah direview dan ada catatan */}
+        {isReviewed && data.catatan_reviewer && (
+          <div className="p-5 border-t border-slate-200 bg-indigo-50/50">
+            <div className="flex items-start gap-3">
+              <span className="material-icons-round text-indigo-400 text-[20px] mt-0.5 shrink-0">rate_review</span>
+              <div>
+                <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider mb-1">Catatan Umum Reviewer</p>
+                <p className="text-sm text-slate-700 whitespace-pre-line">{data.catatan_reviewer}</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Footer Bar */}
         <div className="bg-slate-900 p-4 flex flex-col md:flex-row justify-between items-center gap-4">
@@ -235,7 +385,12 @@ export default function ViewAnggaranPage({ params }: { params: Promise<{ id: str
                 <span className="material-icons-round text-[18px]">rate_review</span> Mulai Review
               </Link>
             )}
-            {isFinal && (
+            {status === 'Dibatalkan' && (
+              <span className="px-4 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 bg-zinc-800 text-zinc-400 border border-zinc-700">
+                <span className="material-icons-round text-[18px]">block</span> RA Dibatalkan
+              </span>
+            )}
+            {isFinal && status !== 'Dibatalkan' && (
               <span className="px-4 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 bg-slate-800 text-slate-400 border border-slate-700">
                 <span className="material-icons-round text-[18px]">lock</span> Dokumen Final — Tidak Dapat Diubah
               </span>
@@ -244,6 +399,15 @@ export default function ViewAnggaranPage({ params }: { params: Promise<{ id: str
               <span className="px-4 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 bg-slate-800 text-amber-400 border border-slate-700">
                 <span className="material-icons-round text-[18px]">hourglass_top</span> Menunggu Review dari Majelis
               </span>
+            )}
+            {/* Batalkan RA */}
+            {canBatalkan && (
+              <button
+                onClick={() => setShowBatalModal(true)}
+                className="px-4 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 bg-transparent border border-red-500 text-red-400 hover:bg-red-950 transition-colors"
+              >
+                <span className="material-icons-round text-[18px]">cancel</span> Batalkan RA
+              </button>
             )}
           </div>
           <div className="flex gap-5 overflow-x-auto">

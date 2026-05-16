@@ -22,6 +22,12 @@ export default function COAPage() {
   const [expandedNodes, setExpandedNodes] = useState<Record<number, boolean>>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+  const hasInitiallyExpanded = React.useRef(false);
+
+  // Filters
+  const [filterLaporan, setFilterLaporan] = useState('');
+  const [filterTipe, setFilterTipe] = useState('');
+  const [filterStatus, setFilterStatus] = useState('Aktif'); // default: hanya tampilkan aktif
   
   // Drawer states
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -40,6 +46,7 @@ export default function COAPage() {
   const [errorMsg, setErrorMsg] = useState('');
   const [submitState, setSubmitState] = useState<{ status: 'idle'|'loading'|'success'|'error', message: string }>({ status: 'idle', message: '' });
   const [confirmModal, setConfirmModal] = useState<{isOpen: boolean, item: COA | null}>({isOpen: false, item: null});
+  const [canManage, setCanManage] = useState(false);
 
   const fetchCOA = async () => {
     try {
@@ -55,84 +62,123 @@ export default function COAPage() {
 
   useEffect(() => {
     fetchCOA();
+    fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(auth => {
+      if (auth?.is_super_admin || auth?.permissions?.includes('buku_besar_manage')) setCanManage(true);
+    });
   }, []);
 
-  // Compute Tree and Search Filter
+  // Compute Tree — applies search + all filters, then builds tree
   useEffect(() => {
     let flatData = [...coaList];
-    const map = new Map<number, COA>();
-    const roots: COA[] = [];
 
-    // Filter by search query first if exists
-    let matchedIds = new Set<number>();
-    if (searchQuery.trim() !== '') {
-      const query = searchQuery.toLowerCase();
-      // Find matches
+    // 1. Status filter
+    if (filterStatus === 'Aktif') {
+      flatData = flatData.filter(item => item.is_active);
+    } else if (filterStatus === 'Nonaktif') {
+      flatData = flatData.filter(item => !item.is_active);
+    }
+
+    // 2. Laporan filter
+    if (filterLaporan) {
+      const filtered = new Set<number>();
       flatData.forEach(item => {
-        if (item.nama_akun.toLowerCase().includes(query) || item.kode_akun.toLowerCase().includes(query)) {
-          matchedIds.add(item.id);
-          // Also trace up to add parents so tree doesn't break
+        if (item.grup_laporan === filterLaporan) {
+          filtered.add(item.id);
+          // trace parents
           let curr = item;
           while (curr.induk_akun_id) {
             const parent = flatData.find(p => p.id === curr.induk_akun_id);
-            if (parent) {
-              matchedIds.add(parent.id);
-              curr = parent;
-            } else {
-              break;
-            }
+            if (parent) { filtered.add(parent.id); curr = parent; } else break;
           }
         }
       });
-      // Filter the flat data
+      flatData = flatData.filter(item => filtered.has(item.id));
+    }
+
+    // 3. Tipe filter
+    if (filterTipe) {
+      const filtered = new Set<number>();
+      flatData.forEach(item => {
+        if (item.tipe_akun === filterTipe) {
+          filtered.add(item.id);
+          // trace parents
+          let curr = item;
+          while (curr.induk_akun_id) {
+            const parent = flatData.find(p => p.id === curr.induk_akun_id);
+            if (parent) { filtered.add(parent.id); curr = parent; } else break;
+          }
+        }
+      });
+      flatData = flatData.filter(item => filtered.has(item.id));
+    }
+
+    // 4. Search query
+    const map = new Map<number, COA>();
+    const roots: COA[] = [];
+    const hasActiveFilter = searchQuery.trim() !== '' || filterLaporan || filterTipe || filterStatus !== 'Aktif';
+
+    if (searchQuery.trim() !== '') {
+      const query = searchQuery.toLowerCase();
+      const matchedIds = new Set<number>();
+      flatData.forEach(item => {
+        if (item.nama_akun.toLowerCase().includes(query) || item.kode_akun.toLowerCase().includes(query)) {
+          matchedIds.add(item.id);
+          let curr = item;
+          while (curr.induk_akun_id) {
+            const parent = flatData.find(p => p.id === curr.induk_akun_id);
+            if (parent) { matchedIds.add(parent.id); curr = parent; } else break;
+          }
+        }
+      });
       flatData = flatData.filter(item => matchedIds.has(item.id));
-      
-      // Auto expand all when searching
+      // Auto expand all matching nodes when searching
       const allExpanded: Record<number, boolean> = {};
       flatData.forEach(i => { allExpanded[i.id] = true; });
       setExpandedNodes(allExpanded);
     }
 
-    // Build Tree
-    flatData.forEach(item => {
-      map.set(item.id, { ...item, children: [] });
-    });
-
+    // Build Tree (two-pass: fill map, then link)
+    flatData.forEach(item => map.set(item.id, { ...item, children: [] }));
     flatData.forEach(item => {
       const node = map.get(item.id);
       if (node) {
         if (item.induk_akun_id) {
           const parent = map.get(item.induk_akun_id);
-          if (parent) {
-             parent.children!.push(node);
-          } else {
-             roots.push(node); // Orphan fallback
-          }
+          if (parent) parent.children!.push(node);
+          else roots.push(node); // orphan fallback
         } else {
           roots.push(node);
         }
       }
     });
 
-    // Sort tree recursively so active nodes are on top
+    // Sort recursively: active first, then by kode_akun
     const sortNodes = (nodes: COA[]) => {
       nodes.sort((a, b) => {
-        // active first
         if (a.is_active && !b.is_active) return -1;
-        if (!a.is_active && b.is_active) return -1 * -1; // return 1
-        // then by kode_akun
+        if (!a.is_active && b.is_active) return 1;
         return a.kode_akun.localeCompare(b.kode_akun);
       });
-      nodes.forEach(n => {
-        if (n.children && n.children.length > 0) {
-          sortNodes(n.children);
-        }
-      });
+      nodes.forEach(n => { if (n.children && n.children.length > 0) sortNodes(n.children); });
     };
 
     sortNodes(roots);
     setTreeData(roots);
-  }, [coaList, searchQuery]);
+  }, [coaList, searchQuery, filterLaporan, filterTipe, filterStatus]);
+
+
+  // Auto expand root nodes only on initial data load
+  useEffect(() => {
+    if (coaList.length > 0 && !hasInitiallyExpanded.current) {
+      hasInitiallyExpanded.current = true;
+      setTimeout(() => {
+        const rootExpanded: Record<number, boolean> = {};
+        coaList.forEach(item => { if (!item.induk_akun_id) rootExpanded[item.id] = true; });
+        setExpandedNodes(rootExpanded);
+      }, 50);
+    }
+  }, [coaList]);
+
 
   const toggleExpand = (id: number) => {
     setExpandedNodes(prev => ({
@@ -140,6 +186,30 @@ export default function COAPage() {
       [id]: !prev[id]
     }));
   };
+
+  const expandAll = () => {
+    const allExpanded: Record<number, boolean> = {};
+    const traverse = (nodes: COA[]) => {
+      nodes.forEach(n => {
+        if (n.children && n.children.length > 0) {
+          allExpanded[n.id] = true;
+          traverse(n.children);
+        }
+      });
+    };
+    traverse(treeData);
+    setExpandedNodes(allExpanded);
+  };
+
+  const collapseAll = () => setExpandedNodes({});
+
+  const isAllExpanded = useMemo(() => {
+    if (treeData.length === 0) return false;
+    const check = (nodes: COA[]): boolean => nodes.every(n =>
+      !n.children || n.children.length === 0 || (!!expandedNodes[n.id] && check(n.children!))
+    );
+    return check(treeData);
+  }, [treeData, expandedNodes]);
 
   const handleOpenDrawer = (parentItem?: COA) => {
     setErrorMsg('');
@@ -293,37 +363,41 @@ export default function COAPage() {
           <td className={`p-4 text-sm ${isInactive ? 'text-gray-400' : 'text-slate-600'}`}>{node.saldo_normal}</td>
           <td className="p-4 text-center">
              <div className="flex justify-center items-center">
-                <div className="relative">
-                  <button 
-                    onClick={() => setOpenMenuId(openMenuId === node.id ? null : node.id)}
-                    className="w-8 h-8 rounded-full flex justify-center items-center hover:bg-slate-200 text-slate-500 transition-colors"
-                  >
-                    <span className="material-icons-round text-[20px]">more_vert</span>
-                  </button>
+                {canManage ? (
+                  <div className="relative">
+                    <button 
+                      onClick={() => setOpenMenuId(openMenuId === node.id ? null : node.id)}
+                      className="w-8 h-8 rounded-full flex justify-center items-center hover:bg-slate-200 text-slate-500 transition-colors"
+                    >
+                      <span className="material-icons-round text-[20px]">more_vert</span>
+                    </button>
 
-                  {openMenuId === node.id && (
-                    <div className="absolute right-0 top-full mt-1 w-56 bg-white rounded-lg shadow-xl border border-slate-100 py-2 z-50">
-                      
-                      {isHeader && (
-                        <>
-                          <button onClick={() => { setOpenMenuId(null); handleOpenDrawer(node); }} className="w-full text-left px-4 py-2 hover:bg-indigo-50 text-indigo-700 text-sm flex items-center gap-2 font-medium">
-                            <span className="material-icons-round text-[18px] text-indigo-500">add</span>Tambah Sub-Akun
-                          </button>
-                          <div className="w-full h-px bg-slate-100 my-1"></div>
-                        </>
-                      )}
+                    {openMenuId === node.id && (
+                      <div className="absolute right-0 top-full mt-1 w-56 bg-white rounded-lg shadow-xl border border-slate-100 py-2 z-50">
+                        
+                        {isHeader && (
+                          <>
+                            <button onClick={() => { setOpenMenuId(null); handleOpenDrawer(node); }} className="w-full text-left px-4 py-2 hover:bg-indigo-50 text-indigo-700 text-sm flex items-center gap-2 font-medium">
+                              <span className="material-icons-round text-[18px] text-indigo-500">add</span>Tambah Sub-Akun
+                            </button>
+                            <div className="w-full h-px bg-slate-100 my-1"></div>
+                          </>
+                        )}
 
-                      <button onClick={() => { setOpenMenuId(null); handleEditDrawer(node); }} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2">
-                        <span className="material-icons-round text-[18px] text-slate-400">edit</span>Edit Akun
-                      </button>
+                        <button onClick={() => { setOpenMenuId(null); handleEditDrawer(node); }} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2">
+                          <span className="material-icons-round text-[18px] text-slate-400">edit</span>Edit Akun
+                        </button>
 
-                      <button onClick={() => { setOpenMenuId(null); handleToggleActive(node); }} className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${node.is_active ? 'text-red-600 hover:bg-red-50' : 'text-green-600 hover:bg-green-50'}`}>
-                        <span className={`material-icons-round text-[18px] ${node.is_active ? 'text-red-400' : 'text-green-400'}`}>{node.is_active ? 'block' : 'check_circle'}</span>
-                        {node.is_active ? 'Nonaktifkan Akun' : 'Aktifkan Akun'}
-                      </button>
-                    </div>
-                  )}
-                </div>
+                        <button onClick={() => { setOpenMenuId(null); handleToggleActive(node); }} className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${node.is_active ? 'text-red-600 hover:bg-red-50' : 'text-green-600 hover:bg-green-50'}`}>
+                          <span className={`material-icons-round text-[18px] ${node.is_active ? 'text-red-400' : 'text-green-400'}`}>{node.is_active ? 'block' : 'check_circle'}</span>
+                          {node.is_active ? 'Nonaktifkan Akun' : 'Aktifkan Akun'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <span className="text-slate-300 text-xs">—</span>
+                )}
              </div>
           </td>
         </tr>
@@ -400,30 +474,113 @@ export default function COAPage() {
           <div className="text-slate-500 text-base font-medium font-['Inter'] leading-6">Kelola bagan akun untuk transaksi buku besar dan laporan keuangan</div>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={() => handleOpenDrawer()} className="px-5 py-2.5 bg-slate-700 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none">
-            <span className="material-icons-round text-white text-[20px]">add</span>
-            <span className="text-white text-sm font-bold font-['Inter'] leading-5">Tambah Akun Baru</span>
-          </button>
+          {canManage && (
+            <button onClick={() => handleOpenDrawer()} className="px-5 py-2.5 bg-slate-700 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none">
+              <span className="material-icons-round text-white text-[20px]">add</span>
+              <span className="text-white text-sm font-bold font-['Inter'] leading-5">Tambah Akun Baru</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Filter Options */}
-      <div className="w-full px-4 py-4 bg-white rounded-xl border border-slate-200 flex flex-wrap items-center gap-4 shadow-sm">
-        {/* Search Bar */}
-        <div className="flex-1 min-w-[200px] relative flex items-center">
-          <span className="material-icons-round absolute left-4 text-slate-400 text-[20px]">search</span>
-          <input 
-            type="text" 
-            placeholder="Cari Kode atau Nama Akun..." 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm"
-          />
+      {/* ── Filter Toolbar ── */}
+      <div className="w-full bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+
+        {/* Row 1: Search + Dropdowns + Expand */}
+        <div className="px-4 py-3 flex flex-wrap items-center gap-3 border-b border-slate-100">
+          {/* Search */}
+          <div className="flex-1 min-w-[220px] relative flex items-center">
+            <span className="material-icons-round absolute left-3 text-slate-400 text-[18px]">search</span>
+            <input
+              type="text"
+              placeholder="Cari kode atau nama akun..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-9 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 text-slate-700 text-sm transition-all"
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} className="absolute right-3 text-slate-400 hover:text-slate-600">
+                <span className="material-icons-round text-[16px]">close</span>
+              </button>
+            )}
+          </div>
+
+          {/* Filter Laporan */}
+          <div className="relative">
+            <select
+              value={filterLaporan}
+              onChange={(e) => setFilterLaporan(e.target.value)}
+              className="appearance-none pl-3 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 text-slate-700 text-sm cursor-pointer font-medium"
+            >
+              <option value="">Semua Laporan</option>
+              <option value="Neraca">Neraca</option>
+              <option value="Laba Rugi">Laba Rugi</option>
+            </select>
+            <span className="material-icons-round absolute right-2 top-2.5 text-slate-400 pointer-events-none text-[16px]">expand_more</span>
+          </div>
+
+          {/* Filter Tipe */}
+          <div className="relative">
+            <select
+              value={filterTipe}
+              onChange={(e) => setFilterTipe(e.target.value)}
+              className="appearance-none pl-3 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 text-slate-700 text-sm cursor-pointer font-medium"
+            >
+              <option value="">Semua Tipe</option>
+              <option value="Header">Header</option>
+              <option value="Detail">Detail</option>
+            </select>
+            <span className="material-icons-round absolute right-2 top-2.5 text-slate-400 pointer-events-none text-[16px]">expand_more</span>
+          </div>
+
+          {/* Separator */}
+          <div className="h-7 w-px bg-slate-200 hidden sm:block" />
+
+          {/* Expand / Collapse */}
+          <button
+            onClick={isAllExpanded ? collapseAll : expandAll}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors whitespace-nowrap"
+            title={isAllExpanded ? 'Tutup semua sub-akun' : 'Buka semua sub-akun'}
+          >
+            <span className="material-icons-round text-[15px]">{isAllExpanded ? 'unfold_less' : 'unfold_more'}</span>
+            {isAllExpanded ? 'Collapse All' : 'Expand All'}
+          </button>
         </div>
-        <div className="ml-auto text-xs font-medium text-slate-400 whitespace-nowrap hidden lg:block">
-          {treeData.length > 0 ? `${treeData.length} akun utama` : ''}
+
+        {/* Row 2: Status Tabs + Result Count */}
+        <div className="px-4 py-2.5 flex items-center justify-between">
+          {/* Status Tab Toggle */}
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
+            {(['Aktif', 'Nonaktif', 'Semua'] as const).map(status => (
+              <button
+                key={status}
+                onClick={() => setFilterStatus(status)}
+                className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
+                  filterStatus === status
+                    ? status === 'Aktif'
+                      ? 'bg-white text-emerald-700 shadow-sm border border-emerald-200'
+                      : status === 'Nonaktif'
+                      ? 'bg-white text-red-600 shadow-sm border border-red-200'
+                      : 'bg-white text-slate-700 shadow-sm border border-slate-200'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                {status === 'Aktif' && <span className="inline-block w-1.5 h-1.5 bg-emerald-500 rounded-full mr-1.5 mb-px" />}
+                {status === 'Nonaktif' && <span className="inline-block w-1.5 h-1.5 bg-red-400 rounded-full mr-1.5 mb-px" />}
+                {status}
+              </button>
+            ))}
+          </div>
+
+          {/* Result count */}
+          <span className="text-xs text-slate-400 font-medium hidden sm:block">
+            {treeData.length > 0
+              ? `${treeData.length} grup · ${coaList.filter(c => filterStatus === 'Aktif' ? c.is_active : filterStatus === 'Nonaktif' ? !c.is_active : true).length} akun`
+              : 'Tidak ada data'}
+          </span>
         </div>
       </div>
+
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm relative z-0 flex flex-col h-[calc(100vh-200px)]">
         <div className="w-full overflow-auto flex-1 pb-32">

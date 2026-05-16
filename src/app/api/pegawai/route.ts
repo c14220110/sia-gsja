@@ -7,6 +7,9 @@ export async function GET(request: Request) {
   if (!caller) {
     return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
   }
+  if (!caller.is_super_admin && !caller.permissions.includes('pegawai_view')) {
+    return NextResponse.json({ success: false, message: 'Akses Ditolak: Anda tidak memiliki izin melihat data pegawai' }, { status: 403 });
+  }
 
   try {
     const { searchParams } = new URL(request.url);
@@ -116,6 +119,9 @@ export async function POST(request: Request) {
   const caller = getCallerFromRequest(request);
   if (!caller) {
     return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  }
+  if (!caller.is_super_admin && !caller.permissions.includes('pegawai_create')) {
+    return NextResponse.json({ success: false, message: 'Akses Ditolak: Anda tidak memiliki izin mendaftarkan pegawai baru' }, { status: 403 });
   }
 
   try {

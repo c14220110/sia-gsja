@@ -5,7 +5,7 @@ import { auditLogRepository } from '@/server/repositories/auditLog.repository';
 import { resolveCallerSnapshot } from '@/server/utils/resolveCallerSnapshot';
 import { notifyMajelisRaSubmitted } from '@/lib/notificationService';
 
-// GET: Fetch all Anggaran Tahunan
+// GET: Fetch all Anggaran Tahunan (with optional filters: satelit_id, status)
 export async function GET(request: NextRequest) {
   const caller = getCallerFromRequest(request);
   if (!caller) {
@@ -13,6 +13,25 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    const { searchParams } = new URL(request.url);
+    const satelitFilter = searchParams.get('satelit_id');
+    const statusFilter  = searchParams.get('status'); // comma-separated e.g. "Disetujui Penuh,Disetujui Sebagian"
+
+    const conditions: string[] = [];
+    const values: any[] = [];
+
+    if (satelitFilter) {
+      values.push(parseInt(satelitFilter));
+      conditions.push(`at.satelit_id = $${values.length}`);
+    }
+    if (statusFilter) {
+      const statuses = statusFilter.split(',').map(s => s.trim());
+      values.push(statuses);
+      conditions.push(`at.status = ANY($${values.length})`);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
     const res = await pool.query(`
       SELECT 
         at.id,
@@ -33,8 +52,9 @@ export async function GET(request: NextRequest) {
       FROM public.anggaran_tahunan at
       LEFT JOIN public.satelit  s ON at.satelit_id::varchar = s.id::varchar
       LEFT JOIN public.komisi   k ON at.komisi_id::varchar   = k.id::varchar
+      ${whereClause}
       ORDER BY at.tahun DESC, at.updated_at DESC
-    `);
+    `, values);
     return NextResponse.json({ success: true, data: res.rows });
   } catch (error: any) {
     console.error('Error fetching anggaran tahunan:', error);
