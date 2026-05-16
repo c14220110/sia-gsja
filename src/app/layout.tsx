@@ -21,7 +21,6 @@ export const metadata: Metadata = {
 };
 
 import { LoaderProvider } from '@/components/ui/GlobalLoader';
-import SplashScreenWrapper from '@/components/ui/SplashScreenWrapper';
 
 export default function RootLayout({
   children,
@@ -34,7 +33,7 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
       </head>
       <body className={`${inter.variable} ${playfair.variable} antialiased font-sans`}>
-        <SplashScreenWrapper />
+
         <LoaderProvider>
           {children}
         </LoaderProvider>

@@ -304,6 +304,7 @@ export default function DashboardLayout({
                     {hasPermission('buku_besar_view') && <Link href="/buku-besar/coa" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Akun Perkiraan (COA)</Link>}
                     {hasPermission('buku_besar_manage') && <Link href="/buku-besar/jurnal" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Jurnal Umum</Link>}
                     {hasPermission('penggajian_manage') && <Link href="/buku-besar/gaji" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Pencatatan Gaji</Link>}
+                    <Link href="/buku-besar/realisasi-kegiatan" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Realisasi Kegiatan (LPJ)</Link>
                   </div>
                 </div>
               </div>
@@ -729,7 +730,7 @@ export default function DashboardLayout({
             )}
 
             {activeSubmenu === 'buku_besar' && !isSekretarisSatelit && (
-              <div 
+              <div
                 className="absolute pl-2 animate-in fade-in zoom-in-95 duration-200"
                 style={{ top: submenuTop }}
                 onMouseEnter={() => { if (submenuTimeout.current) clearTimeout(submenuTimeout.current) }}
@@ -739,47 +740,47 @@ export default function DashboardLayout({
                   <div className="self-stretch pb-2 border-b border-slate-100 flex flex-col justify-start items-start">
                     <div className="justify-center text-slate-800 text-lg font-bold font-['Inter'] leading-7">Buku Besar</div>
                   </div>
+                  {/* Row 1: 3 cards */}
                   <div className="self-stretch flex justify-between items-start gap-4">
                     {hasPermission('buku_besar_view') && (
-                    <Link href="/buku-besar/coa" onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-indigo-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-indigo-200 flex flex-col justify-center items-center cursor-pointer hover:bg-indigo-100 transition-colors block text-inherit no-underline">
-                      <div className="pb-2 flex flex-col justify-start items-start">
-                        <div className="flex flex-col justify-start items-center">
+                      <Link href="/buku-besar/coa" onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-indigo-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-indigo-200 flex flex-col justify-center items-center cursor-pointer hover:bg-indigo-100 transition-colors block text-inherit no-underline">
+                        <div className="pb-2 flex flex-col justify-start items-center">
                           <span className="material-icons-round text-indigo-600 text-[32px]">account_tree</span>
                         </div>
-                      </div>
-                      <div className="flex flex-col justify-start items-center text-center">
-                        <div className="justify-center text-indigo-900 text-sm font-bold font-['Inter'] leading-5">Akun Perkiraan<br/>(COA)</div>
-                      </div>
-                    </Link>
+                        <div className="text-center text-indigo-900 text-sm font-bold font-['Inter'] leading-5">Akun Perkiraan<br/>(COA)</div>
+                      </Link>
                     )}
                     {hasPermission('buku_besar_manage') && (
-                    <Link href="/buku-besar/jurnal" onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-emerald-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-emerald-200 flex flex-col justify-center items-center cursor-pointer hover:bg-emerald-100 transition-colors block text-inherit no-underline">
-                      <div className="pb-2 flex flex-col justify-start items-start">
-                        <div className="flex flex-col justify-start items-center">
+                      <Link href="/buku-besar/jurnal" onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-emerald-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-emerald-200 flex flex-col justify-center items-center cursor-pointer hover:bg-emerald-100 transition-colors block text-inherit no-underline">
+                        <div className="pb-2 flex flex-col justify-start items-center">
                           <span className="material-icons-round text-emerald-600 text-[32px]">receipt_long</span>
                         </div>
-                      </div>
-                      <div className="flex flex-col justify-start items-center text-center">
-                        <div className="justify-center text-emerald-900 text-sm font-bold font-['Inter'] leading-5">Jurnal<br/>Umum</div>
-                      </div>
-                    </Link>
+                        <div className="text-center text-emerald-900 text-sm font-bold font-['Inter'] leading-5">Jurnal<br/>Umum</div>
+                      </Link>
                     )}
                     {hasPermission('penggajian_manage') && (
-                    <Link href="/buku-besar/gaji" onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-amber-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-amber-200 flex flex-col justify-center items-center cursor-pointer hover:bg-amber-100 transition-colors block text-inherit no-underline">
-                      <div className="pb-2 flex flex-col justify-start items-start">
-                        <div className="flex flex-col justify-start items-center">
+                      <Link href="/buku-besar/gaji" onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-amber-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-amber-200 flex flex-col justify-center items-center cursor-pointer hover:bg-amber-100 transition-colors block text-inherit no-underline">
+                        <div className="pb-2 flex flex-col justify-start items-center">
                           <span className="material-icons-round text-amber-600 text-[32px]">payments</span>
                         </div>
-                      </div>
-                      <div className="flex flex-col justify-start items-center text-center">
-                        <div className="justify-center text-amber-900 text-sm font-bold font-['Inter'] leading-5">Pencatatan<br/>Gaji</div>
-                      </div>
-                    </Link>
+                        <div className="text-center text-amber-900 text-sm font-bold font-['Inter'] leading-5">Pencatatan<br/>Gaji</div>
+                      </Link>
                     )}
+                  </div>
+                  {/* Row 2: 1 full-width card */}
+                  <div className="self-stretch">
+                    <Link href="/buku-besar/realisasi-kegiatan" onClick={() => setActiveSubmenu(null)} className="w-full h-32 p-4 bg-rose-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-rose-200 flex flex-col justify-center items-center cursor-pointer hover:bg-rose-100 transition-colors block text-inherit no-underline">
+                      <div className="pb-2 flex flex-col justify-start items-center">
+                        <span className="material-icons-round text-rose-600 text-[32px]">bar_chart</span>
+                      </div>
+                      <div className="text-center text-rose-900 text-sm font-bold font-['Inter'] leading-5">Realisasi Kegiatan (LPJ)</div>
+                    </Link>
                   </div>
                 </div>
               </div>
             )}
+
+
 
             {activeSubmenu === 'profil_saya' && (
               <div 

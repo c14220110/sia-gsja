@@ -160,8 +160,8 @@ export default function ViewLPJPage() {
   return (
     <div className="w-full flex flex-col gap-6 pb-16">
 
-      {/* Breadcrumb & Action Bar */}
-      <div className="flex items-center justify-between">
+      {/* Breadcrumb & Action Bar — hidden in print */}
+      <div className="flex items-center justify-between print-hide">
         <div className="flex items-center gap-2 text-sm text-slate-500">
           <Link href="/kegiatan" className="hover:text-indigo-600">Daftar Kegiatan</Link>
           <span className="material-icons-round text-[16px]">chevron_right</span>
@@ -180,7 +180,7 @@ export default function ViewLPJPage() {
       </div>
 
       {/* ─── PRINT DOCUMENT ─── */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden print:shadow-none print:border-none print:rounded-none">
+      <div className="print-doc bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden print:shadow-none print:border-none print:rounded-none">
 
         {/* Header Dokumen */}
         <div className="p-8 border-b border-slate-100">
@@ -392,7 +392,7 @@ export default function ViewLPJPage() {
         )}
 
         {/* Summary Footer */}
-        <div className="bg-slate-900 px-8 py-5 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="print-summary bg-slate-900 px-8 py-5 flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="text-slate-400 text-xs print:hidden">LPJ · {kegiatan?.kode_kegiatan}</div>
           <div className="flex gap-6 flex-wrap justify-end">
             {[
@@ -410,7 +410,7 @@ export default function ViewLPJPage() {
         </div>
 
         {/* Tanda Tangan (print only) */}
-        <div className="px-8 py-8 hidden print:grid grid-cols-3 gap-8 border-t border-slate-200">
+        <div className="hidden print-show-grid grid-cols-3 gap-8 px-8 py-8 border-t border-slate-200">
           {['Dibuat Oleh', 'Mengetahui', 'Menyetujui'].map(label => (
             <div key={label} className="flex flex-col gap-16">
               <span className="text-xs text-slate-500">{label},</span>
@@ -424,14 +424,98 @@ export default function ViewLPJPage() {
       {/* Print CSS */}
       <style>{`
         @media print {
+          /* ─── Page setup: landscape A4 ─── */
+          @page {
+            size: A4 landscape;
+            margin: 12mm 15mm;
+          }
+
+          /* ─── Reset: sembunyikan semua kecuali dokumen LPJ ─── */
           body * { visibility: hidden; }
-          .print\\:shadow-none, .print\\:shadow-none * { visibility: visible; }
-          .print\\:shadow-none { position: absolute; left: 0; top: 0; width: 100%; }
-          .print\\:hidden { display: none !important; }
-          .print\\:grid { display: grid !important; }
-          @page { margin: 20mm; }
+          .print-doc, .print-doc * { visibility: visible !important; }
+          .print-doc {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%;
+            padding: 0;
+            margin: 0;
+          }
+
+          /* ─── Sembunyikan breadcrumb, tombol, footer site ─── */
+          .print-hide { display: none !important; }
+
+          /* ─── Tanda tangan (hidden di web, grid di print) ─── */
+          .print-show-grid { display: grid !important; }
+
+          /* ─── Typography print-friendly ─── */
+          .print-doc * {
+            font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
+          /* ─── Table: auto-fit tanpa min-width ─── */
+          .print-doc table {
+            width: 100% !important;
+            min-width: unset !important;
+            font-size: 8pt !important;
+            border-collapse: collapse !important;
+            table-layout: auto !important;
+          }
+          .print-doc th, .print-doc td {
+            padding: 4pt 6pt !important;
+            word-break: break-word !important;
+          }
+          .print-doc th {
+            font-size: 7pt !important;
+          }
+
+          /* ─── Force background colors ─── */
+          .print-doc .bg-slate-800,
+          .print-doc .bg-slate-900 {
+            background-color: #1e293b !important;
+            color: #ffffff !important;
+          }
+          .print-doc .bg-slate-100 { background-color: #f1f5f9 !important; }
+          .print-doc .bg-slate-50 { background-color: #f8fafc !important; }
+          .print-doc .bg-blue-50\\/60,
+          .print-doc [class*="bg-blue-50"] { background-color: #eff6ff !important; }
+          .print-doc .bg-amber-50\\/60,
+          .print-doc [class*="bg-amber-50"] { background-color: #fffbeb !important; }
+          .print-doc .bg-emerald-50\\/60,
+          .print-doc [class*="bg-emerald-50"] { background-color: #ecfdf5 !important; }
+          .print-doc .bg-red-50\\/30,
+          .print-doc [class*="bg-red-50"] { background-color: #fef2f2 !important; }
+          .print-doc .bg-indigo-50 { background-color: #eef2ff !important; }
+          .print-doc .bg-amber-50 { background-color: #fffbeb !important; }
+
+          /* ─── Summary footer (dark bar) ─── */
+          .print-summary {
+            background-color: #0f172a !important;
+            color: white !important;
+            padding: 8pt 16pt !important;
+            display: flex !important;
+            justify-content: flex-end !important;
+            gap: 24pt !important;
+            margin-top: 4pt !important;
+          }
+
+          /* ─── Overflow: jangan clip tabel ─── */
+          .print-doc .overflow-x-auto { overflow: visible !important; }
+
+          /* ─── Page break ─── */
+          .print-doc thead { display: table-header-group; }
+          .print-doc tr { page-break-inside: avoid; }
+
+          /* ─── Progress bar tampil di print ─── */
+          .print-doc [class*="bg-emerald-500"],
+          .print-doc [class*="bg-amber-400"],
+          .print-doc [class*="bg-red-500"] {
+            print-color-adjust: exact !important;
+          }
         }
       `}</style>
+
     </div>
   );
 }
