@@ -150,14 +150,22 @@ export class JemaatRepository {
 
     // Wrap in CTE to get total count easily
     const finalQuery = `
-      WITH FilteredData AS (${baseQuery}),
-      TotalCount AS (SELECT count(*) as total FROM FilteredData)
-      SELECT f.*, COALESCE(t.total, 0) as total_count 
-      FROM FilteredData f
-      CROSS JOIN TotalCount t
-      ORDER BY f.created_at DESC
+      WITH FilteredData AS (${baseQuery})
+      SELECT *
+      FROM FilteredData
+      ORDER BY created_at DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1};
     `;
+
+    // Separate count query — always reflects filters accurately regardless of pagination
+    const countBaseQuery = `
+      SELECT count(DISTINCT j.id) as total_count
+      FROM jemaat j
+      LEFT JOIN jemaat_komisi jk ON j.id = jk.jemaat_id AND jk.is_active = true
+      LEFT JOIN komisi k ON jk.komisi_id = k.id
+      WHERE j.is_deleted = false
+    ` + (whereClauses.length > 0 ? ` AND ` + whereClauses.join(' AND ') : '');
+
     // Filtered "jemaat baru bulan ini" — must run BEFORE pushing limit/offset into queryParams
     let newThisMonthQuery = `
       SELECT count(DISTINCT j.id) as total_baru
@@ -169,7 +177,12 @@ export class JemaatRepository {
     if (whereClauses.length > 0) {
       newThisMonthQuery += ` AND ` + whereClauses.join(' AND ');
     }
-    const newThisMonthResult = await pool.query(newThisMonthQuery, queryParams);
+
+    const [countResult, newThisMonthResult] = await Promise.all([
+      pool.query(countBaseQuery, queryParams),
+      pool.query(newThisMonthQuery, queryParams),
+    ]);
+    const total = parseInt(countResult.rows[0]?.total_count ?? '0', 10);
     const jemaat_baru = parseInt(newThisMonthResult.rows[0].total_baru, 10) || 0;
 
     // Now push limit/offset for the main paginated query
@@ -179,12 +192,10 @@ export class JemaatRepository {
     
 
     if (result.rows.length === 0) {
-      return { data: [], total: 0, jemaat_baru };
+      return { data: [], total, jemaat_baru };
     }
 
-    // Extract total from the first row (since all rows have total_count due to cross join)
-    const total = parseInt(result.rows[0].total_count, 10);
-    
+
     // Map data
     const data: JemaatData[] = result.rows.map(r => ({
       id: r.id,
