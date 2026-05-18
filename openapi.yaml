@@ -802,26 +802,21 @@ paths:
                   type: string
                 kuota_peserta:
                   type: string
-                // Sumber Anggaran (RA Link)
-        anggaran_tahunan_id:
+                anggaran_tahunan_id:
                   type: string
-                // Ibadah specific (3A)
-        tema_khotbah:
+                tema_khotbah:
                   type: string
                 nama_pengkhotbah_1:
                   type: string
                 nama_pengkhotbah_2:
                   type: string
-                // Eksternal / Akomodasi (3B)
-        akomodasi:
+                akomodasi:
                   type: string
-                // Sakramen (3C)
-        nama_pendeta_pelayan:
+                nama_pendeta_pelayan:
                   type: string
                 keterangan_sakramen:
                   type: string
-                // Layanan Personal (3D)
-        jemaat_target_1_id:
+                jemaat_target_1_id:
                   type: string
                 jemaat_target_2_id:
                   type: string
@@ -3324,7 +3319,7 @@ paths:
                   type: string
                 is_active:
                   type: string
-                // Only editable if not is_system:
+                tipe:
                   type: string
                 calculation_type:
                   type: string
