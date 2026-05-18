@@ -217,8 +217,9 @@ export async function GET(req: NextRequest) {
 
     // ── Tab 3: Conflict Detection (Jabatan Ganda) ─────────────────────────────
     if (tab === 'konflik') {
-      // Base WHERE for RBAC
-      const rbacWhere = isMultiSatelit ? '' : `AND j.satelit_id = ${caller.satelit_id}`;
+      // Base WHERE for RBAC — parameterized to prevent SQL injection
+      const rbacCondition = isMultiSatelit ? '' : `AND j.satelit_id = $1`;
+      const rbacParams: any[] = isMultiSatelit ? [] : [caller.satelit_id];
 
       // Orang yang punya ≥ 2 jabatan aktif
       const res = await pool.query(`
@@ -248,11 +249,11 @@ export async function GET(req: NextRequest) {
         LEFT JOIN satelit s_jab ON dk.satelit_id = s_jab.id
         LEFT JOIN komisi kom ON dk.komisi_id = kom.id
         LEFT JOIN departemen dep ON dk.departemen_id = dep.id
-        WHERE 1=1 ${rbacWhere}
+        WHERE 1=1 ${rbacCondition}
         GROUP BY j.id, j.nama_lengkap, j.foto_url, s_asal.nama_satelit, p.id, p.id_pengurus
         HAVING COUNT(dk.id) >= 2
         ORDER BY COUNT(dk.id) DESC, j.nama_lengkap ASC
-      `);
+      `, rbacParams);
 
       // Masa jabatan hampir habis (≤ 90 hari dari tanggal_selesai periode)
       const segeraHabisRes = await pool.query(`
@@ -279,10 +280,10 @@ export async function GET(req: NextRequest) {
           AND per.tahun_akhir IS NOT NULL
           AND (per.tahun_akhir || '-12-31')::date - CURRENT_DATE <= 90
           AND (per.tahun_akhir || '-12-31')::date >= CURRENT_DATE
-          ${rbacWhere}
+          ${rbacCondition}
         ORDER BY sisa_hari ASC
         LIMIT 20
-      `);
+      `, rbacParams);
 
       return NextResponse.json({
         success: true,

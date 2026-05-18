@@ -1,10 +1,6 @@
 import { NextResponse } from 'next/server';
-import { Pool } from 'pg';
+import pool from '@/lib/db';
 import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const caller = getCallerFromRequest(request);

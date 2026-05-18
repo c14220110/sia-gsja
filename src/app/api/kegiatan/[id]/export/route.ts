@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { Pool } from 'pg';
+import pool from '@/lib/db';
 import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 import fs from 'fs';
 import path from 'path';
@@ -8,10 +8,6 @@ import path from 'path';
 import PizZip from 'pizzip';
 // @ts-ignore
 import Docxtemplater from 'docxtemplater';
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
 
 // Format Tanggal (e.g., 09 April 2026)
 const formatTanggal = (date: Date) => {

@@ -1,19 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
-import jwt from 'jsonwebtoken';
-import { getJwtSecret } from '@/server/utils/jwt';
+import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 
 export async function POST(req: NextRequest) {
   try {
-    const token = req.cookies.get('access_token')?.value;
-    if (!token) {
-      return NextResponse.json({ success: false, message: 'Not authenticated' }, { status: 401 });
-    }
-
-    // Verify token
-    const decoded = jwt.verify(token, getJwtSecret()) as any;
-    if (!decoded || !decoded.user_id) {
-       return NextResponse.json({ success: false, message: 'Invalid token' }, { status: 401 });
+    const caller = getCallerFromRequest(req);
+    if (!caller) {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
     }
 
     const subscription = await req.json();
@@ -28,7 +21,7 @@ export async function POST(req: NextRequest) {
           VALUES ($1, $2, $3, $4)
           ON CONFLICT (endpoint) DO UPDATE 
           SET user_id = EXCLUDED.user_id, p256dh = EXCLUDED.p256dh, auth = EXCLUDED.auth`,
-          [decoded.user_id, subscription.endpoint, subscription.keys.p256dh, subscription.keys.auth]
+          [caller.user_id, subscription.endpoint, subscription.keys.p256dh, subscription.keys.auth]
        );
     } catch (dbErr) {
        console.error("DB Insert Subscription Error:", dbErr);

@@ -2,9 +2,9 @@ import { UserRepository } from '../repositories/user.repository';
 import { LoginInput } from '../validations/auth.validation';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import { getJwtSecret } from '../utils/jwt';
 
 const userRepository = new UserRepository();
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key-change-it-in-production';
 
 export class AuthService {
   async authenticateUser(data: LoginInput) {
@@ -67,7 +67,7 @@ export class AuthService {
       jemaat_id: user.jemaat_id ?? null   // ← wajib untuk fitur pelayan di PWA
     };
 
-    const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: expiresInString });
+    const token = jwt.sign(tokenPayload, getJwtSecret(), { expiresIn: expiresInString });
 
     // Update login timestamp
     await userRepository.updateLastLogin(user.id);
@@ -111,7 +111,7 @@ export class AuthService {
       jemaat_id: userRecord?.jemaat_id ?? null   // ← wajib untuk fitur pelayan di PWA
     };
 
-    const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: expiresInString });
+    const token = jwt.sign(tokenPayload, getJwtSecret(), { expiresIn: expiresInString });
     await userRepository.updateLastLogin(userId);
 
     return { token, user: tokenPayload, cookieMaxAge };

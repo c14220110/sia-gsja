@@ -53,6 +53,20 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const id = unwrappedParams.id;
   try {
     const body = await request.json();
+
+    // IDOR check: pastikan pegawai milik satelit caller
+    if (!caller.is_super_admin) {
+      const ownerCheck = await pool.query(
+        `SELECT satelit_id FROM public.pegawai WHERE id = $1`, [parseInt(id)]
+      );
+      if (ownerCheck.rows.length === 0) {
+        return NextResponse.json({ success: false, message: 'Pegawai tidak ditemukan' }, { status: 404 });
+      }
+      if (ownerCheck.rows[0].satelit_id !== caller.satelit_id) {
+        return NextResponse.json({ success: false, message: 'Akses ditolak: pegawai bukan milik satelit Anda' }, { status: 403 });
+      }
+    }
+
     const allowedUpdates = [
       'status_approval', 'status_pegawai', 'tanggal_keluar', 'di_acc_oleh', 'tanggal_acc'
     ];
@@ -114,7 +128,20 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   const id = unwrappedParams.id;
   try {
     const data = await request.json();
-    
+
+    // IDOR check: pastikan pegawai milik satelit caller
+    if (!caller.is_super_admin) {
+      const ownerCheck = await pool.query(
+        `SELECT satelit_id FROM public.pegawai WHERE id = $1`, [parseInt(id)]
+      );
+      if (ownerCheck.rows.length === 0) {
+        return NextResponse.json({ success: false, message: 'Pegawai tidak ditemukan' }, { status: 404 });
+      }
+      if (ownerCheck.rows[0].satelit_id !== caller.satelit_id) {
+        return NextResponse.json({ success: false, message: 'Akses ditolak: pegawai bukan milik satelit Anda' }, { status: 403 });
+      }
+    }
+
     // Convert necessary data fields (from null to appropriate type)
     const updateQuery = `
       UPDATE public.pegawai SET

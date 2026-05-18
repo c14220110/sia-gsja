@@ -1,32 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Pool } from 'pg';
-import jwt from 'jsonwebtoken';
-import { getJwtSecret } from '@/server/utils/jwt';
-import { UserRepository } from '@/server/repositories/user.repository';
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
-const userRepository = new UserRepository();
+import pool from '@/lib/db';
+import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 
 // GET /api/kegiatan/registrasi/saya
 export async function GET(request: NextRequest) {
   try {
-    const token = request.cookies.get('access_token')?.value;
-
-    if (!token) {
-      return NextResponse.json({ success: false, message: 'Not authenticated' }, { status: 401 });
+    const caller = getCallerFromRequest(request);
+    if (!caller) {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
     }
 
-    // Extract user identity
-    const decoded = jwt.verify(token, getJwtSecret()) as any;
-    const user = await userRepository.findById(decoded.user_id);
-    
-    if (!user || (!user.jemaat_id && !(user as any).is_super_admin)) {
-       return NextResponse.json({ success: true, data: [] }); // User is not linked to any jemaat_id
+    if (!caller.jemaat_id && !caller.is_super_admin) {
+      return NextResponse.json({ success: true, data: [] }); // User is not linked to any jemaat_id
     }
 
-    const targetJemaatId = user.jemaat_id;
+    const targetJemaatId = caller.jemaat_id;
 
     const query = `
       SELECT 

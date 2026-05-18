@@ -139,7 +139,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     await client.query('BEGIN');
 
     // ── Enforce Edit Lock ──────────────────────────────
-    const currentStatusCheck = await client.query(`SELECT status_kegiatan FROM public.kegiatan WHERE id = $1`, [id]);
+    const currentStatusCheck = await client.query(`SELECT status_kegiatan, satelit_id FROM public.kegiatan WHERE id = $1`, [id]);
     if (currentStatusCheck.rows.length === 0) {
       await client.query('ROLLBACK');
       return NextResponse.json({ success: false, message: 'Kegiatan tidak ditemukan.' }, { status: 404 });
@@ -151,6 +151,12 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         success: false, 
         message: `Kegiatan tidak bisa diedit karena sedang dalam status "${currentStatus}". Tarik kembali ke Draft terlebih dahulu.` 
       }, { status: 403 });
+    }
+
+    // IDOR check: pastikan kegiatan milik satelit caller
+    if (!caller.is_super_admin && currentStatusCheck.rows[0].satelit_id !== caller.satelit_id) {
+      await client.query('ROLLBACK');
+      return NextResponse.json({ success: false, message: 'Akses ditolak: kegiatan bukan milik satelit Anda' }, { status: 403 });
     }
 
     // ── RA Validation (same rules as POST) ──────────────────────────────
@@ -295,7 +301,28 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
 
   try {
     await client.query('BEGIN');
-    
+
+    // 0. Validasi status dan satelit sebelum menghapus
+    const checkKeg = await client.query(
+      `SELECT status_kegiatan, satelit_id FROM public.kegiatan WHERE id = $1`, [id]
+    );
+    if (checkKeg.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return NextResponse.json({ success: false, message: 'Kegiatan tidak ditemukan' }, { status: 404 });
+    }
+    const keg = checkKeg.rows[0];
+    if (keg.status_kegiatan !== 'Draft') {
+      await client.query('ROLLBACK');
+      return NextResponse.json({
+        success: false,
+        message: `Kegiatan berstatus "${keg.status_kegiatan}" tidak dapat dihapus. Hanya Draft yang boleh dihapus.`
+      }, { status: 403 });
+    }
+    if (!caller.is_super_admin && keg.satelit_id !== caller.satelit_id) {
+      await client.query('ROLLBACK');
+      return NextResponse.json({ success: false, message: 'Akses ditolak: kegiatan bukan milik satelit Anda' }, { status: 403 });
+    }
+
     // Hard delete dependent tables first (to prevent foreign key constraints error)
     await client.query('DELETE FROM public.kegiatan_detail_ibadah WHERE kegiatan_id = $1', [id]);
     await client.query('DELETE FROM public.kegiatan_pelayan WHERE kegiatan_id = $1', [id]);

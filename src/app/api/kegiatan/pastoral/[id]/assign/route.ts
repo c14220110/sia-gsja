@@ -47,7 +47,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       const statusBaru = 'Ditugaskan';
 
       // 2. Resolve Pelayan ID for the PIC
-      // Since pic-options only returns those who are already Staf Pastoral (role_id=21), they MUST have a pelayan record.
+      // pic-options only returns those who are already Staf Pastoral, they MUST have a pelayan record.
       const pelayanRes = await client.query(`
         SELECT pel.id 
         FROM public.pengurus p
@@ -81,7 +81,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       // 5. Link Kegiatan & Pelayan
       await client.query(
         `INSERT INTO public.kegiatan_jadwal_pelayan (kegiatan_id, pelayan_id, role_id, status_konfirmasi) 
-         VALUES ($1, $2, 21, 'Menunggu Konfirmasi')`,
+         VALUES ($1, $2, (SELECT id FROM public.role_pelayan WHERE nama_role = 'Staf Pastoral'), 'Menunggu Konfirmasi')`,
         [kegiatanId, pelayanId]
       );
 

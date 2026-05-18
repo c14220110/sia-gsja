@@ -5,7 +5,7 @@
 ---
 
 ## Stack
-- **Next.js 14** App Router + TypeScript
+- **Next.js 16** App Router + TypeScript (Turbopack)
 - **PostgreSQL** via Supabase, client: `pg` (node-postgres)
 - **Auth**: JWT di `httpOnly` cookie bernama `access_token`
 - **No ORM** — semua query SQL mentah dengan parameterized values
@@ -36,12 +36,19 @@ import pool from '@/lib/db'; // ✅ SELALU ini
 
 > **Known debt:** `src/app/api/kegiatan/route.ts` dan `kegiatan/[id]/route.ts` masih pakai `new Pool()` lokal. Ini diketahui, **jangan tiru, jangan "fix" tanpa perintah**.
 
-### 2. Auth — Baris Pertama Setiap Handler
+### 2. Auth — Dua Layer Proteksi
+
+**Layer 1 — `src/proxy.ts` (global gate):**
+Next.js 16 menggunakan `proxy.ts` (bukan `middleware.ts`). File ini mengecek keberadaan cookie `access_token` di **semua** `/api/*` route. Tanpa cookie → langsung 401. Ini mencegah route yang lupa `getCallerFromRequest()` menjadi public.
+
+**Layer 2 — `getCallerFromRequest()` (per-handler):**
 ```typescript
 const caller = getCallerFromRequest(request); // dari '@/server/utils/getCallerFromRequest'
 if (!caller) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
 ```
 `caller` berisi: `user_id`, `role_id`, `satelit_id`, `jemaat_id?`, `role_name`, `is_super_admin`, `permissions: string[]`
+
+> **JANGAN** buat `src/middleware.ts` — Next.js 16 sudah deprecated, dan `proxy.ts` sudah ada.
 
 **Penting — `is_super_admin`:** bernilai `true` HANYA jika `role_name === 'SUPER_ADMIN'`. Bukan berdasarkan tabel lain.
 
@@ -81,6 +88,7 @@ Baca file ini sebelum menulis kode baru — lebih bermanfaat dari template hipot
 | Audit log + email notification | `src/app/api/anggaran/tahunan/route.ts` |
 | Repository dengan pagination standard | `src/server/repositories/pelayan.repository.ts` |
 | Auth flow lengkap | `src/server/services/auth.service.ts` |
+| Global auth guard (proxy) | `src/proxy.ts` |
 | Singleton DB pool | `src/lib/db.ts` |
 
 ---
@@ -166,10 +174,17 @@ Modul berikut punya tabel audit log — wajib diisi saat write:
 
 | Masalah | Lokasi | Status |
 |---|---|---|
-| `new Pool()` lokal bukan singleton | `api/kegiatan/route.ts`, `api/kegiatan/[id]/route.ts` | ⚠️ Open — Medium |
+| `new Pool()` lokal bukan singleton | `api/kegiatan/route.ts`, `api/kegiatan/[id]/route.ts` | ⚠️ Open — Medium (hanya 2 file ini tersisa; 8 file lain sudah fixed 2026-05-18) |
 | POST bisa diakses semua user (harusnya `is_super_admin` only) | `api/settings/payroll-components/route.ts` | ⚠️ Open — Medium |
 | ~~Tidak ada auth check + `created_by = 1` hardcoded~~ | ~~`api/buku-besar/jurnal/route.ts`~~ | ✅ Fixed 2026-05-15 |
 | ~~Tidak ada permission check spesifik~~ | ~~`api/pegawai/route.ts` & `api/pegawai/[id]/route.ts`~~ | ✅ Fixed 2026-05-15 |
+| ~~Tidak ada global auth guard (`middleware.ts`)~~ | ~~Semua `/api/*` route~~ | ✅ Fixed 2026-05-18 — `src/proxy.ts` sudah ada sebagai global gate |
+| ~~Hardcoded `role_id = 21` (Staf Pastoral)~~ | ~~`api/kegiatan/pastoral/[id]/assign`, `api/kegiatan/pastoral/pic-options`~~ | ✅ Fixed 2026-05-18 — diganti subquery `(SELECT id FROM role_pelayan WHERE nama_role = 'Staf Pastoral')` |
+| ~~SQL injection: `caller.satelit_id` raw di SQL~~ | ~~`api/settings/organisasi/route.ts` tab konflik~~ | ✅ Fixed 2026-05-18 — diganti `$1` + `rbacParams` array |
+| ~~Tidak ada auth check (route public tanpa login)~~ | ~~`api/laporan/realisasi-kegiatan/route.ts`~~ | ✅ Fixed 2026-05-18 — ditambahkan `getCallerFromRequest()` |
+| ~~IDOR cross-satelit: tidak ada ownership check~~ | ~~`api/pegawai/[id]` PUT/PATCH~~ | ✅ Fixed 2026-05-18 — tambah fetch `satelit_id` + 403 jika beda satelit |
+| ~~IDOR cross-satelit: tidak ada ownership check~~ | ~~`api/anggaran/tahunan/[id]` PUT/DELETE~~ | ✅ Fixed 2026-05-18 — tambah `satelit_id` di SELECT + 403 jika beda satelit |
+| ~~IDOR cross-satelit + DELETE tanpa status guard~~ | ~~`api/kegiatan/[id]` PUT/DELETE~~ | ✅ Fixed 2026-05-18 — tambah satelit check + DELETE guard status Draft only |
 
 ---
 

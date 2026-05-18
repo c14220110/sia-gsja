@@ -19,6 +19,11 @@ const PUBLIC_API_ROUTES = [
   '/api/auth/reset-password',   // No auth needed — user resets password via email token
 ];
 
+// API routes that are public only for specific HTTP methods
+const PUBLIC_GET_ONLY_ROUTES = [
+  '/api/kegiatan',  // Public schedule page for jemaat (GET only)
+];
+
 export default function proxy(request: NextRequest) {
   const token = request.cookies.get('access_token')?.value;
   const { pathname } = request.nextUrl;
@@ -29,6 +34,11 @@ export default function proxy(request: NextRequest) {
   if (pathname.startsWith('/api/')) {
     // Allow public API routes
     if (PUBLIC_API_ROUTES.some(route => pathname === route)) {
+      return NextResponse.next();
+    }
+
+    // Allow GET-only public routes
+    if (request.method === 'GET' && PUBLIC_GET_ONLY_ROUTES.some(route => pathname === route)) {
       return NextResponse.next();
     }
 

@@ -79,10 +79,18 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     // Fetch previous status for audit trail
     const prevStatusRes = await client.query(
-      `SELECT status, kode_dokumen FROM public.anggaran_tahunan WHERE id = $1`, [id]
+      `SELECT status, kode_dokumen, satelit_id FROM public.anggaran_tahunan WHERE id = $1`, [id]
     );
     const prevStatus = prevStatusRes.rows[0]?.status || 'Draft';
     const kode_dokumen = prevStatusRes.rows[0]?.kode_dokumen || '';
+
+    // IDOR check: pastikan anggaran milik satelit caller
+    if (!caller.is_super_admin) {
+      if (!prevStatusRes.rows[0] || prevStatusRes.rows[0].satelit_id !== caller.satelit_id) {
+        await client.query('ROLLBACK');
+        return NextResponse.json({ success: false, message: 'Akses ditolak: anggaran bukan milik satelit Anda' }, { status: 403 });
+      }
+    }
 
     // Update Header
     await client.query(
@@ -242,7 +250,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     // 1. Validate: only Draft can be deleted
     const check = await client.query(
-      `SELECT id, status, kode_dokumen FROM public.anggaran_tahunan WHERE id = $1`,
+      `SELECT id, status, kode_dokumen, satelit_id FROM public.anggaran_tahunan WHERE id = $1`,
       [id]
     );
 
@@ -258,6 +266,12 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
         success: false, 
         message: `Dokumen ${doc.kode_dokumen} berstatus "${doc.status}" dan tidak dapat dihapus. Hanya dokumen berstatus Draft yang boleh dihapus.` 
       }, { status: 403 });
+    }
+
+    // IDOR check: pastikan anggaran milik satelit caller
+    if (!caller.is_super_admin && doc.satelit_id !== caller.satelit_id) {
+      await client.query('ROLLBACK');
+      return NextResponse.json({ success: false, message: 'Akses ditolak: anggaran bukan milik satelit Anda' }, { status: 403 });
     }
 
     // 2. Audit log BEFORE deletion (fire-and-forget, but await to ensure it completes before delete)

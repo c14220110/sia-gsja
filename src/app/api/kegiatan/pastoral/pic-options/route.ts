@@ -40,7 +40,7 @@ export async function GET(request: Request) {
       LEFT JOIN public.komisi kom ON dk.komisi_id = kom.id
       WHERE p.is_active = true 
         AND pel.status_pelayan = 'Aktif'
-        AND prole.role_id = 21
+        AND prole.role_id = (SELECT id FROM public.role_pelayan WHERE nama_role = 'Staf Pastoral')
         AND prole.status_role = 'Aktif'
         ${whereSearch}
       GROUP BY p.id, j.nama_lengkap
