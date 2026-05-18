@@ -1,0 +1,3899 @@
+openapi: 3.0.0
+info:
+  title: SIM GSJA API
+  version: 1.0.0
+  description: "REST API untuk **Sistem Informasi Manajemen Gereja GSJA**.\n\n## Autentikasi\n\
+    Semua endpoint (kecuali `/api/auth/*`) memerlukan **Bearer Token JWT**.\n\nSertakan\
+    \ header berikut di setiap request:\n```\nAuthorization: Bearer <your_token>\n\
+    ```\n\n## Struktur Response\nSemua endpoint mengembalikan format standar:\n```json\n\
+    {\n  \"success\": true,\n  \"data\": { ... },\n  \"message\": \"\"\n}\n```"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+paths:
+  /api/anggaran/kegiatan-options:
+    get:
+      summary: Get Kegiatan Options
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Anggaran
+  /api/anggaran/komisi-options:
+    get:
+      summary: Get Komisi Options
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Anggaran
+  /api/anggaran/konsolidasi:
+    get:
+      summary: Get Konsolidasi
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Anggaran
+  /api/anggaran/tahunan:
+    get:
+      summary: Get Tahunan
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Anggaran
+    post:
+      summary: Create Tahunan
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                satelit_id:
+                  type: string
+                komisi_id:
+                  type: string
+                tahun:
+                  type: string
+                kategori_ra:
+                  type: string
+                pola_penggunaan:
+                  type: string
+                nama_rancangan:
+                  type: string
+                estimasi_waktu:
+                  type: string
+                action:
+                  type: string
+                items:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Anggaran
+  /api/anggaran/tahunan/{id}:
+    get:
+      summary: Get Tahunan
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Anggaran
+    put:
+      summary: Update Tahunan
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                satelit_id:
+                  type: string
+                komisi_id:
+                  type: string
+                tahun:
+                  type: string
+                kategori_ra:
+                  type: string
+                pola_penggunaan:
+                  type: string
+                nama_rancangan:
+                  type: string
+                estimasi_waktu:
+                  type: string
+                action:
+                  type: string
+                items:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Anggaran
+    delete:
+      summary: Delete Tahunan
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Anggaran
+  /api/anggaran/tahunan/{id}/batalkan:
+    patch:
+      summary: Patch Tahunan Batalkan
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                any_payload:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Anggaran
+  /api/anggaran/tahunan/{id}/review:
+    post:
+      summary: Create Tahunan Review
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                action:
+                  type: string
+                catatan_reviewer:
+                  type: string
+                item_decisions:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Anggaran
+  /api/anggaran/tahunan/{id}/timeline:
+    get:
+      summary: Get Tahunan Timeline
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Anggaran
+  /api/audit-log:
+    get:
+      summary: Get Audit Log
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Audit Log
+  /api/auth/force-change-password:
+    post:
+      summary: Create Force Change Password
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                old_password:
+                  type: string
+                new_password:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Autentikasi
+  /api/auth/forgot-password:
+    post:
+      summary: Create Forgot Password
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Autentikasi
+  /api/auth/login:
+    post:
+      summary: Create Login
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                any_payload:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Autentikasi
+  /api/auth/me:
+    get:
+      summary: Get Me
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Autentikasi
+    post:
+      summary: Create Me
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                any_payload:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Autentikasi
+  /api/auth/reset-password:
+    get:
+      summary: Get Reset Password
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Autentikasi
+    post:
+      summary: Create Reset Password
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                new_password:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Autentikasi
+  /api/auth/select-role:
+    post:
+      summary: Create Select Role
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_id:
+                  type: string
+                role_id:
+                  type: string
+                satelit_id:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Autentikasi
+  /api/buku-besar/coa:
+    get:
+      summary: Get Coa
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Buku Besar
+    post:
+      summary: Create Coa
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                any_payload:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Buku Besar
+    put:
+      summary: Update Coa
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                any_payload:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Buku Besar
+  /api/buku-besar/jurnal:
+    get:
+      summary: Get Jurnal
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Buku Besar
+    post:
+      summary: Create Jurnal
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tanggal_transaksi:
+                  type: string
+                deskripsi:
+                  type: string
+                status:
+                  type: string
+                details:
+                  type: string
+                satelit_kode:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Buku Besar
+    put:
+      summary: Update Jurnal
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                tanggal_transaksi:
+                  type: string
+                deskripsi:
+                  type: string
+                status:
+                  type: string
+                details:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Buku Besar
+    delete:
+      summary: Delete Jurnal
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Buku Besar
+  /api/family-tree/{id}:
+    get:
+      summary: Get Family Tree
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Family Tree
+  /api/kegiatan:
+    get:
+      summary: Get Kegiatan
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Kegiatan
+    post:
+      summary: Create Kegiatan
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nama_kegiatan:
+                  type: string
+                jenis_kegiatan_id:
+                  type: string
+                frekuensi_kegiatan:
+                  type: string
+                tanggal_mulai:
+                  type: string
+                tanggal_selesai:
+                  type: string
+                waktu_mulai:
+                  type: string
+                waktu_selesai:
+                  type: string
+                lokasi_kegiatan:
+                  type: string
+                keterangan:
+                  type: string
+                tipe_penyelenggara:
+                  type: string
+                satelit_id:
+                  type: string
+                departemen_id:
+                  type: string
+                komisi_id:
+                  type: string
+                pic_pengurus_id:
+                  type: string
+                berbayar:
+                  type: string
+                status_kegiatan:
+                  type: string
+                is_published:
+                  type: string
+                butuh_registrasi:
+                  type: string
+                url_banner:
+                  type: string
+                harga_tiket_rp:
+                  type: string
+                kuota_peserta:
+                  type: string
+                anggaran_tahunan_id:
+                  type: string
+                tema_khotbah:
+                  type: string
+                nama_pengkhotbah_1:
+                  type: string
+                nama_pengkhotbah_2:
+                  type: string
+                akomodasi:
+                  type: string
+                nama_pendeta_pelayan:
+                  type: string
+                keterangan_sakramen:
+                  type: string
+                jemaat_target_1_id:
+                  type: string
+                jemaat_target_2_id:
+                  type: string
+                keterangan_layanan:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Kegiatan
+  /api/kegiatan/pastoral:
+    get:
+      summary: Get Pastoral
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Kegiatan
+  /api/kegiatan/pastoral/pic-options:
+    get:
+      summary: Get Pastoral Pic Options
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Kegiatan
+  /api/kegiatan/pastoral/{id}:
+    get:
+      summary: Get Pastoral
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Kegiatan
+  /api/kegiatan/pastoral/{id}/assign:
+    patch:
+      summary: Patch Pastoral Assign
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pengurus_id:
+                  type: string
+                tanggal_fix:
+                  type: string
+                waktu_fix:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Kegiatan
+  /api/kegiatan/pastoral/{id}/status:
+    patch:
+      summary: Patch Pastoral Status
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                catatan_penyelesaian:
+                  type: string
+                alasan_pembatalan:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Kegiatan
+  /api/kegiatan/registrasi/saya:
+    get:
+      summary: Get Registrasi Saya
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Kegiatan
+  /api/kegiatan/validasi-pembayaran:
+    get:
+      summary: Get Validasi Pembayaran
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Kegiatan
+  /api/kegiatan/{id}:
+    get:
+      summary: Get Kegiatan
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Kegiatan
+    put:
+      summary: Update Kegiatan
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                any_payload:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Kegiatan
+    delete:
+      summary: Delete Kegiatan
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Kegiatan
+    patch:
+      summary: Patch Kegiatan
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status_kegiatan:
+                  type: string
+                alasan_pembatalan:
+                  type: string
+                anggaran_tahunan_id:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Kegiatan
+  /api/kegiatan/{id}/absensi:
+    get:
+      summary: Get Absensi
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Kegiatan
+    post:
+      summary: Create Absensi
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                action_type:
+                  type: string
+                id_jemaat:
+                  type: string
+                nama_tamu:
+                  type: string
+                no_hp:
+                  type: string
+                gereja_asal:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Kegiatan
+  /api/kegiatan/{id}/export:
+    get:
+      summary: Get Export
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Kegiatan
+  /api/kegiatan/{id}/lpj:
+    get:
+      summary: Get Lpj
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Kegiatan
+    post:
+      summary: Create Lpj
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                action:
+                  type: string
+                laporan_naratif:
+                  type: string
+                items:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Kegiatan
+  /api/kegiatan/{id}/lpj/review:
+    post:
+      summary: Create Lpj Review
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                action:
+                  type: string
+                catatan_reviewer:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Kegiatan
+  /api/kegiatan/{id}/lpj/timeline:
+    get:
+      summary: Get Lpj Timeline
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Kegiatan
+  /api/kegiatan/{id}/pasien:
+    get:
+      summary: Get Pasien
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Kegiatan
+    post:
+      summary: Create Pasien
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                is_pasien_luar:
+                  type: string
+                jemaat_id:
+                  type: string
+                nama_pasien_luar:
+                  type: string
+                no_hp_pasien_luar:
+                  type: string
+                is_pelayan_luar:
+                  type: string
+                pelayan_medis_id:
+                  type: string
+                nama_pelayan_luar:
+                  type: string
+                keluhan_simptom:
+                  type: string
+                diagnosa:
+                  type: string
+                tindakan_obat:
+                  type: string
+                tensi_darah:
+                  type: string
+                gula_darah:
+                  type: string
+                asam_urat:
+                  type: string
+                kolesterol:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Kegiatan
+  /api/kegiatan/{id}/pelayan:
+    get:
+      summary: Get Pelayan
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Kegiatan
+    post:
+      summary: Create Pelayan
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pelayan_id:
+                  type: string
+                role_id:
+                  type: string
+                role_kehadiran:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Kegiatan
+    delete:
+      summary: Delete Pelayan
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Kegiatan
+    patch:
+      summary: Patch Pelayan
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                roster_id:
+                  type: string
+                roster_ids:
+                  type: string
+                status_konfirmasi:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Kegiatan
+  /api/kegiatan/{id}/registrasi:
+    get:
+      summary: Get Registrasi
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Kegiatan
+    post:
+      summary: Create Registrasi
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jemaat_id:
+                  type: string
+                catatan_khusus:
+                  type: string
+                total_biaya:
+                  type: string
+                metode_pembayaran:
+                  type: string
+                url_bukti_bayar:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Kegiatan
+    put:
+      summary: Update Registrasi
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                action:
+                  type: string
+                registrasi_ids:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Kegiatan
+  /api/laporan/realisasi-kegiatan:
+    get:
+      summary: Get Realisasi Kegiatan
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Laporan
+  /api/layanan-pastoral:
+    post:
+      summary: Create Layanan Pastoral
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                untuk_siapa:
+                  type: string
+                jemaat_target_id:
+                  type: string
+                nama_target_luar:
+                  type: string
+                jenis_kegiatan_id:
+                  type: string
+                no_hp_kontak:
+                  type: string
+                keterangan:
+                  type: string
+                is_urgent:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Layanan Pastoral
+  /api/layanan-pastoral/saya:
+    get:
+      summary: Get Saya
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Layanan Pastoral
+  /api/layanan-pastoral/{id}:
+    get:
+      summary: Get Layanan Pastoral
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Layanan Pastoral
+  /api/master-data:
+    get:
+      summary: Get Master Data
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Master Data
+    post:
+      summary: Create Master Data
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                table:
+                  type: string
+                data:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Master Data
+    delete:
+      summary: Delete Master Data
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Master Data
+    patch:
+      summary: Patch Master Data
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                table:
+                  type: string
+                id:
+                  type: string
+                is_active:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Master Data
+  /api/members:
+    get:
+      summary: Get Members
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Jemaat
+    post:
+      summary: Create Members
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                any_payload:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Jemaat
+  /api/members/{id}:
+    get:
+      summary: Get Members
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Jemaat
+    put:
+      summary: Update Members
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                any_payload:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Jemaat
+    patch:
+      summary: Patch Members
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status_jemaat:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Jemaat
+  /api/options:
+    get:
+      summary: Get Options
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Options
+  /api/payroll/runs:
+    get:
+      summary: Get Runs
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Payroll
+    post:
+      summary: Create Runs
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                any_payload:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Payroll
+  /api/payroll/runs/validate-setup:
+    get:
+      summary: Get Runs Validate Setup
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Payroll
+    post:
+      summary: Create Runs Validate Setup
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                run_id:
+                  type: string
+                bulan:
+                  type: string
+                tahun:
+                  type: string
+                satelit_id:
+                  type: string
+                anggaran_tahunan_id:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Payroll
+  /api/payroll/runs/{id}/details:
+    get:
+      summary: Get Runs Details
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Payroll
+  /api/payroll/runs/{id}/komponen:
+    patch:
+      summary: Patch Runs Komponen
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                run_detail_id:
+                  type: string
+                overrides:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Payroll
+  /api/payroll/runs/{id}/submit:
+    post:
+      summary: Create Runs Submit
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                catatan_pembuat:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Payroll
+  /api/payroll/runs/{id}/summary:
+    get:
+      summary: Get Runs Summary
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Payroll
+  /api/pegawai:
+    get:
+      summary: Get Pegawai
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Pegawai
+    post:
+      summary: Create Pegawai
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                any_payload:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Pegawai
+  /api/pegawai/{id}:
+    get:
+      summary: Get Pegawai
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Pegawai
+    put:
+      summary: Update Pegawai
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                any_payload:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Pegawai
+    patch:
+      summary: Patch Pegawai
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                any_payload:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Pegawai
+  /api/pelayan:
+    get:
+      summary: Get Pelayan
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Pelayan
+    post:
+      summary: Create Pelayan
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jemaat_id:
+                  type: string
+                satelit_id:
+                  type: string
+                tanggal_mulai:
+                  type: string
+                catatan:
+                  type: string
+                roles:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Pelayan
+  /api/pelayan/jadwal-saya:
+    get:
+      summary: Get Jadwal Saya
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Pelayan
+  /api/pelayan/jadwal-saya/konfirmasi:
+    post:
+      summary: Create Jadwal Saya Konfirmasi
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                roster_id:
+                  type: string
+                status_konfirmasi:
+                  type: string
+                alasan_absen:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Pelayan
+  /api/pelayan/{id}:
+    get:
+      summary: Get Pelayan
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Pelayan
+    put:
+      summary: Update Pelayan
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                any_payload:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Pelayan
+    patch:
+      summary: Patch Pelayan
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status_pelayan:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Pelayan
+  /api/pengurus:
+    get:
+      summary: Get Pengurus
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Pengurus
+    post:
+      summary: Create Pengurus
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jemaat_id:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Pengurus
+  /api/pengurus/{id}:
+    get:
+      summary: Get Pengurus
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Pengurus
+    patch:
+      summary: Patch Pengurus
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status_jabatan:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Pengurus
+  /api/pengurus/{id}/jabatan:
+    post:
+      summary: Create Jabatan
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jabatan_id:
+                  type: string
+                lingkup:
+                  type: string
+                satelit_id:
+                  type: string
+                komisi_id:
+                  type: string
+                departemen_id:
+                  type: string
+                periode_id:
+                  type: string
+                tanggal_mulai:
+                  type: string
+                jalur_pengangkatan:
+                  type: string
+                catatan:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Pengurus
+  /api/pengurus/{id}/jabatan/{detail_id}:
+    patch:
+      summary: Patch Jabatan
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: detail_id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status_jabatan:
+                  type: string
+                tanggal_akhir_menjabat:
+                  type: string
+                catatan:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Pengurus
+  /api/push/subscribe:
+    post:
+      summary: Create Subscribe
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                any_payload:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Push Notification
+  /api/riwayat-kehadiran:
+    get:
+      summary: Get Riwayat Kehadiran
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Riwayat Kehadiran
+  /api/settings/akun-akses/bulk-generate:
+    get:
+      summary: Get Akun Akses Bulk Generate
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Settings
+    post:
+      summary: Create Akun Akses Bulk Generate
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jemaat_ids:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Settings
+  /api/settings/akun-akses/roles:
+    get:
+      summary: Get Akun Akses Roles
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Settings
+    put:
+      summary: Update Akun Akses Roles
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role_id:
+                  type: string
+                permission_ids:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Settings
+  /api/settings/akun-akses/temporary:
+    post:
+      summary: Create Akun Akses Temporary
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_id:
+                  type: string
+                role_id:
+                  type: string
+                satelit_id:
+                  type: string
+                tanggal_mulai:
+                  type: string
+                tanggal_selesai:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Settings
+  /api/settings/akun-akses/users:
+    get:
+      summary: Get Akun Akses Users
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Settings
+    post:
+      summary: Create Akun Akses Users
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+                jemaat_id:
+                  type: string
+                roles:
+                  type: string
+                komisi_id:
+                  type: string
+                departemen_id:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Settings
+    put:
+      summary: Update Akun Akses Users
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_id:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+                roles:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Settings
+    patch:
+      summary: Patch Akun Akses Users
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_id:
+                  type: string
+                is_active:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Settings
+  /api/settings/akun-akses/users/temp-access:
+    post:
+      summary: Create Akun Akses Users Temp Access
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jemaat_id:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+                role_id:
+                  type: string
+                satelit_id:
+                  type: string
+                tanggal_mulai:
+                  type: string
+                tanggal_selesai:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Settings
+  /api/settings/organisasi:
+    get:
+      summary: Get Organisasi
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Settings
+  /api/settings/organisasi/kelompok-sel:
+    post:
+      summary: Create Organisasi Kelompok Sel
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                rayon_id:
+                  type: string
+                nama_kelompok:
+                  type: string
+                ketua_pengurus_id:
+                  type: string
+                is_active:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Settings
+    put:
+      summary: Update Organisasi Kelompok Sel
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                nama_kelompok:
+                  type: string
+                ketua_pengurus_id:
+                  type: string
+                is_active:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Settings
+    delete:
+      summary: Delete Organisasi Kelompok Sel
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Settings
+  /api/settings/organisasi/rayon:
+    post:
+      summary: Create Organisasi Rayon
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                satelit_id:
+                  type: string
+                nama_rayon:
+                  type: string
+                ketua_pengurus_id:
+                  type: string
+                is_active:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Settings
+    put:
+      summary: Update Organisasi Rayon
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                nama_rayon:
+                  type: string
+                ketua_pengurus_id:
+                  type: string
+                is_active:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Settings
+    delete:
+      summary: Delete Organisasi Rayon
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Settings
+  /api/settings/payroll-components:
+    get:
+      summary: Get Payroll Components
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Settings
+    post:
+      summary: Create Payroll Components
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nama_komponen:
+                  type: string
+                tipe:
+                  type: string
+                calculation_type:
+                  type: string
+                is_employer_portion:
+                  type: string
+                global_rate_field:
+                  type: string
+                coa_debit_id:
+                  type: string
+                coa_kredit_id:
+                  type: string
+                urutan:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Settings
+  /api/settings/payroll-components/{id}:
+    put:
+      summary: Update Payroll Components
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nama_komponen:
+                  type: string
+                coa_debit_id:
+                  type: string
+                coa_kredit_id:
+                  type: string
+                urutan:
+                  type: string
+                is_active:
+                  type: string
+                tipe:
+                  type: string
+                calculation_type:
+                  type: string
+                is_employer_portion:
+                  type: string
+                global_rate_field:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Settings
+  /api/settings/payroll-global:
+    get:
+      summary: Get Payroll Global
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Settings
+    post:
+      summary: Create Payroll Global
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                effective_date:
+                  type: string
+                bpjs_kes_employer_pct:
+                  type: string
+                bpjs_kes_employee_pct:
+                  type: string
+                bpjs_tk_jht_employer_pct:
+                  type: string
+                bpjs_tk_jht_employee_pct:
+                  type: string
+                bpjs_tk_jp_employer_pct:
+                  type: string
+                bpjs_tk_jp_employee_pct:
+                  type: string
+                bpjs_tk_jkk_pct:
+                  type: string
+                bpjs_tk_jkm_pct:
+                  type: string
+                keterangan:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Settings
+  /api/settings/payroll-global/{id}:
+    put:
+      summary: Update Payroll Global
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                effective_date:
+                  type: string
+                bpjs_kes_employer_pct:
+                  type: string
+                bpjs_kes_employee_pct:
+                  type: string
+                bpjs_tk_jht_employer_pct:
+                  type: string
+                bpjs_tk_jht_employee_pct:
+                  type: string
+                bpjs_tk_jp_employer_pct:
+                  type: string
+                bpjs_tk_jp_employee_pct:
+                  type: string
+                bpjs_tk_jkk_pct:
+                  type: string
+                bpjs_tk_jkm_pct:
+                  type: string
+                keterangan:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Settings
+  /api/settings/payroll-templates:
+    get:
+      summary: Get Payroll Templates
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Settings
+    post:
+      summary: Create Payroll Templates
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jabatan_pegawai_id:
+                  type: string
+                nama_template:
+                  type: string
+                pph21_method:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Settings
+  /api/settings/payroll-templates/{id}:
+    get:
+      summary: Get Payroll Templates
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Settings
+    put:
+      summary: Update Payroll Templates
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nama_template:
+                  type: string
+                pph21_method:
+                  type: string
+                is_active:
+                  type: string
+                detail:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Settings
+  /api/upload:
+    post:
+      summary: Create Upload
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                any_payload:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                  message:
+                    type: string
+      tags:
+      - Upload
+servers:
+- url: https://your-domain.com
+  description: Production Server
+- url: http://localhost:3000
+  description: Local Development
+tags:
+- name: Anggaran
+  description: Manajemen anggaran tahunan dan konsolidasi keuangan gereja.
+- name: Audit Log
+  description: Log aktivitas dan audit trail seluruh operasi sistem.
+- name: Autentikasi
+  description: Login, logout, reset password, dan manajemen sesi pengguna.
+- name: Buku Besar
+  description: Chart of Accounts (COA) dan jurnal keuangan.
+- name: Family Tree
+  description: Silsilah dan relasi keluarga jemaat.
+- name: Jemaat
+  description: Manajemen data jemaat gereja (anggota).
+- name: Kegiatan
+  description: Manajemen kegiatan dan acara gereja.
+- name: Laporan
+  description: Laporan keuangan dan statistik jemaat.
+- name: Layanan Pastoral
+  description: Layanan pastoral, konseling, dan pembinaan jemaat.
+- name: Master Data
+  description: Data master dan referensi sistem.
+- name: Options
+  description: Endpoint untuk mengambil pilihan/dropdown form.
+- name: Payroll
+  description: Penggajian, tunjangan, dan komponen gaji karyawan.
+- name: Pegawai
+  description: Manajemen data pegawai/karyawan gereja.
+- name: Pelayan
+  description: Data pelayan dan tim pelayanan gereja.
+- name: Pengurus
+  description: Data pengurus dan kepemimpinan gereja.
+- name: Push Notification
+  description: Pengiriman notifikasi push ke perangkat pengguna.
+- name: Riwayat Kehadiran
+  description: Rekap dan riwayat kehadiran jemaat di ibadah.
+- name: Settings
+  description: Konfigurasi dan pengaturan sistem.
+- name: Upload
+  description: Upload file dan lampiran dokumen.
