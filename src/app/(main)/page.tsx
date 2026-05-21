@@ -509,6 +509,7 @@ export default function DashboardHome() {
   const [isPelayan, setIsPelayan] = useState(false);             // Apakah jemaat ini terdaftar pelayan?
   const [showLayananSheet, setShowLayananSheet] = useState(false); // Bottom sheet
   const [isFullscreenQR, setIsFullscreenQR] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [scanFeedback, setScanFeedback] = useState<{ isVisible: boolean, type: 'success' | 'error', message: string }>({ isVisible: false, type: 'success', message: '' });
   const [activeSurveys, setActiveSurveys] = useState<any[]>([]);
   const [surveyHistory, setSurveyHistory] = useState<any[]>([]);
@@ -744,6 +745,7 @@ export default function DashboardHome() {
           }
        } finally {
           hideLoader();
+          setIsInitialLoading(false);
        }
     };
     initData();
@@ -1700,6 +1702,10 @@ export default function DashboardHome() {
         )}
       </div>
     );
+  }
+
+  if (isInitialLoading) {
+    return <div className="w-full h-full min-h-screen bg-slate-50" />;
   }
 
   // ── TAMPILAN ADMIN STANDAR (Sekretaris, Bendahara, dll) ───────────────────

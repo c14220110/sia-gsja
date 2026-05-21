@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { createPortal } from 'react-dom';
 
 interface KitabInfo {
   id: string;
@@ -17,14 +18,11 @@ interface MetaData {
   kitab: KitabInfo[];
 }
 
-type SortMode = 'canonical' | 'alphabet';
-
 export default function AlkitabPage() {
   const router = useRouter();
   const [meta, setMeta] = useState<MetaData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortMode, setSortMode] = useState<SortMode>('canonical');
   const [lastRead, setLastRead] = useState<{ kitab: string; pasal: number; nama: string } | null>(null);
 
   // Alphabet sidebar state
@@ -39,7 +37,10 @@ export default function AlkitabPage() {
   const [numpadInput, setNumpadInput] = useState('');
   const [numpadError, setNumpadError] = useState('');
 
+  const [mounted, setMounted] = useState(false);
+
   useEffect(() => {
+    setMounted(true);
     const fetchMeta = async () => {
       try {
         const res = await fetch('/alkitab/meta.json');
@@ -58,8 +59,6 @@ export default function AlkitabPage() {
     try {
       const saved = localStorage.getItem('alkitab_last_read');
       if (saved) setLastRead(JSON.parse(saved));
-      const savedSort = localStorage.getItem('alkitab_sort_mode');
-      if (savedSort === 'alphabet' || savedSort === 'canonical') setSortMode(savedSort);
     } catch {}
   }, []);
 
@@ -67,9 +66,14 @@ export default function AlkitabPage() {
   const sortedKitab = useMemo(() => {
     if (!meta) return [];
     let books = [...meta.kitab];
-    if (sortMode === 'alphabet') {
-      books.sort((a, b) => a.nama.localeCompare(b.nama, 'id'));
-    }
+    books.sort((a, b) => {
+      const nameA = a.nama.replace(/^\d+\s*/, '').trim();
+      const nameB = b.nama.replace(/^\d+\s*/, '').trim();
+      const cmp = nameA.localeCompare(nameB, 'id');
+      if (cmp !== 0) return cmp;
+      return a.nama.localeCompare(b.nama, 'id');
+    });
+    
     if (searchQuery) {
       books = books.filter(k =>
         k.nama.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -77,28 +81,23 @@ export default function AlkitabPage() {
       );
     }
     return books;
-  }, [meta, sortMode, searchQuery]);
+  }, [meta, searchQuery]);
 
   // Available letters for sidebar
   const availableLetters = useMemo(() => {
     const letters = new Set(sortedKitab.map(k => {
-      const first = k.nama.charAt(0).toUpperCase();
-      // Numbers like "1 Samuel" → use the second word's first letter? No, group under number
-      return /\d/.test(first) ? '#' : first;
+      const sortableName = k.nama.replace(/^\d+\s*/, '').trim();
+      return sortableName.charAt(0).toUpperCase();
     }));
-    return Array.from(letters).sort((a, b) => {
-      if (a === '#') return -1;
-      if (b === '#') return 1;
-      return a.localeCompare(b);
-    });
+    return Array.from(letters).sort((a, b) => a.localeCompare(b));
   }, [sortedKitab]);
 
   // Group books by first letter for section headers
   const groupedKitab = useMemo(() => {
     const groups: Record<string, KitabInfo[]> = {};
     sortedKitab.forEach(k => {
-      const first = k.nama.charAt(0).toUpperCase();
-      const key = /\d/.test(first) ? '#' : first;
+      const sortableName = k.nama.replace(/^\d+\s*/, '').trim();
+      const key = sortableName.charAt(0).toUpperCase();
       if (!groups[key]) groups[key] = [];
       groups[key].push(k);
     });
@@ -117,10 +116,8 @@ export default function AlkitabPage() {
       setActiveLetter(letter);
       // Scroll to section
       const el = letterRefs.current[letter];
-      if (el && listRef.current) {
-        const listRect = listRef.current.getBoundingClientRect();
-        const elRect = el.getBoundingClientRect();
-        listRef.current.scrollTop += elRect.top - listRect.top - 10;
+      if (el) {
+        el.scrollIntoView({ block: 'start', behavior: 'instant' });
       }
     }
   }, [availableLetters, activeLetter]);
@@ -141,12 +138,7 @@ export default function AlkitabPage() {
     setTimeout(() => setActiveLetter(null), 300);
   };
 
-  // Sort toggle
-  const toggleSort = () => {
-    const next = sortMode === 'canonical' ? 'alphabet' : 'canonical';
-    setSortMode(next);
-    try { localStorage.setItem('alkitab_sort_mode', next); } catch {}
-  };
+
 
   // Numpad handlers
   const handleBookTap = (kitab: KitabInfo) => {
@@ -212,19 +204,6 @@ export default function AlkitabPage() {
             <span className="material-icons-round text-slate-600 text-xl">arrow_back</span>
           </button>
           <h1 className="font-black text-xl text-slate-900 tracking-tight">Alkitab</h1>
-
-          {/* Sort toggle */}
-          <button
-            onClick={toggleSort}
-            className="ml-auto flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 rounded-lg active:scale-95 transition-transform"
-          >
-            <span className="material-icons-round text-slate-500 text-[16px]">
-              {sortMode === 'alphabet' ? 'sort_by_alpha' : 'format_list_numbered'}
-            </span>
-            <span className="text-[11px] font-bold text-slate-500">
-              {sortMode === 'alphabet' ? 'A-Z' : 'Urut'}
-            </span>
-          </button>
         </div>
 
         {/* Search bar */}
@@ -246,9 +225,9 @@ export default function AlkitabPage() {
       </div>
 
       {/* Content area */}
-      <div className="flex-1 relative flex">
+      <div className="flex-1 flex flex-col">
         {/* Main scrollable list */}
-        <div ref={listRef} className="flex-1 overflow-y-auto px-4 py-3 pr-10">
+        <div ref={listRef} className="flex-1 px-4 py-3 pr-10">
           {/* Last Read Card */}
           {lastRead && !searchQuery && (
             <button
@@ -275,19 +254,18 @@ export default function AlkitabPage() {
             </div>
           )}
 
-          {/* Book list grouped by letter */}
-          {!isLoading && Object.keys(groupedKitab).length > 0 && (
+          {/* Book list */}
+          {!isLoading && sortedKitab.length > 0 && (
             <div className="flex flex-col">
               {Object.entries(groupedKitab).map(([letter, books]) => (
                 <div key={letter}>
                   {/* Section header */}
                   <div
                     ref={(el) => { letterRefs.current[letter] = el; }}
-                    className="sticky top-0 z-10 py-1.5 px-1"
+                    className="py-2 px-1 bg-slate-50/90 backdrop-blur-sm"
+                    style={{ scrollMarginTop: '130px' }}
                   >
-                    {sortMode === 'alphabet' && (
-                      <span className="text-[11px] font-black text-blue-500 uppercase">{letter === '#' ? '1-3' : letter}</span>
-                    )}
+                    <span className="text-[11px] font-black text-blue-500 uppercase">{letter}</span>
                   </div>
 
                   {/* Books */}
@@ -297,12 +275,9 @@ export default function AlkitabPage() {
                       onClick={() => handleBookTap(kitab)}
                       className="w-full flex items-center gap-3 py-3 px-2 border-b border-slate-100 active:bg-blue-50 transition-colors text-left"
                     >
-                      <div className="w-8 h-10 bg-gradient-to-b from-slate-200 to-slate-300 rounded-sm flex items-center justify-center shadow-sm relative">
-                        <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b from-blue-400 to-blue-600 rounded-l-sm" />
-                      </div>
-                      <div className="flex flex-col flex-1 min-w-0">
-                        <span className="text-slate-800 font-semibold text-[14px] leading-tight truncate">{kitab.nama}</span>
-                        <span className="text-slate-400 text-[11px] font-medium">{kitab.pasal} pasal • {kitab.perjanjian === 'lama' ? 'PL' : 'PB'}</span>
+                      <div className="flex flex-col flex-1 min-w-0 pl-1">
+                        <span className="text-slate-800 font-semibold text-base leading-tight truncate">{kitab.nama}</span>
+                        <span className="text-slate-400 text-[11px] font-medium">{kitab.pasal} pasal</span>
                       </div>
                     </button>
                   ))}
@@ -321,10 +296,10 @@ export default function AlkitabPage() {
         </div>
 
         {/* Alphabet sidebar */}
-        {!isLoading && !searchQuery && availableLetters.length > 0 && (
+        {mounted && !isLoading && !searchQuery && availableLetters.length > 0 && typeof document !== 'undefined' && createPortal(
           <div
             ref={sidebarRef}
-            className="absolute right-0 top-0 bottom-0 w-7 flex flex-col items-center justify-center py-2 z-30 select-none touch-none"
+            className="fixed right-0 top-[130px] bottom-[100px] w-7 flex flex-col items-center justify-center py-2 z-[150] select-none touch-none"
             onTouchStart={handleSidebarTouchStart}
             onTouchMove={handleSidebarTouchMove}
             onTouchEnd={handleSidebarTouchEnd}
@@ -340,34 +315,36 @@ export default function AlkitabPage() {
                 <span className={`text-[10px] font-bold leading-none transition-colors ${
                   activeLetter === letter ? 'text-blue-600' : 'text-blue-400'
                 }`}>
-                  {letter === '#' ? '#' : letter}
+                  {letter}
                 </span>
               </div>
             ))}
-          </div>
+          </div>,
+          document.body
         )}
 
         {/* Floating letter indicator */}
-        {isDragging && activeLetter && (
-          <div className="fixed inset-0 pointer-events-none z-50 flex items-center justify-center">
+        {isDragging && activeLetter && mounted && typeof document !== 'undefined' && createPortal(
+          <div className="fixed inset-0 pointer-events-none z-[200] flex items-center justify-center">
             <div className="w-20 h-20 bg-blue-600/90 backdrop-blur-md rounded-3xl flex items-center justify-center shadow-2xl shadow-blue-600/30 animate-in zoom-in-90 duration-100">
-              <span className="text-white text-4xl font-black">{activeLetter === '#' ? '#' : activeLetter}</span>
+              <span className="text-white text-4xl font-black">{activeLetter}</span>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
       </div>
 
       {/* Numpad Modal */}
-      {selectedKitab && (
+      {mounted && selectedKitab && typeof document !== 'undefined' && createPortal(
         <>
           {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 animate-in fade-in duration-200"
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[200] animate-in fade-in duration-200"
             onClick={() => setSelectedKitab(null)}
           />
 
           {/* Bottom sheet */}
-          <div className="fixed bottom-0 left-0 right-0 z-50 animate-in slide-in-from-bottom duration-300">
+          <div className="fixed bottom-0 left-0 right-0 z-[200] animate-in slide-in-from-bottom duration-300">
             <div className="bg-white rounded-t-3xl shadow-2xl max-w-md mx-auto">
               {/* Handle bar */}
               <div className="flex justify-center pt-3 pb-1">
@@ -454,7 +431,8 @@ export default function AlkitabPage() {
               </div>
             </div>
           </div>
-        </>
+        </>,
+        document.body
       )}
     </div>
   );
