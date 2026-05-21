@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
-import { useAlkitabDarkMode } from './layout';
+import { useAlkitabDarkMode } from './AlkitabContext';
 
 interface KitabInfo {
   id: string;

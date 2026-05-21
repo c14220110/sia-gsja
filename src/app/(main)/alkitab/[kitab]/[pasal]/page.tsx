@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
-import { useAlkitabDarkMode } from '../../layout';
+import { useAlkitabDarkMode } from '../../AlkitabContext';
 
 interface Ayat {
   nomor: number;

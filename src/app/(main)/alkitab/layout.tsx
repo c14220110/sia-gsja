@@ -1,16 +1,6 @@
 'use client';
-import { createContext, useContext, useState, useEffect } from 'react';
-
-type DarkModeContextType = {
-  isDark: boolean;
-  toggleDark: () => void;
-};
-
-const DarkModeContext = createContext<DarkModeContextType>({ isDark: false, toggleDark: () => {} });
-
-export function useAlkitabDarkMode() {
-  return useContext(DarkModeContext);
-}
+import { useState, useEffect } from 'react';
+import { DarkModeContext } from './AlkitabContext';
 
 export default function AlkitabLayout({ children }: { children: React.ReactNode }) {
   const [isDark, setIsDark] = useState(() => {
