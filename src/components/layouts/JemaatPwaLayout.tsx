@@ -441,8 +441,8 @@ export default function JemaatPwaLayout({
               <button 
                 onClick={() => {
                   setShowQrOptions(false);
-                  if (pathname !== '/dashboard') {
-                    router.push('/dashboard?action=scan');
+                  if (pathname !== '/' && pathname !== '/dashboard') {
+                    router.push('/?action=scan');
                   } else {
                     window.dispatchEvent(new Event('openScanner'));
                   }
