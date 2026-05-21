@@ -1112,9 +1112,9 @@ export default function DashboardHome() {
                      <span className="text-[11px] font-medium text-slate-700 text-center leading-tight">Survei<br/>Saya</span>
                   </Link>
                   
-                  <Link href="/alkitab" className="flex flex-col items-center gap-1.5 group cursor-pointer relative">
-                     <span className="absolute -top-1.5 -right-1 z-10 bg-red-600 text-white text-[8px] font-bold rounded-full px-1.5 py-0.5 shadow-sm border border-white">New</span>
-                     <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full shadow-[0_4px_12px_rgba(59,130,246,0.3)] flex items-center justify-center text-white active:scale-105 transition-all duration-200">
+                  <Link href="/alkitab" className="flex flex-col items-center gap-1.5 group cursor-pointer">
+                     <div className="relative w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full shadow-[0_4px_12px_rgba(59,130,246,0.3)] flex items-center justify-center text-white active:scale-105 transition-all duration-200">
+                        <span className="absolute -top-1.5 -right-2 z-10 bg-red-600 text-white text-[8px] font-bold rounded-full px-1.5 py-0.5 shadow-sm border-[1.5px] border-white">New</span>
                         <span className="material-icons-round text-2xl">menu_book</span>
                      </div>
                      <span className="text-[11px] font-medium text-slate-700 text-center leading-tight">Alkitab</span>

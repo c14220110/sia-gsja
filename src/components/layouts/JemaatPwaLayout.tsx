@@ -138,32 +138,40 @@ export default function JemaatPwaLayout({
       active: pathname === '/' || pathname === '/dashboard'
     },
     {
-      label: 'Layanan',
-      icon: 'volunteer_activism',
-      href: '/layanan-pastoral',
-      active: pathname.includes('/layanan-pastoral')
+      label: 'Alkitab',
+      icon: 'menu_book',
+      href: '/alkitab',
+      active: pathname.includes('/alkitab')
     }
   ];
 
+  // Determine base background dynamically to avoid flash during transitions
+  let wrapperBgClass = "bg-slate-50";
+  if (pathname.startsWith('/alkitab')) {
+    if (typeof window !== 'undefined' && localStorage.getItem('alkitab_dark_mode') === 'true') {
+      wrapperBgClass = "bg-slate-900";
+    }
+  }
+
   return (
-    <div className="w-full min-h-screen bg-slate-50 flex flex-col font-['Inter'] relative selection:bg-blue-100 selection:text-blue-900 overflow-hidden">
+    <div className={`w-full min-h-screen ${wrapperBgClass} flex flex-col font-['Inter'] relative selection:bg-blue-100 selection:text-blue-900 overflow-hidden`}>
 
       {/* PAGE TRANSITION STYLES */}
       <style>{`
         .pwa-page-enter-forward {
-          animation: slideInRight 0.35s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+          animation: slideInLeft 0.35s cubic-bezier(0.25, 1, 0.5, 1) forwards;
         }
         .pwa-page-enter-backward {
-          animation: slideInLeft 0.35s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+          animation: slideInRight 0.35s cubic-bezier(0.25, 1, 0.5, 1) forwards;
         }
         
         @keyframes slideInRight {
           from { transform: translateX(30%); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
+          to { transform: none; opacity: 1; }
         }
         @keyframes slideInLeft {
           from { transform: translateX(-30%); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
+          to { transform: none; opacity: 1; }
         }
 
         @keyframes icon-breath {
@@ -200,7 +208,7 @@ export default function JemaatPwaLayout({
       {/* AREA KONTEN UTAMA */}
       <main
         key={pathname}
-        className={`flex-1 w-full pb-24 overflow-y-auto pwa-page-enter-${directionRef.current}`}
+        className={`flex-1 w-full ${pathname.startsWith('/alkitab') ? '' : 'pb-24'} overflow-y-auto pwa-page-enter-${directionRef.current}`}
       >
         {children}
       </main>
@@ -348,8 +356,9 @@ export default function JemaatPwaLayout({
       )}
 
       {/* BOTTOM NAVIGATION BAR */}
-      <nav className="fixed bottom-0 left-0 right-0 w-full bg-white border-t border-slate-200/60 pb-safe shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] z-50">
-        <div className="flex justify-between items-center px-4 md:px-8 py-2 max-w-lg mx-auto relative">
+      {!pathname.startsWith('/alkitab') && (
+        <nav className="fixed bottom-0 left-0 right-0 w-full bg-white border-t border-slate-200/60 pb-safe shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] z-50">
+          <div className="flex justify-between items-center px-4 md:px-8 py-2 max-w-lg mx-auto relative">
           
           {/* Menu Kiri */}
           <div className="flex w-2/5 justify-between">
@@ -407,9 +416,10 @@ export default function JemaatPwaLayout({
               </span>
               <span className="text-[10px] tracking-wide">Pengaturan</span>
             </button>
+            </div>
           </div>
-        </div>
-      </nav>
+        </nav>
+      )}
 
       {/* RADIAL POP-OUT: QR OPTIONS */}
       {showQrOptions && (

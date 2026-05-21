@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
+import { useAlkitabDarkMode } from './layout';
 
 interface KitabInfo {
   id: string;
@@ -20,6 +21,7 @@ interface MetaData {
 
 export default function AlkitabPage() {
   const router = useRouter();
+  const { isDark, toggleDark } = useAlkitabDarkMode();
   const [meta, setMeta] = useState<MetaData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -196,14 +198,18 @@ export default function AlkitabPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col pb-24">
+    <div className={`min-h-screen flex flex-col pb-6 ${isDark ? 'bg-slate-900' : 'bg-slate-50'}`}>
       {/* Header */}
-      <div className="w-full px-5 pt-5 pb-3 bg-white sticky top-0 z-20 border-b border-slate-100">
+      <div className={`w-full px-5 pt-5 pb-3 sticky top-0 z-20 border-b ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
         <div className="flex items-center gap-3 mb-3">
-          <button onClick={() => router.back()} className="w-9 h-9 bg-slate-100 rounded-full flex items-center justify-center active:scale-95 transition-transform shrink-0">
-            <span className="material-icons-round text-slate-600 text-xl">arrow_back</span>
+          <button onClick={() => router.push('/')} className={`w-9 h-9 rounded-full flex items-center justify-center active:scale-95 transition-transform shrink-0 ${isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>
+            <span className="material-icons-round text-xl">arrow_back</span>
           </button>
-          <h1 className="font-black text-xl text-slate-900 tracking-tight">Alkitab</h1>
+          <h1 className={`font-black text-xl tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Alkitab</h1>
+          
+          <button onClick={toggleDark} className={`ml-auto w-9 h-9 rounded-full flex items-center justify-center active:scale-95 transition-transform shrink-0 ${isDark ? 'bg-slate-800 text-yellow-400' : 'bg-slate-100 text-slate-600'}`}>
+            <span className="material-icons-round text-xl">{isDark ? 'light_mode' : 'dark_mode'}</span>
+          </button>
         </div>
 
         {/* Search bar */}
@@ -214,7 +220,7 @@ export default function AlkitabPage() {
             placeholder="Cari kitab..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-slate-100 rounded-xl text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:bg-white transition-all border border-transparent focus:border-blue-200"
+            className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all border border-transparent ${isDark ? 'bg-slate-800 text-slate-200 placeholder:text-slate-500 focus:bg-slate-800 focus:border-blue-500/50' : 'bg-slate-100 text-slate-700 placeholder:text-slate-400 focus:bg-white focus:border-blue-200'}`}
           />
           {searchQuery && (
             <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -234,11 +240,11 @@ export default function AlkitabPage() {
               onClick={() => router.push(`/alkitab/${lastRead.kitab}/${lastRead.pasal}`)}
               className="w-full bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-3.5 flex items-center gap-3 shadow-md shadow-blue-500/20 active:scale-[0.98] transition-transform mb-3"
             >
-              <div className="w-9 h-9 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center shrink-0">
+              <div className={`w-9 h-9 backdrop-blur rounded-xl flex items-center justify-center shrink-0 ${isDark ? 'bg-black/20' : 'bg-white/20'}`}>
                 <span className="material-icons-round text-white text-lg">history</span>
               </div>
               <div className="flex flex-col items-start">
-                <span className="text-white/70 text-[10px] font-medium uppercase tracking-wider">Terakhir Dibaca</span>
+                <span className={`text-[10px] font-medium uppercase tracking-wider ${isDark ? 'text-white/60' : 'text-white/70'}`}>Terakhir Dibaca</span>
                 <span className="text-white font-bold text-sm">{lastRead.nama} {lastRead.pasal}</span>
               </div>
               <span className="material-icons-round text-white/50 ml-auto text-lg">chevron_right</span>
@@ -249,7 +255,7 @@ export default function AlkitabPage() {
           {isLoading && (
             <div className="flex flex-col gap-1">
               {[...Array(15)].map((_, i) => (
-                <div key={i} className="h-12 bg-white rounded-xl animate-pulse" />
+                <div key={i} className={`h-12 rounded-xl animate-pulse ${isDark ? 'bg-slate-800' : 'bg-white'}`} />
               ))}
             </div>
           )}
@@ -262,10 +268,10 @@ export default function AlkitabPage() {
                   {/* Section header */}
                   <div
                     ref={(el) => { letterRefs.current[letter] = el; }}
-                    className="py-2 px-1 bg-slate-50/90 backdrop-blur-sm"
+                    className={`py-2 px-1 backdrop-blur-sm ${isDark ? 'bg-slate-900/90' : 'bg-slate-50/90'}`}
                     style={{ scrollMarginTop: '130px' }}
                   >
-                    <span className="text-[11px] font-black text-blue-500 uppercase">{letter}</span>
+                    <span className={`text-[11px] font-black uppercase ${isDark ? 'text-blue-400' : 'text-blue-500'}`}>{letter}</span>
                   </div>
 
                   {/* Books */}
@@ -273,11 +279,11 @@ export default function AlkitabPage() {
                     <button
                       key={kitab.id}
                       onClick={() => handleBookTap(kitab)}
-                      className="w-full flex items-center gap-3 py-3 px-2 border-b border-slate-100 active:bg-blue-50 transition-colors text-left"
+                      className={`w-full flex items-center gap-3 py-3 px-2 border-b transition-colors text-left ${isDark ? 'border-slate-800 active:bg-slate-800' : 'border-slate-100 active:bg-blue-50'}`}
                     >
                       <div className="flex flex-col flex-1 min-w-0 pl-1">
-                        <span className="text-slate-800 font-semibold text-base leading-tight truncate">{kitab.nama}</span>
-                        <span className="text-slate-400 text-[11px] font-medium">{kitab.pasal} pasal</span>
+                        <span className={`font-semibold text-base leading-tight truncate ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{kitab.nama}</span>
+                        <span className={`text-[11px] font-medium ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{kitab.pasal} pasal</span>
                       </div>
                     </button>
                   ))}
@@ -345,29 +351,29 @@ export default function AlkitabPage() {
 
           {/* Bottom sheet */}
           <div className="fixed bottom-0 left-0 right-0 z-[200] animate-in slide-in-from-bottom duration-300">
-            <div className="bg-white rounded-t-3xl shadow-2xl max-w-md mx-auto">
+            <div className={`rounded-t-3xl shadow-2xl max-w-md mx-auto ${isDark ? 'bg-slate-800' : 'bg-white'}`}>
               {/* Handle bar */}
               <div className="flex justify-center pt-3 pb-1">
-                <div className="w-10 h-1 bg-slate-200 rounded-full" />
+                <div className={`w-10 h-1 rounded-full ${isDark ? 'bg-slate-600' : 'bg-slate-200'}`} />
               </div>
 
               {/* Book name */}
               <div className="text-center px-6 pt-1 pb-3">
-                <h2 className="text-lg font-black text-slate-900">{selectedKitab.nama}</h2>
-                <p className="text-[11px] text-slate-400 font-medium mt-0.5">{selectedKitab.pasal} pasal • Ketik pasal atau pasal:ayat</p>
+                <h2 className={`text-lg font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>{selectedKitab.nama}</h2>
+                <p className={`text-[11px] font-medium mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-400'}`}>{selectedKitab.pasal} pasal • Ketik pasal atau pasal:ayat</p>
               </div>
 
               {/* Input display */}
-              <div className="mx-6 mb-3 bg-slate-50 rounded-2xl px-4 py-3 flex items-center justify-between border border-slate-200">
+              <div className={`mx-6 mb-3 rounded-2xl px-4 py-3 flex items-center justify-between border ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                 <div className="flex items-baseline gap-1 flex-1 min-w-0">
-                  <span className="text-sm font-bold text-slate-400 shrink-0">{selectedKitab.singkatan}</span>
-                  <span className={`text-2xl font-black tracking-tight ${numpadInput ? 'text-slate-900' : 'text-slate-300'}`}>
+                  <span className={`text-sm font-bold shrink-0 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{selectedKitab.singkatan}</span>
+                  <span className={`text-2xl font-black tracking-tight ${numpadInput ? (isDark ? 'text-white' : 'text-slate-900') : (isDark ? 'text-slate-600' : 'text-slate-300')}`}>
                     {numpadInput || '0:00'}
                   </span>
                 </div>
                 {numpadInput && (
-                  <button onClick={handleNumpadBackspace} className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center active:scale-90 transition-transform ml-2 shrink-0">
-                    <span className="material-icons-round text-slate-600 text-lg">backspace</span>
+                  <button onClick={handleNumpadBackspace} className={`w-8 h-8 rounded-full flex items-center justify-center active:scale-90 transition-transform ml-2 shrink-0 ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`}>
+                    <span className={`material-icons-round text-lg ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>backspace</span>
                   </button>
                 )}
               </div>
@@ -375,24 +381,6 @@ export default function AlkitabPage() {
               {/* Error message */}
               {numpadError && (
                 <p className="text-center text-xs font-bold text-red-500 mb-2 animate-in fade-in">{numpadError}</p>
-              )}
-
-              {/* Quick chapter shortcuts */}
-              {selectedKitab.pasal <= 10 && (
-                <div className="px-6 mb-3">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Pilih Cepat</p>
-                  <div className="flex gap-2 flex-wrap">
-                    {Array.from({ length: selectedKitab.pasal }, (_, i) => i + 1).map(p => (
-                      <button
-                        key={p}
-                        onClick={() => handleNumpadQuickChapter(p)}
-                        className="w-11 h-11 bg-blue-50 text-blue-600 font-bold rounded-xl flex items-center justify-center active:scale-90 active:bg-blue-100 transition-all text-sm border border-blue-100"
-                      >
-                        {p}
-                      </button>
-                    ))}
-                  </div>
-                </div>
               )}
 
               {/* Numpad grid */}
@@ -403,10 +391,10 @@ export default function AlkitabPage() {
                     onClick={() => key === 'C' ? handleNumpadPress('C') : handleNumpadPress(key)}
                     className={`h-13 rounded-xl flex items-center justify-center text-lg font-bold active:scale-95 transition-all ${
                       key === 'C'
-                        ? 'bg-red-50 text-red-500 border border-red-100 active:bg-red-100'
+                        ? (isDark ? 'bg-red-900/30 text-red-400 border border-red-900/50 active:bg-red-900/50' : 'bg-red-50 text-red-500 border border-red-100 active:bg-red-100')
                         : key === ':'
-                        ? 'bg-slate-100 text-slate-500 border border-slate-200 active:bg-slate-200'
-                        : 'bg-slate-100 text-slate-800 border border-slate-200 active:bg-slate-200'
+                        ? (isDark ? 'bg-slate-700 text-slate-400 border border-slate-600 active:bg-slate-600' : 'bg-slate-100 text-slate-500 border border-slate-200 active:bg-slate-200')
+                        : (isDark ? 'bg-slate-700 text-slate-200 border border-slate-600 active:bg-slate-600' : 'bg-slate-100 text-slate-800 border border-slate-200 active:bg-slate-200')
                     }`}
                     style={{ height: 52 }}
                   >
@@ -423,7 +411,7 @@ export default function AlkitabPage() {
                   className={`w-full py-3.5 rounded-2xl font-bold text-sm transition-all active:scale-[0.98] ${
                     numpadInput
                       ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md shadow-blue-500/25'
-                      : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                      : (isDark ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-100 text-slate-400 cursor-not-allowed')
                   }`}
                 >
                   {numpadInput ? `Buka ${selectedKitab.singkatan} ${numpadInput}` : 'Ketik pasal dahulu'}
