@@ -63,6 +63,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   const id = resolvedParams.id;
   const caller = getCallerFromRequest(request);
   if (!caller) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  if (!caller.is_super_admin && !caller.permissions.includes('anggaran_create')) {
+    return NextResponse.json({ success: false, message: 'Akses Ditolak: Anda tidak memiliki izin mengelola anggaran' }, { status: 403 });
+  }
 
   const client = await pool.connect();
   try {
@@ -70,6 +73,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const { satelit_id, komisi_id, tahun, kategori_ra, pola_penggunaan, nama_rancangan, estimasi_waktu, action, items } = body;
 
     if (!satelit_id || !tahun) return NextResponse.json({ success: false, message: 'Satelit dan Tahun wajib diisi' }, { status: 400 });
+    if (!nama_rancangan) return NextResponse.json({ success: false, message: 'Nama Rancangan wajib diisi.' }, { status: 400 });
     if (!items || items.length === 0) return NextResponse.json({ success: false, message: 'Minimal harus ada 1 item' }, { status: 400 });
 
     const status = action === 'ajukan' ? 'Menunggu Review' : 'Draft';
@@ -90,6 +94,15 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         await client.query('ROLLBACK');
         return NextResponse.json({ success: false, message: 'Akses ditolak: anggaran bukan milik satelit Anda' }, { status: 403 });
       }
+    }
+
+    // Status guard: hanya Draft dan Revisi yang boleh diedit
+    if (prevStatus !== 'Draft' && prevStatus !== 'Revisi') {
+      await client.query('ROLLBACK');
+      return NextResponse.json({
+        success: false,
+        message: `Dokumen ${kode_dokumen} berstatus "${prevStatus}" dan tidak dapat diedit. Hanya dokumen berstatus Draft atau Revisi yang boleh diubah.`
+      }, { status: 403 });
     }
 
     // Update Header
@@ -243,6 +256,9 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   const id = resolvedParams.id;
   const caller = getCallerFromRequest(request);
   if (!caller) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  if (!caller.is_super_admin && !caller.permissions.includes('anggaran_create')) {
+    return NextResponse.json({ success: false, message: 'Akses Ditolak: Anda tidak memiliki izin mengelola anggaran' }, { status: 403 });
+  }
 
   const client = await pool.connect();
   try {

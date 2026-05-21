@@ -68,6 +68,9 @@ export async function POST(request: NextRequest) {
   if (!caller) {
     return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
   }
+  if (!caller.is_super_admin && !caller.permissions.includes('anggaran_create')) {
+    return NextResponse.json({ success: false, message: 'Akses Ditolak: Anda tidak memiliki izin mengelola anggaran' }, { status: 403 });
+  }
 
   const client = await pool.connect();
   try {

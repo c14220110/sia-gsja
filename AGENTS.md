@@ -185,6 +185,23 @@ Modul berikut punya tabel audit log — wajib diisi saat write:
 | ~~IDOR cross-satelit: tidak ada ownership check~~ | ~~`api/pegawai/[id]` PUT/PATCH~~ | ✅ Fixed 2026-05-18 — tambah fetch `satelit_id` + 403 jika beda satelit |
 | ~~IDOR cross-satelit: tidak ada ownership check~~ | ~~`api/anggaran/tahunan/[id]` PUT/DELETE~~ | ✅ Fixed 2026-05-18 — tambah `satelit_id` di SELECT + 403 jika beda satelit |
 | ~~IDOR cross-satelit + DELETE tanpa status guard~~ | ~~`api/kegiatan/[id]` PUT/DELETE~~ | ✅ Fixed 2026-05-18 — tambah satelit check + DELETE guard status Draft only |
+| ~~IDOR cross-satelit: PATCH tanpa ownership check~~ | ~~`api/kegiatan/[id]` PATCH (recall/cancel/ganti RA)~~ | ✅ Fixed 2026-05-19 — tambah fetch `satelit_id` + 403 jika beda satelit |
+| ~~PUT RA tanpa status guard — dokumen Disetujui bisa diedit~~ | ~~`api/anggaran/tahunan/[id]` PUT~~ | ✅ Fixed 2026-05-19 — tambah guard `prevStatus !== 'Draft' && !== 'Revisi'` → 403 |
+| ~~PUT RA `nama_rancangan` tidak divalidasi server-side~~ | ~~`api/anggaran/tahunan/[id]` PUT~~ | ✅ Fixed 2026-05-19 — tambah validasi seperti POST handler |
+| ~~Frontend hardcoded `role_id` array di RBAC anggaran/edit~~ | ~~`anggaran/rancangan/edit/[id]/page.tsx`~~ | ✅ Fixed 2026-05-19 — ganti ke `permissions.includes('anggaran_create')` |
+| ~~Backend PUT RA tanpa permission check~~ | ~~`api/anggaran/tahunan/[id]` PUT~~ | ✅ Fixed 2026-05-19 — tambah `anggaran_create` permission guard |
+| ~~Backend kegiatan PATCH/PUT/DELETE tanpa permission check~~ | ~~`api/kegiatan/[id]` PATCH/PUT/DELETE~~ | ✅ Fixed 2026-05-19 — tambah `kegiatan_manage` permission guard |
+| ~~Redirect anggaran/edit ke list setelah simpan~~ | ~~`anggaran/rancangan/edit/[id]/page.tsx`~~ | ✅ Fixed 2026-05-19 — ganti redirect ke `/anggaran/rancangan/view/${id}` |
+| ~~Backend POST RA tanpa permission check~~ | ~~`api/anggaran/tahunan` POST~~ | ✅ Fixed 2026-05-19 — tambah `anggaran_create` permission guard (PUT sudah ada, POST belum) |
+| ~~Backend POST Kegiatan tanpa permission check~~ | ~~`api/kegiatan` POST~~ | ✅ Fixed 2026-05-19 — tambah `kegiatan_create` permission guard |
+| ~~Frontend hardcoded `role_id` array di RBAC anggaran/new~~ | ~~`anggaran/rancangan/new/page.tsx`~~ | ✅ Fixed 2026-05-19 — ganti ke `permissions.includes('anggaran_create')` |
+| ~~Backend DELETE RA tanpa permission check~~ | ~~`api/anggaran/tahunan/[id]` DELETE~~ | ✅ Fixed 2026-05-19 — tambah `anggaran_create` permission guard |
+| ~~Review route hardcoded `REVIEWER_ROLES` + DB query~~ | ~~`api/anggaran/tahunan/[id]/review`~~ | ✅ Fixed 2026-05-19 — refactor ke `caller.permissions.includes('anggaran_review')`, hapus DB roundtrip |
+| ~~Batalkan route hardcoded `ROLES_APPROVER`/`ROLES_PEMBUAT`~~ | ~~`api/anggaran/tahunan/[id]/batalkan`~~ | ✅ Fixed 2026-05-19 — refactor ke `anggaran_review`/`anggaran_create` permissions |
+| ~~Frontend hardcoded role arrays di list/view/review~~ | ~~`rancangan/page.tsx`, `view/page.tsx`, `review/page.tsx`~~ | ✅ Fixed 2026-05-19 — semua ganti ke `permissions.includes('anggaran_create'/'anggaran_review')` |
+| ~~Redirect anggaran/new ke list setelah create~~ | ~~`anggaran/rancangan/new/page.tsx`~~ | ✅ Fixed 2026-05-19 — redirect ke `/anggaran/rancangan/view/${id}` |
+| ~~Layout sidebar `isSekretarisSatelit` hardcoded role_id===7~~ | ~~`layout.tsx`~~ | ✅ Fixed 2026-05-19 — dihapus, visibility sepenuhnya via `hasPermission()` per menu section |
+| ~~Redirect review/batalkan ke list~~ | ~~`review/page.tsx`, `view/page.tsx`~~ | ✅ Fixed 2026-05-19 — semua redirect ke `/anggaran/rancangan/view/${id}` untuk transparansi status |
 
 ---
 

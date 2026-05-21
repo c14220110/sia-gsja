@@ -140,10 +140,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         );
       }
 
-      // Jika pelayan: update status_konfirmasi di roster juga
       if (isPelayan && pelayanRoster) {
         await pool.query(
-          "UPDATE public.kegiatan_jadwal_pelayan SET status_konfirmasi = 'Hadir' WHERE id = $1",
+          "UPDATE public.kegiatan_jadwal_pelayan SET status_konfirmasi = 'Hadir', confirmed_at = COALESCE(confirmed_at, NOW()) WHERE id = $1",
           [pelayanRoster.roster_id]
         );
       }

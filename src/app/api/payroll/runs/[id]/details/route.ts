@@ -211,11 +211,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     // ==========================================
     const pegawais = await pool.query(`
       SELECT p.*, j.nama_jabatan, pt.id as template_id, pt.pph21_method, bm.nama_bank,
-             (SELECT pko.bpjs_mode FROM public.pegawai_komponen_override pko WHERE pko.pegawai_id = p.id AND pko.komponen_id IS NULL ORDER BY pko.id DESC LIMIT 1) as override_bpjs_mode
+             (SELECT pko.bpjs_mode FROM public.pegawai_komponen_override pko WHERE pko.pegawai_id = p.id AND pko.komponen_id IS NULL AND (pko.berlaku_sampai IS NULL OR pko.berlaku_sampai > CURRENT_DATE) ORDER BY pko.id DESC LIMIT 1) as override_bpjs_mode
       FROM public.pegawai p
       LEFT JOIN public.jabatan_pegawai_master j ON j.id = p.jabatan_pegawai_id
       LEFT JOIN public.bank_master bm ON bm.id = p.bank_id
-      LEFT JOIN public.payroll_template pt ON pt.jabatan_pegawai_id = j.id
+      LEFT JOIN public.payroll_template pt ON pt.jabatan_pegawai_id = j.id AND pt.is_active = true
       WHERE p.satelit_id = $1 AND p.status_pegawai = 'Aktif'
     `, [run.satelit_id]);
 
@@ -259,27 +259,47 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         let totalBrutoPajak = 0;
         let komponenList = [];
 
-        if (peg.template_id) {
-          const templateKomponen = await client.query(`
-            SELECT ptd.*, pkm.tipe, pkm.nama_komponen, pkm.calculation_type, pkm.is_employer_portion, pkm.global_rate_field
-            FROM public.payroll_template_detail ptd
-            JOIN public.payroll_komponen_master pkm ON pkm.id = ptd.komponen_id
-            WHERE ptd.template_id = $1 AND ptd.is_active = true
-            ORDER BY pkm.urutan ASC
-          `, [peg.template_id]);
+        // Ambil semua komponen aktif master, gabung dengan template_detail (jika ada) dan override
+        const allKomponen = await client.query(`
+          SELECT 
+            pkm.id AS komponen_id, 
+            pkm.nama_komponen, 
+            pkm.tipe, 
+            pkm.calculation_type, 
+            pkm.is_employer_portion, 
+            pkm.global_rate_field,
+            ptd.nominal_default,
+            COALESCE(ptd.is_active, false) AS is_active_template,
+            (
+              SELECT nominal_override 
+              FROM public.pegawai_komponen_override pko 
+              WHERE pko.pegawai_id = $1 
+                AND pko.komponen_id = pkm.id 
+                AND (pko.berlaku_sampai IS NULL OR pko.berlaku_sampai > CURRENT_DATE) 
+              ORDER BY pko.id DESC LIMIT 1
+            ) AS nominal_override,
+            EXISTS (
+              SELECT 1 
+              FROM public.pegawai_komponen_override pko 
+              WHERE pko.pegawai_id = $1 
+                AND pko.komponen_id = pkm.id 
+                AND (pko.berlaku_sampai IS NULL OR pko.berlaku_sampai > CURRENT_DATE)
+            ) AS has_override
+          FROM public.payroll_komponen_master pkm
+          LEFT JOIN public.payroll_template_detail ptd ON ptd.komponen_id = pkm.id AND ptd.template_id = $2
+          WHERE pkm.is_active = true
+          ORDER BY pkm.urutan ASC
+        `, [peg.id, peg.template_id || 0]);
 
+        const activeKomponen = allKomponen.rows.filter((k: any) => k.is_active_template || k.has_override);
+
+        if (activeKomponen.length > 0) {
           // Pass 1: Hitung semua nominal flat & temukan Gaji Pokok berdasarkan nama
-          for (const tk of templateKomponen.rows) {
+          for (const tk of activeKomponen) {
             if (tk.calculation_type !== 'pct_global_bpjs') {
-              const override = await client.query(`
-                SELECT nominal_override FROM public.pegawai_komponen_override
-                WHERE pegawai_id = $1 AND komponen_id = $2
-                ORDER BY id DESC LIMIT 1
-              `, [peg.id, tk.komponen_id]);
-              
-              const nominal = override.rows.length > 0 && override.rows[0].nominal_override !== null 
-                ? Number(override.rows[0].nominal_override) 
-                : Number(tk.nominal_default);
+              const nominal = tk.has_override && tk.nominal_override !== null 
+                ? Number(tk.nominal_override) 
+                : Number(tk.nominal_default || 0);
 
               tk.calculated_nominal = nominal;
               // Gaji Pokok = flat_nominal Penerimaan yang namanya mengandung 'gaji pokok' atau 'honor'
@@ -317,7 +337,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           };
 
           // Pass 2: Hitung BPJS & simpan semua komponen
-          for (const tk of templateKomponen.rows) {
+          for (const tk of activeKomponen) {
              // PPh 21 DILEWATI di sini — dihitung otomatis oleh blok TER di bawah
              // Mencegah entry nominal 0 dari template_detail terinsert
              if ((tk.nama_komponen || '').toLowerCase().includes('pph')) continue;
@@ -348,7 +368,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
                 INSERT INTO public.payroll_run_komponen (
                   run_detail_id, komponen_id, tipe, is_employer_portion, nominal, calculation_snapshot
                 ) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *
-             `, [detailId, tk.komponen_id, tk.tipe, isEmployer ?? false, nominal, JSON.stringify({ source: tk.calculation_type === 'pct_global_bpjs' ? 'auto_bpjs' : 'template', gajiPokok, rate: bpjsRateMap[tk.global_rate_field] })]);
+             `, [detailId, tk.komponen_id, tk.tipe, isEmployer ?? false, nominal, JSON.stringify({ source: tk.has_override ? 'override' : 'template', gajiPokok, rate: bpjsRateMap[tk.global_rate_field] })]);
              
              komponenList.push({ ...newKomp.rows[0], nama_komponen: tk.nama_komponen });
           }

@@ -5,6 +5,501 @@ import { Scanner } from '@yudiel/react-qr-scanner';
 import { useLoader } from '@/components/ui/GlobalLoader';
 import { useRouter } from 'next/navigation';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
+import {
+  RadialBarChart,
+  RadialBar,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+} from 'recharts';
+
+// ── TOP-LEVEL BSC HELPER COMPONENTS ──────────────────────────────────────────
+// NOTE: These MUST be defined at file scope, NOT inside DashboardHome.
+// Placing them inside a component causes React to remount them on every
+// parent state change, which kills the useEffect fetch mid-flight and
+// causes sparklines to silently disappear.
+
+// ── Sparkline (SVG custom – avoids Recharts ResponsiveContainer 0px bug) ────
+function KpiSparkline({ kpiKey, color, satelitId }: { kpiKey: string; color: string; satelitId: string }) {
+  const [data, setData] = useState<{ bulan: string; nilai: number | null }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setData([]);
+    const fetchTrend = async () => {
+      try {
+        const q = new URLSearchParams({ kpi: kpiKey, bulan: '6' });
+        if (satelitId) q.set('satelit_id', satelitId);
+        const res = await fetch(`/api/dashboard/bsc/trend?${q}`);
+        if (res.ok && active) {
+          const j = await res.json();
+          if (j.success) setData(j.data);
+        }
+      } catch (e) {
+        console.error(`Error loading trend for ${kpiKey}`, e);
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    fetchTrend();
+    return () => { active = false; };
+  }, [kpiKey, satelitId]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-8 w-full px-1">
+        <div className="h-1.5 w-full bg-slate-100 rounded animate-pulse" />
+      </div>
+    );
+  }
+
+  // Require at least 1 real data point; fill nulls with 0 for rendering
+  const hasAnyData = data.some(d => d.nilai !== null);
+  if (!hasAnyData) return null;
+
+  const values = data.map(d => d.nilai ?? 0);
+  const maxVal = Math.max(...values, 1);
+  const minVal = Math.min(...values, 0);
+  const range = maxVal - minVal || 1;
+
+  const svgW = 240;
+  const svgH = 32;
+  const padX = 4;
+  const padY = 4;
+
+  const points = values.map((val, idx) => ({
+    x: padX + (idx / (values.length - 1)) * (svgW - padX * 2),
+    y: svgH - padY - ((val - minVal) / range) * (svgH - padY * 2),
+  }));
+
+  const pathD = `M ${points.map(p => `${p.x},${p.y}`).join(' L ')}`;
+
+  return (
+    <div className="h-8 w-full overflow-visible opacity-90 hover:opacity-100 transition-opacity duration-300">
+      <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full h-full overflow-visible" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id={`spark-grad-${kpiKey}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.25" />
+            <stop offset="100%" stopColor={color} stopOpacity="0.0" />
+          </linearGradient>
+        </defs>
+        <path
+          d={`${pathD} L ${points[points.length - 1].x},${svgH} L ${points[0].x},${svgH} Z`}
+          fill={`url(#spark-grad-${kpiKey})`}
+        />
+        <path d={pathD} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <circle
+          cx={points[points.length - 1].x}
+          cy={points[points.length - 1].y}
+          r="3.5"
+          fill={color}
+          stroke="#ffffff"
+          strokeWidth="1.5"
+        />
+      </svg>
+    </div>
+  );
+}
+
+// ── Radial Gauge (fixed SVG size, no ResponsiveContainer instability) ────────
+function RadialGauge({ value, color }: { value: number; color: string }) {
+  const SIZE = 130;
+  const gaugeData = [{ name: 'v', value: Math.min(value, 100), fill: color }];
+  return (
+    <div className="relative shrink-0" style={{ width: SIZE, height: SIZE }}>
+      <RadialBarChart
+        width={SIZE}
+        height={SIZE}
+        cx={SIZE / 2}
+        cy={SIZE / 2}
+        innerRadius="72%"
+        outerRadius="100%"
+        barSize={12}
+        data={gaugeData}
+        startAngle={90}
+        endAngle={90 - (360 * Math.min(value, 100)) / 100}
+      >
+        <RadialBar background={{ fill: '#f1f5f9' }} dataKey="value" cornerRadius={6} />
+      </RadialBarChart>
+      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+        <span className="text-[16px] font-black tracking-tight leading-none" style={{ color }}>
+          {Math.round(value)}%
+        </span>
+        <span className="text-[8px] text-slate-400 font-extrabold tracking-widest uppercase mt-0.5">PENCAPAIAN</span>
+      </div>
+    </div>
+  );
+}
+
+// ── KPI Month-over-Month Comparison ─────────────────────────────────────────
+// Reads the last 2 data points from the trend endpoint to compute MoM delta.
+function KpiMomBadge({ kpiKey, satelitId, higherIsBetter }: { kpiKey: string; satelitId: string; higherIsBetter: boolean }) {
+  const [mom, setMom] = useState<{ delta: number; label: string } | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    const fetchMom = async () => {
+      try {
+        const q = new URLSearchParams({ kpi: kpiKey, bulan: '2' });
+        if (satelitId) q.set('satelit_id', satelitId);
+        const res = await fetch(`/api/dashboard/bsc/trend?${q}`);
+        if (res.ok && active) {
+          const j = await res.json();
+          if (j.success && j.data.length >= 2) {
+            const pts = (j.data as { bulan: string; nilai: number | null }[]).filter(d => d.nilai !== null);
+            if (pts.length >= 2) {
+              const prev = pts[pts.length - 2].nilai as number;
+              const curr = pts[pts.length - 1].nilai as number;
+              const delta = parseFloat((curr - prev).toFixed(1));
+              setMom({ delta, label: pts[pts.length - 1].bulan });
+            }
+          }
+        }
+      } catch { /* silent */ }
+    };
+    fetchMom();
+    return () => { active = false; };
+  }, [kpiKey, satelitId]);
+
+  if (!mom) return null;
+
+  // Determine if the change is "good" based on higherIsBetter
+  const improved = higherIsBetter ? mom.delta > 0 : mom.delta < 0;
+  const neutral  = mom.delta === 0;
+  const sign     = mom.delta > 0 ? '+' : '';
+  const arrow    = neutral ? '→' : improved ? '↑' : '↓';
+  const cls      = neutral
+    ? 'text-slate-400'
+    : improved
+      ? 'text-emerald-500'
+      : 'text-rose-500';
+
+  return (
+    <span className={`text-[9px] font-bold ${cls} flex items-center gap-0.5`}>
+      <span>{arrow}</span>
+      <span>vs bln lalu: {sign}{mom.delta}</span>
+    </span>
+  );
+}
+
+// ── KPI Card ────────────────────────────────────────────────────────────────
+function KpiCard({ kpi, label, icon, targetLabel, higherIsBetter = true, kpiKey, satelitId }: {
+  kpi: any; label: string; icon: string; targetLabel: string; higherIsBetter?: boolean; kpiKey: string; satelitId: string;
+}) {
+  if (!kpi) return null;
+
+  const statusColors = {
+    hijau: { border: 'border-emerald-500', bg: 'bg-emerald-50/40 hover:bg-emerald-50 transition-colors', text: 'text-emerald-600', badge: 'bg-emerald-50 text-emerald-700 border border-emerald-200', spark: '#10b981' },
+    kuning: { border: 'border-amber-400', bg: 'bg-amber-50/40 hover:bg-amber-50 transition-colors', text: 'text-amber-600', badge: 'bg-amber-50 text-amber-700 border border-amber-200', spark: '#f59e0b' },
+    merah: { border: 'border-rose-500', bg: 'bg-rose-50/40 hover:bg-rose-50 transition-colors', text: 'text-rose-600', badge: 'bg-rose-50 text-rose-700 border border-rose-200', spark: '#f43f5e' },
+    abu: { border: 'border-slate-300', bg: 'bg-slate-50/50', text: 'text-slate-500', badge: 'bg-slate-100 text-slate-600 border border-slate-200', spark: '#94a3b8' },
+  }[kpi.status as 'hijau' | 'kuning' | 'merah' | 'abu'] ?? { border: 'border-slate-300', bg: 'bg-slate-50/50', text: 'text-slate-500', badge: 'bg-slate-100 text-slate-600 border border-slate-200', spark: '#94a3b8' };
+
+  const statusLabelText = { hijau: 'Tercapai', kuning: 'Waspada', merah: 'Tindakan', abu: 'Belum Ada' }[kpi.status as string] ?? '-';
+  const isPercentage = ['kpi1', 'kpi4', 'kpi5', 'kpi6', 'kpi7', 'kpi8', 'kpi9', 'kpi10', 'kpi11'].includes(kpiKey);
+  // Mutually exclusive visualisation modes:
+  // sparklineOnly → show trend sparkline, hide gauge (KPI butuh konteks historis)
+  // gaugeOnly     → show radial gauge, hide sparkline (KPI butuh posisi vs target)
+  const sparklineOnly = ['kpi1', 'kpi3', 'kpi9', 'kpi12'].includes(kpiKey);
+  const gaugeOnly     = ['kpi4', 'kpi5', 'kpi6', 'kpi8', 'kpi10', 'kpi11'].includes(kpiKey);
+  const showGauge     = isPercentage && !sparklineOnly && kpi.nilai !== null;
+  const showSparkline = kpi.nilai !== null;
+  const pct = kpi.nilai !== null
+    ? Math.min(100, higherIsBetter
+        ? (kpi.nilai / kpi.target) * 100
+        : (kpi.target / Math.max(kpi.nilai, 0.1)) * 100)
+    : 0;
+
+  // Compact layout for empty / no-data cards — MUST use self-start in the parent grid
+  if (!kpi.data_tersedia) {
+    return (
+      <div className={`relative rounded-xl border-l-4 ${statusColors.border} bg-white p-2.5 flex items-center gap-2.5 border border-slate-200 shadow-sm self-start h-fit w-full`}>
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${statusColors.badge}`}>
+          <span className="material-icons-round text-sm">{icon}</span>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-slate-800 font-extrabold text-[11px] leading-tight truncate">{label}</p>
+          <p className="text-[9px] text-slate-400 font-medium truncate mt-0.5">{kpi.pesan || 'Belum ada data cukup'}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`relative rounded-2xl border-l-4 ${statusColors.border} bg-white p-4 flex flex-col justify-between min-h-[168px] shadow-sm border border-slate-200 hover:shadow-md transition-all duration-300`}>
+      {/* Row 1: Icon and Title */}
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="flex items-center gap-2">
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${statusColors.badge}`}>
+            <span className="material-icons-round text-sm">{icon}</span>
+          </div>
+          <p className="text-slate-800 font-extrabold text-[12px] leading-tight tracking-wide">{label}</p>
+        </div>
+        <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider ${statusColors.badge}`}>
+          {statusLabelText}
+        </span>
+      </div>
+
+      {/* Row 2: Value & Radial Gauge (only when gaugeOnly or isPercentage-but-not-sparklineOnly) */}
+      <div className="flex items-center justify-between mb-2 gap-3">
+        <div className="flex flex-col">
+          <span className={`text-2xl font-black tracking-tight ${statusColors.text}`}>
+            {kpi.nilai !== null ? kpi.nilai.toLocaleString('id-ID') : '—'}
+            <span className="text-[10px] font-bold ml-0.5 text-slate-500">{kpi.unit}</span>
+          </span>
+          {/* Numerator / denominator + month-over-month comparison */}
+          <div className="flex items-center gap-2 mt-0.5">
+            {kpi.numerator !== undefined && kpi.denominator !== undefined && (
+              <span className="text-[9px] text-slate-400 font-bold">{kpi.numerator} / {kpi.denominator}</span>
+            )}
+            <KpiMomBadge kpiKey={kpiKey} satelitId={satelitId} higherIsBetter={higherIsBetter} />
+          </div>
+        </div>
+        {showGauge && (
+          <RadialGauge value={pct} color={statusColors.spark} />
+        )}
+      </div>
+
+      {/* Row 3: Sparkline (only for sparkline-mode KPIs) */}
+      {showSparkline && (
+        <div className="w-full h-8 mb-2">
+          <KpiSparkline kpiKey={kpiKey} color={statusColors.spark} satelitId={satelitId} />
+        </div>
+      )}
+
+      {/* Row 4: Target label + pencapaian % (only shown when no gauge already shows pct) */}
+      <div className="border-t border-slate-100 pt-1.5 flex items-center justify-between text-[9px] text-slate-400 font-bold tracking-wide">
+        <span>{targetLabel}</span>
+        {!showGauge && kpi.nilai !== null && (
+          <span className={statusColors.text}>Pencapaian: {Math.round(pct)}%</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Satelit Comparison Bar Chart ────────────────────────────────────────────
+// Percentage KPIs (kpi1, kpi8, kpi9) share the left Y-axis [0–100].
+// KPI-3 (jiwa/growth count) uses a right secondary Y-axis with auto-scale.
+function SatelitComparisonChart({ data }: { data: any[] }) {
+  if (!data || data.length === 0) return null;
+
+  // Cap all percentage values at 100 to avoid display bugs from bad data
+  const chartData = data.map(row => ({
+    ...row,
+    kpi1: row.kpi1 != null ? Math.min(row.kpi1, 100) : null,
+    kpi8: row.kpi8 != null ? Math.min(row.kpi8, 100) : null,
+    kpi9: row.kpi9 != null ? Math.min(row.kpi9, 100) : null,
+  }));
+
+  return (
+    <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm mt-8">
+      <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+        <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 shadow-sm">
+          <span className="material-icons-round text-indigo-600 text-xl">bar_chart</span>
+        </div>
+        <div>
+          <h3 className="font-extrabold text-slate-800 text-base tracking-tight">Perbandingan Kinerja Antar Satelit</h3>
+          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Analisis Komparatif Indikator Utama</p>
+        </div>
+      </div>
+
+      {/* Legend manual — menjelaskan dual Y-axis */}
+      <div className="flex flex-wrap gap-3 mb-3">
+        <span className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500">
+          <span className="inline-block w-3 h-3 rounded-sm" style={{ background: '#3b82f6' }} />
+          Presensi Jemaat (%) — sumbu kiri
+        </span>
+        <span className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500">
+          <span className="inline-block w-3 h-3 rounded-sm" style={{ background: '#8b5cf6' }} />
+          Presensi Bernama (%) — sumbu kiri
+        </span>
+        <span className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500">
+          <span className="inline-block w-3 h-3 rounded-sm" style={{ background: '#f59e0b' }} />
+          Kehadiran Pelayan (%) — sumbu kiri
+        </span>
+        <span className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-600">
+          <span className="inline-block w-3 h-3 rounded-sm" style={{ background: '#10b981' }} />
+          Pertumbuhan Jiwa — sumbu kanan
+        </span>
+      </div>
+
+      <div className="h-72 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={chartData} margin={{ top: 10, right: 48, left: -20, bottom: 0 }}>
+            {/* Left axis: 0–100 for percentage KPIs */}
+            <YAxis
+              yAxisId="pct"
+              orientation="left"
+              domain={[0, 100]}
+              tickFormatter={(v) => `${v}%`}
+              stroke="#64748b"
+              fontSize={9}
+              fontWeight="bold"
+              tickLine={false}
+              axisLine={false}
+            />
+            {/* Right axis: auto-scale for jiwa (KPI-3) */}
+            <YAxis
+              yAxisId="jiwa"
+              orientation="right"
+              domain={[0, 'auto']}
+              tickFormatter={(v) => `${v}j`}
+              stroke="#10b981"
+              fontSize={9}
+              fontWeight="bold"
+              tickLine={false}
+              axisLine={false}
+            />
+            <XAxis
+              dataKey="nama_satelit"
+              stroke="#64748b"
+              fontSize={10}
+              fontWeight="bold"
+              tickLine={false}
+              axisLine={false}
+            />
+            <Tooltip
+              contentStyle={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+              labelStyle={{ color: '#1e293b', fontWeight: 'bold' }}
+              itemStyle={{ fontSize: '11px', color: '#475569' }}
+              formatter={(value: any, name?: any) => {
+                if (name === 'Pertumbuhan (Jiwa)') return [`${value} jiwa`, name];
+                return [`${value}%`, name];
+              }}
+            />
+            {/* Percentage bars — left axis */}
+            <Bar yAxisId="pct" name="Presensi Jemaat (%)" dataKey="kpi1" fill="#3b82f6" radius={[3, 3, 0, 0]} maxBarSize={28} />
+            <Bar yAxisId="pct" name="Presensi Bernama (%)" dataKey="kpi8" fill="#8b5cf6" radius={[3, 3, 0, 0]} maxBarSize={28} />
+            <Bar yAxisId="pct" name="Kehadiran Pelayan (%)" dataKey="kpi9" fill="#f59e0b" radius={[3, 3, 0, 0]} maxBarSize={28} />
+            {/* Growth bar — right axis (jiwa, different unit) */}
+            <Bar yAxisId="jiwa" name="Pertumbuhan (Jiwa)" dataKey="kpi3" fill="#10b981" radius={[3, 3, 0, 0]} maxBarSize={28} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+// ── Hero Carousel (Banner) ──────────────────────────────────────────────────
+function HeroCarousel() {
+  const [slideCount, setSlideCount] = useState(0);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  const banners = [
+    "/assets/carousel/foto1.png",
+    "/assets/carousel/foto2.png",
+    "/assets/carousel/foto3.png"
+  ];
+
+  const currentIndex = ((slideCount % banners.length) + banners.length) % banners.length;
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setSlideCount((prev) => prev + 1);
+    }, 10000); // 10 seconds auto slide
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > 50;
+    const isRightSwipe = distance < -50;
+    
+    if (isLeftSwipe) {
+      setSlideCount((prev) => prev + 1);
+    }
+    if (isRightSwipe) {
+      setSlideCount((prev) => prev - 1);
+    }
+  };
+
+  const handlePrev = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setSlideCount((prev) => prev - 1);
+  };
+
+  const handleNext = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setSlideCount((prev) => prev + 1);
+  };
+
+  return (
+    <div 
+      className="w-full relative overflow-hidden rounded-b-3xl aspect-[16/9] bg-slate-800 group [transform:translateZ(0)]"
+      style={{ WebkitMaskImage: '-webkit-radial-gradient(white, black)' }}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Infinite Images Slider */}
+      <div className="absolute inset-0 w-full h-full">
+        {[slideCount - 1, slideCount, slideCount + 1].map((virtualIndex) => {
+          const realIndex = ((virtualIndex % banners.length) + banners.length) % banners.length;
+          const offset = virtualIndex - slideCount;
+          return (
+            <div
+              key={virtualIndex}
+              className="absolute top-0 left-0 w-full h-full transition-transform duration-500 ease-out"
+              style={{ transform: `translateX(${offset * 100}%)` }}
+            >
+              <img
+                src={banners[realIndex]}
+                alt={`Banner ${realIndex + 1}`}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Navigation Arrows */}
+      <div className="absolute inset-y-0 left-0 flex items-center px-3 z-10 pointer-events-none">
+        <button 
+          onClick={handlePrev} 
+          className="w-9 h-9 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center text-white pointer-events-auto hover:bg-black/40 transition-colors shadow-sm"
+        >
+          <span className="material-icons-round text-2xl -ml-0.5">chevron_left</span>
+        </button>
+      </div>
+      <div className="absolute inset-y-0 right-0 flex items-center px-3 z-10 pointer-events-none">
+        <button 
+          onClick={handleNext} 
+          className="w-9 h-9 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center text-white pointer-events-auto hover:bg-black/40 transition-colors shadow-sm"
+        >
+          <span className="material-icons-round text-2xl ml-0.5">chevron_right</span>
+        </button>
+      </div>
+      
+      {/* White Dots Indicator */}
+      <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2.5 z-10">
+        {banners.map((_, i) => (
+          <div
+            key={i}
+            className={`h-[9px] w-[9px] rounded-full transition-all duration-300 shadow-sm ${i === currentIndex ? 'bg-white' : 'bg-transparent border-[1.5px] border-white/70'}`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function DashboardHome() {
   const router = useRouter();
@@ -15,9 +510,27 @@ export default function DashboardHome() {
   const [showLayananSheet, setShowLayananSheet] = useState(false); // Bottom sheet
   const [isFullscreenQR, setIsFullscreenQR] = useState(false);
   const [scanFeedback, setScanFeedback] = useState<{ isVisible: boolean, type: 'success' | 'error', message: string }>({ isVisible: false, type: 'success', message: '' });
+  const [activeSurveys, setActiveSurveys] = useState<any[]>([]);
+  const [surveyHistory, setSurveyHistory] = useState<any[]>([]);
+  const [hasEventToday, setHasEventToday] = useState(false);
+  const [isSurveyModalOpen, setIsSurveyModalOpen] = useState(false);
+  const [selectedSurvey, setSelectedSurvey] = useState<any>(null);
+  const [surveyAnswers, setSurveyAnswers] = useState<Record<number, { skor?: number, jawaban_teks?: string }>>({});
   const { showLoader, hideLoader } = useLoader();
 
   const [isOnline, setIsOnline] = useState(true);
+
+  // ── BSC Executive Dashboard ───────────────────────────────────────────────
+  const [bscData, setBscData]       = useState<any>(null);
+  const [satelitComparisonData, setSatelitComparisonData] = useState<any[] | null>(null);
+  const [loadingBsc, setLoadingBsc] = useState(false);
+  const [satelitList, setSatelitList] = useState<{ id: number; nama_satelit: string }[]>([]);
+  const now = new Date();
+  const [bscFilter, setBscFilter] = useState({
+    dari:       `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`,
+    sampai:     `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()).padStart(2, '0')}`,
+    satelit_id: '',
+  });
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -33,6 +546,21 @@ export default function DashboardHome() {
     }
   }, []);
 
+  // ── Scanner Trigger Listener ──────────────────────────────────────────────
+  useEffect(() => {
+    const handleOpenScanner = () => setIsFullscreenQR(true);
+    window.addEventListener('openScanner', handleOpenScanner);
+    
+    // Check if redirected with ?action=scan
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('action') === 'scan') {
+      setIsFullscreenQR(true);
+      router.replace(window.location.pathname);
+    }
+    
+    return () => window.removeEventListener('openScanner', handleOpenScanner);
+  }, [router]);
+
   useEffect(() => {
     const initData = async () => {
        showLoader();
@@ -44,6 +572,30 @@ export default function DashboardHome() {
            setUserData(uData);
            localStorage.setItem('gsja_user_data', JSON.stringify(uData)); // Simpan Cache
 
+           // ── BSC fetch untuk Super Admin & Majelis ──────────────────────
+           const isExec = uData?.is_super_admin || uData?.role_name === 'MAJELIS';
+           if (isExec) {
+             setLoadingBsc(true);
+             try {
+               const [resBsc, resSatelit] = await Promise.all([
+                 fetch(`/api/dashboard/bsc?dari=${bscFilter.dari}&sampai=${bscFilter.sampai}`),
+                 fetch('/api/settings/organisasi?tab=satelit'),
+               ]);
+               if (resBsc.ok) {
+                 const j = await resBsc.json();
+                 if (j.success) {
+                   setBscData(j.data);
+                   setSatelitComparisonData(j.satelit_comparison ?? null);
+                 }
+               }
+               if (resSatelit.ok) {
+                 const j = await resSatelit.json();
+                 if (j.success) setSatelitList(j.satelit_list ?? []);
+               }
+             } catch (e) { console.error('BSC fetch error', e); }
+             finally { setLoadingBsc(false); }
+           }
+
            if (uData?.role_name?.toLowerCase() === 'jemaat') {
               // mode=publik: bypass RBAC satelit, tampilkan semua kegiatan yang is_published
               // Exclude 'Ibadah Rutin' agar hanya tampil kegiatan spesial/event
@@ -54,10 +606,13 @@ export default function DashboardHome() {
                 mode: 'publik',
               });
               
-              // Fetch events and user's tickets in parallel
-              const [resEv, resTiket] = await Promise.all([
-                fetch(`/api/kegiatan?${q.toString()}`),
-                fetch('/api/kegiatan/registrasi/saya')
+              // Fetch events, user's tickets, active surveys, and survey history in parallel
+              const [resEv, resTiket, resSurvei, resRiwayat, resToday] = await Promise.all([
+                 fetch(`/api/kegiatan?${q.toString()}`),
+                 fetch('/api/kegiatan/registrasi/saya'),
+                 fetch('/api/survei/saya'),
+                 fetch('/api/survei/saya/riwayat'),
+                 fetch(`/api/kegiatan?${new URLSearchParams({ limit: '1', tanggal: 'Hari Ini', mode: 'publik' }).toString()}`)
               ]);
 
               if (resEv.ok && resTiket.ok) {
@@ -97,6 +652,28 @@ export default function DashboardHome() {
                  }
               }
 
+              if (resSurvei.ok) {
+                 const surveiData = await resSurvei.json();
+                 if (surveiData.success) {
+                    setActiveSurveys(surveiData.data);
+                    localStorage.setItem('gsja_active_surveys', JSON.stringify(surveiData.data));
+                 }
+              }
+
+              if (resRiwayat.ok) {
+                 const riwayatData = await resRiwayat.json();
+                 if (riwayatData.success) {
+                    setSurveyHistory(riwayatData.data);
+                 }
+              }
+
+              if (resToday.ok) {
+                 const todayData = await resToday.json();
+                 if (todayData.success && todayData.data && todayData.data.length > 0) {
+                    setHasEventToday(true);
+                 }
+              }
+
              // Cek jadwal pelayanan yang belum dikonfirmasi (untuk banner & badge)
              const resRoster = await fetch('/api/pelayan/jadwal-saya');
              if (resRoster.ok) {
@@ -120,6 +697,11 @@ export default function DashboardHome() {
           const cachedEvent = localStorage.getItem('gsja_upcoming_events');
           if (cachedEvent) {
              setUpcomingEvents(JSON.parse(cachedEvent));
+          }
+
+          const cachedSurveys = localStorage.getItem('gsja_active_surveys');
+          if (cachedSurveys) {
+             setActiveSurveys(JSON.parse(cachedSurveys));
           }
        } finally {
           hideLoader();
@@ -322,9 +904,9 @@ export default function DashboardHome() {
         )}
 
         {/* 1. HEADER PAGE */}
-        <div className="w-full px-6 pt-10 pb-6 bg-white flex justify-between items-start rounded-b-3xl shadow-sm z-10">
+        <div className="w-full px-6 pt-6 pb-4 bg-white flex justify-between items-start z-10 relative">
            <div className="flex flex-col gap-1">
-              <h1 className="text-2xl font-black text-slate-900 tracking-tight">Shalom, {jemaatName}! 👋</h1>
+              <h1 className={`font-black text-slate-900 tracking-tight ${jemaatName.length > 12 ? 'text-xl' : 'text-2xl'}`}>Shalom, {jemaatName}! 👋</h1>
               <div className="flex items-center gap-1.5 text-slate-500">
                  <span className="material-icons-round text-[16px]">location_on</span>
                  <span className="text-xs font-medium">{userData.satelit_name || 'Satelit GSJA'}</span>
@@ -338,8 +920,10 @@ export default function DashboardHome() {
                <span className="material-icons-round text-blue-500 text-2xl">person</span>
              )}
            </Link>
-
         </div>
+
+        {/* 2. HERO BANNER (CAROUSEL) - EDGE TO EDGE */}
+        <HeroCarousel />
 
         {/* PITA PERINGATAN OFFLINE (Biar elegan dinonaktifkan / warning fitur jika tdk ada sinyal) */}
         {!isOnline && (
@@ -389,68 +973,117 @@ export default function DashboardHome() {
              </div>
            )}
 
-           {/* 2. HERO CARD (SCANNER TRIGGER) */}
-           <div 
-             onClick={() => setIsFullscreenQR(true)}
-             className="w-full bg-gradient-to-br from-indigo-600 via-blue-600 to-sky-500 rounded-3xl p-6 flex flex-col items-center shadow-lg shadow-blue-500/30 relative overflow-hidden cursor-pointer group transition-transform active:scale-95"
-           >
-              {/* Ornaments */}
-              <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
-              <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-sky-300/20 rounded-full blur-2xl pointer-events-none"></div>
-              
-              <div className="w-36 h-36 bg-white/20 backdrop-blur-md border border-white/40 p-1 rounded-3xl shadow-inner z-10 mb-4 flex items-center justify-center group-hover:bg-white/30 transition-colors pointer-events-none">
-                 <div className="w-full h-full text-white pointer-events-none mix-blend-plus-lighter opacity-90 group-hover:scale-110 transition-transform">
-                   <DotLottieReact src="/assets/qr-code-scan.lottie" loop autoplay />
-                 </div>
-              </div>
-
-              <h2 className="text-white font-black text-2xl tracking-tight mb-1 z-10">Pindai Kehadiran</h2>
-              <p className="text-center text-blue-50 text-xs font-medium max-w-[270px] z-10 leading-relaxed mb-1 opacity-90">
-                 Ketuk layar ini untuk mengaktifkan kamera belakang dan memindai QR ibadah/kegiatan!
-              </p>
-           </div>
-
-           {/* 3. QUICK ACTIONS GRID */}
-           <div className="w-full flex flex-col gap-3">
-              <h3 className="text-slate-800 font-black text-lg tracking-tight px-1">Menu Jemaat</h3>
-              <div className="grid grid-cols-4 sm:grid-cols-4 gap-y-6 gap-x-2 w-full p-5 bg-white rounded-3xl shadow-sm border border-slate-100">
-                 <Link href="/layanan-pastoral" className="flex flex-col items-center gap-3 group cursor-pointer">
-                    <div className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center group-hover:shadow-md transition-all text-blue-600">
-                       <span className="material-icons-round text-3xl">volunteer_activism</span>
-                    </div>
-                    <span className="text-[11px] font-bold text-slate-600 text-center leading-tight">Layanan<br/>Pastoral</span>
-                 </Link>
-                 
-                 <div onClick={handleJadwalPelayananClick} className="flex flex-col items-center gap-3 group cursor-pointer relative">
-                     {/* Badge notifikasi jika ada jadwal menunggu konfirmasi */}
-                     {pendingRoster.length > 0 && (
-                       <span className="absolute -top-1 -right-1 z-10 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center px-1 shadow-md animate-bounce">
-                         {pendingRoster.length}
-                       </span>
-                     )}
-                     <div className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center group-hover:shadow-md transition-all text-emerald-600">
-                        <span className="material-icons-round text-3xl">assignment_ind</span>
-                     </div>
-                     <span className="text-[11px] font-bold text-slate-600 text-center leading-tight">Jadwal<br/>Pelayanan</span>
+           {/* QR SCANNER CARD (Temporarily Hidden)
+            <div 
+              onClick={() => setIsFullscreenQR(true)}
+              className="w-full bg-gradient-to-br from-indigo-600 via-blue-600 to-sky-500 rounded-3xl shadow-lg shadow-blue-500/30 relative overflow-hidden cursor-pointer group transition-all active:scale-95 p-4 flex items-center gap-4"
+            >
+               <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+               <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-sky-300/20 rounded-full blur-2xl pointer-events-none"></div>
+               
+               <div className="w-14 h-14 bg-white/20 backdrop-blur-md border border-white/40 rounded-2xl shadow-inner z-10 flex items-center justify-center group-hover:bg-white/30 transition-colors pointer-events-none shrink-0 p-1">
+                  <div className="w-full h-full text-white pointer-events-none mix-blend-plus-lighter opacity-90 group-hover:scale-110 transition-transform">
+                    <DotLottieReact src="/assets/qr-code-scan.lottie" loop autoplay />
                   </div>
-
-                 <Link href="/riwayat-kehadiran" className="flex flex-col items-center gap-3 group cursor-pointer">
-                    <div className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center group-hover:shadow-md transition-all text-amber-600">
-                       <span className="material-icons-round text-3xl">history</span>
-                    </div>
-                    <span className="text-[11px] font-bold text-slate-600 text-center leading-tight">Riwayat<br/>Kehadiran</span>
-                 </Link>
-
-                 <Link href="/tiket" className="flex flex-col items-center gap-3 group cursor-pointer">
-                    <div className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center group-hover:shadow-md transition-all text-violet-600">
-                       <span className="material-icons-round text-3xl">local_activity</span>
-                    </div>
-                    <span className="text-[11px] font-bold text-slate-600 text-center leading-tight">Tiket<br/>Saya</span>
-                 </Link>
                </div>
-           </div>
+               <div className="flex flex-col z-10">
+                  <h2 className="text-white font-black text-lg tracking-tight leading-tight">Pindai Kehadiran</h2>
+                  <p className="text-blue-100 text-[11px] font-medium opacity-90 mt-0.5">
+                     Ketuk untuk scan QR kehadiran
+                  </p>
+               </div>
+               <span className="material-icons-round text-white/50 z-10 ml-auto group-hover:text-white transition-colors">chevron_right</span>
+            </div>
+           */}
 
-           {/* 4. DYNAMIC WIDGET (Upcoming Events Carousel) */}
+            {/* 3. QUICK ACTIONS — Horizontal Scroll */}
+            <div className="w-full flex flex-col gap-3">
+               <h3 className="text-slate-800 font-black text-lg tracking-tight px-1">Menu Jemaat</h3>
+               <div className="w-[calc(100%+3rem)] -ml-6 px-6 pb-2 flex overflow-x-auto snap-x scrollbar-hide gap-3">
+                  <Link href="/layanan-pastoral" className="snap-center shrink-0 flex flex-col items-center gap-3 group cursor-pointer w-[72px]">
+                     <div className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center group-hover:shadow-md transition-all text-blue-600">
+                        <span className="material-icons-round text-3xl">volunteer_activism</span>
+                     </div>
+                     <span className="text-[11px] font-bold text-slate-600 text-center leading-tight">Layanan<br/>Pastoral</span>
+                  </Link>
+                  
+                  <div onClick={handleJadwalPelayananClick} className="snap-center shrink-0 flex flex-col items-center gap-3 group cursor-pointer relative w-[72px]">
+                      {/* Badge notifikasi jika ada jadwal menunggu konfirmasi */}
+                      {pendingRoster.length > 0 && (
+                        <span className="absolute -top-1 -right-1 z-10 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center px-1 shadow-md animate-bounce">
+                          {pendingRoster.length}
+                        </span>
+                      )}
+                      <div className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center group-hover:shadow-md transition-all text-emerald-600">
+                         <span className="material-icons-round text-3xl">assignment_ind</span>
+                      </div>
+                      <span className="text-[11px] font-bold text-slate-600 text-center leading-tight">Jadwal<br/>Pelayanan</span>
+                   </div>
+
+                  <Link href="/riwayat-kehadiran" className="snap-center shrink-0 flex flex-col items-center gap-3 group cursor-pointer w-[72px]">
+                     <div className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center group-hover:shadow-md transition-all text-amber-600">
+                        <span className="material-icons-round text-3xl">history</span>
+                     </div>
+                     <span className="text-[11px] font-bold text-slate-600 text-center leading-tight">Riwayat<br/>Kehadiran</span>
+                  </Link>
+
+                  <Link href="/tiket" className="snap-center shrink-0 flex flex-col items-center gap-3 group cursor-pointer w-[72px]">
+                     <div className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center group-hover:shadow-md transition-all text-violet-600">
+                        <span className="material-icons-round text-3xl">local_activity</span>
+                     </div>
+                     <span className="text-[11px] font-bold text-slate-600 text-center leading-tight">Tiket<br/>Saya</span>
+                  </Link>
+
+                  <Link href="/survei-saya" className="snap-center shrink-0 flex flex-col items-center gap-3 group cursor-pointer w-[72px]">
+                     <div className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center group-hover:shadow-md transition-all text-rose-500">
+                        <span className="material-icons-round text-3xl">rate_review</span>
+                     </div>
+                     <span className="text-[11px] font-bold text-slate-600 text-center leading-tight">Survei<br/>Saya</span>
+                  </Link>
+                </div>
+            </div>
+
+            {/* 4. ACTIVE SURVEYS WIDGET */}
+            {activeSurveys.length > 0 && (
+               <div className="w-full flex flex-col gap-3">
+                  <h3 className="text-slate-800 font-black text-lg tracking-tight px-1">
+                     Survei Kepuasan
+                  </h3>
+                  <div className="flex flex-col gap-3">
+                     {activeSurveys.map((s) => (
+                        <div 
+                           key={s.id} 
+                           onClick={() => {
+                              setSelectedSurvey(s);
+                              const initialAnswers: Record<number, any> = {};
+                              s.pertanyaan.forEach((q: any) => {
+                                 initialAnswers[q.id] = q.tipe_jawaban === 'skala' ? { skor: 5 } : { jawaban_teks: '' };
+                              });
+                              setSurveyAnswers(initialAnswers);
+                              setIsSurveyModalOpen(true);
+                           }}
+                           className="w-full bg-gradient-to-r from-amber-50 to-orange-50/50 border border-amber-100 rounded-3xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-all cursor-pointer group"
+                        >
+                           <div className="flex items-center gap-4">
+                              <div className="w-12 h-12 rounded-2xl bg-amber-500 flex items-center justify-center text-white shadow-md shadow-amber-500/20">
+                                 <span className="material-icons-round text-2xl">poll</span>
+                              </div>
+                              <div className="flex flex-col gap-0.5">
+                                 <span className="text-slate-800 font-black text-sm group-hover:text-amber-600 transition-colors">{s.judul}</span>
+                                 <span className="text-slate-400 text-xs font-medium">
+                                    {s.nama_kegiatan ? `Pasca-Kegiatan: ${s.nama_kegiatan}` : 'Survei Umum'}
+                                 </span>
+                              </div>
+                           </div>
+                           <span className="material-icons-round text-slate-300 group-hover:text-amber-500 transition-all">chevron_right</span>
+                        </div>
+                     ))}
+                  </div>
+               </div>
+            )}
+
+
+           {/* 5. DYNAMIC WIDGET (Upcoming Events Carousel) */}
            <div className="w-full flex flex-col gap-3">
               <h3 className="text-slate-800 font-black text-lg tracking-tight px-1 flex items-center justify-between">
                  Kegiatan Mendatang
@@ -544,18 +1177,493 @@ export default function DashboardHome() {
               )}
            </div>
 
-        </div>
+         </div>
+
+         {/* Modal Isi Survei */}
+         {isSurveyModalOpen && selectedSurvey && (
+            <div className="fixed inset-0 z-[60] bg-slate-900/40 backdrop-blur-sm flex flex-col justify-end" onClick={() => setIsSurveyModalOpen(false)}>
+               <div className="w-full bg-white rounded-t-3xl p-6 pb-32 flex flex-col animate-in slide-in-from-bottom max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                  <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-6"></div>
+                  
+                  <div className="flex justify-between items-start gap-4 mb-2">
+                     <h3 className="text-2xl font-black text-slate-800 tracking-tight">{selectedSurvey.judul}</h3>
+                     <button onClick={() => setIsSurveyModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                        <span className="material-icons-round">close</span>
+                     </button>
+                  </div>
+                  <p className="text-sm text-slate-500 mb-6">
+                     {selectedSurvey.deskripsi || 'Silakan isi survei singkat ini untuk membantu kami meningkatkan kualitas pelayanan.'}
+                  </p>
+
+                  <div className="flex flex-col gap-6">
+                     {selectedSurvey.pertanyaan.map((q: any, idx: number) => (
+                        <div key={q.id} className="flex flex-col gap-3">
+                           <label className="text-sm font-bold text-slate-700 leading-snug flex gap-2">
+                              <span className="text-blue-500 font-extrabold">{idx + 1}.</span>
+                              {q.teks_pertanyaan}
+                              {q.is_required && <span className="text-rose-500">*</span>}
+                           </label>
+
+                           {q.tipe_jawaban === 'skala' ? (
+                              <div className="flex items-center justify-between px-2 py-1">
+                                 {[1, 2, 3, 4, 5].map((val) => {
+                                    const currentSkor = surveyAnswers[q.id]?.skor || 5;
+                                    const isActive = val <= currentSkor;
+                                    return (
+                                       <button
+                                          key={val}
+                                          type="button"
+                                          onClick={() => {
+                                             setSurveyAnswers(prev => ({
+                                                ...prev,
+                                                [q.id]: { ...prev[q.id], skor: val }
+                                             }));
+                                          }}
+                                          className="flex flex-col items-center gap-1 active:scale-90 transition-transform"
+                                       >
+                                          <span className={`material-icons-round text-3xl ${isActive ? 'text-amber-400' : 'text-slate-200'}`}>star</span>
+                                          <span className="text-[10px] font-bold text-slate-400">{val}</span>
+                                       </button>
+                                    );
+                                 })}
+                              </div>
+                           ) : (
+                              <textarea
+                                 rows={3}
+                                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all text-sm resize-none"
+                                 placeholder="Tuliskan masukan Anda di sini..."
+                                 value={surveyAnswers[q.id]?.jawaban_teks || ''}
+                                 onChange={(e) => {
+                                    setSurveyAnswers(prev => ({
+                                       ...prev,
+                                       [q.id]: { ...prev[q.id], jawaban_teks: e.target.value }
+                                    }));
+                                 }}
+                              />
+                           )}
+                        </div>
+                     ))}
+
+                     <button
+                        onClick={async () => {
+                           for (const q of selectedSurvey.pertanyaan) {
+                              if (q.is_required) {
+                                 if (q.tipe_jawaban === 'teks' && !surveyAnswers[q.id]?.jawaban_teks?.trim()) {
+                                    alert(`Pertanyaan "${q.teks_pertanyaan}" wajib diisi!`);
+                                    return;
+                                 }
+                              }
+                           }
+
+                           showLoader();
+                           setIsSurveyModalOpen(false);
+
+                           try {
+                              const res = await fetch(`/api/survei/${selectedSurvey.id}/respons`, {
+                                 method: 'POST',
+                                 headers: { 'Content-Type': 'application/json' },
+                                 body: JSON.stringify({
+                                    jawaban: selectedSurvey.pertanyaan.map((q: any) => ({
+                                       pertanyaan_id: q.id,
+                                       skor: q.tipe_jawaban === 'skala' ? (surveyAnswers[q.id]?.skor || 5) : null,
+                                       jawaban_teks: q.tipe_jawaban === 'teks' ? (surveyAnswers[q.id]?.jawaban_teks || null) : null
+                                    }))
+                                 })
+                              });
+
+                              const result = await res.json();
+                              if (res.ok && result.success) {
+                                 setScanFeedback({ isVisible: true, type: 'success', message: 'Terima kasih! Jawaban survei berhasil dikirim.' });
+                                 setTimeout(() => setScanFeedback(prev => ({ ...prev, isVisible: false })), 3000);
+                                 setActiveSurveys(prev => prev.filter(s => s.id !== selectedSurvey.id));
+                              } else {
+                                 throw new Error(result.message || 'Gagal mengirim respons');
+                              }
+                           } catch (err: any) {
+                              setScanFeedback({ isVisible: true, type: 'error', message: err.message || 'Terjadi kesalahan sistem' });
+                              setTimeout(() => setScanFeedback(prev => ({ ...prev, isVisible: false })), 4000);
+                           } finally {
+                              hideLoader();
+                           }
+                        }}
+                        className="w-full mt-4 py-3.5 bg-blue-600 hover:bg-blue-700 active:scale-95 transition-all text-white font-bold rounded-xl shadow-lg shadow-blue-500/30"
+                     >
+                        Kirim Jawaban
+                     </button>
+                  </div>
+               </div>
+            </div>
+         )}
       </div>
     );
   }
 
-  // --- TAMPILAN ADMIN (SEKRETARIS & PENGURUS) ---
+  // ── Helper warna status BSC ────────────────────────────────────────────────
+  const statusColor = (s: string) => ({
+    hijau: { bg: 'bg-emerald-50', border: 'border-emerald-400', text: 'text-emerald-600', badge: 'bg-emerald-100 text-emerald-700', bar: 'bg-emerald-500', icon: 'check_circle', dot: 'bg-emerald-500' },
+    kuning: { bg: 'bg-amber-50', border: 'border-amber-400', text: 'text-amber-600', badge: 'bg-amber-100 text-amber-700', bar: 'bg-amber-400', icon: 'warning', dot: 'bg-amber-400' },
+    merah: { bg: 'bg-rose-50', border: 'border-rose-400', text: 'text-rose-600', badge: 'bg-rose-100 text-rose-700', bar: 'bg-rose-500', icon: 'error', dot: 'bg-rose-500' },
+    abu: { bg: 'bg-slate-50', border: 'border-slate-300', text: 'text-slate-400', badge: 'bg-slate-100 text-slate-500', bar: 'bg-slate-300', icon: 'help_outline', dot: 'bg-slate-300' },
+  }[s] ?? { bg: 'bg-slate-50', border: 'border-slate-300', text: 'text-slate-400', badge: 'bg-slate-100 text-slate-500', bar: 'bg-slate-300', icon: 'help_outline', dot: 'bg-slate-300' });
+
+  const statusLabel = (s: string) => ({ hijau: 'Tercapai', kuning: 'Waspada', merah: 'Perlu Tindakan', abu: 'Belum Ada Data' }[s] ?? '-');
+
+  const fetchBsc = async (f = bscFilter) => {
+    setLoadingBsc(true);
+    try {
+      const q = new URLSearchParams({ dari: f.dari, sampai: f.sampai });
+      if (f.satelit_id) q.set('satelit_id', f.satelit_id);
+      const res = await fetch(`/api/dashboard/bsc?${q}`);
+      if (res.ok) {
+        const j = await res.json();
+        if (j.success) {
+          setBscData(j.data);
+          setSatelitComparisonData(j.satelit_comparison ?? null);
+        }
+      }
+    } catch(e) { console.error(e); }
+    finally { setLoadingBsc(false); }
+  };
+
+  const isExecRole = userData?.is_super_admin || userData?.role_name === 'MAJELIS';
+
+  // ── (KpiSparkline, RadialGauge, KpiCard, SatelitComparisonChart are defined at file-level above) ──
+
+
+
+  if (isExecRole) {
+    const d = bscData;
+
+    // Hitung pencapaian KPI untuk Summary Bar
+    const kpisList = d ? Object.values(d) as any[] : [];
+    const hijauCount = kpisList.filter(k => k.status === 'hijau').length;
+    const kuningCount = kpisList.filter(k => k.status === 'kuning').length;
+    const merahCount = kpisList.filter(k => k.status === 'merah').length;
+    const sid = bscFilter.satelit_id;
+
+    // Aksi rekomendasi strategis per KPI
+    const kpiMapping: Record<string, { label: string; rec: string }> = {
+      kpi1: { label: "Rasio Presensi Jemaat", rec: "Sosialisasikan kembali pentingnya pencatatan presensi mandiri lewat QR Code di setiap ibadah." },
+      kpi2: { label: "Skor Kepuasan (CSAT)", rec: "Lakukan evaluasi berkala terhadap umpan balik jemaat mengenai ibadah dan fasilitas." },
+      kpi3: { label: "Laju Pertumbuhan Jemaat", rec: "Tingkatkan kegiatan penjangkauan, komsel, dan program integrasi jemaat baru." },
+      kpi4: { label: "Ketepatan Respons Pastoral", rec: "Evaluasi beban kerja tim pastoral dan optimalkan alur penugasan kunjungan jemaat." },
+      kpi5: { label: "Rasio Beban Operasional", rec: "Tinjau kembali alokasi pengeluaran non-prioritas dan lakukan efisiensi biaya operasional bulanan." },
+      kpi6: { label: "Efisiensi Anggaran Proposal", rec: "Berikan bimbingan teknis penyusunan proposal kegiatan agar estimasi biaya lebih presisi." },
+      kpi7: { label: "Penyelesaian Tindak Lanjut", rec: "Adakan koordinasi rutin mingguan untuk menyelesaikan laporan keuangan proposal tertunda." },
+      kpi8: { label: "Kelengkapan Data Presensi", rec: "Tugaskan pelayan pintu (usher) ekstra untuk membantu jemaat melakukan QR scan saat masuk." },
+      kpi9: { label: "Rasio Kehadiran Pelayan", rec: "Kirimkan pengingat jadwal otomatis lebih awal dan lakukan pembinaan komitmen pelayan." },
+      kpi10: { label: "Ketepatan Konfirmasi Jadwal", rec: "Sederhanakan proses konfirmasi jadwal pelayan melalui aplikasi seluler atau WhatsApp bot." },
+      kpi11: { label: "Kedisiplinan Kedatangan", rec: "Berikan apresiasi kepada pelayan yang disiplin dan adakan briefing sebelum ibadah dimulai." },
+      kpi12: { label: "Rata Waktu Respons Pastoral", rec: "Gunakan sistem notifikasi instan agar permohonan kunjungan pastoral segera ditindaklanjuti." },
+    };
+
+    // Filter KPI bermasalah untuk Hero Section (maksimal 3)
+    const troubledKpis = Object.entries(d || {})
+      .filter(([key, kpi]: [string, any]) => {
+        return kpi && kpi.data_tersedia && (kpi.status === 'merah' || kpi.status === 'kuning') && kpiMapping[key];
+      })
+      .map(([key, kpi]: [string, any]) => {
+        const weight = kpi.status === 'merah' ? 2 : 1;
+        return {
+          key,
+          kpi,
+          weight,
+          label: kpiMapping[key].label,
+          rec: kpiMapping[key].rec,
+        };
+      })
+      .sort((a, b) => b.weight - a.weight)
+      .slice(0, 3);
+
+    const PerspektifHeader = ({ warna, icon, title, subtitle }: { warna: string; icon: string; title: string; subtitle: string }) => (
+      <div className="flex items-center justify-between gap-4 mt-8 mb-4 pb-2 border-b-2 border-slate-200">
+        <div className="flex items-center gap-3">
+          <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${warna} shadow-sm shrink-0`}>
+            <span className="material-icons-round text-base">{icon}</span>
+          </div>
+          <div>
+            <h3 className="font-extrabold text-slate-800 text-sm md:text-base leading-tight tracking-tight">{title}</h3>
+            <p className="text-[10px] text-slate-400 font-extrabold tracking-widest uppercase mt-0.5">{subtitle}</p>
+          </div>
+        </div>
+      </div>
+    );
+
+    return (
+      <div className="w-full flex flex-col gap-6 pb-10 p-6 md:p-8 bg-slate-50 text-slate-850 rounded-3xl border border-slate-200/80 shadow-md animate-in fade-in slide-in-from-bottom-2 duration-300">
+
+        {/* ── Header ─────────────────────────────────────────────── */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-200 pb-6">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="material-icons-round text-indigo-600 text-2xl">analytics</span>
+              <h1 className="text-2xl font-black text-slate-900 tracking-tight">Balanced Scorecard Dashboard</h1>
+              <span className="text-[9px] font-black bg-indigo-50 text-indigo-600 border border-indigo-200 px-2 py-0.5 rounded-full uppercase tracking-wider">Executive Mode</span>
+            </div>
+            <p className="text-xs text-slate-500 font-medium">Analisis Kinerja Strategis Organisasi — GSJA Eben Haezer</p>
+          </div>
+
+          {/* ── Filter Bar ──────────────────────────────────────── */}
+          <div className="flex flex-wrap items-end gap-2 bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
+            <div className="flex flex-col gap-1">
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Dari</label>
+              <input type="date" value={bscFilter.dari}
+                onChange={e => setBscFilter(p => ({ ...p, dari: e.target.value }))}
+                className="h-8 px-2 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-slate-700" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Sampai</label>
+              <input type="date" value={bscFilter.sampai}
+                onChange={e => setBscFilter(p => ({ ...p, sampai: e.target.value }))}
+                className="h-8 px-2 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-slate-700" />
+            </div>
+            {userData?.is_super_admin && satelitList.length > 0 && (
+              <div className="flex flex-col gap-1">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Satelit</label>
+                <select value={bscFilter.satelit_id}
+                  onChange={e => setBscFilter(p => ({ ...p, satelit_id: e.target.value }))}
+                  className="h-8 px-2 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-slate-700">
+                  <option value="">Semua Satelit</option>
+                  {satelitList.map((s: any) => <option key={s.id} value={s.id}>{s.nama_satelit}</option>)}
+                </select>
+              </div>
+            )}
+            <button onClick={() => fetchBsc(bscFilter)}
+              disabled={loadingBsc}
+              className="h-8 px-3.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-black rounded-lg flex items-center gap-1.5 transition-all shadow-sm shadow-indigo-500/20 active:scale-95 cursor-pointer">
+              {loadingBsc
+                ? <><span className="material-icons-round text-[14px] animate-spin">autorenew</span> MEMUAT...</>
+                : <><span className="material-icons-round text-[14px]">refresh</span> MUAT DATA</>
+              }
+            </button>
+          </div>
+        </div>
+
+        {/* ── Hero Section: KPI Perlu Perhatian ───────────────────── */}
+        {d && troubledKpis.length > 0 && (
+          <div className="bg-white border-2 border-rose-100 rounded-3xl p-6 shadow-sm flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-1 duration-200">
+            <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+              <div className="w-10 h-10 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center shadow-inner shrink-0">
+                <span className="material-icons-round text-rose-500 text-xl">gavel</span>
+              </div>
+              <div>
+                <h2 className="font-extrabold text-slate-800 text-base tracking-tight">KPI Perlu Perhatian</h2>
+                <p className="text-[10px] text-rose-500 font-black uppercase tracking-wider mt-0.5">Tindakan Cepat Diperlukan Untuk Indikator Di Bawah Target</p>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-left min-w-[600px]">
+                <thead>
+                  <tr className="border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                    <th className="pb-3 pr-4 font-black">Indikator Kinerja (KPI)</th>
+                    <th className="pb-3 px-4 font-black text-center w-28">Status</th>
+                    <th className="pb-3 px-4 font-black text-right w-28">Realisasi</th>
+                    <th className="pb-3 px-4 font-black text-right w-28">Target</th>
+                    <th className="pb-3 pl-4 font-black">Rekomendasi Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-xs">
+                  {troubledKpis.map(({ key, label, kpi, rec }) => {
+                    const colors = {
+                      merah: { text: 'text-rose-600', badge: 'bg-rose-50 text-rose-700 border-rose-200' },
+                      kuning: { text: 'text-amber-600', badge: 'bg-amber-50 text-amber-700 border-amber-200' },
+                    }[kpi.status as 'merah' | 'kuning'] || { text: 'text-slate-600', badge: 'bg-slate-50 text-slate-700 border-slate-200' };
+
+                    return (
+                      <tr key={key} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="py-3.5 pr-4 font-extrabold text-slate-800 leading-snug">{label}</td>
+                        <td className="py-3.5 px-4 text-center">
+                          <span className={`inline-block text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider border ${colors.badge}`}>
+                            {kpi.status === 'merah' ? 'Kritis' : 'Waspada'}
+                          </span>
+                        </td>
+                        <td className={`py-3.5 px-4 text-right font-black ${colors.text}`}>
+                          {kpi.nilai !== null ? kpi.nilai.toLocaleString('id-ID') : '—'} {kpi.unit}
+                        </td>
+                        <td className="py-3.5 px-4 text-right font-bold text-slate-500">
+                          {kpi.target !== null ? kpi.target.toLocaleString('id-ID') : '—'} {kpi.unit}
+                        </td>
+                        <td className="py-3.5 pl-4 font-medium text-slate-650 leading-relaxed">
+                          {rec}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ── KPI Semua Aman (Jika Terpenuhi Semua) ───────────────── */}
+        {d && troubledKpis.length === 0 && (
+          <div className="bg-white border-2 border-emerald-100 rounded-3xl p-6 shadow-sm flex items-center gap-4 animate-in fade-in slide-in-from-bottom-1 duration-200">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center shadow-inner shrink-0">
+              <span className="material-icons-round text-emerald-500 text-xl">verified</span>
+            </div>
+            <div>
+              <h2 className="font-extrabold text-slate-800 text-base tracking-tight">Semua KPI Berjalan Optimal</h2>
+              <p className="text-[10px] text-emerald-600 font-black uppercase tracking-wider mt-0.5">Pertahankan performa luar biasa! Seluruh indikator kinerja memenuhi atau melampaui target.</p>
+            </div>
+          </div>
+        )}
+
+        {/* ── Summary Bar ─────────────────────────────────────────── */}
+        {d && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-white p-2 rounded-2xl border border-slate-200 shadow-sm">
+            {[
+              { label: 'KPI Tercapai',     count: hijauCount,  bg: 'bg-emerald-50 text-emerald-800 border border-emerald-200',  iconBg: 'bg-emerald-500 text-white', icon: 'check_circle' },
+              { label: 'KPI Waspada',      count: kuningCount, bg: 'bg-amber-50  text-amber-800  border border-amber-300',      iconBg: 'bg-amber-400  text-white', icon: 'warning' },
+              { label: 'Perlu Tindakan',   count: merahCount,  bg: 'bg-rose-50   text-rose-800   border border-rose-300',       iconBg: 'bg-rose-500   text-white', icon: 'error' },
+              { label: 'Total Indikator',  count: 12,          bg: 'bg-indigo-50 text-indigo-800 border border-indigo-200',     iconBg: 'bg-indigo-500 text-white', icon: 'analytics' },
+            ].map(item => (
+              <div key={item.label} className={`flex items-center gap-3 rounded-xl p-3 ${item.bg}`}>
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 shadow-sm ${item.iconBg}`}>
+                  <span className="material-icons-round text-base">{item.icon}</span>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase font-black opacity-80 leading-tight">{item.label}</p>
+                  <p className="text-xl font-black tracking-tight mt-0.5">{item.count}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ── Skeleton saat loading ───────────────────────────────── */}
+        {loadingBsc && !d && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {[1,2,3,4].map(i => (
+              <div key={i} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+                <div className="h-6 bg-slate-200 rounded-lg w-2/3 mb-4 animate-pulse" />
+                <div className="grid grid-cols-2 gap-3">
+                  {[1,2,3,4].map(j => <div key={j} className="h-28 bg-slate-100/50 rounded-xl animate-pulse" />)}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ── 4 Perspektif BSC ────────────────────────────────────── */}
+        {d && (
+          <div className="flex flex-col gap-6 mt-4">
+
+            {/* P1 — Jemaat & Pemangku Kepentingan */}
+            <div className="flex flex-col gap-3">
+              <PerspektifHeader warna="bg-blue-100 text-blue-600 border border-blue-200" icon="groups" title="Jemaat & Pemangku Kepentingan" subtitle="Customer Perspective" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <KpiCard kpi={d.kpi1} label="Rasio Presensi Jemaat" icon="how_to_reg" targetLabel="Target: > 80%" kpiKey="kpi1" satelitId={sid} />
+                <KpiCard kpi={d.kpi2} label="Skor Kepuasan (CSAT)" icon="star" targetLabel="Target: > 4.5 dari 5.0" kpiKey="kpi2" satelitId={sid} />
+                <KpiCard kpi={d.kpi3} label="Laju Pertumbuhan Jemaat" icon="trending_up" targetLabel="Target: ≥ 10 jiwa/bln" kpiKey="kpi3" satelitId={sid} />
+                <KpiCard kpi={d.kpi4} label="Ketepatan Respons Pastoral" icon="support_agent" targetLabel="Target: > 90%" kpiKey="kpi4" satelitId={sid} />
+              </div>
+            </div>
+
+            {/* P2 — Keuangan */}
+            <div className="flex flex-col gap-3">
+              <PerspektifHeader warna="bg-emerald-100 text-emerald-600 border border-emerald-200" icon="account_balance" title="Pengelolaan Keuangan" subtitle="Financial Perspective" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <KpiCard kpi={d.kpi5} label="Rasio Beban Operasional" icon="pie_chart" targetLabel="Target: < 45%" higherIsBetter={false} kpiKey="kpi5" satelitId={sid} />
+                <KpiCard kpi={d.kpi6} label="Efisiensi Anggaran Proposal" icon="request_quote" targetLabel="Target: 90%–100%" kpiKey="kpi6" satelitId={sid} />
+                <KpiCard kpi={d.kpi7} label="Penyelesaian Tindak Lanjut" icon="task_alt" targetLabel="Target: 100%" kpiKey="kpi7" satelitId={sid} />
+              </div>
+            </div>
+
+            {/* P3 — Proses Bisnis Internal */}
+            <div className="flex flex-col gap-3">
+              <PerspektifHeader warna="bg-violet-100 text-violet-600 border border-violet-200" icon="settings_suggest" title="Proses Bisnis Internal" subtitle="Internal Process Perspective" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <KpiCard kpi={d.kpi8} label="Kelengkapan Data Presensi" icon="database" targetLabel="Target: > 95%" kpiKey="kpi8" satelitId={sid} />
+                <KpiCard kpi={d.kpi9} label="Rasio Kehadiran Pelayan" icon="volunteer_activism" targetLabel="Target: > 90%" kpiKey="kpi9" satelitId={sid} />
+                <KpiCard kpi={d.kpi10} label="Ketepatan Konfirmasi Jadwal" icon="schedule_send" targetLabel="Target: > 85%" kpiKey="kpi10" satelitId={sid} />
+                <KpiCard kpi={d.kpi11} label="Kedisiplinan Kedatangan" icon="alarm_on" targetLabel="Target: > 95%" kpiKey="kpi11" satelitId={sid} />
+              </div>
+            </div>
+
+            {/* P4 — Pembelajaran & Pertumbuhan */}
+            <div className="flex flex-col gap-3">
+              <PerspektifHeader warna="bg-orange-100 text-orange-600 border border-orange-200" icon="school" title="Pembelajaran & Pertumbuhan" subtitle="Learning & Growth Perspective" />
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-start">
+                <div className="lg:col-span-1">
+                  <KpiCard kpi={d.kpi12} label="Rata Waktu Respons Pastoral" icon="timer" targetLabel="Target: < 72 jam" higherIsBetter={false} kpiKey="kpi12" satelitId={sid} />
+                </div>
+                <div className="lg:col-span-3 self-stretch flex items-center p-5 bg-indigo-50/60 border border-indigo-100/80 rounded-2xl gap-3 shadow-sm min-h-[168px]">
+                  <span className="material-icons-round text-indigo-400 text-2xl shrink-0">info</span>
+                  <div className="flex flex-col">
+                    <h4 className="font-extrabold text-indigo-950 text-sm mb-0.5">Catatan Integrasi Modul</h4>
+                    <p className="text-xs text-indigo-700 leading-relaxed font-medium">
+                      <strong>KPI-2 (Skor Kepuasan Jemaat)</strong> dan <strong>KPI-7 (Penyelesaian Tindak Lanjut Temuan Audit)</strong> saat ini sedang menunggu aktivasi penuh dari Modul Survei Kepuasan dan Audit Keuangan. Data historis dan tren akan otomatis terintegrasi dan tampil secara real-time setelah masing-masing modul tersebut diaktifkan oleh administrator utama.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        )}
+
+        {/* ── Perbandingan Antar Satelit Chart Section ────────────── */}
+        {d && userData?.is_super_admin && bscFilter.satelit_id === '' && satelitComparisonData && (
+          <SatelitComparisonChart data={satelitComparisonData} />
+        )}
+
+        {/* State kosong — belum ada data sama sekali */}
+        {!loadingBsc && !d && (
+          <div className="flex flex-col items-center justify-center py-20 text-center gap-3">
+            <span className="material-icons-round text-5xl text-slate-700 animate-pulse">analytics</span>
+            <p className="font-extrabold text-slate-400">Belum ada data BSC untuk periode ini.</p>
+            <p className="text-xs text-slate-500">Klik <strong>Muat Data</strong> untuk memulai.</p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ── TAMPILAN ADMIN STANDAR (Sekretaris, Bendahara, dll) ───────────────────
   return (
-    <div className="w-full min-h-screen bg-slate-50 flex flex-col items-center justify-center">
-      <div className="flex flex-col items-center opacity-40">
-        <span className="material-icons-round text-6xl mb-4">dashboard</span>
-        <h1 className="text-2xl font-bold text-slate-500">Dashboard Admin</h1>
-        <p className="text-slate-400 mt-2">Belum ada widget aktif.</p>
+    <div className="w-full flex flex-col gap-6 pb-10 animate-in fade-in slide-in-from-bottom-2 duration-300">
+      {/* Welcome Banner */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-700 p-6 text-white shadow-lg">
+        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 80% 50%, white 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
+        <div className="relative z-10">
+          <p className="text-indigo-200 text-sm font-medium mb-1">Selamat datang kembali,</p>
+          <h1 className="text-2xl font-black tracking-tight mb-1">{userData?.nama_lengkap || 'Pengguna'}</h1>
+          <span className="inline-block text-xs font-bold bg-white/20 backdrop-blur border border-white/30 px-3 py-1 rounded-full">
+            {userData?.role_name?.replace(/_/g, ' ')}
+            {userData?.nama_satelit ? ` — ${userData.nama_satelit}` : ''}
+          </span>
+        </div>
+      </div>
+
+      {/* Shortcut Modul */}
+      <div>
+        <h2 className="text-base font-black text-slate-700 mb-3 flex items-center gap-2">
+          <span className="material-icons-round text-indigo-500 text-xl">apps</span>
+          Akses Cepat
+        </h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          {[
+            { perm: 'kegiatan_view',        href: '/kegiatan',         icon: 'event',          label: 'Kegiatan',       color: 'from-blue-500 to-indigo-600' },
+            { perm: 'jemaat_view',           href: '/jemaat',           icon: 'groups',         label: 'Jemaat',         color: 'from-teal-500 to-emerald-600' },
+            { perm: 'pelayan_view',          href: '/pelayan',          icon: 'volunteer_activism', label: 'Pelayan',    color: 'from-violet-500 to-purple-600' },
+            { perm: 'pengurus_view',         href: '/pengurus',         icon: 'manage_accounts',label: 'Pengurus',       color: 'from-orange-500 to-amber-600' },
+            { perm: 'anggaran_view',         href: '/anggaran/rancangan', icon: 'request_quote',label: 'Anggaran',       color: 'from-emerald-500 to-green-600' },
+            { perm: 'buku_besar_view',       href: '/buku-besar',       icon: 'menu_book',      label: 'Buku Besar',     color: 'from-cyan-500 to-sky-600' },
+            { perm: 'pegawai_view',          href: '/pegawai',          icon: 'badge',          label: 'Pegawai',        color: 'from-rose-500 to-pink-600' },
+            { perm: 'kegiatan_pastoral_view',href: '/kegiatan/pastoral',icon: 'support_agent', label: 'Pastoral',       color: 'from-amber-500 to-yellow-500' },
+          ].filter(item => {
+            const perms: string[] = userData?.permissions || [];
+            return userData?.is_super_admin || perms.includes(item.perm);
+          }).map(item => (
+            <a key={item.href} href={item.href}
+              className="group flex flex-col items-center gap-3 p-5 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+              <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${item.color} flex items-center justify-center shadow-sm`}>
+                <span className="material-icons-round text-white text-2xl">{item.icon}</span>
+              </div>
+              <p className="text-sm font-bold text-slate-700 group-hover:text-indigo-600 transition-colors text-center">{item.label}</p>
+            </a>
+          ))}
+        </div>
       </div>
     </div>
   );

@@ -205,7 +205,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         const { pelayan_id, jemaat_id, nama_lengkap } = infoRes.rows[0];
         await pool.query(
           `UPDATE public.kegiatan_jadwal_pelayan
-           SET status_konfirmasi = CAST($1 AS status_konfirmasi_pelayan_enum)
+           SET status_konfirmasi = CAST($1 AS status_konfirmasi_pelayan_enum),
+               confirmed_at = CASE WHEN $1 IN ('Bersedia', 'Hadir') THEN COALESCE(confirmed_at, NOW()) ELSE confirmed_at END
            WHERE kegiatan_id = $2 AND pelayan_id = $3`,
           [status_konfirmasi, id, pelayan_id]
         );
@@ -261,7 +262,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       const uniquePelayanIds = Array.from(uniquePelayanMap.keys());
       await pool.query(
         `UPDATE public.kegiatan_jadwal_pelayan
-         SET status_konfirmasi = CAST($1 AS status_konfirmasi_pelayan_enum)
+         SET status_konfirmasi = CAST($1 AS status_konfirmasi_pelayan_enum),
+             confirmed_at = CASE WHEN $1 IN ('Bersedia', 'Hadir') THEN COALESCE(confirmed_at, NOW()) ELSE confirmed_at END
          WHERE kegiatan_id = $2 AND pelayan_id = ANY($3::int[])`,
         [status_konfirmasi, id, uniquePelayanIds]
       );

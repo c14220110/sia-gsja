@@ -4,13 +4,7 @@ import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 import { auditLogRepository } from '@/server/repositories/auditLog.repository';
 import { resolveCallerSnapshot } from '@/server/utils/resolveCallerSnapshot';
 
-// Roles yang bisa membatalkan RA yang sudah di-approve (Approver)
-const ROLES_APPROVER = [1, 2, 3, 5]; // Super Admin, Majelis, Gembala Sidang, Bendahara Pusat
-
-// Roles pembuat RA (hanya bisa batalkan Draft / Menunggu Review)
-const ROLES_PEMBUAT = [5, 6, 8, 9]; // Bendahara Pusat, Bendahara Satelit, Ketua Komisi, Ketua Dept
-
-// Status RA yang masing-masing kelompok role boleh batalkan
+// Status RA yang masing-masing kelompok permission boleh batalkan
 const ALLOWED_STATUS_PEMBUAT  = ['Draft', 'Menunggu Review'];
 const ALLOWED_STATUS_APPROVER = ['Draft', 'Menunggu Review', 'Disetujui', 'Disetujui Penuh', 'Disetujui Sebagian'];
 
@@ -25,8 +19,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const caller = getCallerFromRequest(request);
   if (!caller) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
 
-  const isApprover = caller.is_super_admin || ROLES_APPROVER.includes(caller.role_id);
-  const isPembuat  = ROLES_PEMBUAT.includes(caller.role_id);
+  // Permission guard: approver (anggaran_review) vs pembuat (anggaran_create)
+  const isApprover = caller.is_super_admin || caller.permissions.includes('anggaran_review');
+  const isPembuat  = caller.permissions.includes('anggaran_create');
 
   if (!isApprover && !isPembuat) {
     return NextResponse.json({ success: false, message: 'Anda tidak memiliki izin untuk membatalkan RA.' }, { status: 403 });

@@ -498,13 +498,11 @@ export default function NewKegiatanPage() {
             finalBannerUrl = uploadJson.url;
           } else {
             setSubmitState({ status: 'error', message: 'Gagal mengupload banner: ' + uploadJson.message });
-            setIsSubmitting(false);
             return;
           }
         } catch (uploadErr) {
           console.error(uploadErr);
           setSubmitState({ status: 'error', message: 'Terjadi kesalahan jaringan saat mengupload foto.' });
-          setIsSubmitting(false);
           return;
         }
       }
@@ -525,12 +523,10 @@ export default function NewKegiatanPage() {
         }, 1500);
       } else {
         setSubmitState({ status: 'error', message: data.message || 'Gagal menyimpan kegiatan', errors: data.errors });
-        setIsSubmitting(false);
       }
     } catch(err) {
       console.error(err);
       setSubmitState({ status: 'error', message: 'Terjadi kesalahan pada server saat mengeksekusi.' });
-      setIsSubmitting(false);
     }
   };
 

@@ -16,6 +16,7 @@ const labelCls = "text-xs font-semibold text-slate-500 mb-1 block uppercase trac
 
 export default function InputAnggaranBaruPage() {
   const [submitState, setSubmitState] = useState<{status:'idle'|'loading'|'success'|'error';message:string}>({status:'idle',message:''});
+  const [createdId, setCreatedId] = useState<string | null>(null);
   const [showConfirmAjukan, setShowConfirmAjukan] = useState(false);
   const [satelitId, setSatelitId] = useState('');
   const [komisiId, setKomisiId] = useState('');
@@ -58,11 +59,10 @@ export default function InputAnggaranBaruPage() {
       if (resJenis?.success) {
         setJenisKegiatanList(resJenis.data.map((j:any)=>({id:j.id,label:j.nama_jenis_kegiatan,kategori:j.kategori})));
       }
-      if (resUser && resUser.role_id) {
+      if (resUser && (resUser.role_id || resUser.permissions)) {
         setUserData(resUser);
-        // Check authorization: SUPER_ADMIN (1), BENDAHARA_PUSAT (5), BENDAHARA_SATELIT (6), KETUA_KOMISI (8), KETUA_DEPARTEMEN (9)
-        const allowedRoles = [1, 5, 6, 8, 9];
-        if (allowedRoles.includes(resUser.role_id)) {
+        // Check authorization via permission (anggaran_create) or super admin
+        if (resUser.is_super_admin || resUser.permissions?.includes('anggaran_create')) {
           setIsAuthorized(true);
           // Auto-select satelit berdasarkan penugasan user
           if (resUser.satelit_id) {
@@ -192,6 +192,7 @@ export default function InputAnggaranBaruPage() {
       const res = await fetch('/api/anggaran/tahunan', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
       const json = await res.json();
       if (json.success) {
+        setCreatedId(json.data?.id?.toString() || null);
         setSubmitState({status:'success',message:json.message});
       } else {
         setSubmitState({status:'error',message:json.message||'Terjadi kesalahan.'});
@@ -230,7 +231,7 @@ export default function InputAnggaranBaruPage() {
   
   return (
     <div className="w-full flex flex-col gap-6 pb-32">
-      <SubmitOverlay status={submitState.status} message={submitState.message} onClose={submitState.status==='success' ? ()=>{ window.location.href='/anggaran/rancangan'; } : ()=>setSubmitState({status:'idle',message:''})}/>
+      <SubmitOverlay status={submitState.status} message={submitState.message} onClose={submitState.status==='success' ? ()=>{ window.location.href = createdId ? `/anggaran/rancangan/view/${createdId}` : '/anggaran/rancangan'; } : ()=>setSubmitState({status:'idle',message:''})}/>
       <AlertModal
         isOpen={showConfirmAjukan}
         title="Ajukan Rancangan Anggaran?"

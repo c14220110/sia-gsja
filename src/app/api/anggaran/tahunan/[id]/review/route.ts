@@ -9,11 +9,6 @@ import {
   notifyPengajuRaRevision,
 } from '@/lib/notificationService';
 
-// Reviewer roles: Super Admin (1), Majelis (2), Gembala Sidang (3), Bendahara Pusat (5)
-// Note: Triggers #1 & #4 only notify role 3 & 5 (key decision makers).
-// Role 2 (12 anggota Majelis) dapat review tapi tidak di-notify real-time per RA.
-const REVIEWER_ROLES = [1, 2, 3, 5];
-
 // POST: Submit review decision for an RA
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
@@ -21,20 +16,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const caller = getCallerFromRequest(request);
   if (!caller) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
 
-  // Validate reviewer role
-  try {
-    const userRes = await pool.query(
-      `SELECT p.id, pr.role_id FROM public.pengguna p
-       JOIN public.user_role pr ON p.id = pr.user_id
-       WHERE p.id = $1 AND pr.is_active = true`,
-      [caller.user_id]
-    );
-    const userRole = userRes.rows[0];
-    if (!userRole || !REVIEWER_ROLES.includes(userRole.role_id)) {
-      return NextResponse.json({ success: false, message: 'Anda tidak memiliki akses untuk melakukan review' }, { status: 403 });
-    }
-  } catch {
-    return NextResponse.json({ success: false, message: 'Gagal memverifikasi akses' }, { status: 500 });
+  // Permission guard: anggaran_review (replaces hardcoded REVIEWER_ROLES + DB query)
+  if (!caller.is_super_admin && !caller.permissions.includes('anggaran_review')) {
+    return NextResponse.json({ success: false, message: 'Anda tidak memiliki akses untuk melakukan review' }, { status: 403 });
   }
 
   const client = await pool.connect();

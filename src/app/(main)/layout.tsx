@@ -93,8 +93,8 @@ export default function DashboardLayout({
     return userData.permissions?.includes?.(perm);
   };
 
-  // Sekretaris Satelit (role_id=7) hanya boleh: Dashboard, Manajemen User, Kegiatan
-  const isSekretarisSatelit = userData?.role_id === 7 || userData?.role_name?.toLowerCase() === 'sekretaris satelit';
+  // Note: Sekretaris Satelit visibility was previously controlled by isSekretarisSatelit (role_id===7).
+  // Now fully driven by hasPermission() on each menu section — no hardcoded role_id needed.
 
   let topbarTitle = 'Dashboard Utama';
   let topbarIcon  = 'dashboard';
@@ -109,6 +109,9 @@ export default function DashboardLayout({
   } else if (pathname.includes('/settings')) {
     topbarTitle = 'Pengaturan Software';
     topbarIcon  = 'settings';
+  } else if (pathname.includes('/kegiatan/survei')) {
+    topbarTitle = 'Survei Kepuasan';
+    topbarIcon  = 'poll';
   } else if (pathname.includes('/kegiatan')) {
     topbarTitle = 'Modul Kegiatan';
     topbarIcon  = 'event';
@@ -247,7 +250,7 @@ export default function DashboardLayout({
                 </div>
               )}
 
-              {(hasPermission('kegiatan_view') || hasPermission('kegiatan_pastoral_view') || hasPermission('kegiatan_create') || hasPermission('kegiatan_manage')) && (
+              {(hasPermission('kegiatan_view') || hasPermission('kegiatan_pastoral_view') || hasPermission('kegiatan_create') || hasPermission('kegiatan_manage') || hasPermission('survei_view')) && (
               <div className="w-full">
                 <div 
                   className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer"
@@ -272,13 +275,13 @@ export default function DashboardLayout({
                   <div className="pl-14 pr-4 py-2 flex flex-col gap-4">
                     {hasPermission('kegiatan_view') && <Link href="/kegiatan" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Daftar Kegiatan</Link>}
                     {hasPermission('kegiatan_pastoral_view') && <Link href="/kegiatan/pastoral" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Permohonan Pastoral</Link>}
-                    <Link href="/kegiatan/pemilu" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Pemilihan Umum</Link>
+                    {hasPermission('survei_view') && <Link href="/kegiatan/survei" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Survei Kepuasan</Link>}
                   </div>
                 </div>
               </div>
               )}
 
-              {!isSekretarisSatelit && (hasPermission('buku_besar_view') || hasPermission('buku_besar_manage') || hasPermission('penggajian_manage')) && (
+              {(hasPermission('buku_besar_view') || hasPermission('buku_besar_manage') || hasPermission('penggajian_manage')) && (
               <div className="w-full">
                 <div 
                   className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer"
@@ -310,7 +313,7 @@ export default function DashboardLayout({
               </div>
               )}
 
-              {hasPermission('pegawai_view') && !isSekretarisSatelit && (
+              {hasPermission('pegawai_view') && (
                 <div className="w-full">
                   <div 
                     className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer"
@@ -341,7 +344,7 @@ export default function DashboardLayout({
                 </div>
               )}
 
-              {!isSekretarisSatelit && (hasPermission('anggaran_view') || hasPermission('anggaran_create') || hasPermission('anggaran_review')) && (
+              {(hasPermission('anggaran_view') || hasPermission('anggaran_create') || hasPermission('anggaran_review')) && (
               <div className="w-full">
                 <div 
                   className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer"
@@ -371,7 +374,7 @@ export default function DashboardLayout({
               </div>
               )}
 
-              {!isSekretarisSatelit && (
+              {hasPermission('buku_besar_manage') && (
               <div className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer">
                 <div className="flex justify-start items-center gap-4">
                   <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
@@ -384,7 +387,7 @@ export default function DashboardLayout({
               </div>
               )}
 
-              {!isSekretarisSatelit && (
+              {hasPermission('buku_besar_manage') && (
               <div className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer">
                 <div className="flex justify-start items-center gap-4">
                   <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
@@ -397,7 +400,7 @@ export default function DashboardLayout({
               </div>
               )}
 
-              {!isSekretarisSatelit && (
+              {hasPermission('buku_besar_manage') && (
               <div className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer">
                 <div className="flex justify-start items-center gap-4">
                   <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
@@ -410,7 +413,7 @@ export default function DashboardLayout({
               </div>
               )}
 
-              {!isSekretarisSatelit && (
+              {hasPermission('buku_besar_view') && (
               <div className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer">
                 <div className="flex justify-start items-center gap-4">
                   <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
@@ -464,8 +467,6 @@ export default function DashboardLayout({
                   <div className={`md:hidden overflow-hidden transition-all duration-300 ${mobileExpandedMenus['kegiatan'] ? 'max-h-96 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
                     <div className="pl-14 pr-4 py-2 flex flex-col gap-4">
                       <Link href="/kegiatan" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Daftar Kegiatan</Link>
-                      {/* Jemaat menu doesn't need to see admin pastoral list, hiding this for jemaat */}
-                      <Link href="/kegiatan/pemilu" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Pemilihan Umum</Link>
                     </div>
                   </div>
               </div>
@@ -632,7 +633,7 @@ export default function DashboardLayout({
               </div>
             )}
 
-            {activeSubmenu === 'pegawai' && !isSekretarisSatelit && (
+            {activeSubmenu === 'pegawai' && (
               <div 
                 className="absolute pl-2 animate-in fade-in zoom-in-95 duration-200"
                 style={{ top: submenuTop }}
@@ -718,18 +719,21 @@ export default function DashboardLayout({
                     )}
 
                     {/* Item 3 */}
-                    <Link href="/kegiatan/pemilu" onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-blue-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-blue-200 flex flex-col justify-center items-center cursor-pointer hover:bg-blue-100 transition-colors block text-inherit no-underline">
+                    {hasPermission('survei_view') && (
+                    <Link href="/kegiatan/survei" onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-amber-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-amber-200 flex flex-col justify-center items-center cursor-pointer hover:bg-amber-100 transition-colors block text-inherit no-underline">
                       <div className="pb-2 flex flex-col justify-start items-center">
-                        <span className="material-icons-round text-blue-600 text-[32px]">how_to_vote</span>
+                        <span className="material-icons-round text-amber-600 text-[32px]">poll</span>
                       </div>
-                      <div className="text-center justify-center text-blue-900 text-sm font-bold font-['Inter'] leading-5">Pemilihan<br/>Umum</div>
+                      <div className="text-center justify-center text-amber-900 text-sm font-bold font-['Inter'] leading-5">Survei<br/>Kepuasan</div>
                     </Link>
+                    )}
+
                   </div>
                 </div>
               </div>
             )}
 
-            {activeSubmenu === 'buku_besar' && !isSekretarisSatelit && (
+            {activeSubmenu === 'buku_besar' && (
               <div
                 className="absolute pl-2 animate-in fade-in zoom-in-95 duration-200"
                 style={{ top: submenuTop }}
@@ -819,7 +823,7 @@ export default function DashboardLayout({
               </div>
             )}
 
-            {activeSubmenu === 'anggaran_proposal' && !isSekretarisSatelit && (
+            {activeSubmenu === 'anggaran_proposal' && (
               <div 
                 className="absolute pl-2 animate-in fade-in zoom-in-95 duration-200"
                 style={{ top: submenuTop }}

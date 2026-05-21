@@ -6,6 +6,10 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useLoader } from '@/components/ui/GlobalLoader';
 import QRCode from 'react-qr-code';
 import PushNotificationManager from '@/components/ui/PushNotificationManager';
+import dynamic from 'next/dynamic';
+
+const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
+import scanQrLottie from '../../../public/assets/scan-qr-code.json';
 
 export default function JemaatPwaLayout({
   children,
@@ -19,9 +23,24 @@ export default function JemaatPwaLayout({
   const { showLoader, hideLoader, setLoaderVariant } = useLoader();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
+  const [showQrOptions, setShowQrOptions] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [displayPath, setDisplayPath] = useState(pathname);
   const prevPathRef = useRef(pathname);
+  const historyRef = useRef(['/']);
+  const directionRef = useRef('forward');
+
+  if (pathname !== prevPathRef.current) {
+    const h = historyRef.current;
+    if (h.length > 1 && h[h.length - 2] === pathname) {
+      directionRef.current = 'backward';
+      h.pop();
+    } else {
+      directionRef.current = 'forward';
+      h.push(pathname);
+    }
+    prevPathRef.current = pathname;
+  }
 
   // Install Prompt States
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -88,19 +107,7 @@ export default function JemaatPwaLayout({
     return () => setLoaderVariant('sandy');
   }, [setLoaderVariant]);
 
-  useEffect(() => {
-    if (pathname !== prevPathRef.current) {
-      // Trigger exit animation
-      setIsTransitioning(true);
-      const t = setTimeout(() => {
-        setDisplayPath(pathname);
-        setIsTransitioning(false);
-        prevPathRef.current = pathname;
-      }, 120);
-      return () => clearTimeout(t);
-    }
-  }, [pathname]);
-
+  
   const handleLogout = async () => {
     showLoader();
     try {
@@ -128,7 +135,7 @@ export default function JemaatPwaLayout({
       label: 'Beranda',
       icon: 'home',
       href: '/dashboard',
-      active: pathname === '/dashboard'
+      active: pathname === '/' || pathname === '/dashboard'
     },
     {
       label: 'Layanan',
@@ -143,31 +150,57 @@ export default function JemaatPwaLayout({
 
       {/* PAGE TRANSITION STYLES */}
       <style>{`
-        .pwa-page-enter {
-          opacity: 1;
-          transform: none;
-          transform-origin: top center;
-          /* Kurva spring lembut seperti SwiftUI (Apple App) */
-          transition: 
-            opacity 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), 
-            transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        .pwa-page-enter-forward {
+          animation: slideInRight 0.35s cubic-bezier(0.25, 1, 0.5, 1) forwards;
         }
-        .pwa-page-exit {
-          opacity: 0;
-          transform: translateY(16px) scale(0.96);
-          transform-origin: top center;
-          /* Sinking backwards, fade utuh keluar */
-          transition: 
-            opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
-            transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        .pwa-page-enter-backward {
+          animation: slideInLeft 0.35s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+        
+        @keyframes slideInRight {
+          from { transform: translateX(30%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideInLeft {
+          from { transform: translateX(-30%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes icon-breath {
+          0% { transform: scale(1.1); filter: drop-shadow(0 0px 0px rgba(37,99,235,0)); }
+          50% { transform: scale(1.25); filter: drop-shadow(0 4px 10px rgba(37,99,235,0.4)); }
+          100% { transform: scale(1.1); filter: drop-shadow(0 0px 0px rgba(37,99,235,0)); }
+        }
+
+        @keyframes qr-backdrop-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes qr-pop-left {
+          0% { transform: translate(0, 0) scale(0.3); opacity: 0; }
+          60% { transform: translate(-78px, -135px) scale(1.08); opacity: 1; }
+          100% { transform: translate(-70px, -120px) scale(1); opacity: 1; }
+        }
+        @keyframes qr-pop-right {
+          0% { transform: translate(0, 0) scale(0.3); opacity: 0; }
+          60% { transform: translate(78px, -135px) scale(1.08); opacity: 1; }
+          100% { transform: translate(70px, -120px) scale(1); opacity: 1; }
+        }
+        @keyframes qr-label-in {
+          0% { opacity: 0; transform: translateY(8px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes qr-close-in {
+          0% { transform: scale(0) rotate(-180deg); opacity: 0; }
+          70% { transform: scale(1.1) rotate(10deg); opacity: 1; }
+          100% { transform: scale(1) rotate(0deg); opacity: 1; }
         }
       `}</style>
       
       {/* AREA KONTEN UTAMA */}
       <main
-        className={`flex-1 w-full pb-24 overflow-y-auto ${
-          isTransitioning ? 'pwa-page-exit' : 'pwa-page-enter'
-        }`}
+        key={pathname}
+        className={`flex-1 w-full pb-24 overflow-y-auto pwa-page-enter-${directionRef.current}`}
       >
         {children}
       </main>
@@ -321,11 +354,21 @@ export default function JemaatPwaLayout({
           {/* Menu Kiri */}
           <div className="flex w-2/5 justify-between">
             <Link href={navItems[0].href} className={`flex flex-col items-center justify-center w-full h-12 gap-1 rounded-xl transition-all ${navItems[0].active ? 'text-blue-600 font-bold' : 'text-slate-400 hover:text-slate-600 font-medium'}`}>
-              <span className={`material-icons-round text-2xl transition-transform ${navItems[0].active ? 'scale-110' : ''}`}>{navItems[0].icon}</span>
+              <span 
+                className={`material-icons-round text-2xl transition-transform ${navItems[0].active ? 'scale-110 text-blue-600' : ''}`}
+                style={navItems[0].active ? { animation: 'icon-breath 2.5s infinite ease-in-out' } : undefined}
+              >
+                {navItems[0].icon}
+              </span>
               <span className="text-[10px] tracking-wide">{navItems[0].label}</span>
             </Link>
             <Link href={navItems[1].href} className={`flex flex-col items-center justify-center w-full h-12 gap-1 rounded-xl transition-all ${navItems[1].active ? 'text-blue-600 font-bold' : 'text-slate-400 hover:text-slate-600 font-medium'}`}>
-              <span className={`material-icons-round text-2xl transition-transform ${navItems[1].active ? 'scale-110' : ''}`}>{navItems[1].icon}</span>
+              <span 
+                className={`material-icons-round text-2xl transition-transform ${navItems[1].active ? 'scale-110 text-blue-600' : ''}`}
+                style={navItems[1].active ? { animation: 'icon-breath 2.5s infinite ease-in-out' } : undefined}
+              >
+                {navItems[1].icon}
+              </span>
               <span className="text-[10px] tracking-wide">{navItems[1].label}</span>
             </Link>
           </div>
@@ -333,31 +376,121 @@ export default function JemaatPwaLayout({
           {/* Floating Action Button Tengah (QR Code) */}
           <div className="w-1/5 flex justify-center relative">
             <button 
-              onClick={() => setShowQrModal(true)}
-              className="absolute -top-9 w-16 h-16 bg-gradient-to-br from-indigo-600 to-blue-500 rounded-full flex flex-col items-center justify-center text-white shadow-xl shadow-blue-500/30 border-4 border-white active:scale-95 transition-transform"
+              onClick={() => setShowQrOptions(true)}
+              className="absolute -top-9 w-16 h-16 bg-gradient-to-br from-indigo-600 to-blue-500 rounded-full flex flex-col items-center justify-center text-white shadow-xl shadow-blue-500/30 border-4 border-white active:scale-95 transition-transform overflow-hidden"
             >
-              <span className="material-icons-round text-[32px]">qr_code_scanner</span>
+              <Lottie animationData={scanQrLottie} loop={true} className="w-14 h-14 scale-110" />
             </button>
-            <span className="text-[10px] font-bold text-slate-800 tracking-wide mt-8">QR Saya</span>
+            <span className="text-[10px] font-bold text-slate-800 tracking-wide mt-8">QR Code</span>
           </div>
 
           {/* Menu Kanan */}
           <div className="flex w-2/5 justify-between">
             <Link href="/tiket" className={`flex flex-col items-center justify-center w-full h-12 gap-1 rounded-xl transition-all ${pathname.includes('/tiket') ? 'text-blue-600 font-bold' : 'text-slate-400 hover:text-slate-600 font-medium'}`}>
-              <span className={`material-icons-round text-2xl transition-transform ${pathname.includes('/tiket') ? 'scale-110' : ''}`}>local_activity</span>
+              <span 
+                className={`material-icons-round text-2xl transition-transform ${pathname.includes('/tiket') ? 'scale-110 text-blue-600' : ''}`}
+                style={pathname.includes('/tiket') ? { animation: 'icon-breath 2.5s infinite ease-in-out' } : undefined}
+              >
+                local_activity
+              </span>
               <span className="text-[10px] tracking-wide">Tiket</span>
             </Link>
             <button 
               onClick={() => setIsSettingsOpen(true)}
-              className={`flex flex-col items-center justify-center w-full h-12 gap-1 rounded-xl transition-all ${isSettingsOpen ? 'text-indigo-600 font-bold' : 'text-slate-400 hover:text-slate-600 font-medium'}`}
+              className={`flex flex-col items-center justify-center w-full h-12 gap-1 rounded-xl transition-all ${isSettingsOpen ? 'text-blue-600 font-bold' : 'text-slate-400 hover:text-slate-600 font-medium'}`}
             >
-              <span className={`material-icons-round text-2xl transition-transform ${isSettingsOpen ? 'scale-110' : ''}`}>settings</span>
+              <span 
+                className={`material-icons-round text-2xl transition-transform ${isSettingsOpen ? 'scale-110 text-blue-600' : ''}`}
+                style={isSettingsOpen ? { animation: 'icon-breath 2.5s infinite ease-in-out' } : undefined}
+              >
+                settings
+              </span>
               <span className="text-[10px] tracking-wide">Pengaturan</span>
             </button>
           </div>
-
         </div>
       </nav>
+
+      {/* RADIAL POP-OUT: QR OPTIONS */}
+      {showQrOptions && (
+        <div className="fixed inset-0 z-[100] pointer-events-none">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm pointer-events-auto"
+            style={{ animation: 'qr-backdrop-in 0.3s ease-out forwards' }}
+            onClick={() => setShowQrOptions(false)}
+          />
+          
+          {/* Options Container — anchored to FAB center */}
+          <div className="absolute bottom-0 left-0 right-0 flex justify-center pointer-events-none" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 36px)' }}>
+            
+            {/* Left Option: Scan QR — starts from center, flies upper-left */}
+            <div 
+              className="absolute flex flex-col items-center gap-2 pointer-events-auto"
+              style={{ 
+                bottom: '0px',
+                animation: 'qr-pop-left 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+              }}
+            >
+              <span 
+                className="text-white font-bold text-xs tracking-wide drop-shadow-lg"
+                style={{ animation: 'qr-label-in 0.3s ease-out 0.25s both' }}
+              >
+                Scan QR
+              </span>
+              <button 
+                onClick={() => {
+                  setShowQrOptions(false);
+                  if (pathname !== '/dashboard') {
+                    router.push('/dashboard?action=scan');
+                  } else {
+                    window.dispatchEvent(new Event('openScanner'));
+                  }
+                }}
+                className="w-[64px] h-[64px] bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center shadow-[0_8px_30px_rgba(37,99,235,0.6)] border-[3px] border-white active:scale-90 transition-transform"
+              >
+                <span className="material-icons-round text-[28px] text-white">photo_camera</span>
+              </button>
+            </div>
+
+            {/* Right Option: QR Saya — starts from center, flies upper-right */}
+            <div 
+              className="absolute flex flex-col items-center gap-2 pointer-events-auto"
+              style={{ 
+                bottom: '0px',
+                animation: 'qr-pop-right 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.06s forwards',
+                opacity: 0,
+              }}
+            >
+              <span 
+                className="text-white font-bold text-xs tracking-wide drop-shadow-lg"
+                style={{ animation: 'qr-label-in 0.3s ease-out 0.3s both' }}
+              >
+                QR Saya
+              </span>
+              <button 
+                onClick={() => {
+                  setShowQrOptions(false);
+                  setShowQrModal(true);
+                }}
+                className="w-[64px] h-[64px] bg-gradient-to-br from-indigo-400 to-indigo-600 rounded-full flex items-center justify-center shadow-[0_8px_30px_rgba(79,70,229,0.6)] border-[3px] border-white active:scale-90 transition-transform"
+              >
+                <span className="material-icons-round text-[28px] text-white">qr_code</span>
+              </button>
+            </div>
+
+            {/* Close Button — same position as FAB, spins in */}
+            <button 
+              onClick={() => setShowQrOptions(false)}
+              className="relative top-[2px] w-16 h-16 bg-white rounded-full flex items-center justify-center text-rose-500 shadow-2xl border-4 border-white active:scale-90 transition-transform pointer-events-auto"
+              style={{ animation: 'qr-close-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards' }}
+            >
+              <span className="material-icons-round text-[32px]">close</span>
+            </button>
+            
+          </div>
+        </div>
+      )}
 
       {/* MODAL QR CODE FULL SCREEN (OFFLINE SUPPORTED) */}
       {showQrModal && (

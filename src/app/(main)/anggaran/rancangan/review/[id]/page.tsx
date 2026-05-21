@@ -12,8 +12,7 @@ type ItemDecision = {
   nominal_disetujui?: number | null; // null = use full amount
 };
 
-// Role 2 = MAJELIS (12 anggota), Role 3 = Gembala Sidang, Role 5 = Bendahara Pusat
-const REVIEWER_ROLES = [1, 2, 3, 5];
+// Reviewer access is now permission-based via 'anggaran_review'
 
 export default function ReviewAnggaranPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -76,7 +75,7 @@ export default function ReviewAnggaranPage({ params }: { params: Promise<{ id: s
     return nominal < original;
   });
 
-  const isReviewer = userData ? REVIEWER_ROLES.includes(userData.role_id) : false;
+  const isReviewer = userData ? (userData.is_super_admin || userData.permissions?.includes('anggaran_review')) : false;
   const isReviewable = data?.status === 'Menunggu Review';
 
   const updateDecision = (detailId: string, field: keyof ItemDecision, value: any) => {
@@ -132,7 +131,7 @@ export default function ReviewAnggaranPage({ params }: { params: Promise<{ id: s
       const json = await res.json();
       if (json.success) {
         setSubmitState({ status: 'success', message: json.message });
-        setTimeout(() => { window.location.href = '/anggaran/rancangan'; }, 2000);
+        setTimeout(() => { window.location.href = `/anggaran/rancangan/view/${id}`; }, 2000);
       } else {
         setSubmitState({ status: 'error', message: json.message || 'Gagal menyimpan review.' });
       }

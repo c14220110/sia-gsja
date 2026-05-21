@@ -34,7 +34,7 @@ export default function RancanganAnggaranPage() {
   const [data, setData] = useState<AnggaranItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthorizedToCreate, setIsAuthorizedToCreate] = useState(false);
-  const [userRoleId, setUserRoleId] = useState<number | null>(null);
+  const [userData, setUserData] = useState<any>(null);
 
   // Delete state
   const [deleteTarget, setDeleteTarget] = useState<AnggaranItem | null>(null);
@@ -62,9 +62,9 @@ export default function RancanganAnggaranPage() {
 
         if (resAuth.ok) {
           const authData = await resAuth.json();
-          if (authData?.role_id) setUserRoleId(authData.role_id);
-          const allowedRolesToCreate = [1, 5, 6, 8, 9];
-          if (authData && allowedRolesToCreate.includes(authData.role_id)) {
+          if (authData?.role_id) setUserData(authData);
+          // Permission-based: anggaran_create for create button
+          if (authData?.is_super_admin || authData?.permissions?.includes('anggaran_create')) {
             setIsAuthorizedToCreate(true);
           }
         }
@@ -171,11 +171,12 @@ export default function RancanganAnggaranPage() {
   // Role helpers for UI guards
   const ALLOWED_STATUS_PEMBUAT  = ['Draft', 'Menunggu Review'];
   const ALLOWED_STATUS_APPROVER = ['Draft', 'Menunggu Review', 'Disetujui', 'Disetujui Penuh', 'Disetujui Sebagian'];
-  const isApprover = userRoleId ? [1, 2, 3, 5].includes(userRoleId) : false;
+  const isApprover = userData?.is_super_admin || userData?.permissions?.includes('anggaran_review');
+  const isPembuat  = userData?.permissions?.includes('anggaran_create');
   const canBatalkanItem = (item: AnggaranItem) => {
     if (item.status === 'Dibatalkan') return false;
     if (isApprover) return ALLOWED_STATUS_APPROVER.includes(item.status);
-    return ALLOWED_STATUS_PEMBUAT.includes(item.status) && [1, 5, 6, 8, 9].includes(userRoleId || 0);
+    return ALLOWED_STATUS_PEMBUAT.includes(item.status) && isPembuat;
   };
 
   return (
@@ -246,7 +247,7 @@ export default function RancanganAnggaranPage() {
           {/* Badge: RA pending review */}
           {(() => {
             const pendingCount = data.filter(d => d.status === 'Menunggu Review').length;
-            return pendingCount > 0 && [1, 2, 3, 5].includes(userRoleId || 0) ? (
+            return pendingCount > 0 && isApprover ? (
               <button
                 onClick={() => setFilterStatus('Menunggu Review')}
                 className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-sm font-bold hover:bg-amber-100 transition-colors"
@@ -431,19 +432,19 @@ export default function RancanganAnggaranPage() {
                                 </button>
                               )}
                               {/* Edit — hanya Draft/Revisi untuk pembuat */}
-                              {['Draft', 'Revisi'].includes(item.status) && userRoleId && [1, 5, 6, 8, 9].includes(userRoleId) && (
+                              {['Draft', 'Revisi'].includes(item.status) && isPembuat && (
                                 <Link href={`/anggaran/rancangan/edit/${item.id}`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2">
                                   <span className="material-icons-round text-[18px] text-slate-400">edit</span>{item.status === 'Revisi' ? 'Edit & Perbaiki' : 'Edit Rancangan'}
                                 </Link>
                               )}
                               {/* Mulai Review — hanya Menunggu Review untuk reviewer */}
-                              {item.status === 'Menunggu Review' && userRoleId && [1, 2, 3, 5].includes(userRoleId) && (
+                              {item.status === 'Menunggu Review' && isApprover && (
                                 <Link href={`/anggaran/rancangan/review/${item.id}`} className="w-full text-left px-4 py-2 hover:bg-emerald-50 text-emerald-700 text-sm flex items-center gap-2">
                                   <span className="material-icons-round text-[18px] text-emerald-500">rate_review</span>Mulai Review
                                 </Link>
                               )}
                               {/* Hapus — hanya Draft untuk pembuat */}
-                              {item.status === 'Draft' && userRoleId && [1, 5, 6, 8, 9].includes(userRoleId) && (<>
+                              {item.status === 'Draft' && isPembuat && (<>
                                 <div className="w-full h-px bg-slate-100 my-1"></div>
                                 <button onClick={() => { setOpenMenuId(null); setDeleteTarget(item); }} className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 text-sm flex items-center gap-2">
                                   <span className="material-icons-round text-[18px] text-red-400">delete</span>Hapus Permanen

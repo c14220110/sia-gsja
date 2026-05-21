@@ -97,7 +97,8 @@ export async function POST(request: NextRequest) {
           SET bulan = $1, tahun = $2, satelit_id = $3, anggaran_tahunan_id = $4, status = 'Draft', updated_at = NOW()
           WHERE id = $5
         `, [bulan, tahun, satelit_id, anggaran_tahunan_id, run_id]);
-        // Reset details karena periode/unit mungkin berubah
+        // Reset details & komponen karena periode/unit/kompensasi mungkin berubah
+        await client.query(`DELETE FROM public.payroll_run_komponen WHERE run_detail_id IN (SELECT id FROM public.payroll_run_detail WHERE run_id = $1)`, [run_id]);
         await client.query(`DELETE FROM public.payroll_run_detail WHERE run_id = $1`, [run_id]);
       } else if (existingRun.rows.length > 0 && existingRun.rows[0].status === 'Ditolak') {
         // Update run yang ditolak menjadi draft lagi (reset)
@@ -108,6 +109,7 @@ export async function POST(request: NextRequest) {
           RETURNING id
         `, [anggaran_tahunan_id, existingRun.rows[0].id]);
         finalRunId = updateRun.rows[0].id;
+        await client.query(`DELETE FROM public.payroll_run_komponen WHERE run_detail_id IN (SELECT id FROM public.payroll_run_detail WHERE run_id = $1)`, [finalRunId]);
         await client.query(`DELETE FROM public.payroll_run_detail WHERE run_id = $1`, [finalRunId]);
       } else {
         // Insert baru

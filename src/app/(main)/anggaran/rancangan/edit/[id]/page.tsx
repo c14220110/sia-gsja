@@ -53,11 +53,10 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
       if (resSatelit.success) {
         setSatelitList(resSatelit.data.filter((s:any)=>s.is_active).map((s:any)=>({id:s.id,label:s.nama_satelit})));
       }
-      if (resUser && resUser.role_id) {
+      if (resUser && (resUser.role_id || resUser.permissions)) {
         setUserData(resUser);
-        // Check authorization: SUPER_ADMIN (1), BENDAHARA_PUSAT (5), BENDAHARA_SATELIT (6), KETUA_KOMISI (8), KETUA_DEPARTEMEN (9)
-        const allowedRoles = [1, 5, 6, 8, 9];
-        if (allowedRoles.includes(resUser.role_id)) {
+        // Check authorization via permission (anggaran_create) or super admin
+        if (resUser.is_super_admin || resUser.permissions?.includes('anggaran_create')) {
           setIsAuthorized(true);
           // Auto-select satelit berdasarkan penugasan user
           if (resUser.satelit_id) {
@@ -228,7 +227,7 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
   
   return (
     <div className="w-full flex flex-col gap-6 pb-32">
-      <SubmitOverlay status={submitState.status} message={submitState.message} onClose={submitState.status==='success' ? ()=>{ window.location.href='/anggaran/rancangan'; } : ()=>setSubmitState({status:'idle',message:''})}/>
+      <SubmitOverlay status={submitState.status} message={submitState.message} onClose={submitState.status==='success' ? ()=>{ window.location.href=`/anggaran/rancangan/view/${id}`; } : ()=>setSubmitState({status:'idle',message:''})}/>
       <AlertModal
         isOpen={showConfirmAjukan}
         title="Ajukan Rancangan Anggaran?"

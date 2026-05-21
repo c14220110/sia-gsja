@@ -42,9 +42,7 @@ const getKategoriBadge = (kategori: string) => {
   );
 };
 
-// Role groups
-const ROLES_APPROVER = [1, 2, 3, 5]; // Super Admin, Majelis, Gembala, Bendahara Pusat
-const ROLES_PEMBUAT  = [1, 5, 6, 8, 9]; // Super Admin, Bendahara Pusat, Bendahara Satelit, Ketua Komisi, Ketua Dept
+// Permission-based access (replaces hardcoded role arrays)
 const ALLOWED_STATUS_PEMBUAT  = ['Draft', 'Menunggu Review'];
 const ALLOWED_STATUS_APPROVER = ['Draft', 'Menunggu Review', 'Disetujui', 'Disetujui Penuh', 'Disetujui Sebagian'];
 
@@ -79,9 +77,9 @@ export default function ViewAnggaranPage({ params }: { params: Promise<{ id: str
   const totalK = useMemo(() => kelItems.reduce((a: number, c: any) => a + Number(c.total), 0), [kelItems]);
   const margin = totalP > 0 ? ((totalP - totalK) / totalP) * 100 : 0;
 
-  // Determine user capabilities
-  const isApprover = userData ? ROLES_APPROVER.includes(userData.role_id) || userData.is_super_admin : false;
-  const isPembuat  = userData ? ROLES_PEMBUAT.includes(userData.role_id) : false;
+  // Determine user capabilities via permissions
+  const isApprover = userData ? (userData.is_super_admin || userData.permissions?.includes('anggaran_review')) : false;
+  const isPembuat  = userData?.permissions?.includes('anggaran_create');
   const status = data?.status || '';
 
   // Action permissions
@@ -120,7 +118,7 @@ export default function ViewAnggaranPage({ params }: { params: Promise<{ id: str
       if (json.success) {
         setBatalState({ status: 'success', message: json.message });
         setShowBatalModal(false);
-        setTimeout(() => { window.location.href = '/anggaran/rancangan'; }, 2000);
+        setTimeout(() => { window.location.href = `/anggaran/rancangan/view/${id}`; }, 2000);
       } else {
         setBatalState({ status: 'error', message: json.message || 'Gagal membatalkan RA.' });
         setShowBatalModal(false);

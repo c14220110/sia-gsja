@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     
     try {
         await pool.query(
-            `UPDATE kegiatan_jadwal_pelayan SET status_konfirmasi = $1, alasan_absen = $2 WHERE id = $3`,
+            `UPDATE kegiatan_jadwal_pelayan SET status_konfirmasi = $1, alasan_absen = $2, confirmed_at = CASE WHEN $1 IN ('Bersedia', 'Hadir') THEN COALESCE(confirmed_at, NOW()) ELSE confirmed_at END WHERE id = $3`,
             [status_konfirmasi, alasan_absen || null, roster_id]
         );
     } catch(err: any) {
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
         if(err.message && err.message.includes('column "alasan_absen" of relation "kegiatan_jadwal_pelayan" does not exist')) {
             console.log('User belum menambah kolom alasan_absen, skip alasan_absen');
             await pool.query(
-                `UPDATE kegiatan_jadwal_pelayan SET status_konfirmasi = $1 WHERE id = $2`,
+                `UPDATE kegiatan_jadwal_pelayan SET status_konfirmasi = $1, confirmed_at = CASE WHEN $1 IN ('Bersedia', 'Hadir') THEN COALESCE(confirmed_at, NOW()) ELSE confirmed_at END WHERE id = $2`,
                 [status_konfirmasi, roster_id]
             );
         } else {

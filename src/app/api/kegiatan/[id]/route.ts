@@ -65,6 +65,22 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (!caller) {
     return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
   }
+  if (!caller.is_super_admin && !caller.permissions.includes('kegiatan_manage')) {
+    return NextResponse.json({ success: false, message: 'Akses Ditolak: Anda tidak memiliki izin mengelola kegiatan' }, { status: 403 });
+  }
+
+  // IDOR check: pastikan kegiatan milik satelit caller
+  if (!caller.is_super_admin) {
+    const ownerCheck = await pool.query(
+      `SELECT satelit_id FROM public.kegiatan WHERE id = $1`, [id]
+    );
+    if (ownerCheck.rows.length === 0) {
+      return NextResponse.json({ success: false, message: 'Kegiatan tidak ditemukan' }, { status: 404 });
+    }
+    if (ownerCheck.rows[0].satelit_id !== caller.satelit_id) {
+      return NextResponse.json({ success: false, message: 'Akses ditolak: kegiatan bukan milik satelit Anda' }, { status: 403 });
+    }
+  }
 
   try {
     const body = await request.json();
@@ -117,6 +133,22 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       await pool.query(updateQuery, [status_kegiatan, id]);
     }
 
+    // ── Auto-Survei: trigger saat Ongoing → Menunggu LPJ ──────────────
+    if (status_kegiatan === 'Menunggu LPJ') {
+      // Jalankan secara async agar tidak memblokir response ke frontend
+      (async () => {
+        try {
+          const { createAutoSurvei } = await import('@/server/utils/autoSurvei');
+          const result = await createAutoSurvei(parseInt(id, 10), caller.user_id);
+          if (result) {
+            console.log(`[Kegiatan PATCH] Auto-survei ID ${result.surveiId} dibuat, ${result.notifikasiTerkirim} notifikasi terkirim.`);
+          }
+        } catch (autoSurveiErr) {
+          console.error('[Kegiatan PATCH] Gagal membuat auto-survei:', autoSurveiErr);
+        }
+      })();
+    }
+
     return NextResponse.json({ success: true, message: `Status berhasil diubah menjadi ${status_kegiatan}` });
   } catch (error) {
     console.error('Error updating status kegiatan:', error);
@@ -130,6 +162,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   const caller = getCallerFromRequest(request);
   if (!caller) {
     return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  }
+  if (!caller.is_super_admin && !caller.permissions.includes('kegiatan_manage')) {
+    return NextResponse.json({ success: false, message: 'Akses Ditolak: Anda tidak memiliki izin mengelola kegiatan' }, { status: 403 });
   }
 
   const client = await pool.connect();
@@ -295,6 +330,9 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   const caller = getCallerFromRequest(request);
   if (!caller) {
     return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  }
+  if (!caller.is_super_admin && !caller.permissions.includes('kegiatan_manage')) {
+    return NextResponse.json({ success: false, message: 'Akses Ditolak: Anda tidak memiliki izin mengelola kegiatan' }, { status: 403 });
   }
 
   const client = await pool.connect();

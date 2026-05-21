@@ -214,6 +214,9 @@ export async function POST(request: Request) {
     if (!caller) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
     }
+    if (!caller.is_super_admin && !caller.permissions.includes('kegiatan_create')) {
+      return NextResponse.json({ success: false, message: 'Akses Ditolak: Anda tidak memiliki izin membuat kegiatan' }, { status: 403 });
+    }
 
     const body = await request.json();
     
