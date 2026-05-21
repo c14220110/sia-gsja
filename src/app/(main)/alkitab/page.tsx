@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface KitabInfo {
@@ -18,13 +17,27 @@ interface MetaData {
   kitab: KitabInfo[];
 }
 
+type SortMode = 'canonical' | 'alphabet';
+
 export default function AlkitabPage() {
   const router = useRouter();
   const [meta, setMeta] = useState<MetaData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'lama' | 'baru'>('lama');
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortMode, setSortMode] = useState<SortMode>('canonical');
   const [lastRead, setLastRead] = useState<{ kitab: string; pasal: number; nama: string } | null>(null);
+
+  // Alphabet sidebar state
+  const [isDragging, setIsDragging] = useState(false);
+  const [activeLetter, setActiveLetter] = useState<string | null>(null);
+  const sidebarRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const letterRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  // Numpad modal state
+  const [selectedKitab, setSelectedKitab] = useState<KitabInfo | null>(null);
+  const [numpadInput, setNumpadInput] = useState('');
+  const [numpadError, setNumpadError] = useState('');
 
   useEffect(() => {
     const fetchMeta = async () => {
@@ -42,35 +55,176 @@ export default function AlkitabPage() {
     };
     fetchMeta();
 
-    // Load last read from localStorage
     try {
       const saved = localStorage.getItem('alkitab_last_read');
       if (saved) setLastRead(JSON.parse(saved));
+      const savedSort = localStorage.getItem('alkitab_sort_mode');
+      if (savedSort === 'alphabet' || savedSort === 'canonical') setSortMode(savedSort);
     } catch {}
   }, []);
 
-  const filteredKitab = meta?.kitab.filter(k => {
-    const matchTab = k.perjanjian === activeTab;
-    const matchSearch = searchQuery
-      ? k.nama.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  // Sort and filter books
+  const sortedKitab = useMemo(() => {
+    if (!meta) return [];
+    let books = [...meta.kitab];
+    if (sortMode === 'alphabet') {
+      books.sort((a, b) => a.nama.localeCompare(b.nama, 'id'));
+    }
+    if (searchQuery) {
+      books = books.filter(k =>
+        k.nama.toLowerCase().includes(searchQuery.toLowerCase()) ||
         k.singkatan.toLowerCase().includes(searchQuery.toLowerCase())
-      : true;
-    return matchTab && matchSearch;
-  }) || [];
+      );
+    }
+    return books;
+  }, [meta, sortMode, searchQuery]);
 
-  const plCount = meta?.kitab.filter(k => k.perjanjian === 'lama').length || 0;
-  const pbCount = meta?.kitab.filter(k => k.perjanjian === 'baru').length || 0;
+  // Available letters for sidebar
+  const availableLetters = useMemo(() => {
+    const letters = new Set(sortedKitab.map(k => {
+      const first = k.nama.charAt(0).toUpperCase();
+      // Numbers like "1 Samuel" → use the second word's first letter? No, group under number
+      return /\d/.test(first) ? '#' : first;
+    }));
+    return Array.from(letters).sort((a, b) => {
+      if (a === '#') return -1;
+      if (b === '#') return 1;
+      return a.localeCompare(b);
+    });
+  }, [sortedKitab]);
+
+  // Group books by first letter for section headers
+  const groupedKitab = useMemo(() => {
+    const groups: Record<string, KitabInfo[]> = {};
+    sortedKitab.forEach(k => {
+      const first = k.nama.charAt(0).toUpperCase();
+      const key = /\d/.test(first) ? '#' : first;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(k);
+    });
+    return groups;
+  }, [sortedKitab]);
+
+  // Alphabet sidebar touch handler
+  const handleAlphabetTouch = useCallback((clientY: number) => {
+    if (!sidebarRef.current) return;
+    const rect = sidebarRef.current.getBoundingClientRect();
+    const y = clientY - rect.top;
+    const ratio = Math.max(0, Math.min(1, y / rect.height));
+    const idx = Math.floor(ratio * availableLetters.length);
+    const letter = availableLetters[Math.min(idx, availableLetters.length - 1)];
+    if (letter && letter !== activeLetter) {
+      setActiveLetter(letter);
+      // Scroll to section
+      const el = letterRefs.current[letter];
+      if (el && listRef.current) {
+        const listRect = listRef.current.getBoundingClientRect();
+        const elRect = el.getBoundingClientRect();
+        listRef.current.scrollTop += elRect.top - listRect.top - 10;
+      }
+    }
+  }, [availableLetters, activeLetter]);
+
+  const handleSidebarTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+    handleAlphabetTouch(e.touches[0].clientY);
+  };
+
+  const handleSidebarTouchMove = (e: React.TouchEvent) => {
+    e.preventDefault();
+    handleAlphabetTouch(e.touches[0].clientY);
+  };
+
+  const handleSidebarTouchEnd = () => {
+    setIsDragging(false);
+    setTimeout(() => setActiveLetter(null), 300);
+  };
+
+  // Sort toggle
+  const toggleSort = () => {
+    const next = sortMode === 'canonical' ? 'alphabet' : 'canonical';
+    setSortMode(next);
+    try { localStorage.setItem('alkitab_sort_mode', next); } catch {}
+  };
+
+  // Numpad handlers
+  const handleBookTap = (kitab: KitabInfo) => {
+    setSelectedKitab(kitab);
+    setNumpadInput('');
+    setNumpadError('');
+  };
+
+  const handleNumpadPress = (key: string) => {
+    setNumpadError('');
+    if (key === 'C') {
+      setNumpadInput('');
+      return;
+    }
+    if (key === ':') {
+      if (numpadInput.includes(':')) return; // already has colon
+      if (numpadInput === '') return; // can't start with colon
+      setNumpadInput(prev => prev + ':');
+      return;
+    }
+    // Numbers
+    if (numpadInput.length >= 7) return; // limit length
+    setNumpadInput(prev => prev + key);
+  };
+
+  const handleNumpadBackspace = () => {
+    setNumpadInput(prev => prev.slice(0, -1));
+    setNumpadError('');
+  };
+
+  const handleNumpadDone = () => {
+    if (!selectedKitab || !numpadInput) return;
+
+    const parts = numpadInput.split(':');
+    const pasal = parseInt(parts[0], 10);
+
+    if (isNaN(pasal) || pasal < 1 || pasal > selectedKitab.pasal) {
+      setNumpadError(`Pasal 1-${selectedKitab.pasal}`);
+      return;
+    }
+
+    // Navigate — if has verse part, add as hash
+    if (parts[1]) {
+      router.push(`/alkitab/${selectedKitab.id}/${pasal}#ayat-${parts[1]}`);
+    } else {
+      router.push(`/alkitab/${selectedKitab.id}/${pasal}`);
+    }
+    setSelectedKitab(null);
+  };
+
+  const handleNumpadQuickChapter = (pasal: number) => {
+    if (!selectedKitab) return;
+    router.push(`/alkitab/${selectedKitab.id}/${pasal}`);
+    setSelectedKitab(null);
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col pb-24">
       {/* Header */}
-      <div className="w-full px-6 pt-5 pb-4 bg-white sticky top-0 z-20 border-b border-slate-100">
-        <div className="flex items-center gap-3 mb-4">
-          <button onClick={() => router.back()} className="w-9 h-9 bg-slate-100 rounded-full flex items-center justify-center active:scale-95 transition-transform">
+      <div className="w-full px-5 pt-5 pb-3 bg-white sticky top-0 z-20 border-b border-slate-100">
+        <div className="flex items-center gap-3 mb-3">
+          <button onClick={() => router.back()} className="w-9 h-9 bg-slate-100 rounded-full flex items-center justify-center active:scale-95 transition-transform shrink-0">
             <span className="material-icons-round text-slate-600 text-xl">arrow_back</span>
           </button>
           <h1 className="font-black text-xl text-slate-900 tracking-tight">Alkitab</h1>
-          <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full ml-auto">TB</span>
+
+          {/* Sort toggle */}
+          <button
+            onClick={toggleSort}
+            className="ml-auto flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 rounded-lg active:scale-95 transition-transform"
+          >
+            <span className="material-icons-round text-slate-500 text-[16px]">
+              {sortMode === 'alphabet' ? 'sort_by_alpha' : 'format_list_numbered'}
+            </span>
+            <span className="text-[11px] font-bold text-slate-500">
+              {sortMode === 'alphabet' ? 'A-Z' : 'Urut'}
+            </span>
+          </button>
         </div>
 
         {/* Search bar */}
@@ -89,108 +243,219 @@ export default function AlkitabPage() {
             </button>
           )}
         </div>
-
-        {/* Tabs */}
-        {!searchQuery && (
-          <div className="flex mt-3 bg-slate-100 rounded-xl p-1">
-            <button
-              onClick={() => setActiveTab('lama')}
-              className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
-                activeTab === 'lama'
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-slate-500'
-              }`}
-            >
-              Perjanjian Lama ({plCount})
-            </button>
-            <button
-              onClick={() => setActiveTab('baru')}
-              className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
-                activeTab === 'baru'
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-slate-500'
-              }`}
-            >
-              Perjanjian Baru ({pbCount})
-            </button>
-          </div>
-        )}
       </div>
 
-      {/* Content */}
-      <div className="flex-1 px-5 py-4 flex flex-col gap-3">
-        {/* Last Read Card */}
-        {lastRead && !searchQuery && (
-          <Link
-            href={`/alkitab/${lastRead.kitab}/${lastRead.pasal}`}
-            className="w-full bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-4 flex items-center gap-3 shadow-md shadow-blue-500/20 active:scale-[0.98] transition-transform"
-          >
-            <div className="w-10 h-10 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center shrink-0">
-              <span className="material-icons-round text-white text-xl">history</span>
+      {/* Content area */}
+      <div className="flex-1 relative flex">
+        {/* Main scrollable list */}
+        <div ref={listRef} className="flex-1 overflow-y-auto px-4 py-3 pr-10">
+          {/* Last Read Card */}
+          {lastRead && !searchQuery && (
+            <button
+              onClick={() => router.push(`/alkitab/${lastRead.kitab}/${lastRead.pasal}`)}
+              className="w-full bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-3.5 flex items-center gap-3 shadow-md shadow-blue-500/20 active:scale-[0.98] transition-transform mb-3"
+            >
+              <div className="w-9 h-9 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center shrink-0">
+                <span className="material-icons-round text-white text-lg">history</span>
+              </div>
+              <div className="flex flex-col items-start">
+                <span className="text-white/70 text-[10px] font-medium uppercase tracking-wider">Terakhir Dibaca</span>
+                <span className="text-white font-bold text-sm">{lastRead.nama} {lastRead.pasal}</span>
+              </div>
+              <span className="material-icons-round text-white/50 ml-auto text-lg">chevron_right</span>
+            </button>
+          )}
+
+          {/* Loading */}
+          {isLoading && (
+            <div className="flex flex-col gap-1">
+              {[...Array(15)].map((_, i) => (
+                <div key={i} className="h-12 bg-white rounded-xl animate-pulse" />
+              ))}
             </div>
+          )}
+
+          {/* Book list grouped by letter */}
+          {!isLoading && Object.keys(groupedKitab).length > 0 && (
             <div className="flex flex-col">
-              <span className="text-white/70 text-[10px] font-medium uppercase tracking-wider">Terakhir Dibaca</span>
-              <span className="text-white font-bold text-sm">{lastRead.nama} {lastRead.pasal}</span>
+              {Object.entries(groupedKitab).map(([letter, books]) => (
+                <div key={letter}>
+                  {/* Section header */}
+                  <div
+                    ref={(el) => { letterRefs.current[letter] = el; }}
+                    className="sticky top-0 z-10 py-1.5 px-1"
+                  >
+                    {sortMode === 'alphabet' && (
+                      <span className="text-[11px] font-black text-blue-500 uppercase">{letter === '#' ? '1-3' : letter}</span>
+                    )}
+                  </div>
+
+                  {/* Books */}
+                  {books.map((kitab) => (
+                    <button
+                      key={kitab.id}
+                      onClick={() => handleBookTap(kitab)}
+                      className="w-full flex items-center gap-3 py-3 px-2 border-b border-slate-100 active:bg-blue-50 transition-colors text-left"
+                    >
+                      <div className="w-8 h-10 bg-gradient-to-b from-slate-200 to-slate-300 rounded-sm flex items-center justify-center shadow-sm relative">
+                        <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b from-blue-400 to-blue-600 rounded-l-sm" />
+                      </div>
+                      <div className="flex flex-col flex-1 min-w-0">
+                        <span className="text-slate-800 font-semibold text-[14px] leading-tight truncate">{kitab.nama}</span>
+                        <span className="text-slate-400 text-[11px] font-medium">{kitab.pasal} pasal • {kitab.perjanjian === 'lama' ? 'PL' : 'PB'}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ))}
             </div>
-            <span className="material-icons-round text-white/50 ml-auto">chevron_right</span>
-          </Link>
-        )}
+          )}
 
-        {/* Loading */}
-        {isLoading && (
-          <div className="flex flex-col gap-2">
-            {[...Array(10)].map((_, i) => (
-              <div key={i} className="h-14 bg-white rounded-2xl animate-pulse" />
-            ))}
-          </div>
-        )}
+          {/* Empty search */}
+          {!isLoading && searchQuery && sortedKitab.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <span className="material-icons-round text-4xl text-slate-300 mb-2">search_off</span>
+              <span className="text-sm font-bold text-slate-500">Kitab tidak ditemukan</span>
+            </div>
+          )}
+        </div>
 
-        {/* Book List */}
-        {!isLoading && filteredKitab.length > 0 && (
-          <div className="flex flex-col gap-1.5">
-            {filteredKitab.map((kitab, index) => (
-              <Link
-                key={kitab.id}
-                href={`/alkitab/${kitab.id}`}
-                className="w-full bg-white rounded-2xl px-4 py-3.5 flex items-center gap-3 border border-slate-100 active:bg-slate-50 active:scale-[0.99] transition-all group"
+        {/* Alphabet sidebar */}
+        {!isLoading && !searchQuery && availableLetters.length > 0 && (
+          <div
+            ref={sidebarRef}
+            className="absolute right-0 top-0 bottom-0 w-7 flex flex-col items-center justify-center py-2 z-30 select-none touch-none"
+            onTouchStart={handleSidebarTouchStart}
+            onTouchMove={handleSidebarTouchMove}
+            onTouchEnd={handleSidebarTouchEnd}
+          >
+            {availableLetters.map(letter => (
+              <div
+                key={letter}
+                className={`flex items-center justify-center w-full transition-all ${
+                  activeLetter === letter ? 'scale-125' : ''
+                }`}
+                style={{ flex: 1, minHeight: 0 }}
               >
-                <div className="w-9 h-9 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center text-white shadow-sm shadow-blue-500/20 shrink-0">
-                  <span className="text-xs font-black">{index + 1}</span>
-                </div>
-                <div className="flex flex-col flex-1 min-w-0">
-                  <span className="text-slate-800 font-bold text-[14px] leading-tight truncate">{kitab.nama}</span>
-                  <span className="text-slate-400 text-[11px] font-medium">{kitab.pasal} pasal</span>
-                </div>
-                <span className="material-icons-round text-slate-300 text-lg group-active:text-blue-400 transition-colors">chevron_right</span>
-              </Link>
+                <span className={`text-[10px] font-bold leading-none transition-colors ${
+                  activeLetter === letter ? 'text-blue-600' : 'text-blue-400'
+                }`}>
+                  {letter === '#' ? '#' : letter}
+                </span>
+              </div>
             ))}
           </div>
         )}
 
-        {/* Empty search state */}
-        {!isLoading && searchQuery && filteredKitab.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <span className="material-icons-round text-4xl text-slate-300 mb-2">search_off</span>
-            <span className="text-sm font-bold text-slate-500">Kitab tidak ditemukan</span>
-            <span className="text-xs text-slate-400 mt-1">Coba cari dengan kata kunci lain</span>
-          </div>
-        )}
-
-        {/* Error state */}
-        {!isLoading && !meta && (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <span className="material-icons-round text-4xl text-slate-300 mb-2">cloud_off</span>
-            <span className="text-sm font-bold text-slate-500">Gagal memuat data Alkitab</span>
-            <span className="text-xs text-slate-400 mt-1">Periksa koneksi internet Anda</span>
-            <button
-              onClick={() => window.location.reload()}
-              className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-xl text-xs font-bold active:scale-95 transition-transform"
-            >
-              Coba Lagi
-            </button>
+        {/* Floating letter indicator */}
+        {isDragging && activeLetter && (
+          <div className="fixed inset-0 pointer-events-none z-50 flex items-center justify-center">
+            <div className="w-20 h-20 bg-blue-600/90 backdrop-blur-md rounded-3xl flex items-center justify-center shadow-2xl shadow-blue-600/30 animate-in zoom-in-90 duration-100">
+              <span className="text-white text-4xl font-black">{activeLetter === '#' ? '#' : activeLetter}</span>
+            </div>
           </div>
         )}
       </div>
+
+      {/* Numpad Modal */}
+      {selectedKitab && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 animate-in fade-in duration-200"
+            onClick={() => setSelectedKitab(null)}
+          />
+
+          {/* Bottom sheet */}
+          <div className="fixed bottom-0 left-0 right-0 z-50 animate-in slide-in-from-bottom duration-300">
+            <div className="bg-white rounded-t-3xl shadow-2xl max-w-md mx-auto">
+              {/* Handle bar */}
+              <div className="flex justify-center pt-3 pb-1">
+                <div className="w-10 h-1 bg-slate-200 rounded-full" />
+              </div>
+
+              {/* Book name */}
+              <div className="text-center px-6 pt-1 pb-3">
+                <h2 className="text-lg font-black text-slate-900">{selectedKitab.nama}</h2>
+                <p className="text-[11px] text-slate-400 font-medium mt-0.5">{selectedKitab.pasal} pasal • Ketik pasal atau pasal:ayat</p>
+              </div>
+
+              {/* Input display */}
+              <div className="mx-6 mb-3 bg-slate-50 rounded-2xl px-4 py-3 flex items-center justify-between border border-slate-200">
+                <div className="flex items-baseline gap-1 flex-1 min-w-0">
+                  <span className="text-sm font-bold text-slate-400 shrink-0">{selectedKitab.singkatan}</span>
+                  <span className={`text-2xl font-black tracking-tight ${numpadInput ? 'text-slate-900' : 'text-slate-300'}`}>
+                    {numpadInput || '0:00'}
+                  </span>
+                </div>
+                {numpadInput && (
+                  <button onClick={handleNumpadBackspace} className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center active:scale-90 transition-transform ml-2 shrink-0">
+                    <span className="material-icons-round text-slate-600 text-lg">backspace</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Error message */}
+              {numpadError && (
+                <p className="text-center text-xs font-bold text-red-500 mb-2 animate-in fade-in">{numpadError}</p>
+              )}
+
+              {/* Quick chapter shortcuts */}
+              {selectedKitab.pasal <= 10 && (
+                <div className="px-6 mb-3">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Pilih Cepat</p>
+                  <div className="flex gap-2 flex-wrap">
+                    {Array.from({ length: selectedKitab.pasal }, (_, i) => i + 1).map(p => (
+                      <button
+                        key={p}
+                        onClick={() => handleNumpadQuickChapter(p)}
+                        className="w-11 h-11 bg-blue-50 text-blue-600 font-bold rounded-xl flex items-center justify-center active:scale-90 active:bg-blue-100 transition-all text-sm border border-blue-100"
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Numpad grid */}
+              <div className="px-6 pb-2 grid grid-cols-3 gap-2">
+                {['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', ':', 'C'].map((key) => (
+                  <button
+                    key={key}
+                    onClick={() => key === 'C' ? handleNumpadPress('C') : handleNumpadPress(key)}
+                    className={`h-13 rounded-xl flex items-center justify-center text-lg font-bold active:scale-95 transition-all ${
+                      key === 'C'
+                        ? 'bg-red-50 text-red-500 border border-red-100 active:bg-red-100'
+                        : key === ':'
+                        ? 'bg-slate-100 text-slate-500 border border-slate-200 active:bg-slate-200'
+                        : 'bg-slate-100 text-slate-800 border border-slate-200 active:bg-slate-200'
+                    }`}
+                    style={{ height: 52 }}
+                  >
+                    {key}
+                  </button>
+                ))}
+              </div>
+
+              {/* Done button */}
+              <div className="px-6 pb-8 pt-1">
+                <button
+                  onClick={handleNumpadDone}
+                  disabled={!numpadInput}
+                  className={`w-full py-3.5 rounded-2xl font-bold text-sm transition-all active:scale-[0.98] ${
+                    numpadInput
+                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md shadow-blue-500/25'
+                      : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                  }`}
+                >
+                  {numpadInput ? `Buka ${selectedKitab.singkatan} ${numpadInput}` : 'Ketik pasal dahulu'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

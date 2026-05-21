@@ -108,14 +108,26 @@ export default function BacaPasalPage() {
         console.error('Failed to load chapter:', err);
       } finally {
         setIsLoading(false);
+
+        // Scroll to specific verse if hash is present (e.g. #ayat-16)
+        setTimeout(() => {
+          const hash = window.location.hash;
+          if (hash && hash.startsWith('#ayat-')) {
+            const verseNum = hash.replace('#ayat-', '');
+            const el = document.getElementById(`ayat-${verseNum}`);
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              // Highlight the verse briefly
+              el.classList.add('bg-amber-100');
+              setTimeout(() => el.classList.remove('bg-amber-100'), 2000);
+            }
+          } else if (contentRef.current) {
+            contentRef.current.scrollTo(0, 0);
+          }
+        }, 100);
       }
     };
     fetchData();
-
-    // Scroll to top on chapter change
-    if (contentRef.current) {
-      contentRef.current.scrollTo(0, 0);
-    }
   }, [kitabId, pasalNum]);
 
   const changeFontSize = (size: FontSize) => {
@@ -260,6 +272,7 @@ export default function BacaPasalPage() {
               {data.ayat.map((ayat) => (
                 <div
                   key={ayat.nomor}
+                  id={`ayat-${ayat.nomor}`}
                   onClick={() => handleAyatTap(ayat.nomor)}
                   className={`py-1 px-1 -mx-1 rounded-lg transition-colors cursor-pointer ${
                     selectedAyat === ayat.nomor ? 'bg-amber-50' : ''
