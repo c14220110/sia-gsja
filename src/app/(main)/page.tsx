@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { Scanner } from '@yudiel/react-qr-scanner';
 import { useLoader } from '@/components/ui/GlobalLoader';
@@ -513,6 +513,45 @@ export default function DashboardHome() {
   const [activeSurveys, setActiveSurveys] = useState<any[]>([]);
   const [surveyHistory, setSurveyHistory] = useState<any[]>([]);
   const [hasEventToday, setHasEventToday] = useState(false);
+
+  // Pull-To-Refresh states
+  const [pullDist, setPullDist] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const touchStartY = useRef(0);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const mainNode = document.querySelector('main');
+    if (mainNode && mainNode.scrollTop <= 0) {
+      touchStartY.current = e.touches[0].clientY;
+    } else {
+      touchStartY.current = 0;
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStartY.current > 0) {
+      const dist = e.touches[0].clientY - touchStartY.current;
+      if (dist > 0) {
+        setPullDist(Math.min(dist * 0.45, 80));
+      } else {
+        setPullDist(0);
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (pullDist >= 60 && !isRefreshing) {
+      setIsRefreshing(true);
+      setPullDist(60);
+      // Trigger refresh
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } else {
+      setPullDist(0);
+      touchStartY.current = 0;
+    }
+  };
   const [isSurveyModalOpen, setIsSurveyModalOpen] = useState(false);
   const [selectedSurvey, setSelectedSurvey] = useState<any>(null);
   const [surveyAnswers, setSurveyAnswers] = useState<Record<number, { skor?: number, jawaban_teks?: string }>>({});
@@ -903,13 +942,43 @@ export default function DashboardHome() {
           </div>
         )}
 
+        {/* PULL TO REFRESH BACKGROUND (Top Bar Melebar) */}
+        <div 
+          className="absolute top-0 left-0 right-0 bg-white flex items-end justify-center z-0 overflow-hidden"
+          style={{ 
+            height: Math.max(0, pullDist), 
+            transition: pullDist === 0 ? 'height 0.3s ease-out' : 'none'
+          }}
+        >
+           <div 
+             className={`mb-4 text-blue-500 ${isRefreshing ? 'animate-spin' : ''}`}
+             style={{ 
+                opacity: Math.min(pullDist / 50, 1),
+                transform: isRefreshing ? 'scale(1)' : `rotate(${pullDist * 4}deg) scale(${Math.min(pullDist / 50, 1)})`
+             }}
+           >
+              <span className="material-icons-round text-3xl">refresh</span>
+           </div>
+        </div>
+
+        {/* MOVING WRAPPER */}
+        <div 
+          className="w-full flex flex-col relative z-10 pb-10"
+          style={{ 
+            transform: `translateY(${pullDist}px)`,
+            transition: pullDist === 0 ? 'transform 0.3s ease-out' : 'none'
+          }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
         {/* 1. HEADER PAGE */}
-        <div className="w-full px-6 pt-6 pb-4 bg-white flex justify-between items-start z-10 relative">
-           <div className="flex flex-col gap-1">
-              <h1 className={`font-black text-slate-900 tracking-tight ${jemaatName.length > 12 ? 'text-xl' : 'text-2xl'}`}>Shalom, {jemaatName}! 👋</h1>
-              <div className="flex items-center gap-1.5 text-slate-500">
-                 <span className="material-icons-round text-[16px]">location_on</span>
-                 <span className="text-xs font-medium">{userData.satelit_name || 'Satelit GSJA'}</span>
+        <div className="w-full px-6 pt-4 pb-3 bg-white flex justify-between items-center z-10 relative">
+           <div className="flex flex-col gap-0.5">
+              <h1 className={`font-black text-slate-900 tracking-tight ${jemaatName.length > 12 ? 'text-lg' : 'text-xl'}`}>Shalom, {jemaatName}! 👋</h1>
+              <div className="flex items-center gap-1 text-slate-500">
+                 <span className="material-icons-round text-[12px]">location_on</span>
+                 <span className="text-[11px] font-medium">{userData.satelit_name || 'Satelit GSJA'}</span>
               </div>
            </div>
            
@@ -936,7 +1005,7 @@ export default function DashboardHome() {
           </div>
         )}
 
-        <div className="w-full px-6 flex flex-col gap-8 pb-12 mt-6">
+        <div className="w-full px-6 flex flex-col gap-5 pb-12 mt-4">
            
            {/* ── DYNAMIC ACTION BANNER: Konfirmasi Jadwal Pelayanan ── */}
            {pendingRoster.length > 0 && (
@@ -996,49 +1065,57 @@ export default function DashboardHome() {
             </div>
            */}
 
-            {/* 3. QUICK ACTIONS — Horizontal Scroll */}
-            <div className="w-full flex flex-col gap-3">
-               <h3 className="text-slate-800 font-black text-lg tracking-tight px-1">Menu Jemaat</h3>
-               <div className="w-[calc(100%+3rem)] -ml-6 px-6 pb-2 flex overflow-x-auto snap-x scrollbar-hide gap-3">
-                  <Link href="/layanan-pastoral" className="snap-center shrink-0 flex flex-col items-center gap-3 group cursor-pointer w-[72px]">
-                     <div className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center group-hover:shadow-md transition-all text-blue-600">
-                        <span className="material-icons-round text-3xl">volunteer_activism</span>
+            {/* 3. QUICK ACTIONS — Grid */}
+            <div className="w-full flex flex-col gap-2.5">
+               <h3 className="text-slate-800 font-black text-lg tracking-tight px-1">Menu</h3>
+               <div className="grid grid-cols-3 gap-y-4 gap-x-2 w-full">
+                  <Link href="/layanan-pastoral" className="flex flex-col items-center gap-1.5 group cursor-pointer">
+                     <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full shadow-[0_4px_12px_rgba(59,130,246,0.3)] flex items-center justify-center text-white active:scale-105 transition-all duration-200">
+                        <span className="material-icons-round text-2xl">support_agent</span>
                      </div>
-                     <span className="text-[11px] font-bold text-slate-600 text-center leading-tight">Layanan<br/>Pastoral</span>
+                     <span className="text-[11px] font-medium text-slate-700 text-center leading-tight">Layanan<br/>Pastoral</span>
                   </Link>
                   
-                  <div onClick={handleJadwalPelayananClick} className="snap-center shrink-0 flex flex-col items-center gap-3 group cursor-pointer relative w-[72px]">
-                      {/* Badge notifikasi jika ada jadwal menunggu konfirmasi */}
+                  <div onClick={handleJadwalPelayananClick} className="flex flex-col items-center gap-1.5 group cursor-pointer relative">
+                      {/* Badge notifikasi */}
                       {pendingRoster.length > 0 && (
-                        <span className="absolute -top-1 -right-1 z-10 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center px-1 shadow-md animate-bounce">
+                        <span className="absolute -top-1 right-2 z-10 min-w-[16px] h-[16px] bg-red-600 text-white text-[9px] font-black rounded-full flex items-center justify-center px-1 shadow-md animate-bounce border-2 border-white">
                           {pendingRoster.length}
                         </span>
                       )}
-                      <div className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center group-hover:shadow-md transition-all text-emerald-600">
-                         <span className="material-icons-round text-3xl">assignment_ind</span>
-                      </div>
-                      <span className="text-[11px] font-bold text-slate-600 text-center leading-tight">Jadwal<br/>Pelayanan</span>
+                      <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full shadow-[0_4px_12px_rgba(59,130,246,0.3)] flex items-center justify-center text-white active:scale-105 transition-all duration-200">
+                         <span className="material-icons-round text-2xl">event_available</span>
+                       </div>
+                      <span className="text-[11px] font-medium text-slate-700 text-center leading-tight">Jadwal<br/>Pelayanan</span>
                    </div>
 
-                  <Link href="/riwayat-kehadiran" className="snap-center shrink-0 flex flex-col items-center gap-3 group cursor-pointer w-[72px]">
-                     <div className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center group-hover:shadow-md transition-all text-amber-600">
-                        <span className="material-icons-round text-3xl">history</span>
+                  <Link href="/riwayat-kehadiran" className="flex flex-col items-center gap-1.5 group cursor-pointer">
+                     <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full shadow-[0_4px_12px_rgba(59,130,246,0.3)] flex items-center justify-center text-white active:scale-105 transition-all duration-200">
+                        <span className="material-icons-round text-2xl">fact_check</span>
                      </div>
-                     <span className="text-[11px] font-bold text-slate-600 text-center leading-tight">Riwayat<br/>Kehadiran</span>
+                     <span className="text-[11px] font-medium text-slate-700 text-center leading-tight">Riwayat<br/>Kehadiran</span>
                   </Link>
 
-                  <Link href="/tiket" className="snap-center shrink-0 flex flex-col items-center gap-3 group cursor-pointer w-[72px]">
-                     <div className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center group-hover:shadow-md transition-all text-violet-600">
-                        <span className="material-icons-round text-3xl">local_activity</span>
+                  <Link href="/tiket" className="flex flex-col items-center gap-1.5 group cursor-pointer">
+                     <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full shadow-[0_4px_12px_rgba(59,130,246,0.3)] flex items-center justify-center text-white active:scale-105 transition-all duration-200">
+                        <span className="material-icons-round text-2xl">confirmation_number</span>
                      </div>
-                     <span className="text-[11px] font-bold text-slate-600 text-center leading-tight">Tiket<br/>Saya</span>
+                     <span className="text-[11px] font-medium text-slate-700 text-center leading-tight">Tiket<br/>Saya</span>
                   </Link>
 
-                  <Link href="/survei-saya" className="snap-center shrink-0 flex flex-col items-center gap-3 group cursor-pointer w-[72px]">
-                     <div className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center group-hover:shadow-md transition-all text-rose-500">
-                        <span className="material-icons-round text-3xl">rate_review</span>
+                  <Link href="/survei-saya" className="flex flex-col items-center gap-1.5 group cursor-pointer">
+                     <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full shadow-[0_4px_12px_rgba(59,130,246,0.3)] flex items-center justify-center text-white active:scale-105 transition-all duration-200">
+                        <span className="material-icons-round text-2xl">assignment</span>
                      </div>
-                     <span className="text-[11px] font-bold text-slate-600 text-center leading-tight">Survei<br/>Saya</span>
+                     <span className="text-[11px] font-medium text-slate-700 text-center leading-tight">Survei<br/>Saya</span>
+                  </Link>
+                  
+                  <Link href="/alkitab" className="flex flex-col items-center gap-1.5 group cursor-pointer relative">
+                     <span className="absolute -top-1.5 -right-1 z-10 bg-red-600 text-white text-[8px] font-bold rounded-full px-1.5 py-0.5 shadow-sm border border-white">New</span>
+                     <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full shadow-[0_4px_12px_rgba(59,130,246,0.3)] flex items-center justify-center text-white active:scale-105 transition-all duration-200">
+                        <span className="material-icons-round text-2xl">menu_book</span>
+                     </div>
+                     <span className="text-[11px] font-medium text-slate-700 text-center leading-tight">Alkitab</span>
                   </Link>
                 </div>
             </div>
@@ -1090,84 +1167,88 @@ export default function DashboardHome() {
                  <Link href="/jadwal" className="text-blue-500 font-bold text-xs flex items-center">Lihat Semua <span className="material-icons-round text-[14px]">chevron_right</span></Link>
               </h3>
               
-              {upcomingEvents.length > 0 ? (
-                 <div className="w-[calc(100%+3rem)] -ml-6 px-6 pb-4 flex overflow-x-auto snap-x snap-mandatory scrollbar-hide gap-4 items-stretch">
-                   {upcomingEvents.map((evt) => (
-                     <Link key={evt.id} href={`/jadwal/${evt.id}`} className="snap-center shrink-0 w-[280px] bg-white rounded-3xl flex flex-col shadow-sm border border-slate-100 relative overflow-hidden group">
-                        {evt.url_banner ? (
-                          <div className="w-full h-32 bg-slate-100 relative overflow-hidden shrink-0 border-b border-slate-100">
-                            <img src={evt.url_banner} alt="Poster" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                            {evt._myTicketBadge ? (
-                               <span className={`absolute top-3 right-3 text-[10px] font-bold px-2 py-1 rounded shadow-sm backdrop-blur border ${evt._myTicketBadge.style}`}>{evt._myTicketBadge.text}</span>
-                            ) : evt.butuh_registrasi && (
-                               <span className="absolute top-3 right-3 bg-white/90 backdrop-blur text-blue-600 text-[10px] font-bold px-2 py-1 rounded shadow-sm">Butuh Registrasi</span>
-                            )}
-                          </div>
-                        ) : (() => {
-                           // Smart thumbnail fallback berdasarkan jenis kegiatan
-                           const kn = (evt.nama_jenis_kegiatan || '').toLowerCase();
-                           const kat = (evt.kategori || '').toLowerCase();
-                           let bg = 'from-indigo-500 to-blue-600', icon = 'church';
-                           if (kn.includes('kkr') || kn.includes('kebangunan')) { bg = 'from-orange-500 to-red-500'; icon = 'local_fire_department'; }
-                           else if (kn.includes('camp') || kn.includes('retreat')) { bg = 'from-green-500 to-emerald-600'; icon = 'forest'; }
-                           else if (kn.includes('seminar') || kn.includes('pelatihan') || kn.includes('webinar')) { bg = 'from-purple-500 to-violet-600'; icon = 'school'; }
-                           else if (kn.includes('pernikahan')) { bg = 'from-pink-500 to-rose-600'; icon = 'favorite'; }
-                           else if (kn.includes('baptisan')) { bg = 'from-sky-400 to-blue-500'; icon = 'water_drop'; }
-                           else if (kn.includes('penyerahan anak')) { bg = 'from-yellow-400 to-amber-500'; icon = 'child_care'; }
-                           else if (kn.includes('kesehatan') || kn.includes('medis')) { bg = 'from-teal-400 to-cyan-600'; icon = 'medical_services'; }
-                           else if (kn.includes('ibadah padang') || kn.includes('outing')) { bg = 'from-lime-500 to-green-600'; icon = 'nature_people'; }
-                           else if (kn.includes('perayaan') || kn.includes('natal') || kn.includes('paskah') || kn.includes('khusus')) { bg = 'from-amber-400 to-orange-500'; icon = 'celebration'; }
-                           else if (kn.includes('besuk') || kn.includes('kunjungan') || kat.includes('sosial')) { bg = 'from-rose-400 to-pink-600'; icon = 'volunteer_activism'; }
-                           else if (kat.includes('sakramen') || kn.includes('pemberkatan')) { bg = 'from-violet-500 to-purple-700'; icon = 'auto_awesome'; }
-                           return (
-                             <div className={`w-full h-28 bg-gradient-to-br ${bg} relative overflow-hidden shrink-0 flex flex-col items-center justify-center gap-1.5`}>
-                               <div className="absolute inset-0 bg-black/10 pointer-events-none" />
-                               <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center border border-white/30 shadow-lg z-10">
-                                 <span className="material-icons-round text-white text-3xl">{icon}</span>
-                               </div>
-                               <span className="text-white/90 text-[10px] font-bold uppercase tracking-widest z-10 px-3 text-center leading-tight line-clamp-1">
-                                 {evt.nama_jenis_kegiatan}
-                               </span>
-                               {(evt._myTicketBadge || evt.butuh_registrasi) && (
-                                 <span className={`absolute top-2.5 right-2.5 text-[9px] font-bold px-2 py-0.5 rounded shadow-sm backdrop-blur border ${evt._myTicketBadge ? evt._myTicketBadge.style : 'bg-white/90 text-blue-600 border-white/50'}`}>
-                                   {evt._myTicketBadge ? evt._myTicketBadge.text : 'REGISTRASI'}
-                                 </span>
-                               )}
-                             </div>
-                           );
-                         })()}
-                        
-                        <div className="p-5 flex flex-col flex-1">
-                          {!evt.url_banner && (
-                             <div className="mb-2">
-                               {evt._myTicketBadge ? (
-                                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-widest border ${evt._myTicketBadge.style}`}>{evt._myTicketBadge.text}</span>
-                               ) : evt.butuh_registrasi && (
-                                  <span className="bg-blue-50 text-blue-600 text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-widest border border-blue-100">REGISTRASI</span>
-                               )}
-                             </div>
-                          )}
-                          <h4 className="text-slate-900 font-black text-[15px] leading-snug mb-3 group-hover:text-blue-600 transition-colors line-clamp-2">{evt.nama_kegiatan}</h4>
-                          
-                          <div className="flex flex-col gap-1.5 mb-4">
-                             <div className="flex items-center gap-2 text-slate-500 text-[11px] font-medium">
-                                <span className="material-icons-round text-[14px] text-slate-400">calendar_today</span>
-                                <span className="truncate">{formatDate(evt.tanggal_mulai)}</span>
-                             </div>
-                             <div className="flex items-center gap-2 text-slate-500 text-[11px] font-medium">
-                                <span className="material-icons-round text-[14px] text-slate-400">place</span>
-                                <span className="truncate">{evt.lokasi_kegiatan || 'Gedung GSJA'}</span>
-                             </div>
-                          </div>
-
-                          <div className="mt-auto pt-3 border-t border-slate-100/60 flex items-center justify-between pointer-events-none">
-                             <span className="text-[11px] font-bold text-slate-400">{evt.waktu_mulai.slice(0,5)} WIB</span>
-                             <span className="material-icons-round text-slate-300 text-[18px] group-hover:text-blue-500 transition-colors">arrow_forward</span>
-                          </div>
-                        </div>
-                     </Link>
-                   ))}
-                   <div className="w-2 shrink-0"></div> {/* Trailing spacer */}
+               {upcomingEvents.length > 0 ? (
+                 <div className="relative w-[calc(100%+3rem)] -ml-6">
+                    {/* Visual cue shadow/fade di kanan untuk menandakan bisa di-scroll */}
+                    <div className="absolute top-0 bottom-0 right-0 w-12 bg-gradient-to-l from-slate-50 to-transparent z-10 pointer-events-none"></div>
+                    <div className="w-full px-6 pb-4 flex overflow-x-auto snap-x snap-mandatory scrollbar-hide gap-4 items-stretch">
+                       {upcomingEvents.map((evt) => (
+                         <Link key={evt.id} href={`/jadwal/${evt.id}`} className="snap-center shrink-0 w-[280px] bg-white rounded-3xl flex flex-col shadow-sm border border-slate-100 relative overflow-hidden group">
+                            {evt.url_banner ? (
+                              <div className="w-full h-32 bg-slate-100 relative overflow-hidden shrink-0 border-b border-slate-100">
+                                <img src={evt.url_banner} alt="Poster" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                                {evt._myTicketBadge ? (
+                                   <span className={`absolute top-3 right-3 text-[10px] font-bold px-2 py-1 rounded shadow-sm backdrop-blur border ${evt._myTicketBadge.style}`}>{evt._myTicketBadge.text}</span>
+                                ) : evt.butuh_registrasi && (
+                                   <span className="absolute top-3 right-3 bg-white/90 backdrop-blur text-blue-600 text-[10px] font-bold px-2 py-1 rounded shadow-sm">Butuh Registrasi</span>
+                                )}
+                              </div>
+                            ) : (() => {
+                               // Smart thumbnail fallback berdasarkan jenis kegiatan
+                               const kn = (evt.nama_jenis_kegiatan || '').toLowerCase();
+                               const kat = (evt.kategori || '').toLowerCase();
+                               let bg = 'from-indigo-500 to-blue-600', icon = 'church';
+                               if (kn.includes('kkr') || kn.includes('kebangunan')) { bg = 'from-orange-500 to-red-500'; icon = 'local_fire_department'; }
+                               else if (kn.includes('camp') || kn.includes('retreat')) { bg = 'from-green-500 to-emerald-600'; icon = 'forest'; }
+                               else if (kn.includes('seminar') || kn.includes('pelatihan') || kn.includes('webinar')) { bg = 'from-purple-500 to-violet-600'; icon = 'school'; }
+                               else if (kn.includes('pernikahan')) { bg = 'from-pink-500 to-rose-600'; icon = 'favorite'; }
+                               else if (kn.includes('baptisan')) { bg = 'from-sky-400 to-blue-500'; icon = 'water_drop'; }
+                               else if (kn.includes('penyerahan anak')) { bg = 'from-yellow-400 to-amber-500'; icon = 'child_care'; }
+                               else if (kn.includes('kesehatan') || kn.includes('medis')) { bg = 'from-teal-400 to-cyan-600'; icon = 'medical_services'; }
+                               else if (kn.includes('ibadah padang') || kn.includes('outing')) { bg = 'from-lime-500 to-green-600'; icon = 'nature_people'; }
+                               else if (kn.includes('perayaan') || kn.includes('natal') || kn.includes('paskah') || kn.includes('khusus')) { bg = 'from-amber-400 to-orange-500'; icon = 'celebration'; }
+                               else if (kn.includes('besuk') || kn.includes('kunjungan') || kat.includes('sosial')) { bg = 'from-rose-400 to-pink-600'; icon = 'volunteer_activism'; }
+                               else if (kat.includes('sakramen') || kn.includes('pemberkatan')) { bg = 'from-violet-500 to-purple-700'; icon = 'auto_awesome'; }
+                               return (
+                                 <div className={`w-full h-28 bg-gradient-to-br ${bg} relative overflow-hidden shrink-0 flex flex-col items-center justify-center gap-1.5`}>
+                                   <div className="absolute inset-0 bg-black/10 pointer-events-none" />
+                                   <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center border border-white/30 shadow-lg z-10">
+                                     <span className="material-icons-round text-white text-3xl">{icon}</span>
+                                   </div>
+                                   <span className="text-white/90 text-[10px] font-bold uppercase tracking-widest z-10 px-3 text-center leading-tight line-clamp-1">
+                                     {evt.nama_jenis_kegiatan}
+                                   </span>
+                                   {(evt._myTicketBadge || evt.butuh_registrasi) && (
+                                     <span className={`absolute top-2.5 right-2.5 text-[9px] font-bold px-2 py-0.5 rounded shadow-sm backdrop-blur border ${evt._myTicketBadge ? evt._myTicketBadge.style : 'bg-white/90 text-blue-600 border-white/50'}`}>
+                                       {evt._myTicketBadge ? evt._myTicketBadge.text : 'REGISTRASI'}
+                                     </span>
+                                   )}
+                                 </div>
+                               );
+                             })()}
+                            
+                            <div className="p-5 flex flex-col flex-1">
+                              {!evt.url_banner && (
+                                 <div className="mb-2">
+                                   {evt._myTicketBadge ? (
+                                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-widest border ${evt._myTicketBadge.style}`}>{evt._myTicketBadge.text}</span>
+                                   ) : evt.butuh_registrasi && (
+                                      <span className="bg-blue-50 text-blue-600 text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-widest border border-blue-100">REGISTRASI</span>
+                                   )}
+                                 </div>
+                              )}
+                              <h4 className="text-slate-900 font-black text-[15px] leading-snug mb-3 group-hover:text-blue-600 transition-colors line-clamp-2">{evt.nama_kegiatan}</h4>
+                              
+                              <div className="flex flex-col gap-1.5 mb-4">
+                                 <div className="flex items-center gap-2 text-slate-500 text-[11px] font-medium">
+                                    <span className="material-icons-round text-[14px] text-slate-400">calendar_today</span>
+                                    <span className="truncate">{formatDate(evt.tanggal_mulai)}</span>
+                                 </div>
+                                 <div className="flex items-center gap-2 text-slate-500 text-[11px] font-medium">
+                                    <span className="material-icons-round text-[14px] text-slate-400">place</span>
+                                    <span className="truncate">{evt.lokasi_kegiatan || 'Gedung GSJA'}</span>
+                                 </div>
+                              </div>
+    
+                              <div className="mt-auto pt-3 border-t border-slate-100/60 flex items-center justify-between pointer-events-none">
+                                 <span className="text-[11px] font-bold text-slate-400">{evt.waktu_mulai.slice(0,5)} WIB</span>
+                                 <span className="material-icons-round text-slate-300 text-[18px] group-hover:text-blue-500 transition-colors">arrow_forward</span>
+                              </div>
+                            </div>
+                         </Link>
+                       ))}
+                       <div className="w-2 shrink-0"></div> {/* Trailing spacer */}
+                    </div>
                  </div>
               ) : (
                  <div className="w-full bg-slate-100/50 rounded-3xl p-6 flex flex-col items-center justify-center text-center border border-slate-200 border-dashed">
@@ -1179,6 +1260,8 @@ export default function DashboardHome() {
 
          </div>
 
+         </div>
+        
          {/* Modal Isi Survei */}
          {isSurveyModalOpen && selectedSurvey && (
             <div className="fixed inset-0 z-[60] bg-slate-900/40 backdrop-blur-sm flex flex-col justify-end" onClick={() => setIsSurveyModalOpen(false)}>
