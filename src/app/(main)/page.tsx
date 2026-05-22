@@ -1033,73 +1033,68 @@ export default function DashboardHome() {
 
         <div className="w-full px-6 flex flex-col gap-5 pb-12 mt-4">
            
-           {/* ── DYNAMIC ACTION BANNER: Konfirmasi Jadwal Pelayanan ── */}
+           {/* ── COMPACT NOTIF: Konfirmasi Jadwal Pelayanan ── */}
            {pendingRoster.length > 0 && (
-             <div className="w-full bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-4 flex gap-3 shadow-sm animate-in slide-in-from-top-3 fade-in">
-               <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center shrink-0 mt-0.5">
-                 <span className="material-icons-round text-amber-600 text-[22px]">assignment_late</span>
-               </div>
-               <div className="flex-1 min-w-0">
-                 <p className="text-sm font-black text-amber-900 leading-tight mb-0.5">Konfirmasi Jadwal Pelayanan</p>
-                 <p className="text-xs text-amber-700 leading-relaxed mb-3">
-                   Anda dijadwalkan sebagai{' '}
-                   <strong>{pendingRoster[0].nama_peran}</strong>{' '}
-                   untuk <strong>{pendingRoster[0].nama_kegiatan}</strong>.
-                   {pendingRoster.length > 1 && (
-                     <span className="ml-1 text-amber-600 font-bold">+{pendingRoster.length - 1} lainnya.</span>
-                   )}
-                   {' '}Mohon konfirmasi kehadiran Anda.
-                 </p>
+             <div className="w-full bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl px-3.5 py-3 shadow-sm animate-in slide-in-from-top-3 fade-in">
+               <div className="flex items-center gap-2.5">
+                 <div className="w-9 h-9 bg-amber-100 rounded-xl flex items-center justify-center shrink-0">
+                   <span className="material-icons-round text-amber-600 text-[20px]">assignment_late</span>
+                 </div>
+                 <div className="flex-1 min-w-0">
+                   <p className="text-[13px] font-black text-amber-900 leading-tight truncate">
+                     Konfirmasi Jadwal{pendingRoster.length > 1 ? ` (${pendingRoster.length})` : ''}
+                   </p>
+                   <p className="text-[11px] text-amber-700 truncate mt-0.5">
+                     {pendingRoster[0].nama_peran} · {pendingRoster[0].nama_kegiatan}
+                     {pendingRoster.length > 1 && <span className="font-bold"> +{pendingRoster.length - 1}</span>}
+                   </p>
+                 </div>
                  <button
                    onClick={() => router.push('/pelayan/jadwal')}
-                   className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-black rounded-lg transition-colors"
+                   className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-black rounded-lg transition-colors shrink-0"
                  >
-                   <span className="material-icons-round text-[14px]">how_to_reg</span>
-                   Lihat & Konfirmasi
+                   Konfirmasi
+                 </button>
+                 <button
+                   onClick={() => setPendingRoster([])}
+                   className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-amber-100 text-amber-400 hover:text-amber-600 shrink-0 transition-colors"
+                   title="Tutup"
+                 >
+                   <span className="material-icons-round text-[14px]">close</span>
                  </button>
                </div>
-               <button
-                 onClick={() => setPendingRoster([])}
-                 className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-amber-100 text-amber-400 hover:text-amber-600 shrink-0 transition-colors"
-                 title="Tutup"
-               >
-                 <span className="material-icons-round text-[16px]">close</span>
-               </button>
              </div>
            )}
 
-           {/* ── DYNAMIC ACTION BANNER: Survei Belum Diisi ── */}
+           {/* ── COMPACT NOTIF: Survei Belum Diisi ── */}
            {activeSurveys.length > 0 && (
-             <div className="w-full bg-gradient-to-r from-indigo-50 to-violet-50 border border-indigo-200 rounded-2xl p-4 flex gap-3 shadow-sm animate-in slide-in-from-top-3 fade-in">
-               <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center shrink-0 mt-0.5">
-                 <span className="material-icons-round text-indigo-600 text-[22px]">quiz</span>
-               </div>
-               <div className="flex-1 min-w-0">
-                 {activeSurveys.length === 1 ? (
-                   <>
-                     <p className="text-sm font-black text-indigo-900 leading-tight mb-0.5">Survei Menunggu Jawaban Anda</p>
-                     <p className="text-xs text-indigo-700 leading-relaxed mb-3">
-                       <strong>{activeSurveys[0].judul}</strong>
-                       {activeSurveys[0].nama_kegiatan && (
-                         <span className="text-indigo-500"> — {activeSurveys[0].nama_kegiatan}</span>
-                       )}
-                       . Bantu kami meningkatkan pelayanan dengan mengisi survei singkat ini.
-                     </p>
-                   </>
-                 ) : (
-                   <>
-                     <p className="text-sm font-black text-indigo-900 leading-tight mb-0.5">Ada {activeSurveys.length} Survei Menunggu</p>
-                     <p className="text-xs text-indigo-700 leading-relaxed mb-3">
-                       Anda memiliki <strong>{activeSurveys.length} survei</strong> yang belum diisi. Bantu kami meningkatkan pelayanan!
-                     </p>
-                   </>
-                 )}
+             <div className="w-full bg-gradient-to-r from-indigo-50 to-violet-50 border border-indigo-200 rounded-2xl px-3.5 py-3 shadow-sm animate-in slide-in-from-top-3 fade-in">
+               <div className="flex items-center gap-2.5">
+                 <div className="w-9 h-9 bg-indigo-100 rounded-xl flex items-center justify-center shrink-0">
+                   <span className="material-icons-round text-indigo-600 text-[20px]">quiz</span>
+                 </div>
+                 <div className="flex-1 min-w-0">
+                   <p className="text-[13px] font-black text-indigo-900 leading-tight truncate">
+                     Survei Menunggu{activeSurveys.length > 1 ? ` (${activeSurveys.length})` : ''}
+                   </p>
+                   <p className="text-[11px] text-indigo-600 truncate mt-0.5">
+                     {activeSurveys.length === 1
+                       ? activeSurveys[0].judul
+                       : `${activeSurveys.length} survei belum diisi`}
+                   </p>
+                 </div>
                  <button
                    onClick={() => router.push('/survei-saya')}
-                   className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black rounded-lg transition-colors"
+                   className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-black rounded-lg transition-colors shrink-0"
                  >
-                   <span className="material-icons-round text-[14px]">edit_note</span>
-                   {activeSurveys.length === 1 ? 'Isi Sekarang' : 'Lihat & Isi Semua'}
+                   Isi
+                 </button>
+                 <button
+                   onClick={() => setActiveSurveys([])}
+                   className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-indigo-100 text-indigo-400 hover:text-indigo-600 shrink-0 transition-colors"
+                   title="Tutup"
+                 >
+                   <span className="material-icons-round text-[14px]">close</span>
                  </button>
                </div>
              </div>
