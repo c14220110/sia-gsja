@@ -5,6 +5,7 @@ import { useLoader } from '@/components/ui/GlobalLoader';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
+import KeluhanTimeline from '@/components/survei/KeluhanTimeline';
 
 export default function SurveiDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { showLoader, hideLoader } = useLoader();
@@ -25,6 +26,9 @@ export default function SurveiDetailPage({ params }: { params: Promise<{ id: str
   const [selectedTl, setSelectedTl] = useState<any>(null);
   const [tlStatus, setTlStatus] = useState('');
   const [tlCatatan, setTlCatatan] = useState('');
+
+  // Timeline slide-in panel
+  const [showKeluhanTimeline, setShowKeluhanTimeline] = useState(false);
 
   // User data for permission
   const [userData, setUserData] = useState<any>(null);
@@ -133,13 +137,13 @@ export default function SurveiDetailPage({ params }: { params: Promise<{ id: str
   const formatDate = (dateString: string) => {
     if (!dateString) return '-';
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }).format(date);
+    return new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric' }).format(date);
   };
 
   const formatDateTime = (dateString: string) => {
     if (!dateString) return '-';
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(date) + ' WIB';
+    return new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(date) + ' WIB';
   };
 
   // Distribution bar
@@ -227,7 +231,7 @@ export default function SurveiDetailPage({ params }: { params: Promise<{ id: str
             <span className="material-icons-round text-amber-600 text-2xl">stars</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-slate-500 text-[11px] font-bold font-['Public_Sans'] uppercase tracking-wide">SKOR CSAT</span>
+            <span className="text-slate-500 text-[11px] font-bold font-['Public_Sans'] uppercase tracking-wide">SKOR KEPUASAN</span>
             <span className={`text-2xl font-bold font-['Public_Sans'] ${(survei.avg_skor || 0) >= 4 ? 'text-emerald-600' : (survei.avg_skor || 0) >= 3 ? 'text-amber-600' : 'text-rose-600'}`}>{survei.avg_skor ? Number(survei.avg_skor).toFixed(1) : '-'}</span>
           </div>
         </div>
@@ -257,7 +261,7 @@ export default function SurveiDetailPage({ params }: { params: Promise<{ id: str
           {[
             { key: 'hasil', label: 'Hasil & Statistik', icon: 'bar_chart' },
             { key: 'respons', label: 'Daftar Respons', icon: 'list_alt' },
-            { key: 'keluhan', label: 'Keluhan CSAT', icon: 'flag', count: survei.total_flagged },
+            { key: 'keluhan', label: 'Keluhan Survei', icon: 'flag', count: survei.total_flagged },
           ].map(tab => (
             <button
               key={tab.key}
@@ -359,9 +363,22 @@ export default function SurveiDetailPage({ params }: { params: Promise<{ id: str
             </div>
           )}
 
-          {/* TAB: Keluhan CSAT */}
+          {/* TAB: Keluhan Survei */}
           {activeTab === 'keluhan' && (
             <div className="flex flex-col gap-3">
+              {/* Header with Lihat Riwayat button */}
+              {tindakLanjut.length > 0 && (
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{tindakLanjut.length} keluhan tercatat</span>
+                  <button
+                    onClick={() => setShowKeluhanTimeline(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold transition-colors"
+                  >
+                    <span className="material-icons-round text-[16px]">history</span>
+                    Lihat Riwayat
+                  </button>
+                </div>
+              )}
               {tindakLanjut.length === 0 ? (
                 <div className="py-12 flex flex-col items-center justify-center text-slate-500">
                   <span className="material-icons-round text-5xl mb-2 text-slate-300">sentiment_satisfied</span>
@@ -468,6 +485,15 @@ export default function SurveiDetailPage({ params }: { params: Promise<{ id: str
           </div>
         </div>
       )}
+
+      {/* Keluhan Timeline Slide-in Panel */}
+      <KeluhanTimeline
+        surveiId={surveiId}
+        isOpen={showKeluhanTimeline}
+        onClose={() => setShowKeluhanTimeline(false)}
+        tindakLanjutData={tindakLanjut}
+        onUpdated={() => setRefreshTrigger(prev => prev + 1)}
+      />
 
     </div>
   );

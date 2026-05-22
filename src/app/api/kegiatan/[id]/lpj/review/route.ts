@@ -14,20 +14,22 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const caller = getCallerFromRequest(request);
   if (!caller) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
 
-  // Validate reviewer role
-  try {
-    const userRes = await pool.query(
-      `SELECT pr.role_id FROM public.pengguna p
-       JOIN public.user_role pr ON p.id = pr.user_id
-       WHERE p.id = $1 AND pr.is_active = true`,
-      [caller.user_id]
-    );
-    const userRole = userRes.rows[0];
-    if (!userRole || !REVIEWER_ROLES.includes(userRole.role_id)) {
-      return NextResponse.json({ success: false, message: 'Anda tidak memiliki akses untuk mereview LPJ.' }, { status: 403 });
+  // Validate reviewer role — super admin always allowed
+  if (!caller.is_super_admin) {
+    try {
+      const userRes = await pool.query(
+        `SELECT pr.role_id FROM public.pengguna p
+         JOIN public.user_role pr ON p.id = pr.user_id
+         WHERE p.id = $1 AND pr.is_active = true`,
+        [caller.user_id]
+      );
+      const hasReviewerRole = userRes.rows.some((row: any) => REVIEWER_ROLES.includes(row.role_id));
+      if (!hasReviewerRole) {
+        return NextResponse.json({ success: false, message: 'Anda tidak memiliki akses untuk mereview LPJ.' }, { status: 403 });
+      }
+    } catch {
+      return NextResponse.json({ success: false, message: 'Gagal memverifikasi akses.' }, { status: 500 });
     }
-  } catch {
-    return NextResponse.json({ success: false, message: 'Gagal memverifikasi akses.' }, { status: 500 });
   }
 
   const client = await pool.connect();

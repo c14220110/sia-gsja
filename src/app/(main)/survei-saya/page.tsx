@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLoader } from '@/components/ui/GlobalLoader';
@@ -17,6 +18,7 @@ export default function SurveiSayaPage() {
   const [isSurveyModalOpen, setIsSurveyModalOpen] = useState(false);
   const [surveyAnswers, setSurveyAnswers] = useState<Record<number, any>>({});
   const [isSubmittingSurvey, setIsSubmittingSurvey] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -56,9 +58,8 @@ export default function SurveiSayaPage() {
       });
       const data = await res.json();
       if (data.success) {
-        setIsSurveyModalOpen(false);
-        setSelectedSurvey(null);
-        // Refresh data
+        setSubmitSuccess(true);
+        // Refresh data in background
         const [activeRes, historyRes] = await Promise.all([
           fetch('/api/survei/saya'),
           fetch('/api/survei/saya/riwayat'),
@@ -67,9 +68,18 @@ export default function SurveiSayaPage() {
         const historyData = await historyRes.json();
         if (activeData.success) setActiveSurveys(activeData.data || []);
         if (historyData.success) setSurveyHistory(historyData.data || []);
+        // Auto-close after 3 seconds
+        setTimeout(() => {
+          setIsSurveyModalOpen(false);
+          setSelectedSurvey(null);
+          setSubmitSuccess(false);
+        }, 3000);
+      } else {
+        alert(data.message || 'Gagal mengirim survei. Silakan coba lagi.');
       }
     } catch (err) {
       console.error(err);
+      alert('Terjadi kesalahan. Pastikan koneksi internet Anda stabil.');
     } finally {
       setIsSubmittingSurvey(false);
     }
@@ -157,7 +167,14 @@ export default function SurveiSayaPage() {
                   <span className="material-icons-round text-xl">poll</span>
                 </div>
                 <div className="flex flex-col gap-0.5">
-                  <span className="text-slate-800 font-black text-sm group-hover:text-amber-600 transition-colors">{s.judul}</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-slate-800 font-black text-sm group-hover:text-amber-600 transition-colors">{s.judul}</span>
+                    {s.is_anonim && (
+                      <span className="px-1.5 py-0.5 bg-emerald-50 text-emerald-600 text-[9px] font-bold rounded-full border border-emerald-200 flex items-center gap-0.5 shrink-0">
+                        <span className="material-icons-round text-[10px]">visibility_off</span>Anonim
+                      </span>
+                    )}
+                  </div>
                   <span className="text-slate-400 text-[11px] font-medium">
                     {s.nama_kegiatan ? `Pasca-Kegiatan: ${s.nama_kegiatan}` : 'Survei Umum'}
                   </span>
@@ -219,8 +236,9 @@ export default function SurveiSayaPage() {
           answers={surveyAnswers}
           setAnswers={setSurveyAnswers}
           isSubmitting={isSubmittingSurvey}
+          isSuccess={submitSuccess}
           onSubmit={handleSubmitSurvey}
-          onClose={() => setIsSurveyModalOpen(false)}
+          onClose={() => { setIsSurveyModalOpen(false); setSubmitSuccess(false); }}
         />
       )}
     </div>
@@ -229,12 +247,13 @@ export default function SurveiSayaPage() {
 
 /* ── Draggable Bottom Sheet (same animation as Pengaturan Akun) ── */
 function SurveyBottomSheet({
-  survey, answers, setAnswers, isSubmitting, onSubmit, onClose,
+  survey, answers, setAnswers, isSubmitting, isSuccess, onSubmit, onClose,
 }: {
   survey: any;
   answers: Record<number, any>;
   setAnswers: React.Dispatch<React.SetStateAction<Record<number, any>>>;
   isSubmitting: boolean;
+  isSuccess: boolean;
   onSubmit: () => void;
   onClose: () => void;
 }) {
@@ -245,7 +264,12 @@ function SurveyBottomSheet({
     setTimeout(() => { onClose(); }, 400);
   };
 
-  return (
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted) return null;
+
+  return createPortal(
     <div className="fixed inset-0 z-[100] flex flex-col justify-end pointer-events-none">
       {/* Backdrop — same as Pengaturan Akun */}
       <div
@@ -273,77 +297,104 @@ function SurveyBottomSheet({
 
         {/* Modal Header */}
         <div className="flex items-center justify-between px-5 pb-4 pt-1 border-b border-slate-100 shrink-0">
-          <div className="flex flex-col">
+          <div className="flex flex-col gap-1">
             <h2 className="text-lg font-black text-slate-800">{survey.judul}</h2>
             <span className="text-slate-400 text-xs font-medium">
               {survey.nama_kegiatan ? `Pasca-Kegiatan: ${survey.nama_kegiatan}` : 'Survei Umum'}
             </span>
+            {survey.is_anonim && (
+              <div className="flex items-center gap-1.5 mt-0.5 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1.5">
+                <span className="material-icons-round text-emerald-600 text-[14px]">visibility_off</span>
+                <span className="text-emerald-700 text-[11px] font-bold">Survei Anonim — identitas Anda tidak akan dicatat</span>
+              </div>
+            )}
           </div>
           <button onClick={closeSheet} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 transition-colors">
             <span className="material-icons-round text-lg">close</span>
           </button>
         </div>
 
-        {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto px-5 py-5 flex flex-col gap-6">
-          {survey.pertanyaan?.map((q: any, idx: number) => (
-            <div key={q.id} className="flex flex-col gap-3">
-              <p className="text-sm font-bold text-slate-700">
-                <span className="text-indigo-500 mr-1.5">{idx + 1}.</span>
-                {q.teks_pertanyaan}
-              </p>
-              {q.tipe_jawaban === 'skala' ? (
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center justify-between px-1">
-                    {[1, 2, 3, 4, 5].map((val) => (
-                      <button
-                        key={val}
-                        onClick={() => setAnswers(prev => ({ ...prev, [q.id]: { skor: val } }))}
-                        className={`w-12 h-12 rounded-2xl text-lg font-black transition-all duration-200 ${
-                          answers[q.id]?.skor === val
-                            ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 scale-110'
-                            : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
-                        }`}
-                      >
-                        {val}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex justify-between px-2">
-                    <span className="text-[10px] font-bold text-slate-400">Sangat Buruk</span>
-                    <span className="text-[10px] font-bold text-slate-400">Sangat Baik</span>
-                  </div>
-                </div>
-              ) : (
-                <textarea
-                  value={answers[q.id]?.jawaban_teks || ''}
-                  onChange={(e) => setAnswers(prev => ({ ...prev, [q.id]: { jawaban_teks: e.target.value } }))}
-                  className="w-full border border-slate-200 rounded-2xl p-3 text-sm text-slate-700 placeholder:text-slate-300 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  rows={3}
-                  placeholder="Tulis jawaban Anda..."
-                />
-              )}
+        {/* Success State */}
+        {isSuccess ? (
+          <div className="flex-1 flex flex-col items-center justify-center px-5 py-12 gap-4">
+            <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center" style={{ animation: 'settings-slide-up 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards' }}>
+              <span className="material-icons-round text-4xl text-emerald-600">check_circle</span>
             </div>
-          ))}
-        </div>
+            <h3 className="text-xl font-black text-slate-800">Terima Kasih! 🎉</h3>
+            <p className="text-sm text-slate-500 text-center max-w-xs leading-relaxed">
+              Respons Anda telah berhasil dikirim.
+              {survey.is_anonim && (
+                <><br /><span className="text-emerald-600 font-bold">Survei ini bersifat anonim</span> — identitas Anda tidak akan ditampilkan kepada pengelola.</>)}
+            </p>
+            <div className="mt-2 px-3 py-1.5 bg-slate-100 rounded-full">
+              <span className="text-[11px] font-bold text-slate-400">Menutup otomatis...</span>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto px-5 py-5 flex flex-col gap-6">
+              {survey.pertanyaan?.map((q: any, idx: number) => (
+                <div key={q.id} className="flex flex-col gap-3">
+                  <p className="text-sm font-bold text-slate-700">
+                    <span className="text-indigo-500 mr-1.5">{idx + 1}.</span>
+                    {q.teks_pertanyaan}
+                  </p>
+                  {q.tipe_jawaban === 'skala' ? (
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center justify-between px-1">
+                        {[1, 2, 3, 4, 5].map((val) => (
+                          <button
+                            key={val}
+                            onClick={() => setAnswers(prev => ({ ...prev, [q.id]: { skor: val } }))}
+                            className={`w-12 h-12 rounded-2xl text-lg font-black transition-all duration-200 ${
+                              answers[q.id]?.skor === val
+                                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 scale-110'
+                                : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                            }`}
+                          >
+                            {val}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="flex justify-between px-2">
+                        <span className="text-[10px] font-bold text-slate-400">Sangat Buruk</span>
+                        <span className="text-[10px] font-bold text-slate-400">Sangat Baik</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <textarea
+                      value={answers[q.id]?.jawaban_teks || ''}
+                      onChange={(e) => setAnswers(prev => ({ ...prev, [q.id]: { jawaban_teks: e.target.value } }))}
+                      className="w-full border border-slate-200 rounded-2xl p-3 text-sm text-slate-700 placeholder:text-slate-300 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      rows={3}
+                      placeholder="Tulis jawaban Anda..."
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
 
-        {/* Modal Footer — extra bottom padding for PWA bottom nav bar */}
-        <div className="p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px)+70px)] border-t border-slate-100 shrink-0">
-          <button
-            onClick={onSubmit}
-            disabled={isSubmitting}
-            className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-black rounded-2xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-indigo-200"
-          >
-            {isSubmitting ? (
-              <span className="material-icons-round animate-spin text-lg">refresh</span>
-            ) : (
-              <span className="material-icons-round text-lg">send</span>
-            )}
-            {isSubmitting ? 'Mengirim...' : 'Kirim Survei'}
-          </button>
-        </div>
+            {/* Modal Footer */}
+            <div className="p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] border-t border-slate-100 shrink-0">
+              <button
+                onClick={onSubmit}
+                disabled={isSubmitting}
+                className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-black rounded-2xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-indigo-200"
+              >
+                {isSubmitting ? (
+                  <span className="material-icons-round animate-spin text-lg">refresh</span>
+                ) : (
+                  <span className="material-icons-round text-lg">send</span>
+                )}
+                {isSubmitting ? 'Mengirim...' : 'Kirim Survei'}
+              </button>
+            </div>
+          </>
+        )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

@@ -87,7 +87,7 @@ export async function getKpi1(dari: string, sampai: string, satelitId: number | 
   };
 }
 
-// KPI-2: Skor CSAT Rata-rata (target > 4.5)
+// KPI-2: Skor Kepuasan Rata-rata (target > 4.5)
 export async function getKpi2(dari: string, sampai: string, satelitId: number | null): Promise<RawKpi> {
   const p: (string | number)[] = [dari, sampai];
   const sf = satelitId ? ` AND s.satelit_id = $${p.push(satelitId)}` : '';
@@ -160,45 +160,101 @@ export async function getKpi4(dari: string, sampai: string, satelitId: number | 
 }
 
 // KPI-5: Rasio Beban Operasional (target < 45%, lower is better)
+// Definisi: (Total beban penggajian ÷ Total pemasukan via SIA) × 100%
 export async function getKpi5(dari: string, sampai: string, satelitId: number | null): Promise<RawKpi> {
-  const p: (string | number)[] = [dari, sampai];
-  const sf = satelitId ? ` AND k.satelit_id = $${p.push(satelitId)}` : '';
-  const r = await pool.query(
-    `SELECT
-       COALESCE(SUM(CASE WHEN ld.jenis_anggaran = 'Penerimaan' THEN ld.jumlah * ld.harga_satuan END), 0) AS penerimaan,
-       COALESCE(SUM(CASE WHEN ld.jenis_anggaran = 'Pengeluaran' THEN ld.jumlah * ld.harga_satuan END), 0) AS pengeluaran
-     FROM public.kegiatan_lpj_detail ld
-     JOIN public.kegiatan k ON k.id = ld.kegiatan_id
-     WHERE k.tanggal_mulai BETWEEN $1 AND $2${sf}`,
-    p,
+  // 1. Pembilang: Total netto payroll yang sudah Dibayar pada periode
+  const pPayroll: (string | number)[] = [dari, sampai];
+  const sfPayroll = satelitId ? ` AND pr.satelit_id = $${pPayroll.push(satelitId)}` : '';
+  const rPayroll = await pool.query(
+    `SELECT COALESCE(SUM(pr.total_netto), 0) AS total_beban
+     FROM public.payroll_run pr
+     WHERE pr.status = 'Dibayar'
+       AND MAKE_DATE(pr.tahun, pr.bulan, 1) BETWEEN $1::date AND $2::date${sfPayroll}`,
+    pPayroll,
   );
-  const penerimaan  = parseFloat(r.rows[0].penerimaan);
-  const pengeluaran = parseFloat(r.rows[0].pengeluaran);
-  const nilai = penerimaan > 0 ? parseFloat(((pengeluaran / penerimaan) * 100).toFixed(1)) : null;
-  return { nilai, target: 45, unit: '%', data_tersedia: penerimaan > 0 };
+  const totalBeban = parseFloat(rPayroll.rows[0].total_beban);
+
+  // 2. Penyebut: Total pemasukan dari SIA (jurnal Posted, COA grup_laporan = 'Pendapatan')
+  //    Integrasi read-only dari Sistem Informasi Akuntansi
+  const pSIA: (string | number)[] = [dari, sampai];
+  const sfSIA = satelitId ? ` AND jd.satelit_id = $${pSIA.push(satelitId)}` : '';
+  const rSIA = await pool.query(
+    `SELECT COALESCE(SUM(jd.nominal), 0) AS total_pemasukan
+     FROM public.buku_besar_jurnal_detail jd
+     JOIN public.buku_besar_jurnal j ON j.id = jd.jurnal_id
+     JOIN public.buku_besar_coa c ON c.id = jd.coa_id
+     WHERE j.status = 'Posted'
+       AND c.grup_laporan = 'Pendapatan'
+       AND jd.posisi = 'Kredit'
+       AND j.tanggal_transaksi BETWEEN $1 AND $2${sfSIA}`,
+    pSIA,
+  );
+  const totalPemasukan = parseFloat(rSIA.rows[0].total_pemasukan);
+
+  const dataTersedia = totalPemasukan > 0;
+  const nilai = dataTersedia ? parseFloat(((totalBeban / totalPemasukan) * 100).toFixed(1)) : null;
+  return {
+    nilai,
+    target: 45,
+    unit: '%',
+    data_tersedia: dataTersedia,
+    numerator: totalBeban,
+    denominator: totalPemasukan,
+    pesan: dataTersedia
+      ? `Beban penggajian Rp ${totalBeban.toLocaleString('id-ID')} dari pemasukan Rp ${totalPemasukan.toLocaleString('id-ID')}`
+      : 'Belum ada data pemasukan dari SIA pada periode ini.',
+  };
 }
 
-// KPI-6: Efisiensi Anggaran Proposal (target 90%–100%)
+// KPI-6: Efisiensi Anggaran (target 90%–100%)
+// Definisi: (Realisasi pengeluaran ÷ RAB pengeluaran disetujui) × 100%
 export async function getKpi6(dari: string, sampai: string, satelitId: number | null): Promise<RawKpi> {
-  const p: (string | number)[] = [dari, sampai];
-  const sf = satelitId ? ` AND k.satelit_id = $${p.push(satelitId)}` : '';
-  const r = await pool.query(
-    `SELECT
-       COALESCE(SUM(lpj.total_pengeluaran), 0)    AS realisasi,
-       COALESCE(SUM(lpj.total_subsidi_gereja), 0) AS subsidi
+  const tahun = new Date(sampai).getFullYear();
+
+  // 1. Denominator: Total PENGELUARAN disetujui dari item-level RA (bukan header total_disetujui yang campur penerimaan)
+  const pRA: (string | number)[] = [tahun];
+  const sfRA = satelitId ? ` AND at.satelit_id = $${pRA.push(satelitId)}` : '';
+  const rRA = await pool.query(
+    `SELECT COALESCE(SUM(ad.nominal_disetujui), 0) AS rab_pengeluaran
+     FROM public.anggaran_tahunan_detail ad
+     JOIN public.anggaran_tahunan at ON at.id = ad.anggaran_tahunan_id
+     WHERE at.tahun = $1
+       AND at.status IN ('Disetujui Penuh', 'Disetujui Sebagian', 'Selesai')
+       AND ad.jenis_anggaran = 'Pengeluaran'
+       AND ad.status_item IN ('ACC', 'ACC_DIPOTONG', 'Disetujui')${sfRA}`,
+    pRA,
+  );
+  const rabPengeluaran = parseFloat(rRA.rows[0].rab_pengeluaran);
+
+  // 2. Numerator: Total realisasi pengeluaran dari SEMUA LPJ kegiatan di tahun ini
+  const pLPJ: (string | number)[] = [dari, sampai];
+  const sfLPJ = satelitId ? ` AND k.satelit_id = $${pLPJ.push(satelitId)}` : '';
+  const rLPJ = await pool.query(
+    `SELECT COALESCE(SUM(lpj.total_pengeluaran), 0) AS realisasi
      FROM public.kegiatan_lpj lpj
      JOIN public.kegiatan k ON k.id = lpj.kegiatan_id
      WHERE lpj.status_lpj = 'Disetujui'
-       AND k.tanggal_mulai BETWEEN $1 AND $2${sf}`,
-    p,
+       AND k.tanggal_mulai BETWEEN $1 AND $2${sfLPJ}`,
+    pLPJ,
   );
-  const realisasi = parseFloat(r.rows[0].realisasi);
-  const subsidi   = parseFloat(r.rows[0].subsidi);
-  const nilai     = subsidi > 0 ? parseFloat(((realisasi / subsidi) * 100).toFixed(1)) : null;
-  return { nilai, target: 100, unit: '%', data_tersedia: subsidi > 0 };
+  const realisasi = parseFloat(rLPJ.rows[0].realisasi);
+
+  const dataTersedia = rabPengeluaran > 0;
+  const nilai = dataTersedia ? parseFloat(((realisasi / rabPengeluaran) * 100).toFixed(1)) : null;
+  return {
+    nilai,
+    target: 100,
+    unit: '%',
+    data_tersedia: dataTersedia,
+    numerator: realisasi,
+    denominator: rabPengeluaran,
+    pesan: dataTersedia
+      ? `Realisasi Rp ${realisasi.toLocaleString('id-ID')} dari RAB Rp ${rabPengeluaran.toLocaleString('id-ID')}`
+      : 'Belum ada RA yang disetujui pada tahun ini.',
+  };
 }
 
-// KPI-7: Rasio Penyelesaian Tindak Lanjut CSAT (target 100%)
+// KPI-7: Rasio Penyelesaian Tindak Lanjut Keluhan Survei (target 100%)
 export async function getKpi7(dari: string, sampai: string, satelitId: number | null): Promise<RawKpi> {
   const p: (string | number)[] = [dari, sampai];
   const sf = satelitId ? ` AND s.satelit_id = $${p.push(satelitId)}` : '';
@@ -223,27 +279,45 @@ export async function getKpi7(dari: string, sampai: string, satelitId: number | 
     data_tersedia: dataTersedia,
     numerator: selesai,
     denominator: total,
-    pesan: dataTersedia ? `${selesai} dari ${total} keluhan diselesaikan` : 'Belum ada keluhan CSAT pada periode ini.',
+    pesan: dataTersedia ? `${selesai} dari ${total} keluhan diselesaikan` : 'Belum ada keluhan survei pada periode ini.',
   };
 }
 
 // KPI-8: Kelengkapan Data Presensi Bernama (target > 95%)
+// Definisi: (Total presensi tercatat di sistem ÷ Total kehadiran manual via hand tally) × 100%
 export async function getKpi8(dari: string, sampai: string, satelitId: number | null): Promise<RawKpi> {
   const p: (string | number)[] = [dari, sampai];
   const sf = satelitId ? ` AND k.satelit_id = $${p.push(satelitId)}` : '';
   const r = await pool.query(
     `SELECT
-       COUNT(*) FILTER (WHERE ka.jemaat_id IS NOT NULL) AS bernama,
-       COUNT(*) AS total
-     FROM public.kegiatan_absensi ka
-     JOIN public.kegiatan k ON k.id = ka.kegiatan_id
-     WHERE k.tanggal_mulai BETWEEN $1 AND $2${sf}`,
+       COALESCE(SUM(sub.digital_count), 0) AS total_digital,
+       COALESCE(SUM(sub.jumlah_hadir_manual), 0) AS total_manual
+     FROM (
+       SELECT k.id, k.jumlah_hadir_manual, COUNT(ka.id) AS digital_count
+       FROM public.kegiatan k
+       LEFT JOIN public.kegiatan_absensi ka ON ka.kegiatan_id = k.id
+       WHERE k.jumlah_hadir_manual IS NOT NULL
+         AND k.jumlah_hadir_manual > 0
+         AND k.tanggal_mulai BETWEEN $1 AND $2${sf}
+       GROUP BY k.id
+     ) sub`,
     p,
   );
-  const bernama = parseInt(r.rows[0].bernama, 10);
-  const total   = parseInt(r.rows[0].total, 10);
-  const nilai   = total > 0 ? parseFloat(((bernama / total) * 100).toFixed(1)) : null;
-  return { nilai, target: 95, unit: '%', data_tersedia: total > 0, numerator: bernama, denominator: total };
+  const digital = parseInt(r.rows[0].total_digital, 10);
+  const manual  = parseInt(r.rows[0].total_manual, 10);
+  const dataTersedia = manual > 0;
+  const nilai = dataTersedia ? parseFloat((Math.min(digital / manual, 1) * 100).toFixed(1)) : null;
+  return {
+    nilai,
+    target: 95,
+    unit: '%',
+    data_tersedia: dataTersedia,
+    numerator: digital,
+    denominator: manual,
+    pesan: dataTersedia
+      ? `${digital} tercatat digital dari ${manual} kehadiran manual`
+      : 'Belum ada kegiatan dengan input kehadiran manual (hand tally) pada periode ini.',
+  };
 }
 
 // KPI-9: Rasio Kehadiran Pelayan (target > 90%)

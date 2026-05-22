@@ -21,9 +21,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         st.respons_id,
         st.status,
         st.catatan_tindakan,
-        st.ditangani_oleh,
-        st.waktu_ditangani,
-        st.waktu_selesai,
+        st.updated_by,
+        st.updated_at,
         st.created_at AS tindak_lanjut_created_at,
         sr.survei_id,
         sr.pertanyaan_id,
@@ -35,13 +34,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         sp.urutan,
         sp.teks_pertanyaan,
         sp.tipe_jawaban,
-        COALESCE(j.nama_lengkap, 'N/A') AS nama_jemaat,
+        CASE WHEN sv.is_anonim THEN 'Anonim' ELSE COALESCE(j.nama_lengkap, 'N/A') END AS nama_jemaat,
         COALESCE(handler_j.nama_lengkap, handler_p.email) AS ditangani_oleh_nama
       FROM public.survei_tindak_lanjut st
       JOIN public.survei_respons sr ON st.respons_id = sr.id
+      JOIN public.survei sv ON sr.survei_id = sv.id
       JOIN public.survei_pertanyaan sp ON sr.pertanyaan_id = sp.id
       LEFT JOIN public.jemaat j ON sr.jemaat_id = j.id
-      LEFT JOIN public.pengguna handler_p ON st.ditangani_oleh = handler_p.id
+      LEFT JOIN public.pengguna handler_p ON st.updated_by = handler_p.id
       LEFT JOIN public.jemaat handler_j ON handler_p.jemaat_id = handler_j.id
       WHERE sr.survei_id = $1
       ORDER BY st.created_at DESC, sp.urutan ASC
@@ -102,18 +102,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
 
     // Build dynamic update based on status
-    let extraSets = '';
     const values: any[] = [status, catatan_tindakan || null, caller.user_id, respons_id];
-
-    if (status === 'Sedang Ditangani') {
-      extraSets = `, waktu_ditangani = NOW()`;
-    } else if (status === 'Selesai') {
-      extraSets = `, waktu_selesai = NOW()`;
-    }
 
     await pool.query(
       `UPDATE public.survei_tindak_lanjut 
-       SET status = $1, catatan_tindakan = $2, ditangani_oleh = $3${extraSets}
+       SET status = $1, catatan_tindakan = $2, updated_by = $3, updated_at = NOW()
        WHERE respons_id = $4`,
       values
     );

@@ -222,7 +222,7 @@ function KpiCard({ kpi, label, icon, targetLabel, higherIsBetter = true, kpiKey,
     return (
       <div className={`relative rounded-xl border-l-4 ${statusColors.border} bg-white p-2.5 flex items-center gap-2.5 border border-slate-200 shadow-sm self-start h-fit w-full`}>
         <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${statusColors.badge}`}>
-          <span className="material-icons-round text-sm">{icon}</span>
+          <span className="material-icons-round text-[18px] leading-none">{icon}</span>
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-slate-800 font-extrabold text-[11px] leading-tight truncate">{label}</p>
@@ -236,9 +236,9 @@ function KpiCard({ kpi, label, icon, targetLabel, higherIsBetter = true, kpiKey,
     <div className={`relative rounded-2xl border-l-4 ${statusColors.border} bg-white p-4 flex flex-col justify-between min-h-[168px] shadow-sm border border-slate-200 hover:shadow-md transition-all duration-300`}>
       {/* Row 1: Icon and Title */}
       <div className="flex items-start justify-between gap-2 mb-2">
-        <div className="flex items-center gap-2">
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${statusColors.badge}`}>
-            <span className="material-icons-round text-sm">{icon}</span>
+        <div className="flex items-start gap-2">
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${statusColors.badge}`}>
+            <span className="material-icons-round text-[18px] leading-none">{icon}</span>
           </div>
           <p className="text-slate-800 font-extrabold text-[12px] leading-tight tracking-wide">{label}</p>
         </div>
@@ -1476,17 +1476,17 @@ export default function DashboardHome() {
     // Aksi rekomendasi strategis per KPI
     const kpiMapping: Record<string, { label: string; rec: string }> = {
       kpi1: { label: "Rasio Presensi Jemaat", rec: "Sosialisasikan kembali pentingnya pencatatan presensi mandiri lewat QR Code di setiap ibadah." },
-      kpi2: { label: "Skor Kepuasan (CSAT)", rec: "Lakukan evaluasi berkala terhadap umpan balik jemaat mengenai ibadah dan fasilitas." },
+      kpi2: { label: "Skor Kepuasan Rata-rata", rec: "Lakukan evaluasi berkala terhadap umpan balik jemaat mengenai ibadah dan fasilitas." },
       kpi3: { label: "Laju Pertumbuhan Jemaat", rec: "Tingkatkan kegiatan penjangkauan, komsel, dan program integrasi jemaat baru." },
-      kpi4: { label: "Ketepatan Respons Pastoral", rec: "Evaluasi beban kerja tim pastoral dan optimalkan alur penugasan kunjungan jemaat." },
+      kpi4: { label: "Tingkat Ketepatan Respons Pastoral", rec: "Evaluasi beban kerja tim pastoral dan optimalkan alur penugasan kunjungan jemaat." },
       kpi5: { label: "Rasio Beban Operasional", rec: "Tinjau kembali alokasi pengeluaran non-prioritas dan lakukan efisiensi biaya operasional bulanan." },
-      kpi6: { label: "Efisiensi Anggaran Proposal", rec: "Berikan bimbingan teknis penyusunan proposal kegiatan agar estimasi biaya lebih presisi." },
-      kpi7: { label: "Penyelesaian Tindak Lanjut", rec: "Adakan koordinasi rutin mingguan untuk menyelesaikan laporan keuangan proposal tertunda." },
-      kpi8: { label: "Kelengkapan Data Presensi", rec: "Tugaskan pelayan pintu (usher) ekstra untuk membantu jemaat melakukan QR scan saat masuk." },
+      kpi6: { label: "Efisiensi Anggaran", rec: "Berikan bimbingan teknis penyusunan proposal kegiatan agar estimasi biaya lebih presisi." },
+      kpi7: { label: "Rasio Penyelesaian Tindak Lanjut", rec: "Adakan koordinasi rutin untuk segera menyelesaikan dan menindaklanjuti keluhan dari jemaat." },
+      kpi8: { label: "Kelengkapan Data Presensi Bernama", rec: "Tugaskan pelayan pintu (usher) ekstra untuk membantu jemaat melakukan QR scan saat masuk." },
       kpi9: { label: "Rasio Kehadiran Pelayan", rec: "Kirimkan pengingat jadwal otomatis lebih awal dan lakukan pembinaan komitmen pelayan." },
-      kpi10: { label: "Ketepatan Konfirmasi Jadwal", rec: "Sederhanakan proses konfirmasi jadwal pelayan melalui aplikasi seluler atau WhatsApp bot." },
-      kpi11: { label: "Kedisiplinan Kedatangan", rec: "Berikan apresiasi kepada pelayan yang disiplin dan adakan briefing sebelum ibadah dimulai." },
-      kpi12: { label: "Rata Waktu Respons Pastoral", rec: "Gunakan sistem notifikasi instan agar permohonan kunjungan pastoral segera ditindaklanjuti." },
+      kpi10: { label: "Ketepatan Waktu Konfirmasi Jadwal", rec: "Sederhanakan proses konfirmasi jadwal pelayan melalui aplikasi seluler atau WhatsApp bot." },
+      kpi11: { label: "Kedisiplinan Waktu Kedatangan Pelayan", rec: "Berikan apresiasi kepada pelayan yang disiplin dan adakan briefing sebelum ibadah dimulai." },
+      kpi12: { label: "Tingkat Respons Pelayanan Pastoral", rec: "Gunakan sistem notifikasi instan agar permohonan kunjungan pastoral segera ditindaklanjuti." },
     };
 
     // Filter KPI bermasalah untuk Hero Section (maksimal 3)
@@ -1685,9 +1685,9 @@ export default function DashboardHome() {
               <PerspektifHeader warna="bg-blue-100 text-blue-600 border border-blue-200" icon="groups" title="Jemaat & Pemangku Kepentingan" subtitle="Customer Perspective" />
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <KpiCard kpi={d.kpi1} label="Rasio Presensi Jemaat" icon="how_to_reg" targetLabel="Target: > 80%" kpiKey="kpi1" satelitId={sid} />
-                <KpiCard kpi={d.kpi2} label="Skor Kepuasan (CSAT)" icon="star" targetLabel="Target: > 4.5 dari 5.0" kpiKey="kpi2" satelitId={sid} />
+                <KpiCard kpi={d.kpi2} label="Skor Kepuasan Rata-rata" icon="star" targetLabel="Target: > 4.5 dari 5.0" kpiKey="kpi2" satelitId={sid} />
                 <KpiCard kpi={d.kpi3} label="Laju Pertumbuhan Jemaat" icon="trending_up" targetLabel="Target: ≥ 10 jiwa/bln" kpiKey="kpi3" satelitId={sid} />
-                <KpiCard kpi={d.kpi4} label="Ketepatan Respons Pastoral" icon="support_agent" targetLabel="Target: > 90%" kpiKey="kpi4" satelitId={sid} />
+                <KpiCard kpi={d.kpi4} label="Tingkat Ketepatan Respons Pastoral" icon="support_agent" targetLabel="Target: > 90%" kpiKey="kpi4" satelitId={sid} />
               </div>
             </div>
 
@@ -1696,8 +1696,7 @@ export default function DashboardHome() {
               <PerspektifHeader warna="bg-emerald-100 text-emerald-600 border border-emerald-200" icon="account_balance" title="Pengelolaan Keuangan" subtitle="Financial Perspective" />
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <KpiCard kpi={d.kpi5} label="Rasio Beban Operasional" icon="pie_chart" targetLabel="Target: < 45%" higherIsBetter={false} kpiKey="kpi5" satelitId={sid} />
-                <KpiCard kpi={d.kpi6} label="Efisiensi Anggaran Proposal" icon="request_quote" targetLabel="Target: 90%–100%" kpiKey="kpi6" satelitId={sid} />
-                <KpiCard kpi={d.kpi7} label="Penyelesaian Tindak Lanjut" icon="task_alt" targetLabel="Target: 100%" kpiKey="kpi7" satelitId={sid} />
+                <KpiCard kpi={d.kpi6} label="Efisiensi Anggaran" icon="request_quote" targetLabel="Target: 90%–100%" kpiKey="kpi6" satelitId={sid} />
               </div>
             </div>
 
@@ -1705,29 +1704,19 @@ export default function DashboardHome() {
             <div className="flex flex-col gap-3">
               <PerspektifHeader warna="bg-violet-100 text-violet-600 border border-violet-200" icon="settings_suggest" title="Proses Bisnis Internal" subtitle="Internal Process Perspective" />
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <KpiCard kpi={d.kpi8} label="Kelengkapan Data Presensi" icon="database" targetLabel="Target: > 95%" kpiKey="kpi8" satelitId={sid} />
-                <KpiCard kpi={d.kpi9} label="Rasio Kehadiran Pelayan" icon="volunteer_activism" targetLabel="Target: > 90%" kpiKey="kpi9" satelitId={sid} />
-                <KpiCard kpi={d.kpi10} label="Ketepatan Konfirmasi Jadwal" icon="schedule_send" targetLabel="Target: > 85%" kpiKey="kpi10" satelitId={sid} />
-                <KpiCard kpi={d.kpi11} label="Kedisiplinan Kedatangan" icon="alarm_on" targetLabel="Target: > 95%" kpiKey="kpi11" satelitId={sid} />
+                <KpiCard kpi={d.kpi7} label="Rasio Penyelesaian Tindak Lanjut" icon="task_alt" targetLabel="Target: 100%" kpiKey="kpi7" satelitId={sid} />
+                <KpiCard kpi={d.kpi8} label="Kelengkapan Data Presensi Bernama" icon="database" targetLabel="Target: > 95%" kpiKey="kpi8" satelitId={sid} />
               </div>
             </div>
 
             {/* P4 — Pembelajaran & Pertumbuhan */}
             <div className="flex flex-col gap-3">
               <PerspektifHeader warna="bg-orange-100 text-orange-600 border border-orange-200" icon="school" title="Pembelajaran & Pertumbuhan" subtitle="Learning & Growth Perspective" />
-              <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-start">
-                <div className="lg:col-span-1">
-                  <KpiCard kpi={d.kpi12} label="Rata Waktu Respons Pastoral" icon="timer" targetLabel="Target: < 72 jam" higherIsBetter={false} kpiKey="kpi12" satelitId={sid} />
-                </div>
-                <div className="lg:col-span-3 self-stretch flex items-center p-5 bg-indigo-50/60 border border-indigo-100/80 rounded-2xl gap-3 shadow-sm min-h-[168px]">
-                  <span className="material-icons-round text-indigo-400 text-2xl shrink-0">info</span>
-                  <div className="flex flex-col">
-                    <h4 className="font-extrabold text-indigo-950 text-sm mb-0.5">Catatan Integrasi Modul</h4>
-                    <p className="text-xs text-indigo-700 leading-relaxed font-medium">
-                      <strong>KPI-2 (Skor Kepuasan Jemaat)</strong> dan <strong>KPI-7 (Penyelesaian Tindak Lanjut Temuan Audit)</strong> saat ini sedang menunggu aktivasi penuh dari Modul Survei Kepuasan dan Audit Keuangan. Data historis dan tren akan otomatis terintegrasi dan tampil secara real-time setelah masing-masing modul tersebut diaktifkan oleh administrator utama.
-                    </p>
-                  </div>
-                </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <KpiCard kpi={d.kpi9} label="Rasio Kehadiran Pelayan" icon="volunteer_activism" targetLabel="Target: > 90%" kpiKey="kpi9" satelitId={sid} />
+                <KpiCard kpi={d.kpi10} label="Ketepatan Waktu Konfirmasi Jadwal" icon="schedule_send" targetLabel="Target: > 85%" kpiKey="kpi10" satelitId={sid} />
+                <KpiCard kpi={d.kpi11} label="Kedisiplinan Waktu Kedatangan Pelayan" icon="alarm_on" targetLabel="Target: > 95%" kpiKey="kpi11" satelitId={sid} />
+                <KpiCard kpi={d.kpi12} label="Tingkat Respons Pelayanan Pastoral" icon="timer" targetLabel="Target: < 72 jam" higherIsBetter={false} kpiKey="kpi12" satelitId={sid} />
               </div>
             </div>
 

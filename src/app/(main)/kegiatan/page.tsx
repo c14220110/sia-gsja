@@ -50,6 +50,10 @@ export default function KegiatanPage() {
   const [cancelModal, setCancelModal] = useState<{isOpen: boolean, kegiatanId: number | null, reason: string}>({isOpen: false, kegiatanId: null, reason: ''});
   const [submitState, setSubmitState] = useState<{ status: 'idle'|'loading'|'success'|'error', message: string }>({ status: 'idle', message: '' });
 
+  // Head Count Modal
+  const [headCountModal, setHeadCountModal] = useState<{ isOpen: boolean; kegiatanId: number | null; namaKegiatan: string; currentValue: number | null; digitalCount: number }>({ isOpen: false, kegiatanId: null, namaKegiatan: '', currentValue: null, digitalCount: 0 });
+  const [headCountInput, setHeadCountInput] = useState('');
+
   const handleUpdateStatus = async (id: number, newStatus: string, reason?: string) => {
     setSubmitState({ status: 'loading', message: `Sedang memproses acara...` });
     try {
@@ -96,6 +100,54 @@ export default function KegiatanPage() {
         setTimeout(() => setSubmitState({ status: 'idle', message: '' }), 2000);
       }
     } catch(err) {
+      setSubmitState({ status: 'error', message: 'Terjadi kesalahan server.' });
+      setTimeout(() => setSubmitState({ status: 'idle', message: '' }), 2000);
+    }
+  };
+
+  // ── Head Count Handlers ─────────────────────────────────────────────
+  const openHeadCountModal = async (kegiatanId: number, namaKegiatan: string) => {
+    setOpenMenuId(null);
+    try {
+      const res = await fetch(`/api/kegiatan/${kegiatanId}/head-count`);
+      const result = await res.json();
+      if (result.success) {
+        setHeadCountModal({
+          isOpen: true,
+          kegiatanId,
+          namaKegiatan,
+          currentValue: result.data.jumlah_hadir_manual ? parseInt(result.data.jumlah_hadir_manual) : null,
+          digitalCount: parseInt(result.data.total_presensi_digital) || 0,
+        });
+        setHeadCountInput(result.data.jumlah_hadir_manual?.toString() || '');
+      }
+    } catch {
+      console.error('Failed to fetch head count data');
+    }
+  };
+
+  const handleSaveHeadCount = async () => {
+    if (!headCountModal.kegiatanId || !headCountInput) return;
+    setSubmitState({ status: 'loading', message: 'Menyimpan data kehadiran manual...' });
+    try {
+      const res = await fetch(`/api/kegiatan/${headCountModal.kegiatanId}/head-count`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jumlah_hadir_manual: parseInt(headCountInput, 10) }),
+      });
+      const result = await res.json();
+      if (result.success) {
+        setSubmitState({ status: 'success', message: 'Kehadiran manual berhasil disimpan!' });
+        setTimeout(() => {
+          setSubmitState({ status: 'idle', message: '' });
+          setHeadCountModal({ isOpen: false, kegiatanId: null, namaKegiatan: '', currentValue: null, digitalCount: 0 });
+          setRefreshTrigger(prev => prev + 1);
+        }, 1500);
+      } else {
+        setSubmitState({ status: 'error', message: result.message || 'Gagal menyimpan.' });
+        setTimeout(() => setSubmitState({ status: 'idle', message: '' }), 2000);
+      }
+    } catch {
       setSubmitState({ status: 'error', message: 'Terjadi kesalahan server.' });
       setTimeout(() => setSubmitState({ status: 'idle', message: '' }), 2000);
     }
@@ -788,6 +840,11 @@ export default function KegiatanPage() {
                             <>
                               <Link href={`/kegiatan/${kegiatan.id}`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Detail</Link>
                               {hasPermission('kegiatan_absensi') && <Link href={`/kegiatan/${kegiatan.id}/absensi-susulan`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">how_to_reg</span>Absensi Susulan</Link>}
+                              {hasPermission('kegiatan_manage') && (
+                                <button onClick={() => openHeadCountModal(kegiatan.id, kegiatan.nama_kegiatan)} className="w-full text-left px-4 py-2 hover:bg-teal-50 text-teal-700 text-sm flex items-center gap-2">
+                                  <span className="material-icons-round text-[18px] text-teal-500">pin</span>Input Total Kehadiran Manual
+                                </button>
+                              )}
                               {hasPermission('kegiatan_lpj') && <div className="w-full h-px bg-slate-100 my-1" />}
                               {/* Input LPJ: tampil jika belum ada atau status Draft/Revisi */}
                               {hasPermission('kegiatan_lpj') && (!kegiatan.status_lpj || ['Draft','Revisi'].includes(kegiatan.status_lpj)) && (
@@ -811,6 +868,12 @@ export default function KegiatanPage() {
                               <Link href={`/kegiatan/${kegiatan.id}`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Detail</Link>
                               <Link href={`/kegiatan/${kegiatan.id}/absensi-susulan`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">print</span>Cetak Daftar Hadir</Link>
                               <Link href={`/kegiatan/${kegiatan.id}/lpj/view`} className="w-full text-left px-4 py-2 hover:bg-indigo-50 text-indigo-700 text-sm flex items-center gap-2 font-semibold"><span className="material-icons-round text-[18px] text-indigo-500">article</span>Lihat / Cetak LPJ</Link>
+                              {hasPermission('kegiatan_manage') && <div className="w-full h-px bg-slate-100 my-1" />}
+                              {hasPermission('kegiatan_manage') && (
+                                <button onClick={() => openHeadCountModal(kegiatan.id, kegiatan.nama_kegiatan)} className="w-full text-left px-4 py-2 hover:bg-teal-50 text-teal-700 text-sm flex items-center gap-2">
+                                  <span className="material-icons-round text-[18px] text-teal-500">pin</span>Input Total Kehadiran Manual
+                                </button>
+                              )}
                             </>
                           )}
 
@@ -915,6 +978,84 @@ export default function KegiatanPage() {
                >
                  {submitState.status === 'loading' ? <span className="material-icons-round animate-spin text-[18px]">refresh</span> : <span className="material-icons-round text-[18px]">block</span>}
                  Proses Pembatalan Acara
+               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* HEAD COUNT MODAL */}
+      {headCountModal.isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => submitState.status !== 'loading' && setHeadCountModal({ isOpen: false, kegiatanId: null, namaKegiatan: '', currentValue: null, digitalCount: 0 })}></div>
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="px-6 py-5 border-b border-slate-100 flex items-center gap-3 bg-slate-50/50">
+              <div className="w-10 h-10 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center shrink-0">
+                <span className="material-icons-round">pin</span>
+              </div>
+              <div>
+                <h3 className="text-slate-900 font-bold text-lg">Input Kehadiran Manual</h3>
+                <p className="text-slate-500 text-xs mt-0.5 line-clamp-1">{headCountModal.namaKegiatan}</p>
+              </div>
+            </div>
+            
+            <div className="p-6 flex flex-col gap-4">
+              {/* Info: Presensi Digital */}
+              <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg flex gap-3 items-center">
+                <span className="material-icons-round text-blue-600 text-[20px]">devices</span>
+                <div>
+                  <p className="text-blue-800 text-xs font-bold">Presensi tercatat di sistem</p>
+                  <p className="text-blue-900 text-lg font-black">{headCountModal.digitalCount} <span className="text-xs font-medium text-blue-600">orang</span></p>
+                </div>
+              </div>
+
+              {headCountModal.currentValue !== null && (
+                <div className="bg-teal-50 border border-teal-200 p-3 rounded-lg flex gap-3 items-center">
+                  <span className="material-icons-round text-teal-600 text-[20px]">check_circle</span>
+                  <div>
+                    <p className="text-teal-800 text-xs font-bold">Kehadiran manual sebelumnya</p>
+                    <p className="text-teal-900 text-lg font-black">{headCountModal.currentValue} <span className="text-xs font-medium text-teal-600">orang</span></p>
+                  </div>
+                </div>
+              )}
+
+              <div className="w-full flex flex-col gap-1.5">
+                <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase">Jumlah Kehadiran via Hand Tally <span className="text-red-500">*</span></label>
+                <input
+                  type="number"
+                  min="0"
+                  value={headCountInput}
+                  onChange={(e) => setHeadCountInput(e.target.value)}
+                  placeholder="Contoh: 120"
+                  className="px-4 py-3 bg-slate-50 rounded-lg border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 text-2xl font-black text-slate-800 w-full transition-all text-center"
+                />
+              </div>
+
+              {headCountInput && parseInt(headCountInput) > 0 && (
+                <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg flex gap-3 items-start">
+                  <span className="material-icons-round text-amber-600 text-[18px] mt-0.5">analytics</span>
+                  <div>
+                    <p className="text-amber-800 text-xs font-bold">Kelengkapan Data Presensi</p>
+                    <p className="text-amber-900 text-sm font-black">
+                      {Math.min(100, ((headCountModal.digitalCount / parseInt(headCountInput)) * 100)).toFixed(1)}%
+                      <span className="text-xs font-medium text-amber-600 ml-1">({headCountModal.digitalCount} / {headCountInput})</span>
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+               <button onClick={() => setHeadCountModal({ isOpen: false, kegiatanId: null, namaKegiatan: '', currentValue: null, digitalCount: 0 })} disabled={submitState.status === 'loading'} className="px-5 py-2.5 rounded-lg text-slate-600 font-bold hover:bg-slate-200 text-sm transition-colors">
+                 Batal
+               </button>
+               <button 
+                 onClick={handleSaveHeadCount} 
+                 disabled={submitState.status === 'loading' || !headCountInput || parseInt(headCountInput) <= 0} 
+                 className="px-6 py-2.5 rounded-lg bg-teal-600 text-white font-bold hover:bg-teal-700 flex items-center gap-2 text-sm shadow-sm hover:shadow-md disabled:opacity-50 transition-all"
+               >
+                 {submitState.status === 'loading' ? <span className="material-icons-round animate-spin text-[18px]">refresh</span> : <span className="material-icons-round text-[18px]">save</span>}
+                 Simpan
                </button>
             </div>
           </div>
