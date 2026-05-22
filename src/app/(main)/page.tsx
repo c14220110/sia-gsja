@@ -527,6 +527,8 @@ export default function DashboardHome() {
          if (cachedEvent) setUpcomingEvents(JSON.parse(cachedEvent));
          const cachedSurveys = localStorage.getItem('gsja_active_surveys');
          if (cachedSurveys) setActiveSurveys(JSON.parse(cachedSurveys));
+         const cachedRoster = localStorage.getItem('gsja_pending_roster');
+         if (cachedRoster) setPendingRoster(JSON.parse(cachedRoster));
          setIsInitialLoading(false);
       }
     }
@@ -742,7 +744,13 @@ export default function DashboardHome() {
                const rosterData = await resRoster.json();
                if (rosterData.success) {
                  setIsPelayan(rosterData.is_pelayan);
-                 if (rosterData.total > 0) setPendingRoster(rosterData.pending);
+                  if (rosterData.total > 0) {
+                    setPendingRoster(rosterData.pending);
+                    localStorage.setItem('gsja_pending_roster', JSON.stringify(rosterData.pending));
+                  } else {
+                    setPendingRoster([]);
+                    localStorage.removeItem('gsja_pending_roster');
+                  }
                }
              }
            }
@@ -1033,71 +1041,92 @@ export default function DashboardHome() {
 
         <div className="w-full px-6 flex flex-col gap-5 pb-12 mt-4">
            
-           {/* ── COMPACT NOTIF: Konfirmasi Jadwal Pelayanan ── */}
-           {pendingRoster.length > 0 && (
-             <div className="w-full bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl px-3.5 py-3 shadow-sm animate-in slide-in-from-top-3 fade-in">
-               <div className="flex items-center gap-2.5">
-                 <div className="w-9 h-9 bg-amber-100 rounded-xl flex items-center justify-center shrink-0">
-                   <span className="material-icons-round text-amber-600 text-[20px]">assignment_late</span>
+           {/* ── NOTIFICATION CARDS (stacked tight) ── */}
+           {(pendingRoster.length > 0 || activeSurveys.length > 0) && (
+             <>
+             <style>{`
+              @keyframes notif-wiggle {
+                0%, 100% { transform: rotate(0deg); }
+                15% { transform: rotate(-12deg); }
+                30% { transform: rotate(10deg); }
+                45% { transform: rotate(-8deg); }
+                60% { transform: rotate(5deg); }
+                75% { transform: rotate(-3deg); }
+                90% { transform: rotate(0deg); }
+              }
+            `}</style>
+            <div className="flex flex-col gap-2 animate-in slide-in-from-top-3 fade-in">
+               {/* Konfirmasi Jadwal */}
+               {pendingRoster.length > 0 && (
+                 <div className="w-full bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl px-3 py-2.5 shadow-sm">
+                   <div className="flex items-center gap-2">
+                     <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center shrink-0">
+                       <span className="material-icons-round text-amber-600 text-[18px]">assignment_late</span>
+                     </div>
+                     <div className="flex-1 min-w-0">
+                       <p className="text-[13px] font-black text-amber-900 leading-tight">
+                         Konfirmasi Jadwal{pendingRoster.length > 1 ? ` (${pendingRoster.length})` : ''}
+                       </p>
+                       <p className="text-[11px] text-amber-700 truncate">
+                         {pendingRoster[0].nama_peran} · {pendingRoster[0].nama_kegiatan}
+                       </p>
+                     </div>
+                     <button
+                       onClick={() => router.push('/pelayan/jadwal')}
+                       className="w-7 h-7 bg-amber-600 hover:bg-amber-700 text-white rounded-lg flex items-center justify-center shrink-0 transition-colors"
+                       title="Konfirmasi"
+                       style={{ animation: 'notif-wiggle 2s ease-in-out infinite' }}
+                     >
+                       <span className="material-icons-round text-[16px]">how_to_reg</span>
+                     </button>
+                     <button
+                       onClick={() => { setPendingRoster([]); localStorage.removeItem('gsja_pending_roster'); }}
+                       className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-amber-100 text-amber-400 hover:text-amber-600 shrink-0 transition-colors -mr-0.5"
+                       title="Tutup"
+                     >
+                       <span className="material-icons-round text-[14px]">close</span>
+                     </button>
+                   </div>
                  </div>
-                 <div className="flex-1 min-w-0">
-                   <p className="text-[13px] font-black text-amber-900 leading-tight truncate">
-                     Konfirmasi Jadwal{pendingRoster.length > 1 ? ` (${pendingRoster.length})` : ''}
-                   </p>
-                   <p className="text-[11px] text-amber-700 truncate mt-0.5">
-                     {pendingRoster[0].nama_peran} · {pendingRoster[0].nama_kegiatan}
-                     {pendingRoster.length > 1 && <span className="font-bold"> +{pendingRoster.length - 1}</span>}
-                   </p>
-                 </div>
-                 <button
-                   onClick={() => router.push('/pelayan/jadwal')}
-                   className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-black rounded-lg transition-colors shrink-0"
-                 >
-                   Konfirmasi
-                 </button>
-                 <button
-                   onClick={() => setPendingRoster([])}
-                   className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-amber-100 text-amber-400 hover:text-amber-600 shrink-0 transition-colors"
-                   title="Tutup"
-                 >
-                   <span className="material-icons-round text-[14px]">close</span>
-                 </button>
-               </div>
-             </div>
-           )}
+               )}
 
-           {/* ── COMPACT NOTIF: Survei Belum Diisi ── */}
-           {activeSurveys.length > 0 && (
-             <div className="w-full bg-gradient-to-r from-indigo-50 to-violet-50 border border-indigo-200 rounded-2xl px-3.5 py-3 shadow-sm animate-in slide-in-from-top-3 fade-in">
-               <div className="flex items-center gap-2.5">
-                 <div className="w-9 h-9 bg-indigo-100 rounded-xl flex items-center justify-center shrink-0">
-                   <span className="material-icons-round text-indigo-600 text-[20px]">quiz</span>
+               {/* Survei Menunggu */}
+               {activeSurveys.length > 0 && (
+                 <div className="w-full bg-gradient-to-r from-indigo-50 to-violet-50 border border-indigo-200 rounded-2xl px-3 py-2.5 shadow-sm">
+                   <div className="flex items-center gap-2">
+                     <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center shrink-0">
+                       <span className="material-icons-round text-indigo-600 text-[18px]">quiz</span>
+                     </div>
+                     <div className="flex-1 min-w-0">
+                       <p className="text-[13px] font-black text-indigo-900 leading-tight">
+                         Survei Menunggu{activeSurveys.length > 1 ? ` (${activeSurveys.length})` : ''}
+                       </p>
+                       <p className="text-[11px] text-indigo-600 truncate">
+                         {activeSurveys.length === 1
+                           ? activeSurveys[0].judul
+                           : `${activeSurveys.length} survei belum diisi`}
+                       </p>
+                     </div>
+                     <button
+                       onClick={() => router.push('/survei-saya')}
+                       className="w-7 h-7 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex items-center justify-center shrink-0 transition-colors"
+                       title="Isi Survei"
+                       style={{ animation: 'notif-wiggle 2s ease-in-out 0.5s infinite' }}
+                     >
+                       <span className="material-icons-round text-[16px]">edit_note</span>
+                     </button>
+                     <button
+                       onClick={() => setActiveSurveys([])}
+                       className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-indigo-100 text-indigo-400 hover:text-indigo-600 shrink-0 transition-colors -mr-0.5"
+                       title="Tutup"
+                     >
+                       <span className="material-icons-round text-[14px]">close</span>
+                     </button>
+                   </div>
                  </div>
-                 <div className="flex-1 min-w-0">
-                   <p className="text-[13px] font-black text-indigo-900 leading-tight truncate">
-                     Survei Menunggu{activeSurveys.length > 1 ? ` (${activeSurveys.length})` : ''}
-                   </p>
-                   <p className="text-[11px] text-indigo-600 truncate mt-0.5">
-                     {activeSurveys.length === 1
-                       ? activeSurveys[0].judul
-                       : `${activeSurveys.length} survei belum diisi`}
-                   </p>
-                 </div>
-                 <button
-                   onClick={() => router.push('/survei-saya')}
-                   className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-black rounded-lg transition-colors shrink-0"
-                 >
-                   Isi
-                 </button>
-                 <button
-                   onClick={() => setActiveSurveys([])}
-                   className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-indigo-100 text-indigo-400 hover:text-indigo-600 shrink-0 transition-colors"
-                   title="Tutup"
-                 >
-                   <span className="material-icons-round text-[14px]">close</span>
-                 </button>
-               </div>
+               )}
              </div>
+             </>
            )}
 
            {/* QR SCANNER CARD (Temporarily Hidden)
@@ -1134,16 +1163,13 @@ export default function DashboardHome() {
                      <span className="text-[11px] font-medium text-slate-700 text-center leading-tight">Layanan<br/>Pastoral</span>
                   </Link>
                   
-                  <div onClick={handleJadwalPelayananClick} className="flex flex-col items-center gap-1.5 group cursor-pointer relative">
-                      {/* Badge notifikasi */}
-                      {pendingRoster.length > 0 && (
-                        <span className="absolute -top-1 right-2 z-10 min-w-[16px] h-[16px] bg-red-600 text-white text-[9px] font-black rounded-full flex items-center justify-center px-1 shadow-md animate-bounce border-2 border-white">
-                          {pendingRoster.length}
-                        </span>
-                      )}
-                      <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full shadow-[0_4px_12px_rgba(59,130,246,0.3)] flex items-center justify-center text-white active:scale-105 transition-all duration-200">
+                  <div onClick={handleJadwalPelayananClick} className="flex flex-col items-center gap-1.5 group cursor-pointer">
+                      <div className="relative w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full shadow-[0_4px_12px_rgba(59,130,246,0.3)] flex items-center justify-center text-white active:scale-105 transition-all duration-200">
+                         {pendingRoster.length > 0 && (
+                           <span className="absolute -top-1 -right-0.5 z-10 min-w-[16px] h-[16px] bg-red-600 text-white text-[9px] font-black rounded-full flex items-center justify-center px-1 shadow-sm border-[1.5px] border-white">{pendingRoster.length}</span>
+                         )}
                          <span className="material-icons-round text-2xl">event_available</span>
-                       </div>
+                      </div>
                       <span className="text-[11px] font-medium text-slate-700 text-center leading-tight">Jadwal<br/>Pelayanan</span>
                    </div>
 
@@ -1162,7 +1188,10 @@ export default function DashboardHome() {
                   </Link>
 
                   <Link href="/survei-saya" className="flex flex-col items-center gap-1.5 group cursor-pointer">
-                     <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full shadow-[0_4px_12px_rgba(59,130,246,0.3)] flex items-center justify-center text-white active:scale-105 transition-all duration-200">
+                     <div className="relative w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full shadow-[0_4px_12px_rgba(59,130,246,0.3)] flex items-center justify-center text-white active:scale-105 transition-all duration-200">
+                        {activeSurveys.length > 0 && (
+                          <span className="absolute -top-1 -right-0.5 z-10 min-w-[16px] h-[16px] bg-red-600 text-white text-[9px] font-black rounded-full flex items-center justify-center px-1 shadow-sm border-[1.5px] border-white">{activeSurveys.length}</span>
+                        )}
                         <span className="material-icons-round text-2xl">assignment</span>
                      </div>
                      <span className="text-[11px] font-medium text-slate-700 text-center leading-tight">Survei<br/>Saya</span>
