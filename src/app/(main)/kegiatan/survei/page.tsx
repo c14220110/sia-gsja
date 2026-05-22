@@ -39,7 +39,7 @@ export default function SurveiListPage() {
         const res = await fetch('/api/auth/me');
         if (res.ok) {
           const json = await res.json();
-          if (json.success) setUserData(json.data);
+          setUserData(json);
         }
       } catch {}
     };
@@ -221,13 +221,22 @@ export default function SurveiListPage() {
           <div className="text-slate-500 text-base font-medium font-['Inter'] leading-6">Kelola survei kepuasan jemaat terhadap kegiatan gereja</div>
         </div>
         {hasPermission('survei_manage') && (
-          <Link
-            href="/kegiatan/survei/buat"
-            className="px-5 py-2.5 bg-slate-700 rounded-lg flex justify-center items-center gap-2 hover:bg-slate-800 transition-colors"
-          >
-            <span className="material-icons-round text-white text-[18px]">add</span>
-            <span className="text-white text-sm font-bold font-['Inter']">Buat Survei Baru</span>
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/kegiatan/notifikasi"
+              className="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-lg flex justify-center items-center gap-2 hover:bg-slate-50 transition-colors shadow-sm"
+            >
+              <span className="material-icons-round text-[18px]">campaign</span>
+              <span className="text-sm font-bold font-['Inter']">Broadcast Notifikasi</span>
+            </Link>
+            <Link
+              href="/kegiatan/survei/buat"
+              className="px-5 py-2.5 bg-slate-700 text-white rounded-lg flex justify-center items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm"
+            >
+              <span className="material-icons-round text-[18px]">add</span>
+              <span className="text-sm font-bold font-['Inter']">Buat Survei Baru</span>
+            </Link>
+          </div>
         )}
       </div>
 

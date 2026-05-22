@@ -5,13 +5,14 @@ import { useLoader } from '@/components/ui/GlobalLoader';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
 import { AlertModal } from '@/components/ui/AlertModal';
 import { MasterKomponenGaji } from './MasterKomponenGaji';
+import { MasterTemplateSurvei } from './MasterTemplateSurvei';
 
 /* ── Tab Config ─────────────────────────────────────────────────────────────── */
 type TabKey =
   | 'wilayah' | 'satelit' | 'departemen' | 'komisi'
   | 'periode_kepengurusan' | 'jabatan' | 'role_pelayan'
   | 'pekerjaan_master' | 'jenis_relasi' | 'jenis_kegiatan'
-  | 'komponen_gaji';
+  | 'komponen_gaji' | 'template_survei';
 
 interface TabConfig {
   label:      string;
@@ -119,6 +120,11 @@ const TABS: Record<TabKey, TabConfig> = {
     formFields: [{ key: 'nama_jenis_kegiatan', label: 'Nama Jenis Kegiatan' }],
     hasDel: true,
   },
+  template_survei: {
+    label: 'Template Survei', icon: 'quiz', group: 'Parameter Kegiatan', groupColor: 'rose',
+    columns: [], // handled by custom component
+    formFields: [], // handled by custom component
+  },
 };
 
 const GROUPS = [
@@ -161,6 +167,7 @@ function primaryKey(tabKey: TabKey): string {
     jenis_relasi:         'nama_relasi',
     jenis_kegiatan:       'nama_jenis_kegiatan',
     komponen_gaji:        '', // Not used for custom page
+    template_survei:      '', // Not used for custom page
   };
   return map[tabKey];
 }
@@ -394,7 +401,7 @@ export default function MasterDataPage() {
 
   /* ── Fetch table data (inline spinner, no lottie overlay) ── */
   const fetchData = useCallback(async () => {
-    if (activeTab === 'komponen_gaji') return; // Custom component handles its own data
+    if (activeTab === 'komponen_gaji' || activeTab === 'template_survei') return; // Custom components handle their own data
     setLoadingTable(true);
     try {
       const params = new URLSearchParams({ table: activeTab });
@@ -569,7 +576,7 @@ export default function MasterDataPage() {
         <div className="flex-1 min-w-0 flex flex-col gap-4">
 
           {/* Header band */}
-          {activeTab !== 'komponen_gaji' && (
+          {activeTab !== 'komponen_gaji' && activeTab !== 'template_survei' && (
           <div className={`${gs.activeBg} rounded-xl px-5 py-4 flex items-center justify-between gap-4`}>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
@@ -593,7 +600,7 @@ export default function MasterDataPage() {
           )}
 
           {/* Search */}
-          {activeTab !== 'komponen_gaji' && (
+          {activeTab !== 'komponen_gaji' && activeTab !== 'template_survei' && (
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 material-icons-round text-slate-400 text-[20px]">search</span>
             <input
@@ -614,6 +621,8 @@ export default function MasterDataPage() {
           {/* Render Custom Component OR Generic Table */}
           {activeTab === 'komponen_gaji' ? (
             <MasterKomponenGaji />
+          ) : activeTab === 'template_survei' ? (
+            <MasterTemplateSurvei />
           ) : (
           <div className="w-full bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col">
             <div className="w-full overflow-x-auto">

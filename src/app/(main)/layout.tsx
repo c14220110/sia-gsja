@@ -109,6 +109,9 @@ export default function DashboardLayout({
   } else if (pathname.includes('/settings')) {
     topbarTitle = 'Pengaturan Software';
     topbarIcon  = 'settings';
+  } else if (pathname.includes('/kegiatan/notifikasi')) {
+    topbarTitle = 'Broadcast Notifikasi';
+    topbarIcon  = 'campaign';
   } else if (pathname.includes('/kegiatan/survei')) {
     topbarTitle = 'Survei Kepuasan';
     topbarIcon  = 'poll';
@@ -250,7 +253,7 @@ export default function DashboardLayout({
                 </div>
               )}
 
-              {(hasPermission('kegiatan_view') || hasPermission('kegiatan_pastoral_view') || hasPermission('kegiatan_create') || hasPermission('kegiatan_manage') || hasPermission('survei_view')) && (
+              {(hasPermission('kegiatan_view') || hasPermission('kegiatan_pastoral_view') || hasPermission('kegiatan_create') || hasPermission('kegiatan_manage') || hasPermission('survei_view') || hasPermission('survei_manage')) && (
               <div className="w-full">
                 <div 
                   className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer"
@@ -727,7 +730,6 @@ export default function DashboardLayout({
                       <div className="text-center justify-center text-amber-900 text-sm font-bold font-['Inter'] leading-5">Survei<br/>Kepuasan</div>
                     </Link>
                     )}
-
                   </div>
                 </div>
               </div>

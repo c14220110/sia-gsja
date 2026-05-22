@@ -34,7 +34,7 @@ export default function SurveiDetailPage({ params }: { params: Promise<{ id: str
         const res = await fetch('/api/auth/me');
         if (res.ok) {
           const json = await res.json();
-          if (json.success) setUserData(json.data);
+          setUserData(json);
         }
       } catch {}
     };

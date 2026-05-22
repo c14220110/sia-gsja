@@ -21,15 +21,16 @@ if (publicVapidKey && privateVapidKey) {
  * @param title Judul Notifikasi
  * @param body Isi Notifikasi
  * @param url URL yang akan dibuka saat notifikasi di-klik
+ * @returns true jika notifikasi berhasil dikirim ke minimal 1 perangkat, false jika tidak
  */
-export async function sendPushNotificationToJemaat(jemaatId: number, title: string, body: string, url: string = '/') {
+export async function sendPushNotificationToJemaat(jemaatId: number, title: string, body: string, url: string = '/'): Promise<boolean> {
   if (!publicVapidKey || !privateVapidKey) {
     console.warn('[Web Push] Batal mengirim notifikasi karena VAPID keys belum di-set.');
-    return;
+    return false;
   }
 
   try {
-    // Cari user_id dari tabel pengguna milik jemaat_id ini (seperti logika di pelayan route)
+    // Cari user_id dari tabel pengguna milik jemaat_id ini
     const userQuery = await pool.query(`
        SELECT id as user_id 
        FROM public.pengguna 
@@ -37,8 +38,7 @@ export async function sendPushNotificationToJemaat(jemaatId: number, title: stri
     `, [jemaatId]);
     
     if (userQuery.rows.length === 0) {
-      console.log(`[Web Push] User (pengguna) tidak ditemukan untuk Jemaat ID ${jemaatId}`);
-      return;
+      return false; // Jemaat tidak punya akun
     }
     const userId = userQuery.rows[0].user_id;
 
@@ -50,8 +50,7 @@ export async function sendPushNotificationToJemaat(jemaatId: number, title: stri
     `, [userId]);
     
     if (subQuery.rows.length === 0) {
-      console.log(`[Web Push] Jemaat ID ${jemaatId} belum mengaktifkan notifikasi.`);
-      return;
+      return false; // Jemaat belum mengaktifkan notifikasi di perangkat
     }
 
     const payload = JSON.stringify({
@@ -62,6 +61,7 @@ export async function sendPushNotificationToJemaat(jemaatId: number, title: stri
       badge: '/icons/icon-72x72.png'
     });
 
+    let sentCount = 0;
     for (const sub of subQuery.rows) {
       const pushSub = {
          endpoint: sub.endpoint,
@@ -69,14 +69,16 @@ export async function sendPushNotificationToJemaat(jemaatId: number, title: stri
       };
       try {
          await webpush.sendNotification(pushSub, payload);
+         sentCount++;
       } catch (pushErr) {
          console.error("[Web Push] Failed to push to endpoint:", sub.endpoint, pushErr);
       }
     }
     
-    console.log(`[Web Push] Berhasil memproses notifikasi untuk Jemaat ID ${jemaatId}`);
+    return sentCount > 0;
 
   } catch (error) {
     console.error('[Web Push] Error pada proses push notification:', error);
+    return false;
   }
 }

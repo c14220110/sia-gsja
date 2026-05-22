@@ -38,6 +38,15 @@ export default function AlkitabPage() {
   const [selectedKitab, setSelectedKitab] = useState<KitabInfo | null>(null);
   const [numpadInput, setNumpadInput] = useState('');
   const [numpadError, setNumpadError] = useState('');
+  const [isNumpadClosing, setIsNumpadClosing] = useState(false);
+
+  const closeNumpad = () => {
+    setIsNumpadClosing(true);
+    setTimeout(() => {
+      setSelectedKitab(null);
+      setIsNumpadClosing(false);
+    }, 400);
+  };
 
   const [mounted, setMounted] = useState(false);
 
@@ -341,16 +350,20 @@ export default function AlkitabPage() {
       </div>
 
       {/* Numpad Modal */}
-      {mounted && selectedKitab && typeof document !== 'undefined' && createPortal(
+      {mounted && (selectedKitab || isNumpadClosing) && typeof document !== 'undefined' && createPortal(
         <>
           {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[200] animate-in fade-in duration-200"
-            onClick={() => setSelectedKitab(null)}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[200] pointer-events-auto"
+            onClick={closeNumpad}
+            style={{ animation: isNumpadClosing ? 'settings-backdrop-out 0.4s ease-out forwards' : 'settings-backdrop-in 0.3s ease-out forwards' }}
           />
 
           {/* Bottom sheet */}
-          <div className="fixed bottom-0 left-0 right-0 z-[200] animate-in slide-in-from-bottom duration-300">
+          <div 
+            className="fixed bottom-0 left-0 right-0 z-[200] pointer-events-auto"
+            style={{ animation: isNumpadClosing ? 'settings-slide-down 0.4s cubic-bezier(0.8, 0, 0.8, 0.2) forwards' : 'settings-slide-up 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards' }}
+          >
             <div className={`rounded-t-3xl shadow-2xl max-w-md mx-auto ${isDark ? 'bg-slate-800' : 'bg-white'}`}>
               {/* Handle bar */}
               <div className="flex justify-center pt-3 pb-1">
@@ -359,14 +372,14 @@ export default function AlkitabPage() {
 
               {/* Book name */}
               <div className="text-center px-6 pt-1 pb-3">
-                <h2 className={`text-lg font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>{selectedKitab.nama}</h2>
-                <p className={`text-[11px] font-medium mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-400'}`}>{selectedKitab.pasal} pasal • Ketik pasal atau pasal:ayat</p>
+                <h2 className={`text-lg font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>{selectedKitab?.nama}</h2>
+                <p className={`text-[11px] font-medium mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-400'}`}>{selectedKitab?.pasal} pasal • Ketik pasal atau pasal:ayat</p>
               </div>
 
               {/* Input display */}
               <div className={`mx-6 mb-3 rounded-2xl px-4 py-3 flex items-center justify-between border ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                 <div className="flex items-baseline gap-1 flex-1 min-w-0">
-                  <span className={`text-sm font-bold shrink-0 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{selectedKitab.singkatan}</span>
+                  <span className={`text-sm font-bold shrink-0 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{selectedKitab?.singkatan}</span>
                   <span className={`text-2xl font-black tracking-tight ${numpadInput ? (isDark ? 'text-white' : 'text-slate-900') : (isDark ? 'text-slate-600' : 'text-slate-300')}`}>
                     {numpadInput || '0:00'}
                   </span>
@@ -414,7 +427,7 @@ export default function AlkitabPage() {
                       : (isDark ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-100 text-slate-400 cursor-not-allowed')
                   }`}
                 >
-                  {numpadInput ? `Buka ${selectedKitab.singkatan} ${numpadInput}` : 'Ketik pasal dahulu'}
+                  {numpadInput ? `Buka ${selectedKitab?.singkatan} ${numpadInput}` : 'Ketik pasal dahulu'}
                 </button>
               </div>
             </div>

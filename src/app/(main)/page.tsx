@@ -1,5 +1,6 @@
 'use client';
-import { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { Scanner } from '@yudiel/react-qr-scanner';
 import { useLoader } from '@/components/ui/GlobalLoader';
@@ -515,6 +516,22 @@ export default function DashboardHome() {
   const [surveyHistory, setSurveyHistory] = useState<any[]>([]);
   const [hasEventToday, setHasEventToday] = useState(false);
 
+  // Hydrate states synchronously before paint to prevent blink/flash during client-side navigation
+  const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? React.useLayoutEffect : React.useEffect;
+  useIsomorphicLayoutEffect(() => {
+    if (typeof window !== 'undefined') {
+      const cachedUser = localStorage.getItem('gsja_user_data');
+      if (cachedUser) {
+         setUserData(JSON.parse(cachedUser));
+         const cachedEvent = localStorage.getItem('gsja_upcoming_events');
+         if (cachedEvent) setUpcomingEvents(JSON.parse(cachedEvent));
+         const cachedSurveys = localStorage.getItem('gsja_active_surveys');
+         if (cachedSurveys) setActiveSurveys(JSON.parse(cachedSurveys));
+         setIsInitialLoading(false);
+      }
+    }
+  }, []);
+
   // Pull-To-Refresh states
   const [pullDist, setPullDist] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -602,8 +619,13 @@ export default function DashboardHome() {
   }, [router]);
 
   useEffect(() => {
+    let loaderTimer: NodeJS.Timeout | null = null;
     const initData = async () => {
-       showLoader();
+       const hasCache = !!localStorage.getItem('gsja_user_data');
+       // Hanya munculkan loader JIKA belum ada cache sama sekali (data belum tersedia di layar)
+       if (!hasCache) {
+          loaderTimer = setTimeout(() => showLoader(), 350);
+       }
        try {
          // Coba ambil data terbaru saat online
          const resAuth = await fetch('/api/auth/me');
@@ -744,6 +766,7 @@ export default function DashboardHome() {
              setActiveSurveys(JSON.parse(cachedSurveys));
           }
        } finally {
+          if (loaderTimer) clearTimeout(loaderTimer);
           hideLoader();
           setIsInitialLoading(false);
        }
@@ -905,8 +928,8 @@ export default function DashboardHome() {
         )}
 
         {/* Fullscreen Camera Scanner Context */}
-        {isFullscreenQR && (
-          <div className="fixed inset-0 bg-slate-900 z-[9999] flex flex-col items-center justify-center animate-in zoom-in-95 duration-200">
+        {isFullscreenQR && typeof window !== 'undefined' && createPortal(
+          <div className="fixed inset-0 bg-slate-900 z-[9999] flex flex-col items-center justify-center animate-in zoom-in-95 duration-200 w-screen" style={{ height: '100dvh' }}>
              
              {/* Header Scanner */}
              <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-center z-10 bg-gradient-to-b from-slate-900/80 to-transparent">
@@ -928,7 +951,7 @@ export default function DashboardHome() {
              )}
 
              {/* Scanner Area */}
-             <div className="w-full h-full flex items-center justify-center relative overflow-hidden bg-black">
+             <div className="w-full flex-1 flex items-center justify-center relative overflow-hidden bg-black">
                 <Scanner 
                   onScan={handleScan}
                   formats={['qr_code']}
@@ -938,10 +961,11 @@ export default function DashboardHome() {
              </div>
              
              {/* Footer Scanner */}
-             <div className="absolute bottom-0 left-0 right-0 p-8 text-center bg-gradient-to-t from-slate-900/90 to-transparent pointer-events-none">
+             <div className="absolute bottom-0 left-0 right-0 p-8 pb-12 text-center bg-gradient-to-t from-slate-900/90 to-transparent pointer-events-none">
                 <p className="text-white/80 font-medium text-sm">Arahkan layar ke QR Code Acara yang ditampilkan oleh Usher di pintu.</p>
              </div>
-          </div>
+          </div>,
+          document.body
         )}
 
         {/* PULL TO REFRESH BACKGROUND (Top Bar Melebar) */}
@@ -1044,6 +1068,43 @@ export default function DashboardHome() {
              </div>
            )}
 
+           {/* ── DYNAMIC ACTION BANNER: Survei Belum Diisi ── */}
+           {activeSurveys.length > 0 && (
+             <div className="w-full bg-gradient-to-r from-indigo-50 to-violet-50 border border-indigo-200 rounded-2xl p-4 flex gap-3 shadow-sm animate-in slide-in-from-top-3 fade-in">
+               <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center shrink-0 mt-0.5">
+                 <span className="material-icons-round text-indigo-600 text-[22px]">quiz</span>
+               </div>
+               <div className="flex-1 min-w-0">
+                 {activeSurveys.length === 1 ? (
+                   <>
+                     <p className="text-sm font-black text-indigo-900 leading-tight mb-0.5">Survei Menunggu Jawaban Anda</p>
+                     <p className="text-xs text-indigo-700 leading-relaxed mb-3">
+                       <strong>{activeSurveys[0].judul}</strong>
+                       {activeSurveys[0].nama_kegiatan && (
+                         <span className="text-indigo-500"> — {activeSurveys[0].nama_kegiatan}</span>
+                       )}
+                       . Bantu kami meningkatkan pelayanan dengan mengisi survei singkat ini.
+                     </p>
+                   </>
+                 ) : (
+                   <>
+                     <p className="text-sm font-black text-indigo-900 leading-tight mb-0.5">Ada {activeSurveys.length} Survei Menunggu</p>
+                     <p className="text-xs text-indigo-700 leading-relaxed mb-3">
+                       Anda memiliki <strong>{activeSurveys.length} survei</strong> yang belum diisi. Bantu kami meningkatkan pelayanan!
+                     </p>
+                   </>
+                 )}
+                 <button
+                   onClick={() => router.push('/survei-saya')}
+                   className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black rounded-lg transition-colors"
+                 >
+                   <span className="material-icons-round text-[14px]">edit_note</span>
+                   {activeSurveys.length === 1 ? 'Isi Sekarang' : 'Lihat & Isi Semua'}
+                 </button>
+               </div>
+             </div>
+           )}
+
            {/* QR SCANNER CARD (Temporarily Hidden)
             <div 
               onClick={() => setIsFullscreenQR(true)}
@@ -1122,44 +1183,6 @@ export default function DashboardHome() {
                 </div>
             </div>
 
-            {/* 4. ACTIVE SURVEYS WIDGET */}
-            {activeSurveys.length > 0 && (
-               <div className="w-full flex flex-col gap-3">
-                  <h3 className="text-slate-800 font-black text-lg tracking-tight px-1">
-                     Survei Kepuasan
-                  </h3>
-                  <div className="flex flex-col gap-3">
-                     {activeSurveys.map((s) => (
-                        <div 
-                           key={s.id} 
-                           onClick={() => {
-                              setSelectedSurvey(s);
-                              const initialAnswers: Record<number, any> = {};
-                              s.pertanyaan.forEach((q: any) => {
-                                 initialAnswers[q.id] = q.tipe_jawaban === 'skala' ? { skor: 5 } : { jawaban_teks: '' };
-                              });
-                              setSurveyAnswers(initialAnswers);
-                              setIsSurveyModalOpen(true);
-                           }}
-                           className="w-full bg-gradient-to-r from-amber-50 to-orange-50/50 border border-amber-100 rounded-3xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-all cursor-pointer group"
-                        >
-                           <div className="flex items-center gap-4">
-                              <div className="w-12 h-12 rounded-2xl bg-amber-500 flex items-center justify-center text-white shadow-md shadow-amber-500/20">
-                                 <span className="material-icons-round text-2xl">poll</span>
-                              </div>
-                              <div className="flex flex-col gap-0.5">
-                                 <span className="text-slate-800 font-black text-sm group-hover:text-amber-600 transition-colors">{s.judul}</span>
-                                 <span className="text-slate-400 text-xs font-medium">
-                                    {s.nama_kegiatan ? `Pasca-Kegiatan: ${s.nama_kegiatan}` : 'Survei Umum'}
-                                 </span>
-                              </div>
-                           </div>
-                           <span className="material-icons-round text-slate-300 group-hover:text-amber-500 transition-all">chevron_right</span>
-                        </div>
-                     ))}
-                  </div>
-               </div>
-            )}
 
 
            {/* 5. DYNAMIC WIDGET (Upcoming Events Carousel) */}

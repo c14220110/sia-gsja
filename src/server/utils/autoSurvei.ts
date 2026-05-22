@@ -4,6 +4,7 @@ import { sendPushNotificationToJemaat } from '@/server/utils/pushNotification';
 /**
  * Pertanyaan default untuk survei otomatis pasca-kegiatan.
  * 2 pertanyaan skala (wajib) + 1 teks bebas (opsional).
+ * Digunakan jika jenis kegiatan BELUM punya template custom.
  */
 const DEFAULT_PERTANYAAN = [
   {
@@ -28,7 +29,12 @@ const DEFAULT_PERTANYAAN = [
 
 /**
  * Membuat survei otomatis saat kegiatan diakhiri (Ongoing → Menunggu LPJ).
- * Hanya mengirim push notification ke jemaat yang hadir (tercatat di kegiatan_absensi).
+ * 
+ * Logic template:
+ * 1. Cek survei_template untuk jenis_kegiatan_id kegiatan ini
+ * 2. Jika template ada dan is_active = false → SKIP (tidak buat survei)
+ * 3. Jika template ada dan is_active = true → gunakan pertanyaan dari template
+ * 4. Jika template TIDAK ada → gunakan DEFAULT_PERTANYAAN (backward compatible)
  *
  * @param kegiatanId ID kegiatan yang baru diakhiri
  * @param createdByUserId user_id admin yang mengakhiri kegiatan
@@ -37,9 +43,9 @@ export async function createAutoSurvei(kegiatanId: number, createdByUserId: numb
   const client = await pool.connect();
 
   try {
-    // 1. Ambil data kegiatan
+    // 1. Ambil data kegiatan (termasuk jenis_kegiatan_id)
     const kegiatanRes = await client.query(
-      `SELECT k.id, k.nama_kegiatan, k.satelit_id, k.tanggal_mulai
+      `SELECT k.id, k.nama_kegiatan, k.satelit_id, k.tanggal_mulai, k.jenis_kegiatan_id
        FROM public.kegiatan k
        WHERE k.id = $1`,
       [kegiatanId]
@@ -65,7 +71,47 @@ export async function createAutoSurvei(kegiatanId: number, createdByUserId: numb
       return null;
     }
 
-    // 3. Buat survei otomatis
+    // 3. Cek template survei untuk jenis kegiatan ini
+    let pertanyaanList = DEFAULT_PERTANYAAN;
+
+    if (kegiatan.jenis_kegiatan_id) {
+      const templateRes = await client.query(
+        `SELECT st.id, st.is_active 
+         FROM public.survei_template st 
+         WHERE st.jenis_kegiatan_id = $1`,
+        [kegiatan.jenis_kegiatan_id]
+      );
+
+      if (templateRes.rows.length > 0) {
+        const template = templateRes.rows[0];
+
+        // Template ada tapi nonaktif → SKIP, jangan buat survei
+        if (!template.is_active) {
+          console.log(`[AutoSurvei] Template survei untuk jenis kegiatan ID ${kegiatan.jenis_kegiatan_id} dinonaktifkan. Survei otomatis dilewati.`);
+          return null;
+        }
+
+        // Template aktif → gunakan pertanyaan dari template
+        const pertanyaanRes = await client.query(
+          `SELECT urutan, teks_pertanyaan, tipe_jawaban, is_required 
+           FROM public.survei_template_pertanyaan 
+           WHERE template_id = $1 
+           ORDER BY urutan`,
+          [template.id]
+        );
+
+        if (pertanyaanRes.rows.length > 0) {
+          pertanyaanList = pertanyaanRes.rows;
+          console.log(`[AutoSurvei] Menggunakan template custom (${pertanyaanRes.rows.length} pertanyaan) untuk jenis kegiatan ID ${kegiatan.jenis_kegiatan_id}.`);
+        } else {
+          console.log(`[AutoSurvei] Template ada tapi tanpa pertanyaan, menggunakan default.`);
+        }
+      } else {
+        console.log(`[AutoSurvei] Tidak ada template untuk jenis kegiatan ID ${kegiatan.jenis_kegiatan_id}, menggunakan pertanyaan default.`);
+      }
+    }
+
+    // 4. Buat survei otomatis
     await client.query('BEGIN');
 
     const periodeSelesai = new Date();
@@ -89,8 +135,8 @@ export async function createAutoSurvei(kegiatanId: number, createdByUserId: numb
     );
     const surveiId = surveiRes.rows[0].id;
 
-    // 4. Insert pertanyaan default
-    for (const p of DEFAULT_PERTANYAAN) {
+    // 5. Insert pertanyaan (dari template atau default)
+    for (const p of pertanyaanList) {
       await client.query(
         `INSERT INTO public.survei_pertanyaan (survei_id, urutan, teks_pertanyaan, tipe_jawaban, is_required)
          VALUES ($1, $2, $3, $4, $5)`,
@@ -99,9 +145,9 @@ export async function createAutoSurvei(kegiatanId: number, createdByUserId: numb
     }
 
     await client.query('COMMIT');
-    console.log(`[AutoSurvei] Survei otomatis (ID: ${surveiId}) berhasil dibuat untuk Kegiatan ID ${kegiatanId}.`);
+    console.log(`[AutoSurvei] Survei otomatis (ID: ${surveiId}) berhasil dibuat untuk Kegiatan ID ${kegiatanId} dengan ${pertanyaanList.length} pertanyaan.`);
 
-    // 5. Kirim push notification ke jemaat yang hadir (async, tidak memblokir response)
+    // 6. Kirim push notification ke jemaat yang hadir (async, tidak memblokir response)
     let notifikasiTerkirim = 0;
     try {
       // Query jemaat yang tercatat hadir di absensi QR
@@ -117,13 +163,13 @@ export async function createAutoSurvei(kegiatanId: number, createdByUserId: numb
 
       for (const jemaatId of jemaatIds) {
         try {
-          await sendPushNotificationToJemaat(
+          const sent = await sendPushNotificationToJemaat(
             jemaatId,
             '📋 Survei Kepuasan Tersedia',
             `Bagaimana pengalaman Anda di "${kegiatan.nama_kegiatan}"? Isi survei singkat sekarang!`,
-            '/'
+            '/survei-saya'
           );
-          notifikasiTerkirim++;
+          if (sent) notifikasiTerkirim++;
         } catch (pushErr) {
           // Lanjutkan ke jemaat berikutnya jika satu gagal
           console.error(`[AutoSurvei] Gagal mengirim notifikasi ke Jemaat ID ${jemaatId}:`, pushErr);

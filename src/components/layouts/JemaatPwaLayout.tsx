@@ -22,6 +22,7 @@ export default function JemaatPwaLayout({
   const router = useRouter();
   const { showLoader, hideLoader, setLoaderVariant } = useLoader();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isSettingsClosing, setIsSettingsClosing] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
   const [showQrOptions, setShowQrOptions] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -203,6 +204,22 @@ export default function JemaatPwaLayout({
           70% { transform: scale(1.1) rotate(10deg); opacity: 1; }
           100% { transform: scale(1) rotate(0deg); opacity: 1; }
         }
+        @keyframes settings-backdrop-in {
+          0% { opacity: 0; }
+          100% { opacity: 1; }
+        }
+        @keyframes settings-slide-up {
+          0% { transform: translateY(100%); }
+          100% { transform: translateY(0); }
+        }
+        @keyframes settings-backdrop-out {
+          0% { opacity: 1; }
+          100% { opacity: 0; }
+        }
+        @keyframes settings-slide-down {
+          0% { transform: translateY(0); }
+          100% { transform: translateY(100%); }
+        }
       `}</style>
       
       {/* AREA KONTEN UTAMA */}
@@ -266,13 +283,23 @@ export default function JemaatPwaLayout({
       )}
 
       {/* DRAWER PENGATURAN BAWAH */}
-      {isSettingsOpen && (
+      {(isSettingsOpen || isSettingsClosing) && (
         <div 
-          className="fixed inset-0 z-[60] bg-slate-900/40 backdrop-blur-sm flex flex-col justify-end animate-in fade-in"
-          onClick={() => setIsSettingsOpen(false)}
+          className="fixed inset-0 z-[60] flex flex-col justify-end pointer-events-none"
         >
+          {/* Backdrop */}
           <div 
-            className="w-full bg-white rounded-t-3xl pt-2 pb-8 px-6 flex flex-col animate-in slide-in-from-bottom"
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm pointer-events-auto"
+            onClick={() => {
+              setIsSettingsClosing(true);
+              setTimeout(() => { setIsSettingsOpen(false); setIsSettingsClosing(false); }, 400);
+            }}
+            style={{ animation: isSettingsClosing ? 'settings-backdrop-out 0.4s ease-out forwards' : 'settings-backdrop-in 0.3s ease-out forwards' }}
+          />
+
+          <div 
+            className="w-full bg-white rounded-t-3xl pt-2 pb-8 px-6 flex flex-col pointer-events-auto relative z-10"
+            style={{ animation: isSettingsClosing ? 'settings-slide-down 0.4s cubic-bezier(0.8, 0, 0.8, 0.2) forwards' : 'settings-slide-up 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards' }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Grabber indicator */}
@@ -288,7 +315,10 @@ export default function JemaatPwaLayout({
                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Manajemen Profil</h4>
                
                {/* Data Diri Link */}
-               <Link href={`/profil`} onClick={() => setIsSettingsOpen(false)} className="w-full flex items-center justify-between p-3 hover:bg-slate-50 rounded-2xl transition-colors">
+               <Link href={`/profil`} onClick={() => {
+                  setIsSettingsClosing(true);
+                  setTimeout(() => { setIsSettingsOpen(false); setIsSettingsClosing(false); }, 400);
+               }} className="w-full flex items-center justify-between p-3 hover:bg-slate-50 rounded-2xl transition-colors">
                   <div className="flex items-center gap-4">
                      <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center">
                         <span className="material-icons-round text-[20px]">badge</span>
@@ -302,7 +332,10 @@ export default function JemaatPwaLayout({
                </Link>
 
                {/* Relasi Keluarga Link */}
-               <Link href="/profil?tab=keluarga" onClick={() => setIsSettingsOpen(false)} className="w-full flex items-center justify-between p-3 hover:bg-slate-50 rounded-2xl transition-colors">
+               <Link href="/profil?tab=keluarga" onClick={() => {
+                  setIsSettingsClosing(true);
+                  setTimeout(() => { setIsSettingsOpen(false); setIsSettingsClosing(false); }, 400);
+               }} className="w-full flex items-center justify-between p-3 hover:bg-slate-50 rounded-2xl transition-colors">
                   <div className="flex items-center gap-4">
                      <div className="w-10 h-10 bg-teal-50 text-teal-600 rounded-full flex items-center justify-center">
                         <span className="material-icons-round text-[20px]">family_restroom</span>
@@ -405,7 +438,10 @@ export default function JemaatPwaLayout({
               <span className="text-[10px] tracking-wide">Tiket</span>
             </Link>
             <button 
-              onClick={() => setIsSettingsOpen(true)}
+              onClick={() => {
+                setIsSettingsOpen(true);
+                setIsSettingsClosing(false);
+              }}
               className={`flex flex-col items-center justify-center w-full h-12 gap-1 rounded-xl transition-all ${isSettingsOpen ? 'text-blue-600 font-bold' : 'text-slate-400 hover:text-slate-600 font-medium'}`}
             >
               <span 
