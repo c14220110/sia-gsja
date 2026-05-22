@@ -211,6 +211,45 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   }
 }
 
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+
+  const caller = getCallerFromRequest(request);
+  if (!caller) {
+    return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  }
+  if (!caller.is_super_admin && !caller.permissions.includes('survei_manage')) {
+    return NextResponse.json({ success: false, message: 'Akses Ditolak' }, { status: 403 });
+  }
+
+  try {
+    const body = await request.json();
+    const { action } = body; // 'close' = aktif→selesai
+
+    if (action === 'close') {
+      const check = await pool.query(`SELECT id, status FROM public.survei WHERE id = $1`, [id]);
+      if (check.rows.length === 0) {
+        return NextResponse.json({ success: false, message: 'Survei tidak ditemukan' }, { status: 404 });
+      }
+      if (check.rows[0].status !== 'aktif') {
+        return NextResponse.json({ success: false, message: `Hanya survei berstatus "Aktif" yang bisa diselesaikan.` }, { status: 400 });
+      }
+
+      await pool.query(
+        `UPDATE public.survei SET status = 'selesai', updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
+        [id]
+      );
+
+      return NextResponse.json({ success: true, message: 'Survei berhasil diselesaikan.' });
+    }
+
+    return NextResponse.json({ success: false, message: 'Action tidak valid' }, { status: 400 });
+  } catch (error: any) {
+    console.error('Error patching survei:', error);
+    return NextResponse.json({ success: false, message: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
@@ -223,24 +262,42 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   }
 
   try {
-    // Check survei exists & RBAC
+    // Check survei exists & status
     const existing = await pool.query(
-      `SELECT id, satelit_id FROM public.survei WHERE id = $1`,
+      `SELECT id, satelit_id, status FROM public.survei WHERE id = $1`,
       [id]
     );
     if (existing.rows.length === 0) {
       return NextResponse.json({ success: false, message: 'Survei tidak ditemukan' }, { status: 404 });
     }
 
+    const survei = existing.rows[0];
+
+    // RBAC: check satelit ownership
     if (!caller.is_super_admin && !caller.permissions.includes('multi_satelit_view')) {
-      if (existing.rows[0].satelit_id && existing.rows[0].satelit_id !== caller.satelit_id) {
+      if (survei.satelit_id && survei.satelit_id !== caller.satelit_id) {
         return NextResponse.json({ success: false, message: 'Akses ditolak: survei bukan milik satelit Anda' }, { status: 403 });
       }
     }
 
-    // Soft delete: set is_active = false
+    // Block delete if selesai
+    if (survei.status === 'selesai') {
+      return NextResponse.json({ 
+        success: false, 
+        message: 'Survei yang sudah selesai tidak bisa dihapus. Data respons harus tetap tersimpan.' 
+      }, { status: 403 });
+    }
+
+    // Terjadwal → hard delete (belum ada yang isi)
+    if (survei.status === 'terjadwal') {
+      await pool.query('DELETE FROM public.survei_pertanyaan WHERE survei_id = $1', [id]);
+      await pool.query('DELETE FROM public.survei WHERE id = $1', [id]);
+      return NextResponse.json({ success: true, message: 'Survei Terjadwal berhasil dihapus permanen.' });
+    }
+
+    // Aktif → soft delete (nonaktifkan)
     await pool.query(
-      `UPDATE public.survei SET is_active = false, updated_at = NOW() WHERE id = $1`,
+      `UPDATE public.survei SET status = 'nonaktif', is_active = false, updated_at = NOW() WHERE id = $1`,
       [id]
     );
 
@@ -250,3 +307,4 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     return NextResponse.json({ success: false, message: 'Internal Server Error' }, { status: 500 });
   }
 }
+

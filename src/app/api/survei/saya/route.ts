@@ -39,7 +39,7 @@ export async function GET(request: Request) {
       LEFT JOIN public.kegiatan kg ON s.kegiatan_id = kg.id
       LEFT JOIN public.satelit sat ON s.satelit_id = sat.id
       LEFT JOIN public.survei_respons sr ON sr.survei_id = s.id AND sr.jemaat_id = $1
-      WHERE s.is_active = true
+      WHERE s.status = 'aktif'
         AND CURRENT_DATE BETWEEN s.periode_mulai AND s.periode_selesai
         AND sr.id IS NULL
         AND (

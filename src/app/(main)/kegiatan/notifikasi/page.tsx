@@ -223,15 +223,20 @@ export default function BroadcastNotifikasiPage() {
 
       {/* Header Section */}
       <div className="w-full flex justify-between items-start">
-        <div className="flex flex-col gap-1">
-          <div className="mb-4">
-            <Link href="/kegiatan/survei" className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors text-sm font-bold font-['Inter'] shadow-sm">
-              <span className="material-icons-round text-[18px]">arrow_back</span>
-              Kembali ke Survei
-            </Link>
+        <div className="w-full flex flex-col justify-start items-start gap-4">
+          <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-['Inter'] leading-4">
+            <Link href="/kegiatan" className="text-slate-500 hover:text-violet-600">Kegiatan</Link>
+            <span className="text-slate-500 material-icons-round text-[14px]">chevron_right</span>
+            <Link href="/kegiatan/survei" className="text-slate-500 hover:text-violet-600">Survei</Link>
+            <span className="text-slate-500 material-icons-round text-[14px]">chevron_right</span>
+            <span className="text-slate-700 font-bold">Broadcast Notifikasi</span>
           </div>
-          <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Broadcast Notifikasi</h1>
-          <div className="text-slate-500 text-base font-medium font-['Inter'] leading-6">Kirim notifikasi push ke perangkat jemaat secara massal</div>
+          <div className="self-stretch inline-flex justify-between items-end">
+            <div className="inline-flex flex-col justify-start items-start">
+              <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Broadcast Notifikasi</h1>
+              <div className="text-slate-500 text-base font-medium font-['Inter'] leading-6">Kirim notifikasi push ke perangkat jemaat secara massal</div>
+            </div>
+          </div>
         </div>
       </div>
 

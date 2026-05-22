@@ -104,19 +104,67 @@ export default function SurveiListPage() {
 
   const totalPages = Math.ceil(totalItems / limit) || 1;
 
-  // Delete handler
-  const handleDelete = async (id: number) => {
-    if (!confirm('Yakin ingin menonaktifkan survei ini?')) return;
-    setSubmitState({ status: 'loading', message: 'Menonaktifkan survei...' });
+  // Delete handler (respects status)
+  const handleDelete = async (id: number, surveiStatus: string) => {
+    const isTerjadwal = surveiStatus === 'terjadwal';
+    const confirmMsg = isTerjadwal 
+      ? 'Yakin ingin menghapus survei terjadwal ini secara permanen?' 
+      : 'Yakin ingin menonaktifkan survei ini?';
+    if (!confirm(confirmMsg)) return;
+    setSubmitState({ status: 'loading', message: isTerjadwal ? 'Menghapus survei...' : 'Menonaktifkan survei...' });
     try {
       const res = await fetch(`/api/survei/${id}`, { method: 'DELETE' });
       const result = await res.json();
       if (result.success) {
-        setSubmitState({ status: 'success', message: 'Survei berhasil dinonaktifkan!' });
+        setSubmitState({ status: 'success', message: result.message });
         setRefreshTrigger(prev => prev + 1);
         setTimeout(() => setSubmitState({ status: 'idle', message: '' }), 2000);
       } else {
-        setSubmitState({ status: 'error', message: result.message || 'Gagal menonaktifkan survei' });
+        setSubmitState({ status: 'error', message: result.message || 'Gagal menghapus survei' });
+      }
+    } catch (error) {
+      setSubmitState({ status: 'error', message: 'Terjadi kesalahan sistem' });
+    }
+    setOpenMenuId(null);
+  };
+
+  // Publish handler (terjadwal → aktif + send push)
+  const handlePublish = async (id: number) => {
+    if (!confirm('Publish survei ini dan kirim notifikasi ke seluruh jemaat?')) return;
+    setSubmitState({ status: 'loading', message: 'Mempublish survei & mengirim notifikasi...' });
+    try {
+      const res = await fetch(`/api/survei/${id}/publish`, { method: 'POST' });
+      const result = await res.json();
+      if (result.success) {
+        setSubmitState({ status: 'success', message: result.message });
+        setRefreshTrigger(prev => prev + 1);
+        setTimeout(() => setSubmitState({ status: 'idle', message: '' }), 3000);
+      } else {
+        setSubmitState({ status: 'error', message: result.message || 'Gagal mempublish survei' });
+      }
+    } catch (error) {
+      setSubmitState({ status: 'error', message: 'Terjadi kesalahan sistem' });
+    }
+    setOpenMenuId(null);
+  };
+
+  // Close handler (aktif → selesai)
+  const handleClose = async (id: number) => {
+    if (!confirm('Selesaikan survei ini? Jemaat tidak akan bisa mengisi lagi.')) return;
+    setSubmitState({ status: 'loading', message: 'Menutup survei...' });
+    try {
+      const res = await fetch(`/api/survei/${id}`, { 
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'close' }),
+      });
+      const result = await res.json();
+      if (result.success) {
+        setSubmitState({ status: 'success', message: result.message });
+        setRefreshTrigger(prev => prev + 1);
+        setTimeout(() => setSubmitState({ status: 'idle', message: '' }), 2000);
+      } else {
+        setSubmitState({ status: 'error', message: result.message || 'Gagal menutup survei' });
       }
     } catch (error) {
       setSubmitState({ status: 'error', message: 'Terjadi kesalahan sistem' });
@@ -159,30 +207,58 @@ export default function SurveiListPage() {
     );
   };
 
+  // Get effective status (computed override for auto-close)
+  const getEffectiveStatus = (survei: any) => {
+    if (survei.status === 'nonaktif') return 'nonaktif';
+    if (survei.status === 'selesai') return 'selesai';
+    // Auto-close: aktif but period ended
+    if (survei.status === 'aktif' && new Date() > new Date(survei.periode_selesai)) return 'selesai';
+    return survei.status; // 'terjadwal' or 'aktif'
+  };
+
   // Render Status Badge
   const renderStatusBadge = (survei: any) => {
+    const effectiveStatus = getEffectiveStatus(survei);
     const now = new Date();
     const mulai = new Date(survei.periode_mulai);
-    const selesai = new Date(survei.periode_selesai);
+    const isOverdue = survei.status === 'terjadwal' && now >= mulai;
     
-    if (!survei.is_active) {
-      return <span className="px-2.5 py-1 text-xs font-bold rounded-full border bg-slate-100 text-slate-600 border-slate-300 whitespace-nowrap">Nonaktif</span>;
-    }
-    if (now < mulai) {
-      return <span className="px-2.5 py-1 text-xs font-bold rounded-full border bg-amber-50 text-amber-700 border-amber-200 whitespace-nowrap">Terjadwal</span>;
-    }
-    if (now >= mulai && now <= selesai) {
-      return (
-        <span className="px-2.5 py-1 text-xs font-bold rounded-full border bg-emerald-50 text-emerald-700 border-emerald-200 whitespace-nowrap flex items-center gap-1.5">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+    switch (effectiveStatus) {
+      case 'nonaktif':
+        return <span className="px-2.5 py-1 text-xs font-bold rounded-full border bg-slate-100 text-slate-600 border-slate-300 whitespace-nowrap">Nonaktif</span>;
+      case 'terjadwal':
+        return (
+          <span className={`px-2.5 py-1 text-xs font-bold rounded-full border whitespace-nowrap flex items-center gap-1.5 ${
+            isOverdue 
+              ? 'bg-red-50 text-red-700 border-red-300 animate-pulse' 
+              : 'bg-amber-50 text-amber-700 border-amber-200'
+          }`}>
+            {isOverdue && (
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+              </span>
+            )}
+            {isOverdue ? 'Terlambat!' : 'Terjadwal'}
           </span>
-          Aktif
-        </span>
-      );
+        );
+      case 'aktif':
+        return (
+          <span className="px-2.5 py-1 text-xs font-bold rounded-full border bg-emerald-50 text-emerald-700 border-emerald-200 whitespace-nowrap flex items-center gap-1.5">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            Aktif
+          </span>
+        );
+      case 'selesai':
+        return <span className="px-2.5 py-1 text-xs font-bold rounded-full border bg-blue-50 text-blue-700 border-blue-200 whitespace-nowrap flex items-center gap-1">
+          <span className="material-icons-round text-[12px]">check_circle</span>Selesai
+        </span>;
+      default:
+        return null;
     }
-    return <span className="px-2.5 py-1 text-xs font-bold rounded-full border bg-blue-50 text-blue-700 border-blue-200 whitespace-nowrap">Selesai</span>;
   };
 
   const formatDate = (dateString: string) => {
@@ -308,9 +384,10 @@ export default function SurveiListPage() {
             className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
           >
             <option value="">Semua Status</option>
-            <option value="aktif">Aktif</option>
             <option value="terjadwal">Terjadwal</option>
+            <option value="aktif">Aktif</option>
             <option value="selesai">Selesai</option>
+            <option value="nonaktif">Nonaktif</option>
           </select>
           <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
         </div>
@@ -407,38 +484,74 @@ export default function SurveiListPage() {
                         <span className="material-icons-round text-[20px]">more_vert</span>
                       </button>
 
-                      {openMenuId === survei.id && (
+                      {openMenuId === survei.id && (() => {
+                        const eStatus = getEffectiveStatus(survei);
+                        return (
                         <div className={`absolute right-0 ${isLastRows ? 'bottom-full mb-1' : 'top-full mt-1'} w-56 bg-white rounded-lg shadow-xl border border-slate-100 py-2 z-50`}>
+                          {/* Lihat Hasil — always visible */}
                           <Link href={`/kegiatan/survei/${survei.id}`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2">
                              <span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Hasil
                           </Link>
-                          
-                          {hasPermission('survei_manage') && survei.is_active && (
+
+                          {/* Terjadwal: Publish + Hapus */}
+                          {hasPermission('survei_manage') && eStatus === 'terjadwal' && (
+                            <>
+                              <div className="w-full h-px bg-slate-100 my-1" />
+                              <button 
+                                onClick={() => handlePublish(survei.id)}
+                                className="w-full text-left px-4 py-2 hover:bg-emerald-50 text-emerald-700 text-sm flex items-center gap-2 font-medium"
+                              >
+                                 <span className="material-icons-round text-[18px] text-emerald-500">send</span>Kirim & Publish
+                              </button>
+                              <div className="w-full h-px bg-slate-100 my-1" />
+                              <button 
+                                onClick={() => handleDelete(survei.id, survei.status)}
+                                className="w-full text-left px-4 py-2 hover:bg-rose-50 text-rose-600 text-sm flex items-center gap-2 font-medium"
+                              >
+                                 <span className="material-icons-round text-[18px]">delete_forever</span>Hapus Permanen
+                              </button>
+                            </>
+                          )}
+
+                          {/* Aktif: Kirim Notifikasi Ulang, Selesaikan, Nonaktifkan */}
+                          {hasPermission('survei_manage') && eStatus === 'aktif' && (
                             <>
                               <div className="w-full h-px bg-slate-100 my-1" />
                               <button 
                                 onClick={() => handlePush(survei.id)}
                                 className="w-full text-left px-4 py-2 hover:bg-blue-50 text-blue-700 text-sm flex items-center gap-2 font-medium"
                               >
-                                 <span className="material-icons-round text-[18px] text-blue-500">notifications_active</span>Kirim Notifikasi
+                                 <span className="material-icons-round text-[18px] text-blue-500">notifications_active</span>Kirim Notifikasi Ulang
+                              </button>
+                              <div className="w-full h-px bg-slate-100 my-1" />
+                              <button 
+                                onClick={() => handleClose(survei.id)}
+                                className="w-full text-left px-4 py-2 hover:bg-amber-50 text-amber-700 text-sm flex items-center gap-2 font-medium"
+                              >
+                                 <span className="material-icons-round text-[18px] text-amber-500">check_circle</span>Selesaikan Survei
+                              </button>
+                              <div className="w-full h-px bg-slate-100 my-1" />
+                              <button 
+                                onClick={() => handleDelete(survei.id, survei.status)}
+                                className="w-full text-left px-4 py-2 hover:bg-rose-50 text-rose-600 text-sm flex items-center gap-2 font-medium"
+                              >
+                                 <span className="material-icons-round text-[18px]">block</span>Nonaktifkan
                               </button>
                             </>
                           )}
 
-                          {hasPermission('survei_manage') && (
+                          {/* Selesai: read-only, no actions */}
+                          {eStatus === 'selesai' && (
                             <>
                               <div className="w-full h-px bg-slate-100 my-1" />
-                              <button 
-                                onClick={() => handleDelete(survei.id)}
-                                className="w-full text-left px-4 py-2 hover:bg-rose-50 text-rose-600 text-sm flex items-center gap-2 font-medium"
-                              >
-                                 <span className="material-icons-round text-[18px]">delete_outline</span>Nonaktifkan Survei
-                              </button>
+                              <div className="px-4 py-2 text-slate-400 text-xs italic flex items-center gap-2">
+                                <span className="material-icons-round text-[14px]">lock</span>Survei selesai — tidak bisa diubah
+                              </div>
                             </>
                           )}
-                          
                         </div>
-                      )}
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>

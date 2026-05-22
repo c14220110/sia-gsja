@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useLoader } from '@/components/ui/GlobalLoader';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
 
 interface PertanyaanItem {
@@ -155,14 +156,20 @@ export default function BuatSurveiPage() {
 
       {/* Header */}
       <div className="w-full flex justify-between items-start">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-3 mb-2">
-            <button onClick={() => router.push('/kegiatan/survei')} className="w-8 h-8 rounded-lg border border-slate-200 bg-white flex justify-center items-center text-slate-600 hover:bg-slate-50 transition-colors">
-              <span className="material-icons-round text-[18px]">arrow_back</span>
-            </button>
-            <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9">Buat Survei Baru</h1>
+        <div className="w-full flex flex-col justify-start items-start gap-4">
+          <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-['Inter'] leading-4">
+            <Link href="/kegiatan" className="text-slate-500 hover:text-violet-600">Kegiatan</Link>
+            <span className="text-slate-500 material-icons-round text-[14px]">chevron_right</span>
+            <Link href="/kegiatan/survei" className="text-slate-500 hover:text-violet-600">Survei</Link>
+            <span className="text-slate-500 material-icons-round text-[14px]">chevron_right</span>
+            <span className="text-slate-700 font-bold">Buat Survei Baru</span>
           </div>
-          <div className="text-slate-500 text-base font-medium font-['Inter'] leading-6">Buat survei kepuasan untuk mengukur kualitas pelayanan</div>
+          <div className="self-stretch inline-flex justify-between items-end">
+            <div className="inline-flex flex-col justify-start items-start">
+              <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Buat Survei Baru</h1>
+              <div className="text-slate-500 text-base font-medium font-['Inter'] leading-6">Buat survei kepuasan untuk mengukur kualitas pelayanan</div>
+            </div>
+          </div>
         </div>
       </div>
 

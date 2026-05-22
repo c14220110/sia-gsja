@@ -31,11 +31,15 @@ export async function GET(request: Request) {
       paramIndex++;
     }
 
-    // 2. Status filter
+    // 2. Status filter (using status column)
     if (status === 'aktif') {
-      whereClauses.push(`s.is_active = true AND CURRENT_DATE BETWEEN s.periode_mulai AND s.periode_selesai`);
+      whereClauses.push(`s.status = 'aktif'`);
     } else if (status === 'selesai') {
-      whereClauses.push(`CURRENT_DATE > s.periode_selesai`);
+      whereClauses.push(`(s.status = 'selesai' OR (s.status = 'aktif' AND CURRENT_DATE > s.periode_selesai))`);
+    } else if (status === 'terjadwal') {
+      whereClauses.push(`s.status = 'terjadwal'`);
+    } else if (status === 'nonaktif') {
+      whereClauses.push(`s.status = 'nonaktif'`);
     }
     // 'semua' → no status filter
 
@@ -80,6 +84,7 @@ export async function GET(request: Request) {
         s.is_anonim,
         s.threshold_flag,
         s.tipe_survei,
+        s.status,
         s.created_by,
         s.created_at,
         s.updated_at,
@@ -175,8 +180,8 @@ export async function POST(request: Request) {
 
     // Insert survei
     const surveiResult = await client.query(
-      `INSERT INTO public.survei (judul, deskripsi, kegiatan_id, satelit_id, periode_mulai, periode_selesai, is_active, is_anonim, threshold_flag, tipe_survei, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6, true, $7, $8, $9, $10)
+      `INSERT INTO public.survei (judul, deskripsi, kegiatan_id, satelit_id, periode_mulai, periode_selesai, is_active, is_anonim, threshold_flag, tipe_survei, status, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6, true, $7, $8, $9, 'terjadwal', $10)
        RETURNING id`,
       [
         judul,

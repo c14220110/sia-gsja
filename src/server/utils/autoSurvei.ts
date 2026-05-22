@@ -120,8 +120,8 @@ export async function createAutoSurvei(kegiatanId: number, createdByUserId: numb
     const periodeMulaiStr = new Date().toISOString().split('T')[0];
 
     const surveiRes = await client.query(
-      `INSERT INTO public.survei (judul, deskripsi, kegiatan_id, satelit_id, periode_mulai, periode_selesai, is_active, is_anonim, threshold_flag, tipe_survei, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6, true, false, 3, 'otomatis', $7)
+      `INSERT INTO public.survei (judul, deskripsi, kegiatan_id, satelit_id, periode_mulai, periode_selesai, is_active, is_anonim, threshold_flag, tipe_survei, status, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6, true, false, 3, 'otomatis', 'aktif', $7)
        RETURNING id`,
       [
         `Survei Kepuasan: ${kegiatan.nama_kegiatan}`,
