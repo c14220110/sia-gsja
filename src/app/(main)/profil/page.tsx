@@ -306,7 +306,7 @@ export default function ProfilJemaatPage() {
           <>
             {/* Informasi Personal */}
             <SectionCard title="Informasi Personal" icon="badge">
-              <InfoRow label="NIK KTP" value={profile.nik} icon="fingerprint" />
+
               <InfoRow label="Jenis Kelamin" value={profile.jenis_kelamin} icon="wc" />
               <InfoRow label="Tempat, Tanggal Lahir"
                 value={[profile.tempat_lahir, formatDate(profile.tanggal_lahir)].filter(Boolean).join(', ')}

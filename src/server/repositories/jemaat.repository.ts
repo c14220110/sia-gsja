@@ -256,19 +256,19 @@ export class JemaatRepository {
       // Insert Jemaat
       const insertJemaatQuery = `
         INSERT INTO jemaat (
-          jemaat_id, nik, nama_lengkap, jenis_kelamin, tempat_lahir, tanggal_lahir,
+          jemaat_id, nama_lengkap, jenis_kelamin, tempat_lahir, tanggal_lahir,
           alamat, kota, kecamatan, kelurahan, kode_pos, no_hp, email, 
           status_pernikahan, status_baptis, tanggal_baptis, status_jemaat, pekerjaan, pekerjaan_id, satelit_id,
           ayah_id, ayah_nama, gereja_asal_ayah,
           ibu_id, ibu_nama, gereja_asal_ibu,
           pasangan_id, pasangan_nama, gereja_asal_pasangan, foto_url
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, 
-          $7, $8, $9, $10, $11, $12, $13, 
-          $14, $15, $16, $17, $18, $19, $20,
-          $21, $22, $23,
-          $24, $25, $26,
-          $27, $28, $29, $30
+          $1, $2, $3, $4, $5, 
+          $6, $7, $8, $9, $10, $11, $12, 
+          $13, $14, $15, $16, $17, $18, $19,
+          $20, $21, $22,
+          $23, $24, $25,
+          $26, $27, $28, $29
         ) RETURNING id
       `;
       
@@ -276,35 +276,34 @@ export class JemaatRepository {
 
       const jemaatValues = [
         jemaatId, // $1
-        data.nik || null, // $2
-        data.nama_lengkap, // $3
-        data.jenis_kelamin || null, // $4
-        data.tempat_lahir || null, // $5
-        data.tanggal_lahir ? new Date(data.tanggal_lahir) : null, // $6
-        data.alamat || null, // $7
-        data.kota || null, // $8
-        data.kecamatan || null, // $9
-        data.kelurahan || null, // $10
-        data.kode_pos || null, // $11
-        data.no_hp || null, // $12
-        data.email || null, // $13
-        data.status_pernikahan || null, // $14 (Lajang, Menikah, Duda, Janda)
-        statusBaptisBool, // $15
-        (statusBaptisBool && data.tanggal_baptis) ? new Date(data.tanggal_baptis) : null, // $16
-        data.status_jemaat || 'Aktif', // $17
-        data.pekerjaan || null, // $18
-        data.pekerjaan_id ? parseInt(data.pekerjaan_id, 10) : null, // $19
-        data.satelit_id ? parseInt(data.satelit_id, 10) : null, // $20
-        data.ayah_id ? parseInt(data.ayah_id, 10) : null, // $21
-        data.ayah_nama || null, // $22
-        data.gereja_asal_ayah || null, // $23
-        data.ibu_id ? parseInt(data.ibu_id, 10) : null, // $24
-        data.ibu_nama || null, // $25
-        data.gereja_asal_ibu || null, // $26
-        data.pasangan_id ? parseInt(data.pasangan_id, 10) : null, // $27
-        data.pasangan_nama || null, // $28
-        data.gereja_asal_pasangan || null, // $29
-        data.foto_url || null // $30
+        data.nama_lengkap, // $2
+        data.jenis_kelamin || null, // $3
+        data.tempat_lahir || null, // $4
+        data.tanggal_lahir ? new Date(data.tanggal_lahir) : null, // $5
+        data.alamat || null, // $6
+        data.kota || null, // $7
+        data.kecamatan || null, // $8
+        data.kelurahan || null, // $9
+        data.kode_pos || null, // $10
+        data.no_hp || null, // $11
+        data.email || null, // $12
+        data.status_pernikahan || null, // $13 (Lajang, Menikah, Duda, Janda)
+        statusBaptisBool, // $14
+        (statusBaptisBool && data.tanggal_baptis) ? new Date(data.tanggal_baptis) : null, // $15
+        data.status_jemaat || 'Aktif', // $16
+        data.pekerjaan || null, // $17
+        data.pekerjaan_id ? parseInt(data.pekerjaan_id, 10) : null, // $18
+        data.satelit_id ? parseInt(data.satelit_id, 10) : null, // $19
+        data.ayah_id ? parseInt(data.ayah_id, 10) : null, // $20
+        data.ayah_nama || null, // $21
+        data.gereja_asal_ayah || null, // $22
+        data.ibu_id ? parseInt(data.ibu_id, 10) : null, // $23
+        data.ibu_nama || null, // $24
+        data.gereja_asal_ibu || null, // $25
+        data.pasangan_id ? parseInt(data.pasangan_id, 10) : null, // $26
+        data.pasangan_nama || null, // $27
+        data.gereja_asal_pasangan || null, // $28
+        data.foto_url || null // $29
       ];
 
       const res = await client.query(insertJemaatQuery, jemaatValues);
@@ -581,53 +580,51 @@ export class JemaatRepository {
         newJemaatId = `${idPrefix}${nextNum.toString().padStart(2, '0')}`;
       }
 
-      // ── Build UPDATE query (include jemaat_id only if regenerated) ─────────
-      const jemaatIdSet = newJemaatId ? ', jemaat_id = $31' : '';
+      const jemaatIdSet = newJemaatId ? ', jemaat_id = $30' : '';
       const updateQuery = `
         UPDATE jemaat SET
-          nik = $1, nama_lengkap = $2, jenis_kelamin = $3, tempat_lahir = $4, tanggal_lahir = $5,
-          alamat = $6, kota = $7, kecamatan = $8, kelurahan = $9, kode_pos = $10, no_hp = $11, email = $12, 
-          status_pernikahan = $13, status_baptis = $14, tanggal_baptis = $15, status_jemaat = $16, pekerjaan = $17, pekerjaan_id = $18, satelit_id = $19,
-          ayah_id = $20, ayah_nama = $21, gereja_asal_ayah = $22,
-          ibu_id = $23, ibu_nama = $24, gereja_asal_ibu = $25,
-          pasangan_id = $26, pasangan_nama = $27, gereja_asal_pasangan = $28, foto_url = $29${jemaatIdSet}
-        WHERE id::text = $30
+          nama_lengkap = $1, jenis_kelamin = $2, tempat_lahir = $3, tanggal_lahir = $4,
+          alamat = $5, kota = $6, kecamatan = $7, kelurahan = $8, kode_pos = $9, no_hp = $10, email = $11, 
+          status_pernikahan = $12, status_baptis = $13, tanggal_baptis = $14, status_jemaat = $15, pekerjaan = $16, pekerjaan_id = $17, satelit_id = $18,
+          ayah_id = $19, ayah_nama = $20, gereja_asal_ayah = $21,
+          ibu_id = $22, ibu_nama = $23, gereja_asal_ibu = $24,
+          pasangan_id = $25, pasangan_nama = $26, gereja_asal_pasangan = $27, foto_url = $28${jemaatIdSet}
+        WHERE id::text = $29
         RETURNING id
       `;
 
       const jemaatValues: any[] = [
-        data.nik || null,                                                          // $1
-        data.nama_lengkap,                                                         // $2
-        data.jenis_kelamin || null,                                                // $3
-        data.tempat_lahir || null,                                                 // $4
-        data.tanggal_lahir ? new Date(data.tanggal_lahir) : null,                 // $5
-        data.alamat || null,                                                       // $6
-        data.kota || null,                                                         // $7
-        data.kecamatan || null,                                                    // $8
-        data.kelurahan || null,                                                    // $9
-        data.kode_pos || null,                                                     // $10
-        data.no_hp || null,                                                        // $11
-        data.email || null,                                                        // $12
-        data.status_pernikahan || null,                                            // $13
-        statusBaptisBool,                                                          // $14
-        (statusBaptisBool && data.tanggal_baptis) ? new Date(data.tanggal_baptis) : null, // $15
-        data.status_jemaat || 'Aktif',                                             // $16
-        data.pekerjaan || null,                                                    // $17
-        data.pekerjaan_id ? parseInt(data.pekerjaan_id, 10) : null,               // $18
-        newSatelitId,                                                              // $19
-        data.ayah_id ? parseInt(data.ayah_id, 10) : null,                         // $20
-        data.ayah_nama || null,                                                    // $21
-        data.gereja_asal_ayah || null,                                             // $22
-        data.ibu_id ? parseInt(data.ibu_id, 10) : null,                           // $23
-        data.ibu_nama || null,                                                     // $24
-        data.gereja_asal_ibu || null,                                              // $25
-        data.pasangan_id ? parseInt(data.pasangan_id, 10) : null,                 // $26
-        data.pasangan_nama || null,                                                // $27
-        data.gereja_asal_pasangan || null,                                         // $28
-        data.foto_url || null,                                                     // $29
-        jemaatId,                                                                  // $30
+        data.nama_lengkap,                                                         // $1
+        data.jenis_kelamin || null,                                                // $2
+        data.tempat_lahir || null,                                                 // $3
+        data.tanggal_lahir ? new Date(data.tanggal_lahir) : null,                 // $4
+        data.alamat || null,                                                       // $5
+        data.kota || null,                                                         // $6
+        data.kecamatan || null,                                                    // $7
+        data.kelurahan || null,                                                    // $8
+        data.kode_pos || null,                                                     // $9
+        data.no_hp || null,                                                        // $10
+        data.email || null,                                                        // $11
+        data.status_pernikahan || null,                                            // $12
+        statusBaptisBool,                                                          // $13
+        (statusBaptisBool && data.tanggal_baptis) ? new Date(data.tanggal_baptis) : null, // $14
+        data.status_jemaat || 'Aktif',                                             // $15
+        data.pekerjaan || null,                                                    // $16
+        data.pekerjaan_id ? parseInt(data.pekerjaan_id, 10) : null,               // $17
+        newSatelitId,                                                              // $18
+        data.ayah_id ? parseInt(data.ayah_id, 10) : null,                         // $19
+        data.ayah_nama || null,                                                    // $20
+        data.gereja_asal_ayah || null,                                             // $21
+        data.ibu_id ? parseInt(data.ibu_id, 10) : null,                           // $22
+        data.ibu_nama || null,                                                     // $23
+        data.gereja_asal_ibu || null,                                              // $24
+        data.pasangan_id ? parseInt(data.pasangan_id, 10) : null,                 // $25
+        data.pasangan_nama || null,                                                // $26
+        data.gereja_asal_pasangan || null,                                         // $27
+        data.foto_url || null,                                                     // $28
+        jemaatId,                                                                  // $29
       ];
-      if (newJemaatId) jemaatValues.push(newJemaatId);                            // $31 (optional)
+      if (newJemaatId) jemaatValues.push(newJemaatId);                            // $30 (optional)
 
       const res = await client.query(updateQuery, jemaatValues);
       

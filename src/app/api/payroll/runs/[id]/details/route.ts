@@ -185,7 +185,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     // 2. Cek apakah detail sudah ada
     const existingDetails = await pool.query(`
-      SELECT prd.*, p.nama_lengkap, p.nik, p.status_ptkp
+      SELECT prd.*, p.nama_lengkap, p.status_ptkp
       FROM public.payroll_run_detail prd
       JOIN public.pegawai p ON p.id = prd.pegawai_id
       WHERE prd.run_id = $1
@@ -413,8 +413,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
         generatedDetails.push({ 
           ...finalDetail.rows[0], 
+
           nama_lengkap: peg.nama_lengkap, 
-          nik: peg.nik, 
           status_ptkp: peg.status_ptkp,
           komponen: komponenList 
         });

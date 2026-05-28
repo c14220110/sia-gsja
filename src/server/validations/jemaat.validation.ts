@@ -18,7 +18,7 @@ const saudaraSchema = z.object({
 const jemaatBaseSchema = z.object({
   nama_lengkap:       z.string().min(1, 'Nama lengkap wajib diisi'),
   jenis_kelamin:      z.enum(['Laki-laki', 'Perempuan']).optional().nullable(),
-  nik:                z.string().optional().nullable(),
+
   tempat_lahir:       z.string().optional().nullable(),
   tanggal_lahir:      z.string().optional().nullable(),
   alamat:             z.string().optional().nullable(),

@@ -37,7 +37,7 @@ export default function NewPegawaiPage() {
     jumlah_anak: 0,
     no_hp: '',
     email_pribadi: '',
-    nik: '',
+
     no_kk: '',
     kontak_darurat_nama: '',
     kontak_darurat_nohp: '',
@@ -131,7 +131,7 @@ export default function NewPegawaiPage() {
       nama_lengkap: j.nama_lengkap || prev.nama_lengkap,
       jenis_kelamin: j.jenis_kelamin || prev.jenis_kelamin,
       satelit_id: j.satelit_id?.toString() || prev.satelit_id,
-      nik: j.nik || prev.nik,
+
       tanggal_lahir: j.tanggal_lahir ? j.tanggal_lahir.split('T')[0] : prev.tanggal_lahir,
       status_pernikahan: j.status_pernikahan || prev.status_pernikahan,
       no_hp: j.no_hp || prev.no_hp,
@@ -147,7 +147,7 @@ export default function NewPegawaiPage() {
   const validateCurrentTab = () => {
     if (activeTab === 1) {
       if (!formData.nama_lengkap) return 'Nama Lengkap wajib diisi.';
-      if (!formData.nik) return 'NIK wajib diisi.';
+
       if (!formData.satelit_id) return 'Satelit Penugasan wajib diisi.';
       if (!formData.jabatan_pegawai_id) return 'Jabatan Pegawai wajib dipilih.';
     }
@@ -277,10 +277,6 @@ export default function NewPegawaiPage() {
                 <div className="flex flex-col gap-1 w-full">
                   <label className="text-slate-700 text-xs font-bold uppercase">Nama Lengkap *</label>
                   <input type="text" name="nama_lengkap" value={formData.nama_lengkap} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Sesuai KTP" />
-                </div>
-                <div className="flex flex-col gap-1 w-full">
-                  <label className="text-slate-700 text-xs font-bold uppercase">NIK KTP *</label>
-                  <input type="text" name="nik" value={formData.nik} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="16 Digit NIK" />
                 </div>
                 <div className="flex flex-col gap-1 w-full">
                   <label className="text-slate-700 text-xs font-bold uppercase">No. Kartu Keluarga</label>

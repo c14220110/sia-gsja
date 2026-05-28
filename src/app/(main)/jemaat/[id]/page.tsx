@@ -160,7 +160,6 @@ export default function EditJemaatPage() {
   const [formData, setFormData] = useState({
     nama_lengkap: '',
     jenis_kelamin: 'Laki-laki',
-    nik: '',
     tempat_lahir: '',
     tanggal_lahir: '',
     alamat: '',
@@ -249,7 +248,6 @@ export default function EditJemaatPage() {
               setFormData({
                 nama_lengkap: d.nama_lengkap || '',
                 jenis_kelamin: d.jenis_kelamin || 'Laki-laki',
-                nik: d.nik || '',
                 tempat_lahir: d.tempat_lahir || '',
                 tanggal_lahir: d.tanggal_lahir ? new Date(d.tanggal_lahir).toISOString().split('T')[0] : '',
                 alamat: d.alamat || '',
@@ -432,6 +430,17 @@ export default function EditJemaatPage() {
   };
 
   const handleCreate = async () => {
+    // Validasi frontend (hanya untuk mode edit)
+    if (!isReadOnly) {
+      if (!formData.tanggal_lahir) {
+        setSubmitState({ status: 'error', message: 'Tanggal lahir wajib diisi.' });
+        return;
+      }
+      if (!formData.no_hp && !formData.email) {
+        setSubmitState({ status: 'error', message: 'Harap isi minimal No. Telepon atau Alamat Email.' });
+        return;
+      }
+    }
     try {
       setIsSubmitting(true);
       setSubmitState({ status: 'loading', message: '' });
@@ -647,27 +656,21 @@ export default function EditJemaatPage() {
                   </div>
                   
                   <div className="w-full flex-col gap-4 flex">
-                    <div className="w-full flex gap-4">
-                      <div className="flex-[2] flex-col gap-1 flex">
-                        <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">No. NIK KTP</label>
-                        <input type="text" name="nik" value={formData.nik} onChange={handleInputChange} placeholder="16 Digit NIK" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
-                      </div>
-                      <div className="flex-1 flex-col gap-1 flex">
-                        <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Jenis Kelamin</label>
-                        <select name="jenis_kelamin" value={formData.jenis_kelamin} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all">
-                          <option value="Laki-laki">Laki-laki</option>
-                          <option value="Perempuan">Perempuan</option>
-                        </select>
-                      </div>
+                    <div className="w-full flex-col gap-1 flex">
+                      <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Jenis Kelamin</label>
+                      <select name="jenis_kelamin" value={formData.jenis_kelamin} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all">
+                        <option value="Laki-laki">Laki-laki</option>
+                        <option value="Perempuan">Perempuan</option>
+                      </select>
                     </div>
                     
                     <div className="w-full flex gap-4">
                       <div className="flex-1 flex-col gap-1 flex">
                         <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Kota Lahir</label>
-                        <input type="text" name="tempat_lahir" value={formData.tempat_lahir} onChange={handleInputChange} placeholder="Asal kota" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
+                        <input type="text" name="tempat_lahir" value={formData.tempat_lahir} onChange={handleInputChange} placeholder="" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
                       </div>
                       <div className="flex-1 flex-col gap-1 flex">
-                        <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Tanggal Lahir</label>
+                        <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Tanggal Lahir {!isReadOnly && <span className="text-red-500">*</span>}</label>
                         <input type="date" name="tanggal_lahir" value={formData.tanggal_lahir} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
                       </div>
                     </div>
@@ -922,38 +925,54 @@ export default function EditJemaatPage() {
                     <div className="w-full flex gap-4">
                       <div className="flex-1 flex-col gap-1 flex">
                         <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Kecamatan</label>
-                        <input type="text" name="kecamatan" value={formData.kecamatan} onChange={handleInputChange} placeholder="Mulyorejo" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
+                        <input type="text" name="kecamatan" value={formData.kecamatan} onChange={handleInputChange} placeholder="" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
                       </div>
                       <div className="flex-1 flex-col gap-1 flex">
                         <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Kelurahan</label>
-                        <input type="text" name="kelurahan" value={formData.kelurahan} onChange={handleInputChange} placeholder="Kalisari" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
+                        <input type="text" name="kelurahan" value={formData.kelurahan} onChange={handleInputChange} placeholder="" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
                       </div>
                     </div>
 
                     <div className="w-full flex gap-4">
                       <div className="flex-[2] flex-col gap-1 flex">
                         <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Kota</label>
-                        <input type="text" name="kota" value={formData.kota} onChange={handleInputChange} placeholder="Surabaya" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
+                        <input type="text" name="kota" value={formData.kota} onChange={handleInputChange} placeholder="" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
                       </div>
                       <div className="flex-1 flex-col gap-1 flex">
                         <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Kode Pos</label>
-                        <input type="text" name="kode_pos" value={formData.kode_pos} onChange={handleInputChange} placeholder="60293" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
+                        <input type="text" name="kode_pos" value={formData.kode_pos} onChange={handleInputChange} placeholder="" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
                       </div>
                     </div>
                     
-                    <div className="w-full flex gap-4">
-                      <div className="flex-1 flex-col gap-1 flex">
-                        <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">No Telepon / WA</label>
-                        <div className="relative w-full">
-                          <span className="absolute left-3 top-2.5 text-slate-400 text-sm font-bold font-['Inter']">+62</span>
-                          <input type="text" name="no_hp" value={formData.no_hp} onChange={handleInputChange} placeholder="812345678" className="pl-12 pr-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
+                    {isReadOnly ? (
+                      <div className="w-full flex gap-4">
+                        <div className="flex-1 flex-col gap-1 flex">
+                          <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">No Telepon / WA</label>
+                          <div className="text-slate-900 text-sm font-semibold">{formData.no_hp || '-'}</div>
+                        </div>
+                        <div className="flex-1 flex-col gap-1 flex">
+                          <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Alamat Email</label>
+                          <div className="text-slate-900 text-sm font-semibold">{formData.email || '-'}</div>
                         </div>
                       </div>
-                      <div className="flex-1 flex-col gap-1 flex">
-                        <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Alamat Email</label>
-                        <input type="email" name="email" value={formData.email} onChange={handleInputChange} placeholder="email@gmail.com" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
+                    ) : (
+                      <div className="w-full p-3 bg-blue-50 rounded-lg border border-blue-100">
+                        <p className="text-blue-700 text-xs font-semibold font-['Inter'] mb-2">Kontak <span className="text-red-500">*</span> — Isi minimal salah satu</p>
+                        <div className="w-full flex gap-4">
+                          <div className="flex-1 flex-col gap-1 flex">
+                            <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">No Telepon / WA</label>
+                            <div className="relative w-full">
+                              <span className="absolute left-3 top-2.5 text-slate-400 text-sm font-bold font-['Inter']">+62</span>
+                              <input type="text" name="no_hp" value={formData.no_hp} onChange={handleInputChange} placeholder="" className="pl-12 pr-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
+                            </div>
+                          </div>
+                          <div className="flex-1 flex-col gap-1 flex">
+                            <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Alamat Email</label>
+                            <input type="email" name="email" value={formData.email} onChange={handleInputChange} placeholder="" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
 

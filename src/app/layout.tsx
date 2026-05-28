@@ -8,7 +8,6 @@ const playfair = Playfair_Display({ subsets: ['latin'], variable: '--font-displa
 export const metadata: Metadata = {
   title: 'SIA GSJA - Accounting Information System',
   description: 'Gereja Sidang Jemaat Allah - Sistem Informasi Akuntansi',
-  manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',

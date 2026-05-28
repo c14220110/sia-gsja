@@ -135,7 +135,7 @@ export async function POST(request: Request) {
 
     const insertQuery = `
       INSERT INTO public.pegawai (
-        id_pegawai, jemaat_id, nama_lengkap, nik, no_kk, status_pernikahan, 
+        id_pegawai, jemaat_id, nama_lengkap, no_kk, status_pernikahan, 
         jumlah_anak, tanggal_lahir, jenis_kelamin, no_hp, email_pribadi, 
         kontak_darurat_nama, kontak_darurat_nohp, kontak_darurat_relasi, 
         jabatan_pegawai_id, departemen_id, tanggal_bergabung, 
@@ -144,14 +144,14 @@ export async function POST(request: Request) {
         is_kena_pph21, no_npwp, tipe_pekerja, status_ptkp, 
         bank_id, no_rekening, atas_nama_rekening, satelit_id
       ) VALUES (
-        $1, $2, $3, $4, $5, $6, 
-        $7, $8, $9, $10, $11, 
-        $12, $13, $14, 
-        $15, $16, $17, 
+        $1, $2, $3, $4, $5, 
+        $6, $7, $8, $9, $10, 
+        $11, $12, $13, 
+        $14, $15, $16, 
         'Aktif', 'Pending', 
-        $18, $19, $20, $21, 
-        $22, $23, $24, $25, 
-        $26, $27, $28, $29
+        $17, $18, $19, $20, 
+        $21, $22, $23, $24, 
+        $25, $26, $27, $28
       ) RETURNING id
     `;
 
@@ -159,7 +159,6 @@ export async function POST(request: Request) {
       generatedIdPegawai,
       body.jemaat_id || null, // Can be null if not a member yet
       body.nama_lengkap,
-      body.nik,
       body.no_kk || null,
       body.status_pernikahan || null,
       body.jumlah_anak ? parseInt(body.jumlah_anak) : 0,

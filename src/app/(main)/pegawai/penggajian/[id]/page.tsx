@@ -238,7 +238,7 @@ export default function DetailRunPage({ params }: { params: Promise<{ id: string
                     <div className="w-9 shrink-0"><div className={`w-8 h-8 rounded-full ${avatarColor(item.nama_lengkap||'')} flex items-center justify-center text-white text-xs font-bold`}>{getInitials(item.nama_lengkap||'')}</div></div>
                     <div className="w-52 shrink-0 flex flex-col pr-2">
                       <span className="text-slate-900 text-sm font-bold font-['Public_Sans'] truncate">{item.nama_lengkap}</span>
-                      <span className="text-slate-400 text-[11px] font-['Liberation_Mono'] truncate">{item.nik || '—'}</span>
+
                     </div>
                     <div className="w-36 shrink-0 pr-2"><span className="text-slate-600 text-sm font-medium font-['Public_Sans'] truncate block">{item.jabatan_snapshot || '—'}</span></div>
                     <div className="flex-1 min-w-[110px] text-right text-slate-700 text-sm font-bold font-['Liberation_Mono'] pr-2">{formatRupiah(gpVal)}</div>

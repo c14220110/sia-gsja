@@ -74,7 +74,7 @@ export async function GET(
         p.id, p.id_pengurus, p.created_at,
         j.id              AS jemaat_id,
         j.jemaat_id       AS jemaat_nomor,
-        j.nama_lengkap, j.foto_url, j.nik, j.tempat_lahir, j.tanggal_lahir,
+        j.nama_lengkap, j.foto_url, j.tempat_lahir, j.tanggal_lahir,
         j.jenis_kelamin, j.status_pernikahan, j.alamat, j.no_hp, j.email,
         j.tanggal_baptis, j.status_baptis,
         js.nama_satelit   AS nama_satelit_jemaat

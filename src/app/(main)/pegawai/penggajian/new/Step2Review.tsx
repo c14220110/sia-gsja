@@ -262,7 +262,7 @@ export default function Step2Review({ runId, onNext, onPrev, setSubmitState }: S
                         </div>
                         <div className="w-52 shrink-0 flex flex-col pr-2">
                           <span className="text-slate-900 text-sm font-bold font-['Public_Sans'] truncate">{item.nama_lengkap}</span>
-                          <span className="text-slate-400 text-[11px] font-['Liberation_Mono'] truncate">{item.nik || '—'}</span>
+
                         </div>
                         <div className="w-36 shrink-0 pr-2">
                           <span className="text-slate-600 text-sm font-medium font-['Public_Sans'] truncate block">{item.jabatan_snapshot || '—'}</span>
