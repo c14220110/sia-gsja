@@ -342,15 +342,7 @@ export default function LoginPage() {
       )}
       {/* ── END FORGOT PASSWORD MODAL ────────────────────── */}
 
-      <div className="fixed bottom-4 right-4 z-50">
-        <button
-          className="bg-white dark:bg-gray-800 text-gray-800 dark:text-white p-3 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
-          onClick={toggleDarkMode}
-        >
-          <span className="material-icons-round dark:hidden">dark_mode</span>
-          <span className="material-icons-round hidden dark:block">light_mode</span>
-        </button>
-      </div>
+
     </div>
   );
 }
