@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'SIA GSJA',
+    title: 'GSJA Mobile',
   },
   icons: {
     icon: '/icon-192.jpg',
@@ -20,6 +20,8 @@ export const metadata: Metadata = {
 };
 
 import { LoaderProvider } from '@/components/ui/GlobalLoader';
+import MobileSplashScreen from '@/components/ui/MobileSplashScreen';
+import { SplashProvider } from '@/components/ui/SplashContext';
 
 export default function RootLayout({
   children,
@@ -32,10 +34,12 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
       </head>
       <body className={`${inter.variable} ${playfair.variable} antialiased font-sans`}>
-
-        <LoaderProvider>
-          {children}
-        </LoaderProvider>
+        <SplashProvider>
+          <MobileSplashScreen />
+          <LoaderProvider>
+            {children}
+          </LoaderProvider>
+        </SplashProvider>
       </body>
     </html>
   );

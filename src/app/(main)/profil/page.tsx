@@ -5,11 +5,18 @@ import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { buildGraph } from '@/app/(main)/family-tree/FlowCanvas';
 
+const DotLottieReact = dynamic(
+  () => import('@lottiefiles/dotlottie-react').then((mod) => mod.DotLottieReact),
+  { ssr: false }
+);
+
 const FlowCanvas = dynamic(() => import('@/app/(main)/family-tree/FlowCanvas'), {
   ssr: false,
   loading: () => (
     <div className="flex items-center justify-center h-full">
-      <div className="animate-spin h-8 w-8 border-4 border-teal-500 border-t-transparent rounded-full" />
+      <div className="w-24 h-24">
+        <DotLottieReact src="/assets/Loader_PWA.lottie?id=profil1" autoplay loop  />
+      </div>
     </div>
   ),
 });
@@ -203,8 +210,10 @@ export default function ProfilJemaatPage() {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-12 h-12 rounded-full border-4 border-blue-500 border-t-transparent animate-spin" />
-          <span className="text-slate-500 text-sm font-semibold">Memuat profil...</span>
+          <div className="w-28 h-28">
+            <DotLottieReact src="/assets/Loader_PWA.lottie?id=profil2" autoplay loop  />
+          </div>
+          <span className="text-slate-500 text-sm font-semibold mt-[-10px]">Memuat profil...</span>
         </div>
       </div>
     );
@@ -548,8 +557,10 @@ export default function ProfilJemaatPage() {
               {treeLoading && (
                 <div className="flex items-center justify-center h-full">
                   <div className="flex flex-col items-center gap-3">
-                    <div className="animate-spin h-10 w-10 border-4 border-teal-500 border-t-transparent rounded-full" />
-                    <span className="text-slate-400 text-sm">Memuat pohon keluarga...</span>
+                    <div className="w-24 h-24">
+                      <DotLottieReact src="/assets/Loader_PWA.lottie?id=profil3" autoplay loop  />
+                    </div>
+                    <span className="text-slate-400 text-sm mt-[-10px]">Memuat pohon keluarga...</span>
                   </div>
                 </div>
               )}

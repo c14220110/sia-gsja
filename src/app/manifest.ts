@@ -2,8 +2,8 @@ import { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'SIA GSJA - Sistem Informasi Gereja',
-    short_name: 'SIA GSJA',
+    name: 'GSJA Mobile',
+    short_name: 'GSJA Mobile',
     description: 'Aplikasi Terpadu Jemaat dan Pengurus Gereja Sidang Jemaat Allah',
     start_url: '/',
     display: 'standalone',

@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { createPortal } from 'react-dom';
 
 // Icon Map based on Jenis Kegiatan
 const iconMap: Record<string, string> = {
@@ -42,8 +43,10 @@ export default function LayananPastoralPage() {
   const [tickets, setTickets] = useState<any[]>([]);
   const [filter, setFilter] = useState('Semua');
   const [isLoading, setIsLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const fetchTickets = async () => {
       try {
         const res = await fetch('/api/layanan-pastoral/saya');
@@ -191,14 +194,19 @@ export default function LayananPastoralPage() {
 
       </div>
 
-      {/* Floating Action Button */}
-      <div className="fixed bottom-24 right-5 z-50">
-        <Link href="/layanan-pastoral/ajukan">
-          <div className="w-16 h-16 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center shadow-[0_8px_20px_-6px_rgba(37,99,235,0.6)] active:scale-95 transition-all">
-            <span className="material-icons-round text-3xl">add</span>
+      {/* Floating Action Button using Portal to bypass CSS transforms on parent */}
+      {mounted && createPortal(
+        <div className="fixed bottom-24 left-0 right-0 max-w-lg mx-auto z-50 pointer-events-none">
+          <div className="absolute right-5 bottom-0 pointer-events-auto">
+            <Link href="/layanan-pastoral/ajukan">
+              <div className="w-16 h-16 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center shadow-[0_8px_20px_-6px_rgba(37,99,235,0.6)] active:scale-95 transition-all">
+                <span className="material-icons-round text-3xl">add</span>
+              </div>
+            </Link>
           </div>
-        </Link>
-      </div>
+        </div>,
+        document.body
+      )}
 
     </div>
   );

@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { Scanner } from '@yudiel/react-qr-scanner';
 import { useLoader } from '@/components/ui/GlobalLoader';
+import { useSplash } from '@/components/ui/SplashContext';
 import { useRouter } from 'next/navigation';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import {
@@ -576,6 +577,7 @@ export default function DashboardHome() {
   const [selectedSurvey, setSelectedSurvey] = useState<any>(null);
   const [surveyAnswers, setSurveyAnswers] = useState<Record<number, { skor?: number, jawaban_teks?: string }>>({});
   const { showLoader, hideLoader } = useLoader();
+  const { signalAppReady } = useSplash();
 
   const [isOnline, setIsOnline] = useState(true);
 
@@ -685,7 +687,11 @@ export default function DashboardHome() {
                  
                  const myTickets = tiketData.success ? tiketData.data : [];
 
-                 if (reqData.success && reqData.data.length > 0) {
+                 if (reqData.success && reqData.data.length === 0) {
+                    // Tidak ada kegiatan dari API — clear cache lama supaya tidak stale
+                    setUpcomingEvents([]);
+                    localStorage.setItem('gsja_upcoming_events', JSON.stringify([]));
+                 } else if (reqData.success && reqData.data.length > 0) {
                     // Filter: exclude kategori 'Ibadah Rutin' — tampilkan event, perayaan, edukasi, dll
                     const nonRutinEvents = reqData.data
                       .filter((e: any) => (e.kategori || '') !== 'Ibadah Rutin')
@@ -777,6 +783,7 @@ export default function DashboardHome() {
           if (loaderTimer) clearTimeout(loaderTimer);
           hideLoader();
           setIsInitialLoading(false);
+          signalAppReady(); // ← Dismiss splash screen setelah semua API selesai
        }
     };
     initData();

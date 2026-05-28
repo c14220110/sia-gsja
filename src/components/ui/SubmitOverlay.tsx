@@ -23,8 +23,13 @@ export function SubmitOverlay({ status, message, errors, onClose }: SubmitOverla
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 flex flex-col items-center">
         {status === 'loading' && (
           <div className="flex flex-col items-center">
-            <div className="w-16 h-16 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
-            <p className="mt-6 text-slate-600 font-medium text-sm">{message || 'Menyimpan data...'}</p>
+            {/* Mobile Loader */}
+            <div className="w-24 h-24 md:hidden">
+              <DotLottieReact src="/assets/Loader_PWA.lottie?id=submit" autoplay loop />
+            </div>
+            {/* Desktop Loader */}
+            <div className="hidden md:block w-16 h-16 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
+            <p className="mt-4 md:mt-6 text-slate-600 font-medium text-sm text-center">{message || 'Menyimpan data...'}</p>
           </div>
         )}
         

@@ -3,9 +3,14 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter, usePathname } from 'next/navigation';
+import { useSplash } from './SplashContext';
 
 // Dynamically import Lottie to avoid SSR issues
 const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
+const DotLottieReact = dynamic(
+  () => import('@lottiefiles/dotlottie-react').then((mod) => mod.DotLottieReact),
+  { ssr: false }
+);
 import loadingAnimation from '../../../public/assets/Sandy Loading.json';
 
 type LoaderVariant = 'sandy' | 'minimal';
@@ -36,13 +41,17 @@ export const LoaderProvider = ({ children }: { children: ReactNode }) => {
   const setLoaderVariant = (newVariant: LoaderVariant) => setVariant(newVariant);
 
   const isLoading = activeRequests > 0;
+  const { isAppReady } = useSplash();
+
+  // On mobile, suppress loader while splash screen is still covering the screen
+  const isMobileSplashActive = !isAppReady;
 
   return (
     <LoaderContext.Provider value={{ isLoading, showLoader, hideLoader, setLoaderVariant }}>
       {children}
       
       {isLoading && variant === 'sandy' && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 animate-in fade-in duration-200">
+        <div className={`fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 animate-in fade-in duration-200 ${isMobileSplashActive ? 'hidden md:flex' : 'flex'}`}>
           <div className="w-56 h-56 flex items-center justify-center">
              <Lottie animationData={loadingAnimation} loop={true} />
           </div>
@@ -60,10 +69,8 @@ export const LoaderProvider = ({ children }: { children: ReactNode }) => {
           }}
         >
           <div className="flex flex-col items-center gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-2.5 h-2.5 rounded-full bg-indigo-500" style={{ animation: 'gsja-bounce 1.2s ease-in-out infinite 0s' }} />
-              <div className="w-2.5 h-2.5 rounded-full bg-indigo-400" style={{ animation: 'gsja-bounce 1.2s ease-in-out infinite 0.2s' }} />
-              <div className="w-2.5 h-2.5 rounded-full bg-indigo-300" style={{ animation: 'gsja-bounce 1.2s ease-in-out infinite 0.4s' }} />
+            <div className="w-32 h-32">
+              <DotLottieReact src="/assets/Loader_PWA.lottie?id=global" autoplay loop  />
             </div>
           </div>
 

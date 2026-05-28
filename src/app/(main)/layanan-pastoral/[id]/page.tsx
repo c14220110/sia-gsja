@@ -4,6 +4,12 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
 import { useLoader } from '@/components/ui/GlobalLoader';
+import dynamic from 'next/dynamic';
+
+const DotLottieReact = dynamic(
+  () => import('@lottiefiles/dotlottie-react').then((mod) => mod.DotLottieReact),
+  { ssr: false }
+);
 
 const STEPS = ['Menunggu', 'Ditugaskan', 'Ditindaklanjuti', 'Selesai'];
 
@@ -65,7 +71,9 @@ export default function DetailPermintaanPage() {
   if (isLoading) {
     return (
       <div className="w-full min-h-screen bg-[#F9FAFB] flex flex-col items-center justify-center">
-        <div className="w-10 h-10 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin"></div>
+        <div className="w-28 h-28">
+          <DotLottieReact src="/assets/Loader_PWA.lottie?id=layanan" autoplay loop />
+        </div>
       </div>
     );
   }
