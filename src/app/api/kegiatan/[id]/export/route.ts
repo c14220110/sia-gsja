@@ -4,9 +4,9 @@ import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 import fs from 'fs';
 import path from 'path';
 
-// @ts-expect-error -- pizzip has no type declarations
 import PizZip from 'pizzip';
-// @ts-expect-error -- docxtemplater has no type declarations
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore -- docxtemplater has no type declarations
 import Docxtemplater from 'docxtemplater';
 
 // Format Tanggal (e.g., 09 April 2026)
