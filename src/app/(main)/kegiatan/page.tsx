@@ -652,6 +652,8 @@ export default function KegiatanPage() {
 
                       if (nowWIB >= eventStartWIB) {
                         // Waktu sudah lewat tapi admin belum klik "Mulai Acara"
+                        // ⚠️ 'Menunggu Dimulai' adalah status VISUAL-ONLY (tidak ada di enum DB)
+                        // Nilai yang tersimpan di DB tetap 'Akan Datang'
                         displayStatus = 'Menunggu Dimulai';
                       }
                       // else: masih di masa depan → tetap 'Akan Datang'

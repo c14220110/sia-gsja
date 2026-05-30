@@ -9,7 +9,7 @@ const ALLOWED_STATUS_PEMBUAT  = ['Draft', 'Menunggu Review'];
 const ALLOWED_STATUS_APPROVER = ['Draft', 'Menunggu Review', 'Disetujui', 'Disetujui Penuh', 'Disetujui Sebagian'];
 
 // Status kegiatan yang memblokir pembatalan (kegiatan sudah berjalan / selesai)
-const BLOCKED_KEGIATAN_STATUS = ['Ongoing', 'Menunggu LPJ', 'Selesai', 'Menunggu Dimulai'];
+const BLOCKED_KEGIATAN_STATUS = ['Ongoing', 'Menunggu LPJ', 'Selesai'];
 
 // PATCH /api/anggaran/tahunan/[id]/batalkan
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {

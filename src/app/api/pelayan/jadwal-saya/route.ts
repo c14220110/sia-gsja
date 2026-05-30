@@ -70,7 +70,7 @@ export async function GET(request: Request) {
          JOIN public.role_pelayan rp  ON kjp.role_id      = rp.id
          JOIN public.kegiatan k       ON kjp.kegiatan_id  = k.id
          WHERE p.jemaat_id = $1
-           AND k.status_kegiatan IN ('Akan Datang', 'Menunggu Dimulai', 'Ongoing')
+           AND k.status_kegiatan IN ('Akan Datang', 'Ongoing')
            AND kjp.status_konfirmasi IN ('Menunggu Konfirmasi', 'Bersedia', 'Hadir') -- Menampilkan semua status jadwal yang valid
          ORDER BY k.tanggal_mulai ASC`,
         [jemaat_id]

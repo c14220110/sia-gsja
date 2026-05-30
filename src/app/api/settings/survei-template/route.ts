@@ -115,6 +115,39 @@ export async function POST(request: NextRequest) {
 
     await client.query('BEGIN');
 
+    // Check if it's exactly the default configuration
+    const defaults = [
+      { urutan: 1, teks: 'Seberapa puas Anda dengan kegiatan ini secara keseluruhan?', tipe: 'skala', required: true },
+      { urutan: 2, teks: 'Seberapa baik pelayanan dan fasilitas yang disediakan?', tipe: 'skala', required: true },
+      { urutan: 3, teks: 'Masukan atau saran untuk perbaikan ke depan:', tipe: 'teks', required: false },
+    ];
+    
+    let isDefault = pertanyaan.length === 3;
+    if (isDefault) {
+      for (let i = 0; i < 3; i++) {
+        const p = pertanyaan[i];
+        const d = defaults[i];
+        if (p.urutan !== d.urutan || 
+            p.teks_pertanyaan.trim() !== d.teks || 
+            p.tipe_jawaban !== d.tipe || 
+            (p.is_required !== false) !== d.required) {
+          isDefault = false;
+          break;
+        }
+      }
+    }
+
+    if (isDefault && is_active !== false) {
+      // User is saving the exact default template and it is active.
+      // We can just delete any existing template to let it fall back to true default (no row in DB).
+      await client.query(`DELETE FROM public.survei_template WHERE jenis_kegiatan_id = $1`, [jenis_kegiatan_id]);
+      await client.query('COMMIT');
+      return NextResponse.json({
+        success: true,
+        message: 'Template survei dikembalikan ke default',
+      });
+    }
+
     // Upsert template
     const existingRes = await client.query(
       `SELECT id FROM public.survei_template WHERE jenis_kegiatan_id = $1`,

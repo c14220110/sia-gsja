@@ -115,11 +115,11 @@ export default function LoginPage() {
               Gereja Sidang Jemaat Allah
             </h2>
             <p className="text-secondary/90 text-lg font-light drop-shadow-md border-l-4 border-secondary pl-4">
-              Sistem Informasi Akuntansi (SIA)
+              Sistem Informasi Manajemen (SIM)
             </p>
             <div className="mt-6 flex items-center space-x-2 text-sm text-white/80">
               <span className="material-icons-round text-base">verified_user</span>
-              <span>Secure &amp; Reliable Accounting</span>
+              <span>Secure &amp; Reliable System</span>
             </div>
           </div>
         </div>
@@ -296,7 +296,7 @@ export default function LoginPage() {
                 <form onSubmit={handleForgotPassword} className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Email Akun SIA
+                      Email Akun SIM
                     </label>
                     <input
                       type="email"

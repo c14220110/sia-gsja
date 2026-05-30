@@ -6,6 +6,11 @@ types.setTypeParser(1082, (val) => val);
 
 let pool: Pool;
 
+declare global {
+  // eslint-disable-next-line no-var
+  var mongooseCurrentPool: Pool | undefined;
+}
+
 if (process.env.NODE_ENV === 'production') {
   pool = new Pool({
     connectionString: process.env.DATABASE_URL,
@@ -14,9 +19,7 @@ if (process.env.NODE_ENV === 'production') {
     connectionTimeoutMillis: 2000,
   });
 } else {
-  // @ts-ignore
   if (!globalThis.mongooseCurrentPool) {
-    // @ts-ignore
     globalThis.mongooseCurrentPool = new Pool({
       connectionString: process.env.DATABASE_URL,
       max: 10,
@@ -25,7 +28,6 @@ if (process.env.NODE_ENV === 'production') {
       ssl: process.env.DATABASE_URL?.includes('supabase') ? { rejectUnauthorized: false } : undefined,
     });
   }
-  // @ts-ignore
   pool = globalThis.mongooseCurrentPool;
 }
 

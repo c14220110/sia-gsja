@@ -6,9 +6,9 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 const playfair = Playfair_Display({ subsets: ['latin'], variable: '--font-display' });
 
 export const metadata: Metadata = {
-  title: 'GSJA Mobile',
+  title: 'SIM GSJA',
   applicationName: 'GSJA Mobile',
-  description: 'Gereja Sidang Jemaat Allah - Sistem Informasi Akuntansi',
+  description: 'Gereja Sidang Jemaat Allah - Sistem Informasi Manajemen',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',

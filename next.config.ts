@@ -8,7 +8,6 @@ const withSerwist = withSerwistInit({
 });
 
 const nextConfig: NextConfig = {
-  turbopack: {},
   outputFileTracingIncludes: {
     '/api/kegiatan/[id]/export': ['./public/*.docx'],
   },
