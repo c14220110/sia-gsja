@@ -163,9 +163,10 @@ export async function GET(request: Request) {
             summary.komisi[komisiKey].total_pengeluaran += nominalDisetujui;
 
             // Track sumber dana (only for pengeluaran)
-            // Maps to form options: 'Kas Mandiri' and 'Plafon Pusat'
+            // 'Kas Mandiri' / 'Kas Pusat' → kas sendiri (mandiri)
+            // 'Plafon Pusat' → subsidi dari gereja pusat ke satelit
             const sumber = (item.sumber_dana || '').toLowerCase();
-            if (sumber.includes('mandiri') || sumber.includes('swadaya')) {
+            if (sumber.includes('mandiri') || sumber.includes('swadaya') || sumber.includes('kas pusat')) {
               summary.sumber_dana.kas_mandiri += nominalDisetujui;
             } else {
               summary.sumber_dana.plafon_pusat += nominalDisetujui;

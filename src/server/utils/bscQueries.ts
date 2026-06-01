@@ -119,19 +119,54 @@ export async function getKpi2(dari: string, sampai: string, satelitId: number | 
   };
 }
 
-// KPI-3: Laju Pertumbuhan Jemaat (target >= 10 jiwa/bulan)
+// KPI-3: Tingkat Retensi Kehadiran Jemaat (target >= 85%)
+// Definisi BSC: (COUNT DISTINCT jemaat_id hadir ÷ COUNT jemaat aktif) × 100%
+// Mengukur persentase jemaat aktif yang hadir minimal 1× dalam periode
 export async function getKpi3(dari: string, sampai: string, satelitId: number | null): Promise<RawKpi> {
   const p: (string | number)[] = [dari, sampai];
-  const sf = satelitId ? ` AND satelit_id = $${p.push(satelitId)}` : '';
-  const r = await pool.query(
-    `SELECT COUNT(id) AS jiwa_baru
-     FROM public.jemaat
-     WHERE status_jemaat = 'Aktif'
-       AND is_deleted = false
-       AND tanggal_bergabung BETWEEN $1 AND $2${sf}`,
-    p,
-  );
-  return { nilai: parseInt(r.rows[0].jiwa_baru, 10), target: 10, unit: 'jiwa', data_tersedia: true };
+  const sfK = satelitId ? ` AND k.satelit_id = $${p.push(satelitId)}` : '';
+
+  const pJ: (string | number)[] = [];
+  const sfJ = satelitId ? ` AND satelit_id = $${pJ.push(satelitId)}` : '';
+
+  const [rHadir, rAktif] = await Promise.all([
+    // Pembilang: Jemaat aktif yang hadir ≥ 1× dalam periode (DISTINCT per jemaat)
+    pool.query(
+      `SELECT COUNT(DISTINCT ka.jemaat_id) AS hadir_unik
+       FROM public.kegiatan_absensi ka
+       JOIN public.kegiatan k ON k.id = ka.kegiatan_id
+       WHERE ka.role_kehadiran = 'Jemaat'
+         AND ka.status_kehadiran = 'Hadir'
+         AND ka.jemaat_id IS NOT NULL
+         AND k.tanggal_mulai BETWEEN $1 AND $2${sfK}`,
+      p,
+    ),
+    // Penyebut: Total jemaat aktif terdaftar
+    pool.query(
+      `SELECT COUNT(id) AS aktif
+       FROM public.jemaat
+       WHERE status_jemaat = 'Aktif'
+         AND is_deleted = false${sfJ}`,
+      pJ,
+    ),
+  ]);
+
+  const hadirUnik = parseInt(rHadir.rows[0].hadir_unik, 10);
+  const totalAktif = parseInt(rAktif.rows[0].aktif, 10);
+  const dataTersedia = totalAktif > 0;
+  const nilai = dataTersedia ? parseFloat(((hadirUnik / totalAktif) * 100).toFixed(1)) : null;
+
+  return {
+    nilai,
+    target: 85,
+    unit: '%',
+    data_tersedia: dataTersedia,
+    numerator: hadirUnik,
+    denominator: totalAktif,
+    pesan: dataTersedia
+      ? `${hadirUnik} dari ${totalAktif} jemaat aktif hadir setidaknya sekali dalam periode ini`
+      : 'Belum ada data jemaat aktif.',
+  };
 }
 
 // KPI-4: Ketepatan Respons Pastoral (target > 90%)

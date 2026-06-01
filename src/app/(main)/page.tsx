@@ -287,8 +287,8 @@ function KpiCard({ kpi, label, icon, targetLabel, higherIsBetter = true, kpiKey,
 }
 
 // ── Satelit Comparison Bar Chart ────────────────────────────────────────────
-// Percentage KPIs (kpi1, kpi8, kpi9) share the left Y-axis [0–100].
-// KPI-3 (jiwa/growth count) uses a right secondary Y-axis with auto-scale.
+// All 4 KPIs are now percentages sharing a single left Y-axis [0–100].
+// KPI-3 changed from jiwa (growth count) to % (retention rate) in v2.
 function SatelitComparisonChart({ data }: { data: any[] }) {
   if (!data || data.length === 0) return null;
 
@@ -296,6 +296,7 @@ function SatelitComparisonChart({ data }: { data: any[] }) {
   const chartData = data.map(row => ({
     ...row,
     kpi1: row.kpi1 != null ? Math.min(row.kpi1, 100) : null,
+    kpi3: row.kpi3 != null ? Math.min(row.kpi3, 100) : null,
     kpi8: row.kpi8 != null ? Math.min(row.kpi8, 100) : null,
     kpi9: row.kpi9 != null ? Math.min(row.kpi9, 100) : null,
   }));
@@ -312,48 +313,36 @@ function SatelitComparisonChart({ data }: { data: any[] }) {
         </div>
       </div>
 
-      {/* Legend manual — menjelaskan dual Y-axis */}
+      {/* Legend manual — semua KPI menggunakan satu sumbu kiri [0–100%] */}
       <div className="flex flex-wrap gap-3 mb-3">
         <span className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500">
           <span className="inline-block w-3 h-3 rounded-sm" style={{ background: '#3b82f6' }} />
-          Presensi Jemaat (%) — sumbu kiri
+          Presensi Jemaat (%)
+        </span>
+        <span className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500">
+          <span className="inline-block w-3 h-3 rounded-sm" style={{ background: '#10b981' }} />
+          Retensi Kehadiran (%)
         </span>
         <span className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500">
           <span className="inline-block w-3 h-3 rounded-sm" style={{ background: '#8b5cf6' }} />
-          Presensi Bernama (%) — sumbu kiri
+          Presensi Bernama (%)
         </span>
         <span className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500">
           <span className="inline-block w-3 h-3 rounded-sm" style={{ background: '#f59e0b' }} />
-          Kehadiran Pelayan (%) — sumbu kiri
-        </span>
-        <span className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-600">
-          <span className="inline-block w-3 h-3 rounded-sm" style={{ background: '#10b981' }} />
-          Pertumbuhan Jiwa — sumbu kanan
+          Kehadiran Pelayan (%)
         </span>
       </div>
 
       <div className="h-72 w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={chartData} margin={{ top: 10, right: 48, left: -20, bottom: 0 }}>
-            {/* Left axis: 0–100 for percentage KPIs */}
+          <BarChart data={chartData} margin={{ top: 10, right: 16, left: -20, bottom: 0 }}>
+            {/* Single left axis: 0–100 — semua KPI sekarang persentase */}
             <YAxis
               yAxisId="pct"
               orientation="left"
               domain={[0, 100]}
               tickFormatter={(v) => `${v}%`}
               stroke="#64748b"
-              fontSize={9}
-              fontWeight="bold"
-              tickLine={false}
-              axisLine={false}
-            />
-            {/* Right axis: auto-scale for jiwa (KPI-3) */}
-            <YAxis
-              yAxisId="jiwa"
-              orientation="right"
-              domain={[0, 'auto']}
-              tickFormatter={(v) => `${v}j`}
-              stroke="#10b981"
               fontSize={9}
               fontWeight="bold"
               tickLine={false}
@@ -371,17 +360,13 @@ function SatelitComparisonChart({ data }: { data: any[] }) {
               contentStyle={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
               labelStyle={{ color: '#1e293b', fontWeight: 'bold' }}
               itemStyle={{ fontSize: '11px', color: '#475569' }}
-              formatter={(value: any, name?: any) => {
-                if (name === 'Pertumbuhan (Jiwa)') return [`${value} jiwa`, name];
-                return [`${value}%`, name];
-              }}
+              formatter={(value: any) => [`${value}%`]}
             />
-            {/* Percentage bars — left axis */}
+            {/* Semua bar menggunakan sumbu kiri pct */}
             <Bar yAxisId="pct" name="Presensi Jemaat (%)" dataKey="kpi1" fill="#3b82f6" radius={[3, 3, 0, 0]} maxBarSize={28} />
+            <Bar yAxisId="pct" name="Retensi Kehadiran (%)" dataKey="kpi3" fill="#10b981" radius={[3, 3, 0, 0]} maxBarSize={28} />
             <Bar yAxisId="pct" name="Presensi Bernama (%)" dataKey="kpi8" fill="#8b5cf6" radius={[3, 3, 0, 0]} maxBarSize={28} />
             <Bar yAxisId="pct" name="Kehadiran Pelayan (%)" dataKey="kpi9" fill="#f59e0b" radius={[3, 3, 0, 0]} maxBarSize={28} />
-            {/* Growth bar — right axis (jiwa, different unit) */}
-            <Bar yAxisId="jiwa" name="Pertumbuhan (Jiwa)" dataKey="kpi3" fill="#10b981" radius={[3, 3, 0, 0]} maxBarSize={28} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -1484,7 +1469,7 @@ export default function DashboardHome() {
     const kpiMapping: Record<string, { label: string; rec: string }> = {
       kpi1: { label: "Rasio Presensi Jemaat", rec: "Sosialisasikan kembali pentingnya pencatatan presensi mandiri lewat QR Code di setiap ibadah." },
       kpi2: { label: "Skor Kepuasan Rata-rata", rec: "Lakukan evaluasi berkala terhadap umpan balik jemaat mengenai ibadah dan fasilitas." },
-      kpi3: { label: "Laju Pertumbuhan Jemaat", rec: "Tingkatkan kegiatan penjangkauan, komsel, dan program integrasi jemaat baru." },
+      kpi3: { label: "Tingkat Retensi Kehadiran Jemaat", rec: "Evaluasi jemaat yang tidak hadir ≥ 1 bulan, aktifkan kunjungan pastoral proaktif, dan perkuat program kelompok kecil." },
       kpi4: { label: "Tingkat Ketepatan Respons Pastoral", rec: "Evaluasi beban kerja tim pastoral dan optimalkan alur penugasan kunjungan jemaat." },
       kpi5: { label: "Rasio Beban Operasional", rec: "Tinjau kembali alokasi pengeluaran non-prioritas dan lakukan efisiensi biaya operasional bulanan." },
       kpi6: { label: "Efisiensi Anggaran", rec: "Berikan bimbingan teknis penyusunan proposal kegiatan agar estimasi biaya lebih presisi." },
@@ -1693,7 +1678,7 @@ export default function DashboardHome() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <KpiCard kpi={d.kpi1} label="Rasio Presensi Jemaat" icon="how_to_reg" targetLabel="Target: > 80%" kpiKey="kpi1" satelitId={sid} />
                 <KpiCard kpi={d.kpi2} label="Skor Kepuasan Rata-rata" icon="star" targetLabel="Target: > 4.5 dari 5.0" kpiKey="kpi2" satelitId={sid} />
-                <KpiCard kpi={d.kpi3} label="Laju Pertumbuhan Jemaat" icon="trending_up" targetLabel="Target: ≥ 10 jiwa/bln" kpiKey="kpi3" satelitId={sid} />
+                <KpiCard kpi={d.kpi3} label="Tingkat Retensi Kehadiran" icon="loyalty" targetLabel="Target: ≥ 85%" kpiKey="kpi3" satelitId={sid} />
                 <KpiCard kpi={d.kpi4} label="Tingkat Ketepatan Respons Pastoral" icon="support_agent" targetLabel="Target: > 90%" kpiKey="kpi4" satelitId={sid} />
               </div>
             </div>

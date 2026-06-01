@@ -34,10 +34,9 @@ function buildStatus(
   if (nilai === null) return 'abu';
   switch (type) {
     case 'gte80':  return nilai >= 80 ? 'hijau' : nilai >= 50 ? 'kuning' : 'merah';
+    case 'gte85':  return nilai >= 85 ? 'hijau' : nilai >= 65 ? 'kuning' : 'merah';
     case 'gte90':  return nilai >= 90 ? 'hijau' : nilai >= 70 ? 'kuning' : 'merah';
     case 'gte95':  return nilai >= 95 ? 'hijau' : nilai >= 80 ? 'kuning' : 'merah';
-    case 'gte85':  return nilai >= 85 ? 'hijau' : nilai >= 65 ? 'kuning' : 'merah';
-    case 'gte10':  return nilai >= 10 ? 'hijau' : nilai >= 1  ? 'kuning' : 'merah';
     case 'gte4_5': return nilai >= 4.5 ? 'hijau' : nilai >= 4.0 ? 'kuning' : 'merah';
     case 'lt45':   return nilai <= 45 ? 'hijau' : nilai <= 60 ? 'kuning' : 'merah';
     case 'lt72':   return nilai <= 72 ? 'hijau' : nilai <= 96 ? 'kuning' : 'merah';
@@ -143,7 +142,7 @@ export async function GET(request: Request) {
       data: {
         kpi1:  tag(r1,  'gte80'),
         kpi2:  tag(r2,  'gte4_5'),
-        kpi3:  tag(r3,  'gte10'),
+        kpi3:  tag(r3,  'gte85'),
         kpi4:  tag(r4,  'gte90'),
         kpi5:  tag(r5,  'lt45'),
         kpi6:  tag(r6,  'eff'),

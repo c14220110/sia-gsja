@@ -192,7 +192,7 @@ export default function ReviewAnggaranPage({ params }: { params: Promise<{ id: s
         </td>
         <td className="p-4 text-xs font-mono text-slate-500 align-top">{item.kode_akun} — {item.nama_akun}</td>
         <td className="p-4 align-top">
-          <span className={`inline-block px-2 py-1 rounded-full text-[10px] font-bold border whitespace-nowrap ${item.sumber_dana === 'Plafon Pusat' ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : 'bg-emerald-50 text-emerald-600 border-emerald-200'}`}>{item.sumber_dana}</span>
+          <span className={`inline-block px-2 py-1 rounded-full text-[10px] font-bold border whitespace-nowrap ${item.sumber_dana === 'Plafon Pusat' ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : item.sumber_dana === 'Kas Pusat' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-emerald-50 text-emerald-600 border-emerald-200'}`}>{item.sumber_dana}</span>
         </td>
         <td className="p-4 text-sm text-center font-medium align-top">{item.jumlah}</td>
         <td className="p-4 text-sm text-center text-slate-600 align-top">{item.satuan}</td>

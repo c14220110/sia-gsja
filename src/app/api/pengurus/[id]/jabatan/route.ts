@@ -49,10 +49,8 @@ export async function POST(
     // Determine final satelit_id
     let finalSatelitId: number;
     if (lingkup === 'Pusat') {
-      const pusatRes = await pool.query(
-        `SELECT id FROM satelit WHERE LOWER(nama_satelit) LIKE '%pusat%' OR LOWER(nama_satelit) LIKE '%eben%' LIMIT 1`
-      );
-      finalSatelitId = pusatRes.rows.length > 0 ? pusatRes.rows[0].id : 1;
+      // Pusat = satelit id=1 (Eben Haezer, kode '00')
+      finalSatelitId = 1;
     } else {
       finalSatelitId = parseInt(satelit_id, 10);
     }
