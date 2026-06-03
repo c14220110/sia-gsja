@@ -38,7 +38,7 @@ jobs:
           echo "FILENAME=${FILENAME}" >> $GITHUB_ENV
           echo "⏳ Membuat backup: ${FILENAME} ..."
 
-          pg_dump "$SUPABASE_DB_URL" \
+          /usr/lib/postgresql/17/bin/pg_dump "$SUPABASE_DB_URL" \
             --no-owner \
             --no-acl \
             --clean \
