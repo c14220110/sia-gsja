@@ -374,6 +374,162 @@ function SatelitComparisonChart({ data }: { data: any[] }) {
   );
 }
 
+// ── BSC Perspektif Score Computation ────────────────────────────────────────
+// Converts each KPI's value/target into a 0–100% "achievement" then averages
+// per perspektif. Weighted overall: Jemaat 35%, Keuangan 25%, Proses 25%, Pembelajaran 15%.
+const BSC_PERSPEKTIF_DEF = {
+  jemaat: {
+    label: 'Jemaat & Pemangku Kepentingan', shortLabel: 'Jemaat',
+    icon: 'groups', color: 'indigo', weight: 0.35,
+    kpis: ['kpi1', 'kpi2', 'kpi3', 'kpi4'],
+  },
+  keuangan: {
+    label: 'Pengelolaan Keuangan', shortLabel: 'Keuangan',
+    icon: 'account_balance', color: 'emerald', weight: 0.25,
+    kpis: ['kpi5', 'kpi6'],
+  },
+  proses: {
+    label: 'Proses Bisnis Internal', shortLabel: 'Proses Internal',
+    icon: 'settings', color: 'amber', weight: 0.25,
+    kpis: ['kpi7', 'kpi8'],
+  },
+  pembelajaran: {
+    label: 'Pembelajaran & Pertumbuhan', shortLabel: 'Pertumbuhan',
+    icon: 'school', color: 'violet', weight: 0.15,
+    kpis: ['kpi9', 'kpi10', 'kpi11', 'kpi12'],
+  },
+} as const;
+
+type PerspektifKey = keyof typeof BSC_PERSPEKTIF_DEF;
+
+// KPIs where LOWER value = better performance
+const LOWER_IS_BETTER = new Set(['kpi5', 'kpi12']);
+
+function kpiAchievement(kpi: any, key: string): number | null {
+  if (!kpi || !kpi.data_tersedia || kpi.nilai === null || kpi.target === null) return null;
+  if (LOWER_IS_BETTER.has(key)) {
+    return Math.min(100, (kpi.target / Math.max(kpi.nilai, 0.01)) * 100);
+  }
+  // KPI-2 is on 5-point scale: convert to % (target 4.5 → 90%)
+  if (key === 'kpi2') {
+    return Math.min(100, (kpi.nilai / 5) * 100);
+  }
+  return Math.min(100, (kpi.nilai / kpi.target) * 100);
+}
+
+function computePerspektifScores(d: any) {
+  if (!d) return { scores: {} as Record<PerspektifKey, number | null>, overall: null as number | null };
+  const scores: Record<string, number | null> = {};
+  let weightedSum = 0;
+  let weightSum = 0;
+  for (const [pKey, pDef] of Object.entries(BSC_PERSPEKTIF_DEF)) {
+    const achievements = pDef.kpis
+      .map(k => kpiAchievement(d[k], k))
+      .filter((v): v is number => v !== null);
+    if (achievements.length === 0) {
+      scores[pKey] = null;
+    } else {
+      const avg = achievements.reduce((a, b) => a + b, 0) / achievements.length;
+      scores[pKey] = Math.round(avg * 10) / 10;
+      weightedSum += avg * pDef.weight;
+      weightSum += pDef.weight;
+    }
+  }
+  const overall = weightSum > 0 ? Math.round((weightedSum / weightSum) * 10) / 10 : null;
+  return { scores: scores as Record<PerspektifKey, number | null>, overall };
+}
+
+// ── BSC Overview: Perspektif Summary Card ───────────────────────────────────
+// Matches the existing stat card pattern: bg-white rounded-xl shadow-sm border
+function PerspektifSummaryCard({ pKey, d, score }: {
+  pKey: PerspektifKey; d: any; score: number | null;
+}) {
+  const def = BSC_PERSPEKTIF_DEF[pKey];
+  const kpiLabels: Record<string, string> = {
+    kpi1: 'Presensi Jemaat', kpi2: 'Kepuasan (CSAT)', kpi3: 'Retensi Kehadiran',
+    kpi4: 'Respons Pastoral', kpi5: 'Beban Operasional', kpi6: 'Efisiensi Anggaran',
+    kpi7: 'Tindak Lanjut CSAT', kpi8: 'Presensi Digital', kpi9: 'Kehadiran Pelayan',
+    kpi10: 'Konfirmasi Jadwal', kpi11: 'Disiplin Waktu', kpi12: 'Respons Pastoral (Jam)',
+  };
+  const colorMap: Record<string, { bg: string; text: string; iconBg: string; bar: string; barBg: string }> = {
+    indigo: { bg: 'bg-indigo-50', text: 'text-indigo-600', iconBg: 'bg-indigo-100', bar: 'bg-indigo-500', barBg: 'bg-indigo-100' },
+    emerald: { bg: 'bg-emerald-50', text: 'text-emerald-600', iconBg: 'bg-emerald-100', bar: 'bg-emerald-500', barBg: 'bg-emerald-100' },
+    amber: { bg: 'bg-amber-50', text: 'text-amber-600', iconBg: 'bg-amber-100', bar: 'bg-amber-500', barBg: 'bg-amber-100' },
+    violet: { bg: 'bg-violet-50', text: 'text-violet-600', iconBg: 'bg-violet-100', bar: 'bg-violet-500', barBg: 'bg-violet-100' },
+  };
+  const c = colorMap[def.color] || colorMap.indigo;
+
+  const statusIcon = (s: string) => ({
+    hijau: { cls: 'text-emerald-500', ico: 'check_circle' },
+    kuning: { cls: 'text-amber-500', ico: 'warning' },
+    merah: { cls: 'text-rose-500', ico: 'error' },
+    abu: { cls: 'text-slate-300', ico: 'remove_circle_outline' },
+  }[s] ?? { cls: 'text-slate-300', ico: 'remove_circle_outline' });
+
+  return (
+    <div className="p-5 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col gap-3 hover:shadow-md transition-shadow">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className={`w-10 h-10 ${c.iconBg} rounded-xl flex justify-center items-center`}>
+            <span className={`material-icons-round ${c.text} text-xl`}>{def.icon}</span>
+          </div>
+          <div>
+            <p className="text-slate-800 text-sm font-bold leading-tight">{def.shortLabel}</p>
+            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">{def.label}</p>
+          </div>
+        </div>
+        {score !== null && (
+          <span className={`text-xl font-black ${c.text}`}>{score}%</span>
+        )}
+      </div>
+
+      {/* Progress bar keseluruhan */}
+      {score !== null && (
+        <div className={`w-full h-2 ${c.barBg} rounded-full overflow-hidden`}>
+          <div
+            className={`h-full ${c.bar} rounded-full transition-all duration-700`}
+            style={{ width: `${Math.min(score, 100)}%` }}
+          />
+        </div>
+      )}
+
+      {/* KPI rows */}
+      <div className="flex flex-col gap-2 mt-1">
+        {def.kpis.map(k => {
+          const kpi = d?.[k];
+          if (!kpi) return null;
+          const ach = kpiAchievement(kpi, k);
+          const st = statusIcon(kpi.status);
+          return (
+            <div key={k} className="flex items-center gap-2">
+              <span className={`material-icons-round text-[14px] ${st.cls}`}>{st.ico}</span>
+              <span className="text-slate-600 text-xs font-medium flex-1 truncate">{kpiLabels[k] || k}</span>
+              <span className="text-slate-800 text-xs font-bold w-14 text-right">
+                {kpi.data_tersedia && kpi.nilai !== null
+                  ? `${kpi.nilai}${kpi.unit === '%' ? '%' : kpi.unit ? ` ${kpi.unit}` : ''}`
+                  : '—'}
+              </span>
+              {ach !== null && (
+                <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      kpi.status === 'hijau' ? 'bg-emerald-500'
+                        : kpi.status === 'kuning' ? 'bg-amber-400'
+                          : kpi.status === 'merah' ? 'bg-rose-500' : 'bg-slate-300'
+                    }`}
+                    style={{ width: `${Math.min(ach, 100)}%` }}
+                  />
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ── Hero Carousel (Banner) ──────────────────────────────────────────────────
 function HeroCarousel() {
   const [slideCount, setSlideCount] = useState(0);
@@ -571,6 +727,8 @@ export default function DashboardHome() {
   const [satelitComparisonData, setSatelitComparisonData] = useState<any[] | null>(null);
   const [loadingBsc, setLoadingBsc] = useState(false);
   const [satelitList, setSatelitList] = useState<{ id: number; nama_satelit: string }[]>([]);
+  const [bscTab, setBscTab] = useState<'overview' | 'detail'>('overview');
+  const [selectedPerspektif, setSelectedPerspektif] = useState<'jemaat' | 'keuangan' | 'proses' | 'pembelajaran'>('jemaat');
   const now = new Date();
   const [bscFilter, setBscFilter] = useState({
     dari:       `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`,
@@ -1499,166 +1657,195 @@ export default function DashboardHome() {
       .sort((a, b) => b.weight - a.weight)
       .slice(0, 3);
 
-    const PerspektifHeader = ({ warna, icon, title, subtitle }: { warna: string; icon: string; title: string; subtitle: string }) => (
-      <div className="flex items-center justify-between gap-4 mt-8 mb-4 pb-2 border-b-2 border-slate-200">
-        <div className="flex items-center gap-3">
-          <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${warna} shadow-sm shrink-0`}>
-            <span className="material-icons-round text-base">{icon}</span>
-          </div>
-          <div>
-            <h3 className="font-extrabold text-slate-800 text-sm md:text-base leading-tight tracking-tight">{title}</h3>
-            <p className="text-[10px] text-slate-400 font-extrabold tracking-widest uppercase mt-0.5">{subtitle}</p>
-          </div>
-        </div>
-      </div>
-    );
+
+    const { scores: pScores, overall: overallScore } = computePerspektifScores(d);
+
+    // Perspektif detail config for Detail tab
+    const perspektifDetailConfig: Record<PerspektifKey, { header: { warna: string; icon: string; title: string; subtitle: string }; cards: React.ReactNode[] }> = {
+      jemaat: {
+        header: { warna: 'bg-blue-100 text-blue-600 border border-blue-200', icon: 'groups', title: 'Jemaat & Pemangku Kepentingan', subtitle: 'Customer Perspective' },
+        cards: [
+          <KpiCard key="k1" kpi={d?.kpi1} label="Rasio Presensi Jemaat" icon="how_to_reg" targetLabel="Target: > 80%" kpiKey="kpi1" satelitId={sid} />,
+          <KpiCard key="k2" kpi={d?.kpi2} label="Skor Kepuasan Rata-rata" icon="star" targetLabel="Target: > 4.5 dari 5.0" kpiKey="kpi2" satelitId={sid} />,
+          <KpiCard key="k3" kpi={d?.kpi3} label="Tingkat Retensi Kehadiran" icon="loyalty" targetLabel="Target: ≥ 85%" kpiKey="kpi3" satelitId={sid} />,
+          <KpiCard key="k4" kpi={d?.kpi4} label="Tingkat Ketepatan Respons Pastoral" icon="support_agent" targetLabel="Target: > 90%" kpiKey="kpi4" satelitId={sid} />,
+        ],
+      },
+      keuangan: {
+        header: { warna: 'bg-emerald-100 text-emerald-600 border border-emerald-200', icon: 'account_balance', title: 'Pengelolaan Keuangan', subtitle: 'Financial Perspective' },
+        cards: [
+          <KpiCard key="k5" kpi={d?.kpi5} label="Rasio Beban Operasional" icon="pie_chart" targetLabel="Target: < 45%" higherIsBetter={false} kpiKey="kpi5" satelitId={sid} />,
+          <KpiCard key="k6" kpi={d?.kpi6} label="Efisiensi Anggaran" icon="request_quote" targetLabel="Target: 90%–100%" kpiKey="kpi6" satelitId={sid} />,
+        ],
+      },
+      proses: {
+        header: { warna: 'bg-violet-100 text-violet-600 border border-violet-200', icon: 'settings_suggest', title: 'Proses Bisnis Internal', subtitle: 'Internal Process Perspective' },
+        cards: [
+          <KpiCard key="k7" kpi={d?.kpi7} label="Rasio Penyelesaian Tindak Lanjut" icon="task_alt" targetLabel="Target: 100%" kpiKey="kpi7" satelitId={sid} />,
+          <KpiCard key="k8" kpi={d?.kpi8} label="Kelengkapan Data Presensi Bernama" icon="database" targetLabel="Target: > 95%" kpiKey="kpi8" satelitId={sid} />,
+        ],
+      },
+      pembelajaran: {
+        header: { warna: 'bg-orange-100 text-orange-600 border border-orange-200', icon: 'school', title: 'Pembelajaran & Pertumbuhan', subtitle: 'Learning & Growth Perspective' },
+        cards: [
+          <KpiCard key="k9" kpi={d?.kpi9} label="Rasio Kehadiran Pelayan" icon="volunteer_activism" targetLabel="Target: > 90%" kpiKey="kpi9" satelitId={sid} />,
+          <KpiCard key="k10" kpi={d?.kpi10} label="Ketepatan Waktu Konfirmasi Jadwal" icon="schedule_send" targetLabel="Target: > 85%" kpiKey="kpi10" satelitId={sid} />,
+          <KpiCard key="k11" kpi={d?.kpi11} label="Kedisiplinan Waktu Kedatangan Pelayan" icon="alarm_on" targetLabel="Target: > 95%" kpiKey="kpi11" satelitId={sid} />,
+          <KpiCard key="k12" kpi={d?.kpi12} label="Tingkat Respons Pelayanan Pastoral" icon="timer" targetLabel="Target: < 72 jam" higherIsBetter={false} kpiKey="kpi12" satelitId={sid} />,
+        ],
+      },
+    };
+
+    const detailConf = d ? perspektifDetailConfig[selectedPerspektif] : null;
 
     return (
-      <div className="w-full flex flex-col gap-6 pb-10 p-6 md:p-8 bg-slate-50 text-slate-850 rounded-3xl border border-slate-200/80 shadow-md animate-in fade-in slide-in-from-bottom-2 duration-300">
+      <div className="w-full flex flex-col gap-8 pb-10">
 
-        {/* ── Header ─────────────────────────────────────────────── */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-200 pb-6">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="material-icons-round text-indigo-600 text-2xl">analytics</span>
-              <h1 className="text-2xl font-black text-slate-900 tracking-tight">Balanced Scorecard Dashboard</h1>
-              <span className="text-[9px] font-black bg-indigo-50 text-indigo-600 border border-indigo-200 px-2 py-0.5 rounded-full uppercase tracking-wider">Executive Mode</span>
+        {/* ── Header — sama seperti /kegiatan ──────────────────────── */}
+        <div className="w-full flex flex-col lg:flex-row justify-between items-start gap-4">
+          <div className="flex flex-col gap-1">
+            <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Balanced Scorecard</h1>
+            <div className="text-slate-500 text-base font-medium font-['Inter'] leading-6">Analisis Kinerja Strategis Organisasi — GSJA Eben Haezer</div>
+          </div>
+        </div>
+
+        {/* ── Hero Stat Cards — pattern /kegiatan ─────────────────── */}
+        <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+          {/* Card 1: Skor BSC Keseluruhan */}
+          <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex items-center gap-4 hover:shadow-md transition-shadow">
+            <div className="w-14 h-14 bg-indigo-50 rounded-xl flex justify-center items-center">
+              <span className="material-icons-round text-indigo-600 text-3xl">analytics</span>
             </div>
-            <p className="text-xs text-slate-500 font-medium">Analisis Kinerja Strategis Organisasi — GSJA Eben Haezer</p>
+            <div className="flex flex-col">
+              <span className="text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wide">SKOR BSC KESELURUHAN</span>
+              <div className="flex items-end gap-2 mt-1">
+                <span className="text-slate-900 text-3xl font-bold font-['Public_Sans'] leading-9">
+                  {overallScore !== null ? overallScore : '—'}
+                </span>
+                {overallScore !== null && <span className="text-slate-400 text-sm font-bold mb-0.5">/ 100</span>}
+              </div>
+              {overallScore !== null && (
+                <div className="w-full h-1.5 bg-slate-100 rounded-full mt-2 overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-700 ${
+                      overallScore >= 85 ? 'bg-emerald-500' : overallScore >= 70 ? 'bg-amber-400' : 'bg-rose-500'
+                    }`}
+                    style={{ width: `${Math.min(overallScore, 100)}%` }}
+                  />
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* ── Filter Bar ──────────────────────────────────────── */}
-          <div className="flex flex-wrap items-end gap-2 bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
-            <div className="flex flex-col gap-1">
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Dari</label>
-              <input type="date" value={bscFilter.dari}
-                onChange={e => setBscFilter(p => ({ ...p, dari: e.target.value }))}
-                className="h-8 px-2 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-slate-700" />
+          {/* Card 2: KPI Tercapai */}
+          <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex items-center gap-4 hover:shadow-md transition-shadow">
+            <div className="w-14 h-14 bg-emerald-50 rounded-xl flex justify-center items-center">
+              <span className="material-icons-round text-emerald-600 text-3xl">check_circle</span>
             </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Sampai</label>
-              <input type="date" value={bscFilter.sampai}
-                onChange={e => setBscFilter(p => ({ ...p, sampai: e.target.value }))}
-                className="h-8 px-2 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-slate-700" />
+            <div className="flex flex-col">
+              <span className="text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wide">KPI TERCAPAI</span>
+              <div className="flex items-end gap-2 mt-1">
+                <span className="text-emerald-600 text-3xl font-bold font-['Public_Sans'] leading-9">{hijauCount}</span>
+                <span className="text-slate-400 text-sm font-bold mb-0.5">/ 12</span>
+              </div>
             </div>
-            {userData?.is_super_admin && satelitList.length > 0 && (
-              <div className="flex flex-col gap-1">
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Satelit</label>
+          </div>
+
+          {/* Card 3: KPI Waspada */}
+          <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex items-center gap-4 hover:shadow-md transition-shadow">
+            <div className="w-14 h-14 bg-amber-50 rounded-xl flex justify-center items-center">
+              <span className="material-icons-round text-amber-600 text-3xl">warning</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wide">KPI WASPADA</span>
+              <div className="flex items-end gap-2 mt-1">
+                <span className="text-amber-600 text-3xl font-bold font-['Public_Sans'] leading-9">{kuningCount}</span>
+                <span className="text-slate-400 text-sm font-bold mb-0.5">/ 12</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 4: Perlu Tindakan */}
+          <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex items-center gap-4 hover:shadow-md transition-shadow">
+            <div className="w-14 h-14 bg-rose-50 rounded-xl flex justify-center items-center">
+              <span className="material-icons-round text-rose-600 text-3xl">error</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wide">PERLU TINDAKAN</span>
+              <div className="flex items-end gap-2 mt-1">
+                <span className="text-rose-600 text-3xl font-bold font-['Public_Sans'] leading-9">{merahCount}</span>
+                <span className="text-slate-400 text-sm font-bold mb-0.5">/ 12</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* ── Filter Bar — pattern /kegiatan ──────────────────────── */}
+        <div className="w-full px-4 py-4 bg-white rounded-xl border border-slate-200 flex flex-wrap items-end gap-4 shadow-sm">
+          <div className="flex flex-col gap-1">
+            <label className="text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wide">Dari</label>
+            <input type="date" value={bscFilter.dari}
+              onChange={e => setBscFilter(p => ({ ...p, dari: e.target.value }))}
+              className="h-10 px-3 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-700 font-['Public_Sans']" />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wide">Sampai</label>
+            <input type="date" value={bscFilter.sampai}
+              onChange={e => setBscFilter(p => ({ ...p, sampai: e.target.value }))}
+              className="h-10 px-3 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-700 font-['Public_Sans']" />
+          </div>
+          {userData?.is_super_admin && satelitList.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <label className="text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wide">Satelit</label>
+              <div className="relative">
                 <select value={bscFilter.satelit_id}
                   onChange={e => setBscFilter(p => ({ ...p, satelit_id: e.target.value }))}
-                  className="h-8 px-2 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-slate-700">
+                  className="appearance-none h-10 pl-3 pr-8 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-700 font-['Public_Sans'] cursor-pointer">
                   <option value="">Semua Satelit</option>
                   {satelitList.map((s: any) => <option key={s.id} value={s.id}>{s.nama_satelit}</option>)}
                 </select>
+                <span className="material-icons-round absolute right-2 top-2.5 text-slate-400 pointer-events-none text-[18px]">expand_more</span>
               </div>
-            )}
-            <button onClick={() => fetchBsc(bscFilter)}
-              disabled={loadingBsc}
-              className="h-8 px-3.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-black rounded-lg flex items-center gap-1.5 transition-all shadow-sm shadow-indigo-500/20 active:scale-95 cursor-pointer">
-              {loadingBsc
-                ? <><span className="material-icons-round text-[14px] animate-spin">autorenew</span> MEMUAT...</>
-                : <><span className="material-icons-round text-[14px]">refresh</span> MUAT DATA</>
-              }
-            </button>
-          </div>
+            </div>
+          )}
+          <button onClick={() => fetchBsc(bscFilter)}
+            disabled={loadingBsc}
+            className="h-10 px-5 bg-slate-700 hover:bg-slate-800 disabled:opacity-50 text-white text-sm font-bold font-['Inter'] rounded-lg flex items-center gap-2 transition-all shadow-sm active:scale-95 cursor-pointer">
+            {loadingBsc
+              ? <><span className="material-icons-round text-[18px] animate-spin">autorenew</span> Memuat...</>
+              : <><span className="material-icons-round text-[18px]">refresh</span> Muat Data</>
+            }
+          </button>
         </div>
 
-        {/* ── Hero Section: KPI Perlu Perhatian ───────────────────── */}
-        {d && troubledKpis.length > 0 && (
-          <div className="bg-white border-2 border-rose-100 rounded-3xl p-6 shadow-sm flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-1 duration-200">
-            <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
-              <div className="w-10 h-10 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center shadow-inner shrink-0">
-                <span className="material-icons-round text-rose-500 text-xl">gavel</span>
-              </div>
-              <div>
-                <h2 className="font-extrabold text-slate-800 text-base tracking-tight">KPI Perlu Perhatian</h2>
-                <p className="text-[10px] text-rose-500 font-black uppercase tracking-wider mt-0.5">Tindakan Cepat Diperlukan Untuk Indikator Di Bawah Target</p>
-              </div>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-left min-w-[600px]">
-                <thead>
-                  <tr className="border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                    <th className="pb-3 pr-4 font-black">Indikator Kinerja (KPI)</th>
-                    <th className="pb-3 px-4 font-black text-center w-28">Status</th>
-                    <th className="pb-3 px-4 font-black text-right w-28">Realisasi</th>
-                    <th className="pb-3 px-4 font-black text-right w-28">Target</th>
-                    <th className="pb-3 pl-4 font-black">Rekomendasi Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-xs">
-                  {troubledKpis.map(({ key, label, kpi, rec }) => {
-                    const colors = {
-                      merah: { text: 'text-rose-600', badge: 'bg-rose-50 text-rose-700 border-rose-200' },
-                      kuning: { text: 'text-amber-600', badge: 'bg-amber-50 text-amber-700 border-amber-200' },
-                    }[kpi.status as 'merah' | 'kuning'] || { text: 'text-slate-600', badge: 'bg-slate-50 text-slate-700 border-slate-200' };
-
-                    return (
-                      <tr key={key} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="py-3.5 pr-4 font-extrabold text-slate-800 leading-snug">{label}</td>
-                        <td className="py-3.5 px-4 text-center">
-                          <span className={`inline-block text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider border ${colors.badge}`}>
-                            {kpi.status === 'merah' ? 'Kritis' : 'Waspada'}
-                          </span>
-                        </td>
-                        <td className={`py-3.5 px-4 text-right font-black ${colors.text}`}>
-                          {kpi.nilai !== null ? kpi.nilai.toLocaleString('id-ID') : '—'} {kpi.unit}
-                        </td>
-                        <td className="py-3.5 px-4 text-right font-bold text-slate-500">
-                          {kpi.target !== null ? kpi.target.toLocaleString('id-ID') : '—'} {kpi.unit}
-                        </td>
-                        <td className="py-3.5 pl-4 font-medium text-slate-650 leading-relaxed">
-                          {rec}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* ── KPI Semua Aman (Jika Terpenuhi Semua) ───────────────── */}
-        {d && troubledKpis.length === 0 && (
-          <div className="bg-white border-2 border-emerald-100 rounded-3xl p-6 shadow-sm flex items-center gap-4 animate-in fade-in slide-in-from-bottom-1 duration-200">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center shadow-inner shrink-0">
-              <span className="material-icons-round text-emerald-500 text-xl">verified</span>
-            </div>
-            <div>
-              <h2 className="font-extrabold text-slate-800 text-base tracking-tight">Semua KPI Berjalan Optimal</h2>
-              <p className="text-[10px] text-emerald-600 font-black uppercase tracking-wider mt-0.5">Pertahankan performa luar biasa! Seluruh indikator kinerja memenuhi atau melampaui target.</p>
-            </div>
-          </div>
-        )}
-
-        {/* ── Summary Bar ─────────────────────────────────────────── */}
-        {d && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-white p-2 rounded-2xl border border-slate-200 shadow-sm">
-            {[
-              { label: 'KPI Tercapai',     count: hijauCount,  bg: 'bg-emerald-50 text-emerald-800 border border-emerald-200',  iconBg: 'bg-emerald-500 text-white', icon: 'check_circle' },
-              { label: 'KPI Waspada',      count: kuningCount, bg: 'bg-amber-50  text-amber-800  border border-amber-300',      iconBg: 'bg-amber-400  text-white', icon: 'warning' },
-              { label: 'Perlu Tindakan',   count: merahCount,  bg: 'bg-rose-50   text-rose-800   border border-rose-300',       iconBg: 'bg-rose-500   text-white', icon: 'error' },
-              { label: 'Total Indikator',  count: 12,          bg: 'bg-indigo-50 text-indigo-800 border border-indigo-200',     iconBg: 'bg-indigo-500 text-white', icon: 'analytics' },
-            ].map(item => (
-              <div key={item.label} className={`flex items-center gap-3 rounded-xl p-3 ${item.bg}`}>
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 shadow-sm ${item.iconBg}`}>
-                  <span className="material-icons-round text-base">{item.icon}</span>
-                </div>
-                <div>
-                  <p className="text-[10px] uppercase font-black opacity-80 leading-tight">{item.label}</p>
-                  <p className="text-xl font-black tracking-tight mt-0.5">{item.count}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        {/* ── Tab Bar ─────────────────────────────────────────────── */}
+        <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-slate-200 shadow-sm w-fit">
+          {[
+            { key: 'overview' as const, label: 'Overview', icon: 'dashboard' },
+            { key: 'detail' as const, label: 'Detail Perspektif', icon: 'view_list' },
+          ].map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setBscTab(tab.key)}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold font-['Inter'] transition-all ${
+                bscTab === tab.key
+                  ? 'bg-slate-700 text-white shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <span className="material-icons-round text-[18px]">{tab.icon}</span>
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
         {/* ── Skeleton saat loading ───────────────────────────────── */}
         {loadingBsc && !d && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {[1,2,3,4].map(i => (
-              <div key={i} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+              <div key={i} className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
                 <div className="h-6 bg-slate-200 rounded-lg w-2/3 mb-4 animate-pulse" />
                 <div className="grid grid-cols-2 gap-3">
                   {[1,2,3,4].map(j => <div key={j} className="h-28 bg-slate-100/50 rounded-xl animate-pulse" />)}
@@ -1668,64 +1855,214 @@ export default function DashboardHome() {
           </div>
         )}
 
-        {/* ── 4 Perspektif BSC ────────────────────────────────────── */}
-        {d && (
-          <div className="flex flex-col gap-6 mt-4">
+        {/* ══════════════════════════════════════════════════════════ */}
+        {/* ── TAB 1: OVERVIEW ──────────────────────────────────────  */}
+        {/* ══════════════════════════════════════════════════════════ */}
+        {bscTab === 'overview' && d && (
+          <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
 
-            {/* P1 — Jemaat & Pemangku Kepentingan */}
-            <div className="flex flex-col gap-3">
-              <PerspektifHeader warna="bg-blue-100 text-blue-600 border border-blue-200" icon="groups" title="Jemaat & Pemangku Kepentingan" subtitle="Customer Perspective" />
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <KpiCard kpi={d.kpi1} label="Rasio Presensi Jemaat" icon="how_to_reg" targetLabel="Target: > 80%" kpiKey="kpi1" satelitId={sid} />
-                <KpiCard kpi={d.kpi2} label="Skor Kepuasan Rata-rata" icon="star" targetLabel="Target: > 4.5 dari 5.0" kpiKey="kpi2" satelitId={sid} />
-                <KpiCard kpi={d.kpi3} label="Tingkat Retensi Kehadiran" icon="loyalty" targetLabel="Target: ≥ 85%" kpiKey="kpi3" satelitId={sid} />
-                <KpiCard kpi={d.kpi4} label="Tingkat Ketepatan Respons Pastoral" icon="support_agent" targetLabel="Target: > 90%" kpiKey="kpi4" satelitId={sid} />
+            {/* ── Hero KPI-3: Retensi Kehadiran (visi puncak BSC) ──── */}
+            <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-indigo-100 rounded-xl flex justify-center items-center">
+                  <span className="material-icons-round text-indigo-600 text-2xl">loyalty</span>
+                </div>
+                <div className="flex-1">
+                  <p className="text-slate-800 text-base font-bold">Retensi Kehadiran Jemaat</p>
+                  <p className="text-slate-400 text-xs font-medium">KPI-3 — Visi Puncak BSC: Jemaat Terpelihara Aktif dan Terlayani Secara Terukur</p>
+                </div>
+                {d.kpi3?.data_tersedia && d.kpi3?.nilai !== null && (
+                  <div className="text-right">
+                    <span className={`text-4xl font-black ${
+                      d.kpi3.status === 'hijau' ? 'text-emerald-600' : d.kpi3.status === 'kuning' ? 'text-amber-600' : d.kpi3.status === 'merah' ? 'text-rose-600' : 'text-slate-400'
+                    }`}>
+                      {d.kpi3.nilai}%
+                    </span>
+                    <p className="text-slate-400 text-xs font-bold mt-0.5">Target: ≥ 85%</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Progress bar besar */}
+              {d.kpi3?.data_tersedia && d.kpi3?.nilai !== null && (
+                <>
+                  <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden mb-3">
+                    <div
+                      className={`h-full rounded-full transition-all duration-700 ${
+                        d.kpi3.status === 'hijau' ? 'bg-emerald-500' : d.kpi3.status === 'kuning' ? 'bg-amber-400' : 'bg-rose-500'
+                      }`}
+                      style={{ width: `${Math.min(d.kpi3.nilai, 100)}%` }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    {d.kpi3.numerator !== undefined && d.kpi3.denominator !== undefined && (
+                      <span className="text-slate-500 text-sm font-medium">
+                        <strong className="text-slate-700">{d.kpi3.numerator}</strong> dari <strong className="text-slate-700">{d.kpi3.denominator}</strong> jemaat aktif hadir bulan ini
+                      </span>
+                    )}
+                    <KpiMomBadge kpiKey="kpi3" satelitId={sid} higherIsBetter={true} />
+                  </div>
+                </>
+              )}
+              {(!d.kpi3?.data_tersedia || d.kpi3?.nilai === null) && (
+                <p className="text-slate-400 text-sm">Belum ada data presensi untuk periode ini.</p>
+              )}
+
+              {/* Sparkline tren 6 bulan */}
+              <div className="mt-4 h-10">
+                <KpiSparkline kpiKey="kpi3" color={d.kpi3?.status === 'hijau' ? '#10b981' : d.kpi3?.status === 'kuning' ? '#f59e0b' : '#f43f5e'} satelitId={sid} />
               </div>
             </div>
 
-            {/* P2 — Keuangan */}
-            <div className="flex flex-col gap-3">
-              <PerspektifHeader warna="bg-emerald-100 text-emerald-600 border border-emerald-200" icon="account_balance" title="Pengelolaan Keuangan" subtitle="Financial Perspective" />
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <KpiCard kpi={d.kpi5} label="Rasio Beban Operasional" icon="pie_chart" targetLabel="Target: < 45%" higherIsBetter={false} kpiKey="kpi5" satelitId={sid} />
-                <KpiCard kpi={d.kpi6} label="Efisiensi Anggaran" icon="request_quote" targetLabel="Target: 90%–100%" kpiKey="kpi6" satelitId={sid} />
-              </div>
+            {/* ── 4 Perspektif Summary Cards (2×2 grid) ────────────── */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {(Object.keys(BSC_PERSPEKTIF_DEF) as PerspektifKey[]).map(pKey => (
+                <PerspektifSummaryCard key={pKey} pKey={pKey} d={d} score={pScores[pKey]} />
+              ))}
             </div>
 
-            {/* P3 — Proses Bisnis Internal */}
-            <div className="flex flex-col gap-3">
-              <PerspektifHeader warna="bg-violet-100 text-violet-600 border border-violet-200" icon="settings_suggest" title="Proses Bisnis Internal" subtitle="Internal Process Perspective" />
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <KpiCard kpi={d.kpi7} label="Rasio Penyelesaian Tindak Lanjut" icon="task_alt" targetLabel="Target: 100%" kpiKey="kpi7" satelitId={sid} />
-                <KpiCard kpi={d.kpi8} label="Kelengkapan Data Presensi Bernama" icon="database" targetLabel="Target: > 95%" kpiKey="kpi8" satelitId={sid} />
+            {/* ── KPI Perlu Perhatian (preserved from original) ────── */}
+            {troubledKpis.length > 0 && (
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col gap-4 hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+                  <div className="w-10 h-10 bg-rose-50 rounded-xl flex justify-center items-center">
+                    <span className="material-icons-round text-rose-500 text-xl">gavel</span>
+                  </div>
+                  <div>
+                    <h2 className="text-slate-800 text-sm font-bold">KPI Perlu Perhatian</h2>
+                    <p className="text-rose-500 text-[10px] font-bold uppercase tracking-wider mt-0.5">Tindakan Cepat Diperlukan Untuk Indikator Di Bawah Target</p>
+                  </div>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse text-left min-w-[600px]">
+                    <thead>
+                      <tr className="border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                        <th className="pb-3 pr-4 font-black">Indikator Kinerja (KPI)</th>
+                        <th className="pb-3 px-4 font-black text-center w-28">Status</th>
+                        <th className="pb-3 px-4 font-black text-right w-28">Realisasi</th>
+                        <th className="pb-3 px-4 font-black text-right w-28">Target</th>
+                        <th className="pb-3 pl-4 font-black">Rekomendasi Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-xs">
+                      {troubledKpis.map(({ key, label, kpi, rec }) => {
+                        const colors = {
+                          merah: { text: 'text-rose-600', badge: 'bg-rose-50 text-rose-700 border-rose-200' },
+                          kuning: { text: 'text-amber-600', badge: 'bg-amber-50 text-amber-700 border-amber-200' },
+                        }[kpi.status as 'merah' | 'kuning'] || { text: 'text-slate-600', badge: 'bg-slate-50 text-slate-700 border-slate-200' };
+                        return (
+                          <tr key={key} className="hover:bg-slate-50/50 transition-colors">
+                            <td className="py-3.5 pr-4 font-extrabold text-slate-800 leading-snug">{label}</td>
+                            <td className="py-3.5 px-4 text-center">
+                              <span className={`inline-block text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider border ${colors.badge}`}>
+                                {kpi.status === 'merah' ? 'Kritis' : 'Waspada'}
+                              </span>
+                            </td>
+                            <td className={`py-3.5 px-4 text-right font-black ${colors.text}`}>
+                              {kpi.nilai !== null ? kpi.nilai.toLocaleString('id-ID') : '—'} {kpi.unit}
+                            </td>
+                            <td className="py-3.5 px-4 text-right font-bold text-slate-500">
+                              {kpi.target !== null ? kpi.target.toLocaleString('id-ID') : '—'} {kpi.unit}
+                            </td>
+                            <td className="py-3.5 pl-4 font-medium text-slate-600 leading-relaxed">{rec}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* P4 — Pembelajaran & Pertumbuhan */}
-            <div className="flex flex-col gap-3">
-              <PerspektifHeader warna="bg-orange-100 text-orange-600 border border-orange-200" icon="school" title="Pembelajaran & Pertumbuhan" subtitle="Learning & Growth Perspective" />
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <KpiCard kpi={d.kpi9} label="Rasio Kehadiran Pelayan" icon="volunteer_activism" targetLabel="Target: > 90%" kpiKey="kpi9" satelitId={sid} />
-                <KpiCard kpi={d.kpi10} label="Ketepatan Waktu Konfirmasi Jadwal" icon="schedule_send" targetLabel="Target: > 85%" kpiKey="kpi10" satelitId={sid} />
-                <KpiCard kpi={d.kpi11} label="Kedisiplinan Waktu Kedatangan Pelayan" icon="alarm_on" targetLabel="Target: > 95%" kpiKey="kpi11" satelitId={sid} />
-                <KpiCard kpi={d.kpi12} label="Tingkat Respons Pelayanan Pastoral" icon="timer" targetLabel="Target: < 72 jam" higherIsBetter={false} kpiKey="kpi12" satelitId={sid} />
+            {/* ── Semua KPI Aman ───────────────────────────────────── */}
+            {troubledKpis.length === 0 && (
+              <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex items-center gap-4 hover:shadow-md transition-shadow">
+                <div className="w-14 h-14 bg-emerald-50 rounded-xl flex justify-center items-center">
+                  <span className="material-icons-round text-emerald-600 text-3xl">verified</span>
+                </div>
+                <div>
+                  <p className="text-slate-800 text-base font-bold">Semua KPI Berjalan Optimal</p>
+                  <p className="text-slate-500 text-sm font-medium mt-0.5">Pertahankan performa luar biasa! Seluruh indikator kinerja memenuhi atau melampaui target.</p>
+                </div>
               </div>
-            </div>
+            )}
 
+            {/* ── Perbandingan Antar Satelit ────────────────────────── */}
+            {userData?.is_super_admin && bscFilter.satelit_id === '' && satelitComparisonData && (
+              <SatelitComparisonChart data={satelitComparisonData} />
+            )}
           </div>
         )}
 
-        {/* ── Perbandingan Antar Satelit Chart Section ────────────── */}
-        {d && userData?.is_super_admin && bscFilter.satelit_id === '' && satelitComparisonData && (
-          <SatelitComparisonChart data={satelitComparisonData} />
+        {/* ══════════════════════════════════════════════════════════ */}
+        {/* ── TAB 2: DETAIL PERSPEKTIF ─────────────────────────────  */}
+        {/* ══════════════════════════════════════════════════════════ */}
+        {bscTab === 'detail' && d && (
+          <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+
+            {/* ── Perspektif Selector Tabs ──────────────────────────── */}
+            <div className="w-full px-4 py-4 bg-white rounded-xl border border-slate-200 shadow-sm">
+              <div className="flex flex-wrap gap-2">
+                {(Object.entries(BSC_PERSPEKTIF_DEF) as [PerspektifKey, typeof BSC_PERSPEKTIF_DEF[PerspektifKey]][]).map(([pKey, pDef]) => (
+                  <button
+                    key={pKey}
+                    onClick={() => setSelectedPerspektif(pKey)}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold font-['Inter'] transition-all ${
+                      selectedPerspektif === pKey
+                        ? 'bg-slate-700 text-white shadow-sm'
+                        : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50 border border-slate-200'
+                    }`}
+                  >
+                    <span className="material-icons-round text-[18px]">{pDef.icon}</span>
+                    {pDef.shortLabel}
+                    {pScores[pKey] !== null && (
+                      <span className={`text-xs font-black px-1.5 py-0.5 rounded-full ${
+                        selectedPerspektif === pKey ? 'bg-white/20' : 'bg-slate-100'
+                      }`}>
+                        {pScores[pKey]}%
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* ── Perspektif Header ────────────────────────────────── */}
+            {detailConf && (
+              <>
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${detailConf.header.warna} shadow-sm shrink-0`}>
+                    <span className="material-icons-round text-lg">{detailConf.header.icon}</span>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-800 text-base leading-tight">{detailConf.header.title}</h3>
+                    <p className="text-[10px] text-slate-400 font-bold tracking-widest uppercase mt-0.5">{detailConf.header.subtitle}</p>
+                  </div>
+                  {pScores[selectedPerspektif] !== null && (
+                    <span className="ml-auto text-2xl font-black text-slate-700">{pScores[selectedPerspektif]}%</span>
+                  )}
+                </div>
+
+                {/* ── KPI Cards ────────────────────────────────────── */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {detailConf.cards}
+                </div>
+              </>
+            )}
+
+            {/* ── Perbandingan Antar Satelit (di Detail tab juga) ── */}
+            {userData?.is_super_admin && bscFilter.satelit_id === '' && satelitComparisonData && (
+              <SatelitComparisonChart data={satelitComparisonData} />
+            )}
+          </div>
         )}
 
-        {/* State kosong — belum ada data sama sekali */}
+        {/* ── State kosong — belum ada data ────────────────────────── */}
         {!loadingBsc && !d && (
-          <div className="flex flex-col items-center justify-center py-20 text-center gap-3">
-            <span className="material-icons-round text-5xl text-slate-700 animate-pulse">analytics</span>
-            <p className="font-extrabold text-slate-400">Belum ada data BSC untuk periode ini.</p>
-            <p className="text-xs text-slate-500">Klik <strong>Muat Data</strong> untuk memulai.</p>
+          <div className="flex flex-col items-center justify-center py-20 text-center gap-3 bg-white rounded-xl border border-slate-200 shadow-sm">
+            <span className="material-icons-round text-5xl text-slate-300">analytics</span>
+            <p className="font-bold text-slate-400">Belum ada data BSC untuk periode ini.</p>
+            <p className="text-sm text-slate-500">Klik <strong>Muat Data</strong> untuk memulai.</p>
           </div>
         )}
       </div>
