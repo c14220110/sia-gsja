@@ -87,103 +87,16 @@ function KomisiBlock({ komisi }: { komisi: any }) {
   );
 }
 
-/* ── Rayon Block ── */
-function RayonBlock({ 
-  rayon, onAddKelompok, onEditRayon, onDeleteRayon, onEditKelompok, onDeleteKelompok 
-}: { 
-  rayon: any; 
-  onAddKelompok: (id: number) => void;
-  onEditRayon: (rayon: any) => void;
-  onDeleteRayon: (id: number) => void;
-  onEditKelompok: (kelompok: any, rayonId: number) => void;
-  onDeleteKelompok: (id: number) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="border border-slate-200 rounded-xl overflow-hidden">
-      <div className="w-full flex items-center justify-between px-4 py-3 bg-amber-50 hover:bg-amber-100 transition-colors cursor-pointer group" onClick={() => setOpen(v => !v)}>
-        <div className="flex items-center gap-2 flex-1">
-          <span className="material-icons-round text-amber-600 text-[18px]">holiday_village</span>
-          <span className="font-semibold text-sm text-amber-800 font-sans">{rayon.nama_rayon}</span>
-          {rayon.ketua_rayon_nama && (
-            <span className="text-xs text-amber-600">• Ketua: {rayon.ketua_rayon_nama}</span>
-          )}
-          <span className="text-xs text-amber-500">({rayon.kelompok_list?.length || 0} kelompok)</span>
-        </div>
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button 
-            onClick={(e) => { e.stopPropagation(); onAddKelompok(rayon.rayon_id); }} 
-            className="flex items-center justify-center w-6 h-6 rounded hover:bg-amber-200 text-amber-700 transition-colors" title="Tambah Kelompok Sel"
-          >
-            <span className="material-icons-round text-[16px]">add</span>
-          </button>
-          <button 
-            onClick={(e) => { e.stopPropagation(); onEditRayon(rayon); }} 
-            className="flex items-center justify-center w-6 h-6 rounded hover:bg-amber-200 text-amber-600 transition-colors" title="Edit Rayon"
-          >
-            <span className="material-icons-round text-[14px]">edit</span>
-          </button>
-          <button 
-            onClick={(e) => { e.stopPropagation(); onDeleteRayon(rayon.rayon_id); }} 
-            className="flex items-center justify-center w-6 h-6 rounded hover:bg-rose-200 text-rose-600 transition-colors" title="Hapus Rayon"
-          >
-            <span className="material-icons-round text-[14px]">delete</span>
-          </button>
-          <span className={`material-icons-round text-slate-400 text-[18px] transition-transform ml-1 ${open ? 'rotate-90' : ''}`}>
-            chevron_right
-          </span>
-        </div>
-      </div>
-      {open && (
-        <div className="px-4 py-3 bg-white grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {rayon.kelompok_list?.length ? rayon.kelompok_list.map((k: any, i: number) => (
-            <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-amber-100 bg-amber-50 group/kel">
-              <span className="material-icons-round text-amber-400 text-[16px]">home</span>
-              <div className="flex-1">
-                <p className="text-xs font-semibold text-amber-800 font-sans">{k.nama_kelompok}</p>
-                {k.ketua_nama && <p className="text-[11px] text-amber-600">Ketua: {k.ketua_nama}</p>}
-              </div>
-              <div className="flex items-center gap-1 opacity-0 group-hover/kel:opacity-100 transition-opacity">
-                <button onClick={() => onEditKelompok(k, rayon.rayon_id)} className="p-1 rounded hover:bg-amber-200 text-amber-600" title="Edit Kelompok">
-                  <span className="material-icons-round text-[14px]">edit</span>
-                </button>
-                <button onClick={() => onDeleteKelompok(k.kelompok_id)} className="p-1 rounded hover:bg-rose-200 text-rose-600" title="Hapus Kelompok">
-                  <span className="material-icons-round text-[14px]">delete</span>
-                </button>
-              </div>
-            </div>
-          )) : (
-            <div className="col-span-2"><EmptyState icon="home" text="Belum ada kelompok HF" /></div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
 /* ── Main Page ── */
 export default function OrganisasiPage() {
   const { showLoader, hideLoader } = useLoader();
   const [activeTab, setActiveTab] = useState<TabKey>('satelit');
   const [satelitList, setSatelitList] = useState<any[]>([]);
   const [selectedSatelit, setSelectedSatelit] = useState<number | null>(null);
-  const [bagan, setBagan] = useState<{ bph: any[]; komisi: any[]; rayon: any[]; is_pusat: boolean } | null>(null);
+  const [bagan, setBagan] = useState<{ bph: any[]; komisi: any[]; is_pusat: boolean } | null>(null);
   const [departemen, setDepartemen] = useState<any[]>([]);
   const [konflik, setKonflik] = useState<{ jabatan_ganda: any[]; segera_habis: any[]; total_konflik: number } | null>(null);
   const [loading, setLoading] = useState(false);
-
-  // States for CRUD Rayon & Kelompok Sel
-  const [pengurusList, setPengurusList] = useState<any[]>([]);
-  const [showRayonModal, setShowRayonModal] = useState(false);
-  const [showKelompokModal, setShowKelompokModal] = useState(false);
-  const [prefillRayonId, setPrefillRayonId] = useState<number | null>(null);
-  
-  const [rayonToEdit, setRayonToEdit] = useState<number | null>(null);
-  const [kelompokToEdit, setKelompokToEdit] = useState<number | null>(null);
-  
-  const [formName, setFormName] = useState('');
-  const [formKetuaId, setFormKetuaId] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
 
   /* ── Load daftar satelit saat mount ── */
   useEffect(() => {
@@ -206,7 +119,7 @@ export default function OrganisasiPage() {
     setLoading(true);
     fetch(`/api/settings/organisasi?tab=satelit&satelit_id=${selectedSatelit}`)
       .then(r => r.json())
-      .then(d => { if (d.success) setBagan({ bph: d.bph, komisi: d.komisi, rayon: d.rayon, is_pusat: d.is_pusat || false }); })
+      .then(d => { if (d.success) setBagan({ bph: d.bph, komisi: d.komisi, is_pusat: d.is_pusat || false }); })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [selectedSatelit, activeTab]);
@@ -214,95 +127,6 @@ export default function OrganisasiPage() {
   useEffect(() => {
     fetchBagan();
   }, [fetchBagan]);
-
-  const loadPengurus = () => {
-    if (pengurusList.length > 0 || !selectedSatelit) return;
-    fetch(`/api/pengurus?satelit_id=${selectedSatelit}&limit=100`)
-      .then(r => r.json())
-      .then(d => { if (d.success) setPengurusList(d.data || []); });
-  };
-
-  const openRayonModal = (rayon?: any) => {
-    loadPengurus();
-    if (rayon) {
-      setRayonToEdit(rayon.rayon_id);
-      setFormName(rayon.nama_rayon);
-      setFormKetuaId(rayon.ketua_rayon_id ? String(rayon.ketua_rayon_id) : '');
-    } else {
-      setRayonToEdit(null);
-      setFormName('');
-      setFormKetuaId('');
-    }
-    setShowRayonModal(true);
-  };
-
-  const openKelompokModal = (kelompok?: any, rayonId?: number) => {
-    loadPengurus();
-    if (kelompok && rayonId) {
-      setPrefillRayonId(rayonId);
-      setKelompokToEdit(kelompok.kelompok_id);
-      setFormName(kelompok.nama_kelompok);
-      setFormKetuaId(kelompok.ketua_kelompok_id ? String(kelompok.ketua_kelompok_id) : '');
-    } else if (rayonId) {
-      setPrefillRayonId(rayonId);
-      setKelompokToEdit(null);
-      setFormName('');
-      setFormKetuaId('');
-    }
-    setShowKelompokModal(true);
-  };
-
-  const saveRayon = async () => {
-    if (!formName) return;
-    setIsSaving(true);
-    const method = rayonToEdit ? 'PUT' : 'POST';
-    const body = rayonToEdit 
-      ? { id: rayonToEdit, nama_rayon: formName, ketua_pengurus_id: formKetuaId || null }
-      : { satelit_id: selectedSatelit, nama_rayon: formName, ketua_pengurus_id: formKetuaId || null };
-      
-    await fetch('/api/settings/organisasi/rayon', {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-    setIsSaving(false);
-    setShowRayonModal(false);
-    fetchBagan();
-  };
-
-  const deleteRayon = async (id: number) => {
-    if (!window.confirm('Yakin ingin menghapus Rayon ini?')) return;
-    const res = await fetch(`/api/settings/organisasi/rayon?id=${id}`, { method: 'DELETE' });
-    const data = await res.json();
-    if (!data.success) alert(data.message || 'Gagal menghapus rayon');
-    fetchBagan();
-  };
-
-  const saveKelompok = async () => {
-    if (!formName || !prefillRayonId) return;
-    setIsSaving(true);
-    const method = kelompokToEdit ? 'PUT' : 'POST';
-    const body = kelompokToEdit
-      ? { id: kelompokToEdit, nama_kelompok: formName, ketua_pengurus_id: formKetuaId || null }
-      : { rayon_id: prefillRayonId, nama_kelompok: formName, ketua_pengurus_id: formKetuaId || null };
-
-    await fetch('/api/settings/organisasi/kelompok-sel', {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-    setIsSaving(false);
-    setShowKelompokModal(false);
-    fetchBagan();
-  };
-
-  const deleteKelompok = async (id: number) => {
-    if (!window.confirm('Yakin ingin menghapus Kelompok Sel ini?')) return;
-    const res = await fetch(`/api/settings/organisasi/kelompok-sel?id=${id}`, { method: 'DELETE' });
-    const data = await res.json();
-    if (!data.success) alert(data.message || 'Gagal menghapus kelompok sel');
-    fetchBagan();
-  };
 
   /* ── Load departemen ── */
   const loadDepartemen = useCallback(() => {
@@ -427,7 +251,7 @@ export default function OrganisasiPage() {
               </div>
 
               {/* TREE BRANCHES WRAPPER */}
-              {(bagan.komisi.length > 0 || bagan.rayon.length > 0) && (
+              {(bagan.komisi.length > 0) && (
                 <div className="relative ml-8 sm:ml-12 flex flex-col pt-8 pb-4 gap-8">
                   {/* MAIN TRUNK LINE */}
                   <div className="absolute left-0 top-0 border-l-2 border-slate-300" style={{ bottom: 'calc(100% - 2rem)' }}></div>
@@ -452,47 +276,10 @@ export default function OrganisasiPage() {
                       </div>
                     </div>
                   )}
-
-                  {/* LEVEL 1: Rayon & Kelompok */}
-                  {bagan.rayon.length > 0 && (
-                    <div className="relative pl-8 sm:pl-10">
-                      {/* Vertical line connecting from above (stops at branch) */}
-                      <div className="absolute left-0 -top-8 h-16 border-l-2 border-slate-300"></div>
-                      {/* Branch line */}
-                      <div className="absolute left-0 top-8 w-8 sm:w-10 border-t-2 border-slate-300"></div>
-                      
-                      <div className="bg-white rounded-xl border border-amber-200 shadow-sm overflow-hidden">
-                        <div className="bg-gradient-to-r from-amber-500 to-orange-400 px-5 py-3.5 flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="material-icons-round text-white text-[20px]">holiday_village</span>
-                            <span className="text-white font-bold font-sans">Rayon & Kelompok Sel</span>
-                            <span className="text-amber-100 text-sm ml-1 font-semibold">({bagan.rayon.length} rayon)</span>
-                          </div>
-                          <button onClick={() => openRayonModal()} className="px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1">
-                            <span className="material-icons-round text-[14px]">add</span> Tambah Rayon
-                          </button>
-                        </div>
-                        <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-                          {bagan.rayon.map((r, i) => (
-                            <RayonBlock 
-                              key={i} 
-                              rayon={r} 
-                              onAddKelompok={(id) => openKelompokModal(null, id)} 
-                              onEditRayon={openRayonModal}
-                              onDeleteRayon={deleteRayon}
-                              onEditKelompok={openKelompokModal}
-                              onDeleteKelompok={deleteKelompok}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
                 </div>
               )}
 
-              {bagan.bph.length === 0 && bagan.komisi.length === 0 && bagan.rayon.length === 0 && (
+              {bagan.bph.length === 0 && bagan.komisi.length === 0 && (
                 <div className="mt-8">
                   <EmptyState icon="account_tree" text="Belum ada data struktur organisasi untuk satelit ini." />
                 </div>
@@ -673,84 +460,7 @@ export default function OrganisasiPage() {
         </div>
       )}
 
-      {/* ── MODALS ── */}
-      {(showRayonModal || showKelompokModal) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-              <h3 className="font-bold text-slate-800 font-sans">
-                {showRayonModal 
-                  ? (rayonToEdit ? 'Edit Rayon' : 'Tambah Rayon Baru') 
-                  : (kelompokToEdit ? 'Edit Kelompok Sel' : 'Tambah Kelompok Sel')
-                }
-              </h3>
-              <button onClick={() => { setShowRayonModal(false); setShowKelompokModal(false); }} className="text-slate-400 hover:text-slate-600">
-                <span className="material-icons-round text-[20px]">close</span>
-              </button>
-            </div>
-            
-            <div className="p-5 flex flex-col gap-4">
-              {showKelompokModal && prefillRayonId && (
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wide">Tergabung di Rayon</label>
-                  <div className="w-full px-3 py-2.5 bg-slate-100 border border-slate-200 rounded-lg text-sm text-slate-600 font-semibold flex items-center gap-2">
-                    <span className="material-icons-round text-[16px] text-slate-400">holiday_village</span>
-                    {bagan?.rayon.find(r => r.rayon_id === prefillRayonId)?.nama_rayon || 'Rayon'}
-                  </div>
-                </div>
-              )}
 
-              <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wide">
-                  Nama {showRayonModal ? 'Rayon' : 'Kelompok'} <span className="text-rose-500">*</span>
-                </label>
-                <input 
-                  type="text" 
-                  value={formName}
-                  onChange={e => setFormName(e.target.value)}
-                  placeholder={showRayonModal ? "Contoh: Rayon 1" : "Contoh: HF Agape"}
-                  className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wide">
-                  Ketua (Opsional)
-                </label>
-                <select 
-                  value={formKetuaId}
-                  onChange={e => setFormKetuaId(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                >
-                  <option value="">-- Pilih Ketua --</option>
-                  {pengurusList.map(p => (
-                    <option key={p.id} value={p.id}>{p.nama_lengkap} ({p.id_pengurus})</option>
-                  ))}
-                </select>
-                <p className="text-[11px] text-slate-400 mt-1">Daftar pengurus aktif di satelit ini.</p>
-              </div>
-            </div>
-
-            <div className="px-5 py-4 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-2">
-              <button 
-                onClick={() => { setShowRayonModal(false); setShowKelompokModal(false); }}
-                className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition-colors"
-                disabled={isSaving}
-              >
-                Batal
-              </button>
-              <button 
-                onClick={showRayonModal ? saveRayon : saveKelompok}
-                disabled={!formName || isSaving}
-                className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors flex items-center gap-2"
-              >
-                {isSaving ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
-                Simpan
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

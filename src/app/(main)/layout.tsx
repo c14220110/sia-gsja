@@ -190,7 +190,7 @@ export default function DashboardLayout({
                 </div>
               </Link>
               
-              {(hasPermission('master_data_manage') || hasPermission('user_access_manage') || hasPermission('akses_sementara_manage') || hasPermission('audit_log_view') || hasPermission('pengurus_view') || userData?.is_super_admin) && (
+              {[1, 2, 3, 4].includes(userData?.role_id) && (
                 <div className="w-full">
                   <div
                     className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer"

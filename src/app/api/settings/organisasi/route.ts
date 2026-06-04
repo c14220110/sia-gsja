@@ -130,39 +130,7 @@ export async function GET(req: NextRequest) {
         ORDER BY k.nama_komisi ASC
       `, [sid]);
 
-      // Rayon & Kelompok
-      const rayonRes = await pool.query(`
-        SELECT
-          r.id AS rayon_id,
-          r.nama_rayon,
-          r.is_active,
-          r.ketua_pengurus_id AS ketua_rayon_id,
-          j_rayon.nama_lengkap AS ketua_rayon_nama,
-          j_rayon.foto_url AS ketua_rayon_foto,
-          -- Kelompok sebagai JSON array
-          COALESCE(
-            JSON_AGG(
-              JSON_BUILD_OBJECT(
-                'kelompok_id', ks.id,
-                'nama_kelompok', ks.nama_kelompok,
-                'ketua_kelompok_id', ks.ketua_pengurus_id,
-                'ketua_nama', j_kel.nama_lengkap,
-                'ketua_foto', j_kel.foto_url,
-                'is_active', ks.is_active
-              ) ORDER BY ks.id ASC
-            ) FILTER (WHERE ks.id IS NOT NULL),
-            '[]'
-          ) AS kelompok_list
-        FROM rayon r
-        LEFT JOIN pengurus p_rayon ON r.ketua_pengurus_id = p_rayon.id
-        LEFT JOIN jemaat j_rayon ON p_rayon.jemaat_id = j_rayon.id
-        LEFT JOIN kelompok_sel ks ON ks.rayon_id = r.id
-        LEFT JOIN pengurus p_kel ON ks.ketua_pengurus_id = p_kel.id
-        LEFT JOIN jemaat j_kel ON p_kel.jemaat_id = j_kel.id
-        WHERE r.satelit_id = $1
-        GROUP BY r.id, r.ketua_pengurus_id, j_rayon.nama_lengkap, j_rayon.foto_url
-        ORDER BY r.id ASC
-      `, [sid]);
+
 
       return NextResponse.json({
         success: true,
@@ -170,7 +138,6 @@ export async function GET(req: NextRequest) {
         bph: bphRes.rows,
         is_pusat: isPusat,
         komisi: komisiRes.rows,
-        rayon: rayonRes.rows,
       });
     }
 
