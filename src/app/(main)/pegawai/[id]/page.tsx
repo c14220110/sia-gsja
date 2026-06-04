@@ -308,14 +308,14 @@ export default function DetailPegawaiPage() {
       {/* Header */}
       <div className="w-full flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex flex-col justify-start items-start gap-4">
-          <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-['Inter'] leading-4">
+          <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-sans leading-4">
             <Link href="/pegawai" className="text-slate-500 hover:text-blue-600">Pegawai (HRD)</Link>
             <span className="text-slate-500 material-icons-round text-[14px]">chevron_right</span>
             <span className="text-slate-700 font-bold">Profil Pegawai</span>
           </div>
           <div>
-            <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Profil: {pegawaiDetail?.nama_lengkap || 'Loading...'}</h1>
-            <p className="text-slate-500 text-base font-medium font-['Inter']">ID Internal: #{pegawaiId} • {pegawaiDetail?.status_pegawai === 'Aktif' ? 'Pegawai Aktif' : pegawaiDetail?.status_pegawai}</p>
+            <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Profil: {pegawaiDetail?.nama_lengkap || 'Loading...'}</h1>
+            <p className="text-slate-500 text-base font-medium font-sans">ID Internal: #{pegawaiId} • {pegawaiDetail?.status_pegawai === 'Aktif' ? 'Pegawai Aktif' : pegawaiDetail?.status_pegawai}</p>
           </div>
         </div>
 
@@ -365,7 +365,7 @@ export default function DetailPegawaiPage() {
               >
                  <span className="material-icons-round text-[20px]">{tab.icon}</span>
               </button>
-              <span className={`text-xs font-bold font-['Inter'] ${tab.id === 6 ? (activeTab === 6 ? 'text-emerald-700' : 'text-emerald-500') : (activeTab === tab.id ? 'text-blue-700' : 'text-blue-600')}`}>{tab.name}</span>
+              <span className={`text-xs font-bold font-sans ${tab.id === 6 ? (activeTab === 6 ? 'text-emerald-700' : 'text-emerald-500') : (activeTab === tab.id ? 'text-blue-700' : 'text-blue-600')}`}>{tab.name}</span>
             </div>
          ))}
       </div>
@@ -383,12 +383,12 @@ export default function DetailPegawaiPage() {
         {activeTab === 1 && (
           <div className="flex flex-col gap-8 animate-in fade-in">
              <div className="flex flex-col gap-1">
-               <h2 className="text-slate-900 text-xl font-bold font-['Inter'] flex items-center gap-2"><span className="material-icons-round text-blue-500">badge</span> Biodata & Pekerjaan</h2>
+               <h2 className="text-slate-900 text-xl font-bold font-sans flex items-center gap-2"><span className="material-icons-round text-blue-500">badge</span> Biodata & Pekerjaan</h2>
                <p className="text-slate-500 text-sm">Masukan detail identitas dasar calon pegawai sesuai KTP dan Penempatan Kerja.</p>
              </div>
 
              <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 flex flex-col gap-3">
-               <label className="text-slate-700 text-sm font-bold font-['Inter']">Sinkronisasi Database Jemaat (Opsional)</label>
+               <label className="text-slate-700 text-sm font-bold font-sans">Sinkronisasi Database Jemaat (Opsional)</label>
                <p className="text-slate-500 text-xs mb-1">Jika pegawai ini sudah terdaftar sebagai jemaat GSJA, klik tombol di bawah untuk menyalin data.</p>
                <button onClick={() => setJemaatSearchModal(true)} className="w-fit px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-bold hover:bg-slate-100 transition-colors flex items-center gap-2 shadow-sm">
                  <span className="material-icons-round text-[18px]">search</span> Cari Data Jemaat
@@ -402,8 +402,8 @@ export default function DetailPegawaiPage() {
 
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="flex flex-col gap-1 w-full">
-                  <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Nama Lengkap *</label>
-                  <input type="text" name="nama_lengkap" value={formData.nama_lengkap} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" placeholder="Sesuai KTP" />
+                  <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Nama Lengkap *</label>
+                  <input type="text" name="nama_lengkap" value={formData.nama_lengkap} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" placeholder="Sesuai KTP" />
                 </div>
                 <div className="flex flex-col gap-4">
                   <div className="flex-1 flex flex-col gap-1.5">
@@ -412,19 +412,19 @@ export default function DetailPegawaiPage() {
                   </div>
                 </div>
                 <div className="flex flex-col gap-1 w-full">
-                  <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Jenis Kelamin</label>
-                  <select name="jenis_kelamin" value={formData.jenis_kelamin} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all">
+                  <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Jenis Kelamin</label>
+                  <select name="jenis_kelamin" value={formData.jenis_kelamin} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all">
                     <option value="Laki-laki">Laki-laki</option>
                     <option value="Perempuan">Perempuan</option>
                   </select>
                 </div>
                 <div className="flex flex-col gap-1 w-full">
-                  <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Tanggal Lahir</label>
-                  <input type="date" name="tanggal_lahir" value={formData.tanggal_lahir} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
+                  <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Tanggal Lahir</label>
+                  <input type="date" name="tanggal_lahir" value={formData.tanggal_lahir} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" />
                 </div>
                 <div className="flex flex-col gap-1 w-full">
-                  <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Status Pernikahan</label>
-                  <select name="status_pernikahan" value={formData.status_pernikahan} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all">
+                  <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Status Pernikahan</label>
+                  <select name="status_pernikahan" value={formData.status_pernikahan} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all">
                     <option value="Lajang">Lajang</option>
                     <option value="Menikah">Menikah</option>
                     <option value="Duda">Duda</option>
@@ -432,12 +432,12 @@ export default function DetailPegawaiPage() {
                   </select>
                 </div>
                 <div className="flex flex-col gap-1 w-full">
-                  <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Nomor HP/WA Aktif</label>
-                  <input type="text" name="no_hp" value={formData.no_hp} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" placeholder="081234..." />
+                  <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Nomor HP/WA Aktif</label>
+                  <input type="text" name="no_hp" value={formData.no_hp} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" placeholder="081234..." />
                 </div>
                 <div className="flex flex-col gap-1 w-full">
-                  <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Email</label>
-                  <input type="email" name="email_pribadi" value={formData.email_pribadi} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" placeholder="email@gmail.com" />
+                  <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Email</label>
+                  <input type="email" name="email_pribadi" value={formData.email_pribadi} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" placeholder="email@gmail.com" />
                 </div>
              </div>
 
@@ -445,11 +445,11 @@ export default function DetailPegawaiPage() {
 
              {/* Penempatan Unit Kerja */}
              <div className="flex flex-col gap-4">
-               <h3 className="text-slate-900 text-lg font-bold font-['Inter'] flex items-center gap-2"><span className="material-icons-round text-emerald-500">business_center</span> Penempatan & Posisi</h3>
+               <h3 className="text-slate-900 text-lg font-bold font-sans flex items-center gap-2"><span className="material-icons-round text-emerald-500">business_center</span> Penempatan & Posisi</h3>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-5 bg-emerald-50/50 rounded-lg border border-emerald-100">
                   <div className="flex flex-col gap-1 w-full">
-                    <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Satelit Penugasan *</label>
-                    <select name="satelit_id" value={formData.satelit_id} onChange={handleInputChange} disabled={userData?.role_name === 'GEMBALA SATELIT'} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-900 text-sm font-['Inter'] w-full transition-all disabled:bg-slate-100">
+                    <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Satelit Penugasan *</label>
+                    <select name="satelit_id" value={formData.satelit_id} onChange={handleInputChange} disabled={userData?.role_name === 'GEMBALA SATELIT'} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-900 text-sm font-sans w-full transition-all disabled:bg-slate-100">
                       <option value="">-- Pilih Satelit --</option>
                       {satelitOptions.map(s => (
                         <option key={s.id} value={s.id}>{s.nama_satelit}</option>
@@ -457,15 +457,15 @@ export default function DetailPegawaiPage() {
                     </select>
                   </div>
                   <div className="flex flex-col gap-1 w-full">
-                    <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Skema Tipe Pekerja *</label>
-                    <select name="tipe_pekerja" value={formData.tipe_pekerja} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-900 text-sm font-['Inter'] w-full transition-all">
+                    <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Skema Tipe Pekerja *</label>
+                    <select name="tipe_pekerja" value={formData.tipe_pekerja} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-900 text-sm font-sans w-full transition-all">
                       <option value="Pegawai Tetap">Pegawai Tetap</option>
                       <option value="Tidak Tetap">Tidak Tetap (Part-time / Honorer)</option>
                     </select>
                   </div>
                   <div className="flex flex-col gap-1 w-full">
-                    <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Departemen *</label>
-                    <select name="departemen_id" value={formData.departemen_id} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-900 text-sm font-['Inter'] w-full transition-all">
+                    <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Departemen *</label>
+                    <select name="departemen_id" value={formData.departemen_id} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-900 text-sm font-sans w-full transition-all">
                       <option value="">-- Pilih Departemen --</option>
                       {departemenOptions.map(d => (
                         <option key={d.id} value={d.id}>{d.nama_departemen}</option>
@@ -473,8 +473,8 @@ export default function DetailPegawaiPage() {
                     </select>
                   </div>
                   <div className="flex flex-col gap-1 w-full">
-                    <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Jabatan *</label>
-                    <select name="jabatan_pegawai_id" value={formData.jabatan_pegawai_id} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-900 text-sm font-['Inter'] w-full transition-all">
+                    <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Jabatan *</label>
+                    <select name="jabatan_pegawai_id" value={formData.jabatan_pegawai_id} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-900 text-sm font-sans w-full transition-all">
                       <option value="">-- Pilih Jabatan --</option>
                       {jabatanOptions.map(j => (
                         <option key={j.id} value={j.id}>{j.nama_jabatan}</option>
@@ -482,8 +482,8 @@ export default function DetailPegawaiPage() {
                     </select>
                   </div>
                   <div className="flex flex-col gap-1 w-full">
-                    <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Tanggal Bergabung *</label>
-                    <input type="date" name="tanggal_bergabung" value={formData.tanggal_bergabung} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
+                    <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Tanggal Bergabung *</label>
+                    <input type="date" name="tanggal_bergabung" value={formData.tanggal_bergabung} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-900 text-sm font-sans w-full transition-all" />
                   </div>
                </div>
              </div>
@@ -494,27 +494,27 @@ export default function DetailPegawaiPage() {
         {activeTab === 2 && (
           <div className="flex flex-col gap-8 animate-in fade-in slide-in-from-right-4">
              <div className="flex flex-col gap-1">
-               <h2 className="text-slate-900 text-xl font-bold font-['Inter'] flex items-center gap-2"><span className="material-icons-round text-amber-500">maps_home_work</span> Alamat & Kontak Darurat</h2>
+               <h2 className="text-slate-900 text-xl font-bold font-sans flex items-center gap-2"><span className="material-icons-round text-amber-500">maps_home_work</span> Alamat & Kontak Darurat</h2>
                <p className="text-slate-500 text-sm">Informasi letak domisili pegawai dan narahubung yang bisa diakses saat mendesak.</p>
              </div>
 
              <div className="grid grid-cols-1 gap-6">
                 <div className="flex flex-col gap-1 w-full">
-                  <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Alamat Lengkap KTP / Domisili *</label>
+                  <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Alamat Lengkap KTP / Domisili *</label>
                   <textarea name="alamat_lengkap" value={formData.alamat_lengkap} onChange={handleInputChange} rows={3} className="px-3 py-2 bg-white rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none" placeholder="Jalan Raya No..."></textarea>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
                   <div className="flex flex-col gap-1 w-full">
-                    <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">RT / RW</label>
-                    <input type="text" name="rt_rw" value={formData.rt_rw} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" placeholder="001/010" />
+                    <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">RT / RW</label>
+                    <input type="text" name="rt_rw" value={formData.rt_rw} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-slate-900 text-sm font-sans w-full transition-all" placeholder="001/010" />
                   </div>
                   <div className="flex flex-col gap-1 w-full">
-                    <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Kota / Kabupaten *</label>
-                    <input type="text" name="kota" value={formData.kota} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
+                    <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Kota / Kabupaten *</label>
+                    <input type="text" name="kota" value={formData.kota} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-slate-900 text-sm font-sans w-full transition-all" />
                   </div>
                   <div className="flex flex-col gap-1 w-full">
-                    <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Kode Pos</label>
-                    <input type="text" name="kode_pos" value={formData.kode_pos} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
+                    <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Kode Pos</label>
+                    <input type="text" name="kode_pos" value={formData.kode_pos} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-slate-900 text-sm font-sans w-full transition-all" />
                   </div>
                 </div>
              </div>
@@ -523,19 +523,19 @@ export default function DetailPegawaiPage() {
 
              {/* Darurat */}
              <div className="flex flex-col gap-4">
-               <h3 className="text-slate-900 text-lg font-bold font-['Inter'] flex items-center gap-2"><span className="material-icons-round text-rose-500">contact_phone</span> Kontak Darurat (Emergency)</h3>
+               <h3 className="text-slate-900 text-lg font-bold font-sans flex items-center gap-2"><span className="material-icons-round text-rose-500">contact_phone</span> Kontak Darurat (Emergency)</h3>
                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-5 bg-rose-50/30 rounded-lg border border-rose-100">
                   <div className="flex flex-col gap-1 w-full">
-                    <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Nama Kontak</label>
-                    <input type="text" name="kontak_darurat_nama" value={formData.kontak_darurat_nama} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" placeholder="Mis. Budi Sentosa" />
+                    <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Nama Kontak</label>
+                    <input type="text" name="kontak_darurat_nama" value={formData.kontak_darurat_nama} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 text-slate-900 text-sm font-sans w-full transition-all" placeholder="Mis. Budi Sentosa" />
                   </div>
                   <div className="flex flex-col gap-1 w-full">
-                    <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Nomor HP</label>
-                    <input type="text" name="kontak_darurat_nohp" value={formData.kontak_darurat_nohp} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" placeholder="081..." />
+                    <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Nomor HP</label>
+                    <input type="text" name="kontak_darurat_nohp" value={formData.kontak_darurat_nohp} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 text-slate-900 text-sm font-sans w-full transition-all" placeholder="081..." />
                   </div>
                   <div className="flex flex-col gap-1 w-full">
-                    <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Hubungan Relasi</label>
-                    <input type="text" name="kontak_darurat_relasi" value={formData.kontak_darurat_relasi} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" placeholder="Mis. Suami / Istri / Anak" />
+                    <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Hubungan Relasi</label>
+                    <input type="text" name="kontak_darurat_relasi" value={formData.kontak_darurat_relasi} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 text-slate-900 text-sm font-sans w-full transition-all" placeholder="Mis. Suami / Istri / Anak" />
                   </div>
                </div>
              </div>
@@ -546,7 +546,7 @@ export default function DetailPegawaiPage() {
         {activeTab === 3 && (
           <div className="flex flex-col gap-8 animate-in fade-in slide-in-from-right-4">
              <div className="flex flex-col gap-1">
-               <h2 className="text-slate-900 text-xl font-bold font-['Inter'] flex items-center gap-2"><span className="material-icons-round text-purple-500">account_balance_wallet</span> Kewajiban Perpajakan (PPh 21)</h2>
+               <h2 className="text-slate-900 text-xl font-bold font-sans flex items-center gap-2"><span className="material-icons-round text-purple-500">account_balance_wallet</span> Kewajiban Perpajakan (PPh 21)</h2>
                <p className="text-slate-500 text-sm">Validasi subjek pajak pegawai untuk kebutuhan kalkulasi Payroll bulanan HRD.</p>
              </div>
 
@@ -562,12 +562,12 @@ export default function DetailPegawaiPage() {
 
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="flex flex-col gap-1 w-full">
-                  <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Nomor NPWP</label>
-                  <input type="text" name="no_npwp" value={formData.no_npwp} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-500 font-['Liberation_Mono'] tracking-widest" placeholder="00.000.000.0-000.000" />
+                  <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Nomor NPWP</label>
+                  <input type="text" name="no_npwp" value={formData.no_npwp} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-500 font-sans tracking-widest" placeholder="00.000.000.0-000.000" />
                 </div>
                 <div className="flex flex-col gap-1 w-full">
-                  <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Status PTKP (Penghasilan Tidak Kena Pajak) *</label>
-                  <select name="status_ptkp" value={formData.status_ptkp} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 text-slate-900 text-sm font-['Inter'] w-full transition-all">
+                  <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Status PTKP (Penghasilan Tidak Kena Pajak) *</label>
+                  <select name="status_ptkp" value={formData.status_ptkp} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 text-slate-900 text-sm font-sans w-full transition-all">
                     <option value="TK/0">TK/0 (Tidak Kawin Tanpa Tanggungan)</option>
                     <option value="TK/1">TK/1 (Tidak Kawin 1 Tanggungan)</option>
                     <option value="TK/2">TK/2 (Tidak Kawin 2 Tanggungan)</option>
@@ -586,7 +586,7 @@ export default function DetailPegawaiPage() {
         {activeTab === 4 && (
           <div className="flex flex-col gap-8 animate-in fade-in slide-in-from-right-4">
              <div className="flex flex-col gap-1">
-               <h2 className="text-slate-900 text-xl font-bold font-['Inter'] flex items-center gap-2"><span className="material-icons-round text-blue-500">payments</span> Konfigurasi Rekening Payroll</h2>
+               <h2 className="text-slate-900 text-xl font-bold font-sans flex items-center gap-2"><span className="material-icons-round text-blue-500">payments</span> Konfigurasi Rekening Payroll</h2>
                <p className="text-slate-500 text-sm">Informasi bank penerima untuk penyaluran gaji otomatis. Sangat rahasia dan diawasi Audit Log.</p>
              </div>
 
@@ -595,7 +595,7 @@ export default function DetailPegawaiPage() {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10 w-full lg:w-3/4">
                   <div className="flex flex-col gap-1 w-full">
-                    <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Bank Tujuan *</label>
+                    <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Bank Tujuan *</label>
                     <select name="bank_id" value={formData.bank_id} onChange={handleInputChange} className="px-3 py-3 bg-white rounded-lg border shadow-sm border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold">
                       <option value="">-- Pilih Bank --</option>
                       {bankOptions.map(b => (
@@ -607,11 +607,11 @@ export default function DetailPegawaiPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10 w-full lg:w-3/4">
                   <div className="flex flex-col gap-1 w-full">
-                    <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Nomor Rekening Tujuan *</label>
-                    <input type="text" name="no_rekening" value={formData.no_rekening} onChange={handleInputChange} placeholder="00019283..." className="px-3 py-3 bg-white rounded-lg border shadow-sm border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold text-lg font-['Liberation_Mono'] tracking-wider" />
+                    <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Nomor Rekening Tujuan *</label>
+                    <input type="text" name="no_rekening" value={formData.no_rekening} onChange={handleInputChange} placeholder="00019283..." className="px-3 py-3 bg-white rounded-lg border shadow-sm border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold text-lg font-sans tracking-wider" />
                   </div>
                   <div className="flex flex-col gap-1 w-full">
-                    <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Atas Nama Pemilik Rekening *</label>
+                    <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Atas Nama Pemilik Rekening *</label>
                     <input type="text" name="atas_nama_rekening" value={formData.atas_nama_rekening} onChange={handleInputChange} className="px-3 py-3 bg-white rounded-lg border shadow-sm border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold uppercase" placeholder="JOHN DOE" />
                   </div>
                 </div>
@@ -624,14 +624,14 @@ export default function DetailPegawaiPage() {
         {activeTab === 5 && (
           <div className="flex flex-col gap-8 animate-in fade-in slide-in-from-right-4">
              <div className="flex flex-col gap-1">
-               <h2 className="text-slate-900 text-xl font-bold font-['Inter'] flex items-center gap-2"><span className="material-icons-round text-teal-500">folder_shared</span> Dokumen Lampiran</h2>
+               <h2 className="text-slate-900 text-xl font-bold font-sans flex items-center gap-2"><span className="material-icons-round text-teal-500">folder_shared</span> Dokumen Lampiran</h2>
                <p className="text-slate-500 text-sm">Upload berkas penting kepegawaian (Masing-masing 1 Gambar KTP, KK, & PK).</p>
              </div>
 
              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* KTP */}
                 <div className="flex flex-col gap-2 p-4 border border-slate-200 rounded-xl bg-slate-50">
-                  <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Upload KTP</label>
+                  <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Upload KTP</label>
                   {formData.url_ktp && (
                     <div className="w-full h-48 rounded bg-slate-200 overflow-hidden relative group">
                       <img src={formData.url_ktp} alt="KTP" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
@@ -650,7 +650,7 @@ export default function DetailPegawaiPage() {
 
                 {/* KK */}
                 <div className="flex flex-col gap-2 p-4 border border-slate-200 rounded-xl bg-slate-50">
-                  <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Upload Kartu Keluarga</label>
+                  <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Upload Kartu Keluarga</label>
                   {formData.url_kartu_keluarga && (
                     <div className="w-full h-48 rounded bg-slate-200 overflow-hidden relative group">
                       <img src={formData.url_kartu_keluarga} alt="Kartu Keluarga" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
@@ -669,7 +669,7 @@ export default function DetailPegawaiPage() {
 
                 {/* Perjanjian Kerja */}
                 <div className="flex flex-col gap-2 p-4 border border-slate-200 rounded-xl bg-slate-50">
-                  <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Upload Perjanjian Kerja</label>
+                  <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Upload Perjanjian Kerja</label>
                   {formData.url_perjanjian_kerjasama && (
                     <div className="w-full h-48 rounded bg-slate-200 overflow-hidden relative group">
                       <img src={formData.url_perjanjian_kerjasama} alt="Perjanjian Kerja" className="w-full h-full object-cover transition-transform group-hover:scale-105" />

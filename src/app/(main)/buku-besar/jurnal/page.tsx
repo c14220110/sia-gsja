@@ -175,14 +175,14 @@ export default function JurnalUmumPage() {
       {/* Header Section */}
       <div className="w-full flex justify-between items-start">
         <div className="flex flex-col gap-1">
-          <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Jurnal Umum (General Ledger)</h1>
-          <div className="text-slate-500 text-base font-medium font-['Inter'] leading-6">Catat dan pantau transaksi keuangan lintas satelit dan kegiatan</div>
+          <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Jurnal Umum (General Ledger)</h1>
+          <div className="text-slate-500 text-base font-medium font-sans leading-6">Catat dan pantau transaksi keuangan lintas satelit dan kegiatan</div>
         </div>
         <div className="flex items-center gap-3">
           {canManage && (
             <button onClick={handleCreateNew} className="px-5 py-2.5 bg-slate-700 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none">
               <span className="material-icons-round text-white text-[20px]">add</span>
-              <span className="text-white text-sm font-bold font-['Inter'] leading-5">Jurnal Baru</span>
+              <span className="text-white text-sm font-bold font-sans leading-5">Jurnal Baru</span>
             </button>
           )}
         </div>
@@ -193,12 +193,12 @@ export default function JurnalUmumPage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="p-4 font-bold text-slate-500 text-xs font-['Public_Sans'] uppercase tracking-wider">Tanggal</th>
-                <th className="p-4 font-bold text-slate-500 text-xs font-['Public_Sans'] uppercase tracking-wider">No. Referensi</th>
-                <th className="p-4 font-bold text-slate-500 text-xs font-['Public_Sans'] uppercase tracking-wider">Deskripsi Transaksi</th>
-                <th className="p-4 font-bold text-slate-500 text-xs font-['Public_Sans'] uppercase tracking-wider text-right">Nominal (D/K)</th>
-                <th className="p-4 font-bold text-slate-500 text-xs font-['Public_Sans'] uppercase tracking-wider text-center">Status</th>
-                <th className="p-4 font-bold text-slate-500 text-xs font-['Public_Sans'] uppercase tracking-wider text-center w-40">Aksi</th>
+                <th className="p-4 font-bold text-slate-500 text-xs font-sans uppercase tracking-wider">Tanggal</th>
+                <th className="p-4 font-bold text-slate-500 text-xs font-sans uppercase tracking-wider">No. Referensi</th>
+                <th className="p-4 font-bold text-slate-500 text-xs font-sans uppercase tracking-wider">Deskripsi Transaksi</th>
+                <th className="p-4 font-bold text-slate-500 text-xs font-sans uppercase tracking-wider text-right">Nominal (D/K)</th>
+                <th className="p-4 font-bold text-slate-500 text-xs font-sans uppercase tracking-wider text-center">Status</th>
+                <th className="p-4 font-bold text-slate-500 text-xs font-sans uppercase tracking-wider text-center w-40">Aksi</th>
               </tr>
             </thead>
             <tbody>
@@ -206,11 +206,11 @@ export default function JurnalUmumPage() {
                 jurnalList.map(j => (
                   <tr key={j.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                     <td className="p-4 text-sm font-medium text-slate-700">{new Date(j.tanggal_transaksi).toLocaleDateString('id-ID')}</td>
-                    <td className="p-4 text-sm font-mono text-indigo-600 font-semibold">{j.nomor_referensi}</td>
+                    <td className="p-4 text-sm font-sans text-indigo-600 font-semibold">{j.nomor_referensi}</td>
                     <td className="p-4 text-sm text-slate-600 max-w-md truncate" title={j.deskripsi}>{j.deskripsi}</td>
-                    <td className="p-4 text-sm font-mono font-medium text-slate-800 text-right">{formatRupiah(j.total_debit)}</td>
+                    <td className="p-4 text-sm font-sans font-medium text-slate-800 text-right">{formatRupiah(j.total_debit)}</td>
                     <td className="p-4 text-center">
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${j.status === 'Posted' ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-slate-100 text-slate-600 border border-slate-200'}`}>
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold font-sans uppercase ${j.status === 'Posted' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'}`}>
                         {j.status}
                       </span>
                     </td>
@@ -258,7 +258,7 @@ export default function JurnalUmumPage() {
               <div>
                 <h2 className="text-xl font-bold text-slate-800 flex items-center gap-3">
                   Detail Jurnal {viewDetailJurnal.nomor_referensi}
-                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${viewDetailJurnal.status === 'Posted' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'}`}>
+                  <span className={`px-3 py-1 rounded-full text-xs font-bold font-sans uppercase ${viewDetailJurnal.status === 'Posted' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'}`}>
                     {viewDetailJurnal.status}
                   </span>
                 </h2>
@@ -303,7 +303,7 @@ export default function JurnalUmumPage() {
                             <td className="p-3 text-center text-slate-400 text-xs font-medium">{idx + 1}</td>
                             <td className="p-3">
                               <p className="text-sm font-medium text-slate-800">{d.nama_akun}</p>
-                              <p className="text-xs font-mono text-slate-500">{d.kode_akun}</p>
+                              <p className="text-xs font-sans text-slate-500">{d.kode_akun}</p>
                             </td>
                             <td className="p-3">
                               {tags.length > 0 ? (
@@ -315,16 +315,16 @@ export default function JurnalUmumPage() {
                               )}
                             </td>
                             <td className="p-3 text-sm text-slate-600">{d.keterangan_baris || '-'}</td>
-                            <td className="p-3 text-sm font-mono text-right text-blue-700">{d.posisi === 'Debit' ? formatRupiah(d.nominal) : '-'}</td>
-                            <td className="p-3 text-sm font-mono text-right text-orange-700">{d.posisi === 'Kredit' ? formatRupiah(d.nominal) : '-'}</td>
+                            <td className="p-3 text-sm font-sans text-right text-blue-700">{d.posisi === 'Debit' ? formatRupiah(d.nominal) : '-'}</td>
+                            <td className="p-3 text-sm font-sans text-right text-orange-700">{d.posisi === 'Kredit' ? formatRupiah(d.nominal) : '-'}</td>
                           </tr>
                         );
                       })}
                       {/* Total Row */}
                       <tr className="bg-slate-50 border-t-2 border-slate-200">
                         <td colSpan={4} className="p-4 text-right font-bold text-slate-700 text-sm uppercase">Total Balance</td>
-                        <td className="p-4 text-sm font-bold font-mono text-right text-blue-800">{formatRupiah(viewDetailJurnal.total_debit)}</td>
-                        <td className="p-4 text-sm font-bold font-mono text-right text-orange-800">{formatRupiah(viewDetailJurnal.total_kredit)}</td>
+                        <td className="p-4 text-sm font-bold font-sans text-right text-blue-800">{formatRupiah(viewDetailJurnal.total_debit)}</td>
+                        <td className="p-4 text-sm font-bold font-sans text-right text-orange-800">{formatRupiah(viewDetailJurnal.total_kredit)}</td>
                       </tr>
                     </tbody>
                   </table>

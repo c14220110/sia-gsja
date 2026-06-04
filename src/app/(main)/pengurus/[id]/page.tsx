@@ -177,7 +177,7 @@ export default function PengurusDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center p-12 gap-4">
         <span className="material-icons-round text-5xl text-slate-300">error_outline</span>
-        <p className="text-slate-500 font-['Inter']">Data pengurus tidak ditemukan.</p>
+        <p className="text-slate-500 font-sans">Data pengurus tidak ditemukan.</p>
         <Link href="/pengurus" className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-semibold transition-colors">
           Kembali ke Daftar Pengurus
         </Link>
@@ -193,19 +193,19 @@ export default function PengurusDetailPage() {
 
       {/* Breadcrumb & Title Area */}
       <div className="w-full flex flex-col justify-start items-start gap-4">
-        <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-['Inter'] leading-4">
+        <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-sans leading-4">
           <Link href="/pengurus" className="text-slate-500 hover:text-violet-600">Database Pengurus</Link>
           <span className="text-slate-500 material-icons-round text-[14px]">chevron_right</span>
           <span className="text-slate-700 font-bold">{isReadOnly ? 'Detail Pengurus' : 'Edit Pengurus'}</span>
         </div>
         <div className="self-stretch inline-flex justify-between items-end">
           <div className="inline-flex flex-col justify-start items-start">
-            <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">
+            <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">
               {isReadOnly ? 'Detail Data Pengurus' : 'Edit Data Pengurus'}
             </h1>
-            <div className="text-slate-500 text-base font-medium font-['Inter'] leading-6 flex gap-1">
+            <div className="text-slate-500 text-base font-medium font-sans leading-6 flex gap-1">
               <span>ID Pengurus:</span>
-              <span className="text-slate-700 font-bold font-mono">{pengurus.id_pengurus}</span>
+              <span className="text-slate-700 font-bold font-sans">{pengurus.id_pengurus}</span>
             </div>
           </div>
           {isReadOnly && hasPermission('pengurus_manage') && (
@@ -231,7 +231,7 @@ export default function PengurusDetailPage() {
             onClick={() => setActiveTab(tab.key)}
             className={`px-2 py-3 border-b-2 inline-flex flex-col justify-center items-center cursor-pointer transition-colors ${activeTab === tab.key ? 'border-slate-700' : 'border-transparent'}`}
           >
-            <span className={`text-sm font-bold font-['Inter'] leading-5 ${activeTab === tab.key ? 'text-slate-700' : 'text-slate-400'}`}>
+            <span className={`text-sm font-bold font-sans leading-5 ${activeTab === tab.key ? 'text-slate-700' : 'text-slate-400'}`}>
               {tab.label}
             </span>
           </div>
@@ -253,19 +253,19 @@ export default function PengurusDetailPage() {
             </div>
           </div>
           <div className="inline-flex flex-col justify-start items-start w-full">
-            <div className="text-slate-900 text-2xl font-bold font-['Inter'] leading-8 mb-1">{pengurus.nama_lengkap}</div>
-            <div className="text-slate-500 text-base font-medium font-['Inter'] leading-6 mb-3">
+            <div className="text-slate-900 text-2xl font-bold font-sans leading-8 mb-1">{pengurus.nama_lengkap}</div>
+            <div className="text-slate-500 text-base font-medium font-sans leading-6 mb-3">
               {isReadOnly ? 'Arsip detail informasi pengurus gereja.' : 'Silakan perbarui data pengurus yang relevan.'}
             </div>
             <div className="self-stretch pt-2 inline-flex justify-start items-start gap-2">
               <div className="px-3 py-1 bg-slate-100 rounded-full inline-flex">
-                <div className="text-slate-700 text-[10px] font-bold font-['Inter'] uppercase leading-4 tracking-wide">
+                <div className="text-slate-700 text-[10px] font-bold font-sans uppercase leading-4 tracking-wide">
                   {isReadOnly ? 'Mode Lihat Data' : 'Mode Edit Data'}
                 </div>
               </div>
               {latestJabatan && (
                 <div className={`px-3 py-1 rounded-full inline-flex ${statusBadge(latestJabatan.status_jabatan)}`}>
-                  <div className="text-[10px] font-bold font-['Inter'] uppercase leading-4 tracking-wide">
+                  <div className="text-[10px] font-bold font-sans uppercase leading-4 tracking-wide">
                     {latestJabatan.status_jabatan} — {latestJabatan.nama_jabatan}
                   </div>
                 </div>
@@ -282,7 +282,7 @@ export default function PengurusDetailPage() {
               <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-start items-start gap-6">
                 <div className="w-full inline-flex justify-start items-center gap-2">
                   <span className="material-icons-round text-slate-700 text-[18px]">badge</span>
-                  <span className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Informasi Personal</span>
+                  <span className="text-slate-700 text-xs font-bold font-sans uppercase leading-4 tracking-wider">Informasi Personal</span>
                 </div>
                 <div className="w-full flex-col gap-4 flex">
                   {[
@@ -291,18 +291,18 @@ export default function PengurusDetailPage() {
                     { label: 'Status Pernikahan', value: pengurus.status_pernikahan || '-' },
                   ].map(item => (
                     <div key={item.label} className="w-full flex-col gap-1 flex">
-                      <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">{item.label}</label>
-                      <div className="text-slate-900 text-sm font-semibold font-['Public_Sans']">{item.value}</div>
+                      <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">{item.label}</label>
+                      <div className="text-slate-900 text-sm font-semibold font-sans">{item.value}</div>
                     </div>
                   ))}
                   <div className="w-full flex gap-4">
                     <div className="flex-1 flex-col gap-1 flex">
-                      <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Kota Lahir</label>
-                      <div className="text-slate-900 text-sm font-semibold font-['Public_Sans']">{pengurus.tempat_lahir || '-'}</div>
+                      <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Kota Lahir</label>
+                      <div className="text-slate-900 text-sm font-semibold font-sans">{pengurus.tempat_lahir || '-'}</div>
                     </div>
                     <div className="flex-1 flex-col gap-1 flex">
-                      <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Tanggal Lahir</label>
-                      <div className="text-slate-900 text-sm font-semibold font-['Public_Sans']">{formatDate(pengurus.tanggal_lahir)}</div>
+                      <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Tanggal Lahir</label>
+                      <div className="text-slate-900 text-sm font-semibold font-sans">{formatDate(pengurus.tanggal_lahir)}</div>
                     </div>
                   </div>
                 </div>
@@ -311,7 +311,7 @@ export default function PengurusDetailPage() {
               <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-start items-start gap-6">
                 <div className="w-full inline-flex justify-start items-center gap-2">
                   <span className="material-icons-round text-slate-700 text-[18px]">contact_phone</span>
-                  <span className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Kontak</span>
+                  <span className="text-slate-700 text-xs font-bold font-sans uppercase leading-4 tracking-wider">Kontak</span>
                 </div>
                 <div className="w-full flex-col gap-4 flex">
                   {[
@@ -320,8 +320,8 @@ export default function PengurusDetailPage() {
                     { label: 'Alamat', value: pengurus.alamat || '-' },
                   ].map(item => (
                     <div key={item.label} className="w-full flex-col gap-1 flex">
-                      <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">{item.label}</label>
-                      <div className="text-slate-900 text-sm font-semibold font-['Public_Sans']">{item.value}</div>
+                      <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">{item.label}</label>
+                      <div className="text-slate-900 text-sm font-semibold font-sans">{item.value}</div>
                     </div>
                   ))}
                 </div>
@@ -333,22 +333,22 @@ export default function PengurusDetailPage() {
               <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-start items-start gap-6">
                 <div className="w-full inline-flex justify-start items-center gap-2">
                   <span className="material-icons-round text-slate-700 text-[20px]">how_to_reg</span>
-                  <span className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Status Gereja</span>
+                  <span className="text-slate-700 text-xs font-bold font-sans uppercase leading-4 tracking-wider">Status Gereja</span>
                 </div>
                 <div className="w-full flex-col gap-4 flex">
                   <div className="w-full flex gap-4">
                     <div className="flex-1 flex-col gap-1 flex">
-                      <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Tanggal Baptis</label>
-                      <div className="text-slate-900 text-sm font-semibold font-['Public_Sans']">{formatDate(pengurus.tanggal_baptis)}</div>
+                      <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Tanggal Baptis</label>
+                      <div className="text-slate-900 text-sm font-semibold font-sans">{formatDate(pengurus.tanggal_baptis)}</div>
                     </div>
                     <div className="flex-1 flex-col gap-1 flex">
-                      <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Status Baptis</label>
-                      <div className="text-slate-900 text-sm font-semibold font-['Public_Sans']">{pengurus.status_baptis ? 'Sudah Baptis' : 'Belum Baptis'}</div>
+                      <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Status Baptis</label>
+                      <div className="text-slate-900 text-sm font-semibold font-sans">{pengurus.status_baptis ? 'Sudah Baptis' : 'Belum Baptis'}</div>
                     </div>
                   </div>
                   <div className="w-full flex-col gap-1 flex">
-                    <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Satelit Asal</label>
-                    <div className="text-slate-900 text-sm font-semibold font-['Public_Sans']">{pengurus.nama_satelit_jemaat || '-'}</div>
+                    <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Satelit Asal</label>
+                    <div className="text-slate-900 text-sm font-semibold font-sans">{pengurus.nama_satelit_jemaat || '-'}</div>
                   </div>
                 </div>
               </div>
@@ -356,15 +356,15 @@ export default function PengurusDetailPage() {
               <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-start items-start gap-4">
                 <div className="w-full inline-flex justify-start items-center gap-2">
                   <span className="material-icons-round text-slate-700 text-[18px]">link</span>
-                  <span className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Profil Jemaat Terhubung</span>
+                  <span className="text-slate-700 text-xs font-bold font-sans uppercase leading-4 tracking-wider">Profil Jemaat Terhubung</span>
                 </div>
                 <div className="w-full flex-col gap-1 flex">
-                  <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Nomor Jemaat</label>
-                  <div className="text-slate-900 text-sm font-bold font-mono">{pengurus.jemaat_nomor || '-'}</div>
+                  <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Nomor Jemaat</label>
+                  <div className="text-slate-900 text-sm font-bold font-sans">{pengurus.jemaat_nomor || '-'}</div>
                 </div>
                 <Link
                   href={`/jemaat/${pengurus.jemaat_id}?mode=view`}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-sm text-slate-700 font-semibold transition-colors font-['Inter']"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-sm text-slate-700 font-semibold transition-colors font-sans"
                 >
                   <span className="material-icons-round text-[16px] text-slate-500">open_in_new</span>
                   Lihat Profil Jemaat Lengkap
@@ -380,7 +380,7 @@ export default function PengurusDetailPage() {
             
             {/* Header / Actions for Riwayat Jabatan */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
-              <div className="text-slate-700 font-['Inter'] font-semibold text-sm">
+              <div className="text-slate-700 font-sans font-semibold text-sm">
                 Daftar posisi/jabatan yang pernah atau sedang diemban.
               </div>
               {canManage && (
@@ -398,7 +398,7 @@ export default function PengurusDetailPage() {
             {pengurus.jabatan?.length === 0 ? (
               <div className="w-full py-16 bg-white rounded-xl border border-slate-200 flex flex-col items-center gap-3 text-slate-400">
                 <span className="material-icons-round text-5xl opacity-40">workspace_premium</span>
-                <span className="text-sm font-['Public_Sans']">Belum ada riwayat jabatan.</span>
+                <span className="text-sm font-sans">Belum ada riwayat jabatan.</span>
               </div>
             ) : (
               pengurus.jabatan?.map((jab: any) => (
@@ -410,13 +410,13 @@ export default function PengurusDetailPage() {
                         <span className="material-icons-round text-violet-700 text-[20px]">workspace_premium</span>
                       </div>
                       <div>
-                        <div className="text-slate-900 font-black text-lg font-['Inter'] flex items-center gap-2">
+                        <div className="text-slate-900 font-black text-lg font-sans flex items-center gap-2">
                           {jab.nama_jabatan}
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase shrink-0 font-['Inter'] ${statusBadge(jab.status_jabatan)}`}>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase shrink-0 font-sans ${statusBadge(jab.status_jabatan)}`}>
                             {jab.status_jabatan}
                           </span>
                         </div>
-                        <div className="text-slate-500 text-sm font-['Public_Sans'] mt-0.5">
+                        <div className="text-slate-500 text-sm font-sans mt-0.5">
                           {jab.lingkup} — <span className="font-semibold text-slate-700">{jab.nama_satelit || jab.nama_komisi || jab.nama_departemen || 'Umum'}</span>
                         </div>
                       </div>
@@ -444,13 +444,13 @@ export default function PengurusDetailPage() {
                         { label: 'Akhir Menjabat', value: jab.tanggal_akhir_menjabat ? formatDate(jab.tanggal_akhir_menjabat) : 'Belum Berakhir' },
                       ].map(item => (
                         <div key={item.label} className="flex flex-col gap-0.5">
-                          <span className="text-slate-400 text-[10px] font-bold font-['Inter'] uppercase tracking-wider">{item.label}</span>
-                          <span className="text-slate-700 text-sm font-semibold font-['Public_Sans']">{item.value}</span>
+                          <span className="text-slate-400 text-[10px] font-bold font-sans uppercase tracking-wider">{item.label}</span>
+                          <span className="text-slate-700 text-sm font-semibold font-sans">{item.value}</span>
                         </div>
                       ))}
                     </div>
                     {jab.catatan && (
-                      <div className="mt-4 px-4 py-3 bg-slate-50 rounded-lg border border-slate-100 text-sm text-slate-600 font-['Public_Sans'] italic flex items-start gap-2">
+                      <div className="mt-4 px-4 py-3 bg-slate-50 rounded-lg border border-slate-100 text-sm text-slate-600 font-sans italic flex items-start gap-2">
                         <span className="material-icons-round text-[16px] text-slate-400 mt-0.5">sticky_note_2</span>
                         {jab.catatan}
                       </div>
@@ -468,7 +468,7 @@ export default function PengurusDetailPage() {
             {pengurus.audit_log?.length === 0 ? (
               <div className="py-16 flex flex-col items-center gap-3 text-slate-400">
                 <span className="material-icons-round text-5xl opacity-40">history</span>
-                <span className="text-sm font-['Public_Sans']">Belum ada catatan aktivitas.</span>
+                <span className="text-sm font-sans">Belum ada catatan aktivitas.</span>
               </div>
             ) : (
               pengurus.audit_log?.map((log: any, idx: number) => {
@@ -480,13 +480,13 @@ export default function PengurusDetailPage() {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-0.5">
-                        <span className="text-slate-800 font-bold text-sm font-['Inter']">{log.aksi}</span>
-                        <span className="text-slate-400 text-xs font-['Public_Sans']">oleh {log.user_email || 'Sistem'}</span>
+                        <span className="text-slate-800 font-bold text-sm font-sans">{log.aksi}</span>
+                        <span className="text-slate-400 text-xs font-sans">oleh {log.user_email || 'Sistem'}</span>
                         <span className={`px-2 py-0.5 rounded-full text-[10px] bg-slate-100 text-slate-600 uppercase font-bold`}>{log.nama_role}</span>
                       </div>
-                      <div className="text-slate-600 text-sm font-['Public_Sans']">{log.keterangan}</div>
+                      <div className="text-slate-600 text-sm font-sans">{log.keterangan}</div>
                     </div>
-                    <div className="text-slate-400 text-xs font-['Public_Sans'] shrink-0 text-right">
+                    <div className="text-slate-400 text-xs font-sans shrink-0 text-right">
                       {formatDate(log.created_at)}<br />
                       <span className="text-[10px]">{new Date(log.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
@@ -513,7 +513,7 @@ export default function PengurusDetailPage() {
                   <span className="material-icons-round text-[20px]">add_circle</span>
                 </div>
                 <div>
-                  <h2 className="text-lg font-black text-slate-900 font-['Inter'] leading-tight">Tambah Jabatan Baru</h2>
+                  <h2 className="text-lg font-black text-slate-900 font-sans leading-tight">Tambah Jabatan Baru</h2>
                   <p className="text-xs text-slate-500 font-medium">Bpk/Ibu {pengurus.nama_lengkap}</p>
                 </div>
               </div>
@@ -552,7 +552,7 @@ export default function PengurusDetailPage() {
           <div className="w-full max-w-md bg-white rounded-xl shadow-2xl flex flex-col overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3 bg-rose-50">
               <span className="material-icons-round text-rose-600">cancel</span>
-              <h2 className="text-lg font-black text-rose-900 font-['Inter']">Berhentikan Jabatan</h2>
+              <h2 className="text-lg font-black text-rose-900 font-sans">Berhentikan Jabatan</h2>
             </div>
             <div className="p-6 flex flex-col gap-5">
               <p className="text-sm text-slate-600 mb-2">Anda akan memberhentikan jabatan ini. Catatan sejarah akan tetap disimpan dan tidak dapat diedit lagi.</p>

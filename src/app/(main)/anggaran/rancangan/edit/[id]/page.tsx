@@ -262,7 +262,7 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
       />
       {/* Header Area */}
       <div className="w-full flex flex-col justify-start items-start gap-4">
-        <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-['Inter'] leading-4">
+        <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-sans leading-4">
           <span className="text-slate-500">Anggaran & Plotting</span>
           <span className="text-slate-500 material-icons-round text-[14px]">chevron_right</span>
           <Link href="/anggaran/rancangan" className="text-slate-500 hover:text-blue-600">Rancangan Anggaran</Link>
@@ -272,7 +272,7 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
         
         <div className="self-stretch inline-flex justify-between items-end">
           <div className="inline-flex gap-4 items-center">
-            <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Edit Rancangan Anggaran</h1>
+            <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Edit Rancangan Anggaran</h1>
             {statusDokumen === 'Revisi' ? (
               <div className="px-3 py-1 bg-amber-100 rounded border border-amber-300 flex items-center gap-1 mt-1">
                  <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
@@ -285,7 +285,7 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
               </div>
             )}
           </div>
-          <div className="text-slate-500 text-sm font-medium font-['Inter'] flex gap-1 items-center">
+          <div className="text-slate-500 text-sm font-medium font-sans flex gap-1 items-center">
             <span className="material-icons-round text-lg text-slate-400">qr_code</span> ID: <span className="text-slate-700 font-bold">{kodeDokumen}</span>
           </div>
         </div>
@@ -293,7 +293,7 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
 
       <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-5 mt-2">
         <div className="flex flex-col gap-2 border-b border-slate-100 pb-4">
-          <div className="text-slate-800 text-sm font-bold font-['Inter'] uppercase tracking-wider flex items-center gap-2">
+          <div className="text-slate-800 text-sm font-bold font-sans uppercase tracking-wider flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
               <span className="material-icons-round text-[18px]">request_quote</span>
             </div>
@@ -351,7 +351,7 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
           </div>
           <div>
             <label className={labelCls}>Tahun <span className="text-red-500">*</span></label>
-            <select value={tahun} onChange={e=>setTahun(e.target.value)} disabled={isHeaderLocked} className={selectCls+' font-mono font-bold'}>
+            <select value={tahun} onChange={e=>setTahun(e.target.value)} disabled={isHeaderLocked} className={selectCls+' font-sans font-bold'}>
               {tahunOptions.map(y=><option key={y} value={y}>{y}{y===currentYear?' (Tahun Ini)':y===currentYear+1?' (Tahun Depan)':''}</option>)}
             </select>
           </div>
@@ -365,7 +365,7 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
       {/* Card 2: Input Item Anggaran */}
       <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-5">
         <div className="flex flex-col gap-2 border-b border-slate-100 pb-4">
-          <div className="text-slate-800 text-sm font-bold font-['Inter'] uppercase tracking-wider flex items-center gap-2">
+          <div className="text-slate-800 text-sm font-bold font-sans uppercase tracking-wider flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
               <span className="material-icons-round text-[18px]">playlist_add</span>
             </div>
@@ -440,12 +440,12 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
               <label className={labelCls}>Harga Satuan <span className="text-red-500">*</span></label>
               <div className="relative">
                 <span className="absolute left-3 top-2.5 text-slate-400 text-sm font-semibold">Rp</span>
-                <input type="number" min={0} step={1} value={form.harga||''} onChange={e => setForm(p => ({ ...p, harga: Math.round(Number(e.target.value)) || 0 }))} className={inputCls+' pl-9 font-mono'}/>
+                <input type="number" min={0} step={1} value={form.harga||''} onChange={e => setForm(p => ({ ...p, harga: Math.round(Number(e.target.value)) || 0 }))} className={inputCls+' pl-9 font-sans'}/>
               </div>
             </div>
             <div>
               <label className={labelCls}>Total Estimasi</label>
-              <div className="w-full h-10 px-3 rounded-lg border border-slate-200 bg-slate-100 text-sm font-bold text-slate-700 flex items-center font-mono">{fmt(form.jumlah*form.harga)}</div>
+              <div className="w-full h-10 px-3 rounded-lg border border-slate-200 bg-slate-100 text-sm font-bold text-slate-700 flex items-center font-sans">{fmt(form.jumlah*form.harga)}</div>
             </div>
             <div>
               <button onClick={handleAdd} className={`w-full h-10 ${form.id ? 'bg-blue-600 hover:bg-blue-700' : 'bg-emerald-600 hover:bg-emerald-700'} text-white rounded-lg font-bold text-sm flex justify-center items-center gap-2 transition-colors shadow-sm`}>
@@ -500,11 +500,11 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
                           </div>
                         )}
                       </td>
-                      <td className="p-4 text-xs font-mono text-slate-500 align-top pt-5">{item.coa}</td>
+                      <td className="p-4 text-xs font-sans text-slate-500 align-top pt-5">{item.coa}</td>
                       <td className="p-4 align-top pt-5"><span className={`inline-block whitespace-nowrap px-2 py-1 rounded-full text-[10px] font-bold border ${item.sumber_dana==='Plafon Pusat'?'bg-indigo-50 text-indigo-600 border-indigo-200': item.sumber_dana==='Kas Pusat'?'bg-amber-50 text-amber-700 border-amber-200':'bg-emerald-50 text-emerald-600 border-emerald-200'}`}>{item.sumber_dana}</span></td>
                       <td className="p-4 text-sm text-center font-medium align-top pt-5">{item.jumlah}</td><td className="p-4 text-sm text-center text-slate-600 align-top pt-5">{item.satuan}</td>
-                      <td className="p-4 text-sm text-right font-mono text-slate-700 align-top pt-5">{fmt(item.harga)}</td>
-                      <td className="p-4 text-sm text-right font-bold font-mono text-emerald-600 align-top pt-5">{fmt(item.total)}</td>
+                      <td className="p-4 text-sm text-right font-sans text-slate-700 align-top pt-5">{fmt(item.harga)}</td>
+                      <td className="p-4 text-sm text-right font-bold font-sans text-emerald-600 align-top pt-5">{fmt(item.total)}</td>
                       <td className="p-4 text-center align-top pt-4">
                         {!isLocked ? (
                           <div className="flex items-center justify-center gap-1">
@@ -538,11 +538,11 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
                           </div>
                         )}
                       </td>
-                      <td className="p-4 text-xs font-mono text-slate-500 align-top pt-5">{item.coa}</td>
+                      <td className="p-4 text-xs font-sans text-slate-500 align-top pt-5">{item.coa}</td>
                       <td className="p-4 align-top pt-5"><span className={`inline-block whitespace-nowrap px-2 py-1 rounded-full text-[10px] font-bold border ${item.sumber_dana==='Plafon Pusat'?'bg-indigo-50 text-indigo-600 border-indigo-200': item.sumber_dana==='Kas Pusat'?'bg-amber-50 text-amber-700 border-amber-200':'bg-emerald-50 text-emerald-600 border-emerald-200'}`}>{item.sumber_dana}</span></td>
                       <td className="p-4 text-sm text-center font-medium align-top pt-5">{item.jumlah}</td><td className="p-4 text-sm text-center text-slate-600 align-top pt-5">{item.satuan}</td>
-                      <td className="p-4 text-sm text-right font-mono text-slate-700 align-top pt-5">{fmt(item.harga)}</td>
-                      <td className="p-4 text-sm text-right font-bold font-mono text-slate-800 align-top pt-5">{fmt(item.total)}</td>
+                      <td className="p-4 text-sm text-right font-sans text-slate-700 align-top pt-5">{fmt(item.harga)}</td>
+                      <td className="p-4 text-sm text-right font-bold font-sans text-slate-800 align-top pt-5">{fmt(item.total)}</td>
                       <td className="p-4 text-center align-top pt-4">
                         {!isLocked ? (
                           <div className="flex items-center justify-center gap-1">
@@ -575,7 +575,7 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
               <React.Fragment key={label}>
                 <div className="flex flex-col text-right shrink-0">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{label}</span>
-                  <span className={`text-sm font-bold font-mono ${cls}`}>{value}</span>
+                  <span className={`text-sm font-bold font-sans ${cls}`}>{value}</span>
                 </div>
                 {i<arr.length-1&&<div className="w-px h-8 bg-slate-700 shrink-0"/>}
               </React.Fragment>

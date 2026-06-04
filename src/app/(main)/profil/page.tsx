@@ -73,7 +73,7 @@ function PersonCard({ name, role, jemaatId, gerjaAsal }: { name: string; role: s
         <span className="text-sm font-bold text-slate-800 truncate">{name}</span>
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-[10px] text-slate-400 font-semibold uppercase">{role}</span>
-          {jemaatId && <span className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded font-mono">{jemaatId}</span>}
+          {jemaatId && <span className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded font-sans">{jemaatId}</span>}
           {gerjaAsal && <span className="text-[10px] text-slate-400">• {gerjaAsal}</span>}
         </div>
       </div>
@@ -269,7 +269,7 @@ export default function ProfilJemaatPage() {
             )}
           </div>
           <h1 className="text-white font-black text-xl text-center leading-tight">{profile.nama_lengkap}</h1>
-          <span className="text-blue-100 text-xs font-mono mt-1">{profile.jemaat_id}</span>
+          <span className="text-blue-100 text-xs font-sans mt-1">{profile.jemaat_id}</span>
           <div className="flex items-center gap-1.5 mt-2">
             {satName && (
               <span className="bg-white/20 backdrop-blur-sm text-white text-[11px] font-bold px-3 py-1 rounded-full border border-white/30 flex items-center gap-1">

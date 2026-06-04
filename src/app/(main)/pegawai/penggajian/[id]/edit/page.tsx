@@ -53,7 +53,7 @@ export default function EditRunPage({ params }: { params: Promise<{ id: string }
     <div className="w-full flex flex-col gap-8 pb-10">
       <div className="w-full py-24 flex flex-col items-center justify-center gap-3 text-slate-500">
         <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-600 rounded-full animate-spin"></div>
-        <span className="text-sm font-['Public_Sans']">Memuat data run...</span>
+        <span className="text-sm font-sans">Memuat data run...</span>
       </div>
     </div>
   );
@@ -63,7 +63,7 @@ export default function EditRunPage({ params }: { params: Promise<{ id: string }
 
       {/* Header */}
       <div className="w-full flex flex-col justify-start items-start gap-4">
-        <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-['Inter'] leading-4">
+        <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-sans leading-4">
           <Link href="/pegawai/penggajian" className="text-slate-500 hover:text-blue-600">Daftar Run Penggajian</Link>
           <span className="text-slate-500 material-icons-round text-[14px]">chevron_right</span>
           <Link href={`/pegawai/penggajian/${runId}`} className="text-slate-500 hover:text-blue-600">Detail Run</Link>
@@ -71,8 +71,8 @@ export default function EditRunPage({ params }: { params: Promise<{ id: string }
           <span className="text-slate-700 font-bold">Edit Setup</span>
         </div>
         <div>
-          <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Edit Payroll Run</h1>
-          <p className="text-slate-500 text-base font-medium font-['Inter']">Ubah setup dan review ulang data sebelum mengajukan approval.</p>
+          <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Edit Payroll Run</h1>
+          <p className="text-slate-500 text-base font-medium font-sans">Ubah setup dan review ulang data sebelum mengajukan approval.</p>
         </div>
       </div>
 
@@ -93,7 +93,7 @@ export default function EditRunPage({ params }: { params: Promise<{ id: string }
             >
               <span className="text-[16px] font-bold">{tab.id}</span>
             </button>
-            <span className={`text-xs font-bold font-['Inter'] tracking-wider ${activeTab === tab.id ? 'text-blue-700' : activeTab > tab.id ? 'text-slate-700' : 'text-slate-400'}`}>{tab.name}</span>
+            <span className={`text-xs font-bold font-sans tracking-wider ${activeTab === tab.id ? 'text-blue-700' : activeTab > tab.id ? 'text-slate-700' : 'text-slate-400'}`}>{tab.name}</span>
           </div>
         ))}
       </div>

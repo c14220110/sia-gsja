@@ -48,7 +48,7 @@ function TabButton({ active, onClick, icon, label }: { active: boolean, onClick:
   return (
     <button
       onClick={onClick}
-      className={`py-4 flex items-center gap-2 border-b-2 transition-colors font-['Public_Sans'] text-sm font-semibold ${
+      className={`py-4 flex items-center gap-2 border-b-2 transition-colors font-sans text-sm font-semibold ${
         active 
           ? 'border-emerald-500 text-emerald-700' 
           : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
@@ -131,7 +131,7 @@ function TemplateTab() {
     }
   };
 
-  if (loading) return <div className="text-slate-500 font-['Public_Sans'] py-8 text-center">Memuat data template...</div>;
+  if (loading) return <div className="text-slate-500 font-sans py-8 text-center">Memuat data template...</div>;
 
   // Jabatan yang sudah punya template tidak boleh dipilih lagi
   const usedJabatanIds = data.map(t => t.jabatan_pegawai_id?.toString());
@@ -141,12 +141,12 @@ function TemplateTab() {
     <div className="flex flex-col gap-6">
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="text-lg font-bold text-slate-800 font-['Inter']">Template Gaji per Jabatan</h3>
-          <p className="text-sm text-slate-500 font-['Public_Sans']">Pilih jabatan untuk mengatur komponen penerimaan dan potongannya.</p>
+          <h3 className="text-lg font-bold text-slate-800 font-sans">Template Gaji per Jabatan</h3>
+          <p className="text-sm text-slate-500 font-sans">Pilih jabatan untuk mengatur komponen penerimaan dan potongannya.</p>
         </div>
         <button
           onClick={openModal}
-          className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg transition-colors font-['Public_Sans'] shadow-sm"
+          className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg transition-colors font-sans shadow-sm"
         >
           <span className="material-icons-round text-[18px]">add</span>
           Buat Template Baru
@@ -156,10 +156,10 @@ function TemplateTab() {
       {data.length === 0 ? (
         <div className="text-center py-12 bg-slate-50 rounded-xl border border-slate-200 border-dashed">
           <span className="material-icons-round text-5xl text-slate-300 mb-3 block">receipt_long</span>
-          <p className="text-slate-500 font-['Public_Sans'] text-sm">Belum ada template gaji yang dibuat.</p>
+          <p className="text-slate-500 font-sans text-sm">Belum ada template gaji yang dibuat.</p>
           <button
             onClick={openModal}
-            className="mt-3 text-xs font-semibold text-emerald-600 hover:underline font-['Public_Sans']"
+            className="mt-3 text-xs font-semibold text-emerald-600 hover:underline font-sans"
           >
             + Buat template pertama
           </button>
@@ -170,8 +170,8 @@ function TemplateTab() {
             <div key={tpl.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow cursor-pointer group relative">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <h4 className="font-bold text-slate-800 font-['Inter'] text-base">{tpl.nama_jabatan}</h4>
-                  <div className="inline-flex items-center px-2 py-0.5 mt-1 bg-sky-50 text-sky-700 rounded text-xs font-semibold font-['Public_Sans']">
+                  <h4 className="font-bold text-slate-800 font-sans text-base">{tpl.nama_jabatan}</h4>
+                  <div className="inline-flex items-center px-2 py-0.5 mt-1 bg-sky-50 text-sky-700 rounded text-xs font-semibold font-sans">
                     {tpl.active_komponen_count} Komponen Aktif
                   </div>
                 </div>
@@ -183,11 +183,11 @@ function TemplateTab() {
                 </div>
               </div>
               <div className="flex flex-col gap-2 border-t border-slate-100 pt-3">
-                <div className="flex justify-between text-sm font-['Public_Sans']">
+                <div className="flex justify-between text-sm font-sans">
                   <span className="text-slate-500">Pajak PPh 21</span>
                   <span className="font-semibold text-slate-700">{tpl.pph21_method}</span>
                 </div>
-                <div className="flex justify-between text-sm font-['Public_Sans']">
+                <div className="flex justify-between text-sm font-sans">
                   <span className="text-slate-500">Status</span>
                   <span className={`font-semibold ${tpl.is_active ? 'text-emerald-600' : 'text-rose-500'}`}>
                     {tpl.is_active ? 'Aktif' : 'Nonaktif'}
@@ -215,7 +215,7 @@ function TemplateTab() {
             <div className="bg-emerald-600 px-6 py-4 flex justify-between items-center">
               <div className="flex items-center gap-2.5">
                 <span className="material-icons-round text-white/80 text-[22px]">receipt_long</span>
-                <h2 className="text-white font-bold font-['Inter'] text-base">Buat Template Gaji Baru</h2>
+                <h2 className="text-white font-bold font-sans text-base">Buat Template Gaji Baru</h2>
               </div>
               <button onClick={() => setShowModal(false)} className="text-white/70 hover:text-white transition-colors">
                 <span className="material-icons-round text-[20px]">close</span>
@@ -224,13 +224,13 @@ function TemplateTab() {
             <div className="px-6 py-5 flex flex-col gap-4">
               {/* Jabatan */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-slate-500 text-xs font-bold uppercase tracking-wider font-['Inter']">
+                <label className="text-slate-500 text-xs font-bold uppercase tracking-wider font-sans">
                   Jabatan Pegawai <span className="text-rose-500">*</span>
                 </label>
                 <select
                   value={form.jabatan_pegawai_id}
                   onChange={e => setForm(f => ({ ...f, jabatan_pegawai_id: e.target.value }))}
-                  className="px-3 py-2.5 bg-slate-50 rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-300 font-['Public_Sans']"
+                  className="px-3 py-2.5 bg-slate-50 rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-300 font-sans"
                 >
                   <option value="">— Pilih Jabatan —</option>
                   {availableJabatan.map((j: any) => (
@@ -244,7 +244,7 @@ function TemplateTab() {
 
               {/* Nama template otomatis — tidak perlu diisi manual */}
               <div className="px-3 py-2.5 bg-slate-50/80 border border-slate-100 rounded-lg">
-                <p className="text-[11px] text-slate-400 font-['Public_Sans'] flex items-center gap-1">
+                <p className="text-[11px] text-slate-400 font-sans flex items-center gap-1">
                   <span className="material-icons-round text-[13px]">info</span>
                   Nama template akan dibuat otomatis dari nama jabatan yang dipilih.
                 </p>
@@ -252,13 +252,13 @@ function TemplateTab() {
 
               {/* Metode PPh21 */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-slate-500 text-xs font-bold uppercase tracking-wider font-['Inter']">
+                <label className="text-slate-500 text-xs font-bold uppercase tracking-wider font-sans">
                   Metode PPh 21
                 </label>
                 <select
                   value={form.pph21_method}
                   onChange={e => setForm(f => ({ ...f, pph21_method: e.target.value }))}
-                  className="px-3 py-2.5 bg-slate-50 rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-300 font-['Public_Sans']"
+                  className="px-3 py-2.5 bg-slate-50 rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-300 font-sans"
                 >
                   <option value="Netto">Netto (dipotong dari gaji)</option>
                   <option value="Gross Up">Gross Up (ditanggung gereja)</option>
@@ -269,21 +269,21 @@ function TemplateTab() {
               {error && (
                 <div className="px-3 py-2.5 bg-rose-50 border border-rose-200 rounded-lg flex items-center gap-2">
                   <span className="material-icons-round text-rose-500 text-[16px]">error_outline</span>
-                  <p className="text-xs text-rose-600 font-['Public_Sans']">{error}</p>
+                  <p className="text-xs text-rose-600 font-sans">{error}</p>
                 </div>
               )}
             </div>
             <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50">
               <button
                 onClick={() => setShowModal(false)}
-                className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-white font-['Public_Sans'] transition-colors"
+                className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-white font-sans transition-colors"
               >
                 Batal
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-lg text-sm font-semibold font-['Public_Sans'] transition-colors disabled:opacity-60 flex items-center gap-2"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-lg text-sm font-semibold font-sans transition-colors disabled:opacity-60 flex items-center gap-2"
               >
                 {submitting && <span className="material-icons-round text-[16px] animate-spin">sync</span>}
                 Simpan Template
@@ -406,14 +406,14 @@ function EditTemplateModal({ template, onClose, onSaved }: {
             <span className={`material-icons-round text-[15px] ${k.is_system ? 'text-slate-400' : 'text-slate-300'}`}>
               {k.is_system ? 'lock' : 'drag_indicator'}
             </span>
-            <span className={`text-sm font-['Public_Sans'] font-semibold ${ov.is_active ? 'text-slate-800' : 'text-slate-400'}`}>
+            <span className={`text-sm font-sans font-semibold ${ov.is_active ? 'text-slate-800' : 'text-slate-400'}`}>
               {k.nama_komponen}
             </span>
             {k.is_employer_portion && (
-              <span className="text-[10px] bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded font-['Public_Sans']">Beban Gereja</span>
+              <span className="text-[10px] bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded font-sans">Beban Gereja</span>
             )}
           </div>
-          <div className="text-[11px] text-slate-400 font-['Public_Sans'] ml-5">
+          <div className="text-[11px] text-slate-400 font-sans ml-5">
             {k.calculation_type === 'flat_nominal' && 'Nominal tetap'}
             {k.calculation_type === 'per_hari' && 'Per hari kerja'}
             {k.calculation_type === 'pct_gaji_pokok' && '% dari Gaji Pokok'}
@@ -430,7 +430,7 @@ function EditTemplateModal({ template, onClose, onSaved }: {
               value={ov.nominal_default || ''}
               onChange={e => setNominal(k.id, e.target.value)}
               placeholder="0"
-              className="w-28 px-2 py-1.5 text-right text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-emerald-300 font-['Public_Sans']"
+              className="w-28 px-2 py-1.5 text-right text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-emerald-300 font-sans"
             />
             {k.calculation_type === 'per_hari' && (
               <span className="text-xs text-slate-400">/ hari</span>
@@ -438,7 +438,7 @@ function EditTemplateModal({ template, onClose, onSaved }: {
           </div>
         )}
         {ov.is_active && (k.calculation_type === 'pct_global_bpjs' || k.calculation_type === 'pct_gaji_pokok') && (
-          <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded font-['Public_Sans']">Otomatis</span>
+          <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded font-sans">Otomatis</span>
         )}
       </div>
     );
@@ -450,8 +450,8 @@ function EditTemplateModal({ template, onClose, onSaved }: {
         {/* Header */}
         <div className="bg-emerald-600 px-6 py-4 flex justify-between items-center flex-shrink-0">
           <div>
-            <h2 className="text-white font-bold font-['Inter'] text-base">Edit Komponen — {template.nama_jabatan}</h2>
-            <p className="text-white/70 text-xs font-['Public_Sans']">{template.nama_template} · {template.pph21_method}</p>
+            <h2 className="text-white font-bold font-sans text-base">Edit Komponen — {template.nama_jabatan}</h2>
+            <p className="text-white/70 text-xs font-sans">{template.nama_template} · {template.pph21_method}</p>
           </div>
           <button onClick={onClose} className="text-white/70 hover:text-white transition-colors">
             <span className="material-icons-round text-[20px]">close</span>
@@ -461,11 +461,11 @@ function EditTemplateModal({ template, onClose, onSaved }: {
         {/* Body */}
         <div className="overflow-y-auto flex-1">
           {loading ? (
-            <div className="py-12 text-center text-slate-500 font-['Public_Sans']">Memuat komponen...</div>
+            <div className="py-12 text-center text-slate-500 font-sans">Memuat komponen...</div>
           ) : (
             <div className="flex flex-col">
               {/* Info */}
-              <div className="px-5 py-3 bg-slate-50 border-b border-slate-100 text-xs text-slate-500 font-['Public_Sans']">
+              <div className="px-5 py-3 bg-slate-50 border-b border-slate-100 text-xs text-slate-500 font-sans">
                 Aktifkan komponen yang berlaku untuk jabatan ini dan isi nominal default-nya.
                 Komponen BPJS / persen dihitung otomatis dari tarif global.
               </div>
@@ -474,7 +474,7 @@ function EditTemplateModal({ template, onClose, onSaved }: {
               <div>
                 <div className="px-5 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span>
-                  <span className="text-xs font-bold text-slate-600 uppercase tracking-wider font-['Inter']">Penerimaan</span>
+                  <span className="text-xs font-bold text-slate-600 uppercase tracking-wider font-sans">Penerimaan</span>
                 </div>
                 {renderRows(penerimaan)}
               </div>
@@ -483,7 +483,7 @@ function EditTemplateModal({ template, onClose, onSaved }: {
               <div>
                 <div className="px-5 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-rose-400 inline-block"></span>
-                  <span className="text-xs font-bold text-slate-600 uppercase tracking-wider font-['Inter']">Potongan</span>
+                  <span className="text-xs font-bold text-slate-600 uppercase tracking-wider font-sans">Potongan</span>
                 </div>
                 {renderRows(potongan)}
               </div>
@@ -494,20 +494,20 @@ function EditTemplateModal({ template, onClose, onSaved }: {
         {/* Footer */}
         <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-between items-center flex-shrink-0">
           {error ? (
-            <span className="text-xs text-rose-600 font-['Public_Sans']">{error}</span>
+            <span className="text-xs text-rose-600 font-sans">{error}</span>
           ) : (
-            <span className="text-xs text-slate-400 font-['Public_Sans']">
+            <span className="text-xs text-slate-400 font-sans">
               {Object.values(overrides).filter(o => o.is_active).length} komponen aktif
             </span>
           )}
           <div className="flex gap-3">
-            <button onClick={onClose} className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-white font-['Public_Sans'] transition-colors">
+            <button onClick={onClose} className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-white font-sans transition-colors">
               Batal
             </button>
             <button
               onClick={handleSave}
               disabled={saving || loading}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-lg text-sm font-semibold font-['Public_Sans'] transition-colors disabled:opacity-60 flex items-center gap-2"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-lg text-sm font-semibold font-sans transition-colors disabled:opacity-60 flex items-center gap-2"
             >
               {saving && <span className="material-icons-round text-[16px] animate-spin">sync</span>}
               Simpan Komponen
@@ -548,7 +548,7 @@ function CoaTab() {
       .catch(() => {});
   }, []);
 
-  if (loading) return <div className="text-slate-500 font-['Public_Sans']">Memuat data komponen...</div>;
+  if (loading) return <div className="text-slate-500 font-sans">Memuat data komponen...</div>;
 
   const penerimaan = data.filter(d => d.tipe === 'Penerimaan');
   const potongan = data.filter(d => d.tipe === 'Potongan');
@@ -557,10 +557,10 @@ function CoaTab() {
     <table className="w-full text-left border-collapse">
       <thead>
         <tr className="bg-slate-50/50 border-b border-slate-100">
-          <th className="py-3 px-4 font-bold text-xs text-slate-500 uppercase tracking-wider font-['Inter']">Komponen Gaji</th>
-          <th className="py-3 px-4 font-bold text-xs text-slate-500 uppercase tracking-wider font-['Inter']">COA Debit</th>
-          <th className="py-3 px-4 font-bold text-xs text-slate-500 uppercase tracking-wider font-['Inter']">COA Kredit</th>
-          <th className="py-3 px-4 font-bold text-xs text-slate-500 uppercase tracking-wider text-right font-['Inter']">Aksi</th>
+          <th className="py-3 px-4 font-bold text-xs text-slate-500 uppercase tracking-wider font-sans">Komponen Gaji</th>
+          <th className="py-3 px-4 font-bold text-xs text-slate-500 uppercase tracking-wider font-sans">COA Debit</th>
+          <th className="py-3 px-4 font-bold text-xs text-slate-500 uppercase tracking-wider font-sans">COA Kredit</th>
+          <th className="py-3 px-4 font-bold text-xs text-slate-500 uppercase tracking-wider text-right font-sans">Aksi</th>
         </tr>
       </thead>
       <tbody className="divide-y divide-slate-100">
@@ -572,7 +572,7 @@ function CoaTab() {
                   {item.is_system ? 'lock' : 'payments'}
                 </span>
                 <div>
-                  <div className="text-sm font-semibold text-slate-700 font-['Public_Sans']">{item.nama_komponen}</div>
+                  <div className="text-sm font-semibold text-slate-700 font-sans">{item.nama_komponen}</div>
                   {item.is_employer_portion && (
                      <div className="text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded inline-block mt-0.5">Employer Portion (Beban Gereja)</div>
                   )}
@@ -581,7 +581,7 @@ function CoaTab() {
             </td>
             <td className="py-3 px-4">
               {item.coa_debit_kode ? (
-                <div className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-md text-xs font-semibold font-['Public_Sans']">
+                <div className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-md text-xs font-semibold font-sans">
                   <span className="opacity-60">{item.coa_debit_kode}</span>
                   {item.coa_debit_nama}
                 </div>
@@ -591,7 +591,7 @@ function CoaTab() {
             </td>
             <td className="py-3 px-4">
               {item.coa_kredit_kode ? (
-                <div className="inline-flex items-center gap-2 bg-rose-50 text-rose-700 px-2.5 py-1 rounded-md text-xs font-semibold font-['Public_Sans']">
+                <div className="inline-flex items-center gap-2 bg-rose-50 text-rose-700 px-2.5 py-1 rounded-md text-xs font-semibold font-sans">
                   <span className="opacity-60">{item.coa_kredit_kode}</span>
                   {item.coa_kredit_nama}
                 </div>
@@ -614,14 +614,14 @@ function CoaTab() {
     <div className="flex flex-col gap-8">
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="text-lg font-bold text-slate-800 font-['Inter']">Mapping Akun (COA) Jurnal Otomatis</h3>
-          <p className="text-sm text-slate-500 font-['Public_Sans']">Konfigurasi akun untuk pencatatan jurnal penggajian terintegrasi.</p>
+          <h3 className="text-lg font-bold text-slate-800 font-sans">Mapping Akun (COA) Jurnal Otomatis</h3>
+          <p className="text-sm text-slate-500 font-sans">Konfigurasi akun untuk pencatatan jurnal penggajian terintegrasi.</p>
         </div>
       </div>
 
       <div className="flex flex-col gap-6">
         <div>
-          <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2 font-['Inter']">
+          <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2 font-sans">
             <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Penerimaan
           </h4>
           <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
@@ -630,7 +630,7 @@ function CoaTab() {
         </div>
 
         <div>
-          <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2 font-['Inter']">
+          <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2 font-sans">
             <span className="w-2 h-2 rounded-full bg-rose-500"></span> Potongan
           </h4>
           <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
@@ -687,20 +687,20 @@ function EditCoaModal({ item, coaList, onClose, onSaved }: { item: any; coaList:
     <div className="fixed inset-0 z-[200] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden">
         <div className="bg-slate-800 px-6 py-4 flex justify-between items-center">
-          <h2 className="text-white font-bold font-['Inter'] text-base">Edit Mapping COA</h2>
+          <h2 className="text-white font-bold font-sans text-base">Edit Mapping COA</h2>
           <button onClick={onClose} className="text-white/70 hover:text-white transition-colors">
             <span className="material-icons-round text-[20px]">close</span>
           </button>
         </div>
         <div className="p-6 flex flex-col gap-4">
           <div className="mb-2">
-            <div className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1 font-['Inter']">Komponen Gaji</div>
-            <div className="font-semibold text-slate-800 text-lg font-['Inter']">{item.nama_komponen}</div>
-            <div className="text-sm text-slate-500 font-['Public_Sans']">{item.tipe}</div>
+            <div className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1 font-sans">Komponen Gaji</div>
+            <div className="font-semibold text-slate-800 text-lg font-sans">{item.nama_komponen}</div>
+            <div className="text-sm text-slate-500 font-sans">{item.tipe}</div>
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-slate-500 text-xs font-bold uppercase tracking-wider font-['Inter']">COA Debit</label>
+            <label className="text-slate-500 text-xs font-bold uppercase tracking-wider font-sans">COA Debit</label>
             <select
               value={form.coa_debit_id}
               onChange={e => setForm(f => ({ ...f, coa_debit_id: e.target.value }))}
@@ -714,7 +714,7 @@ function EditCoaModal({ item, coaList, onClose, onSaved }: { item: any; coaList:
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-slate-500 text-xs font-bold uppercase tracking-wider font-['Inter']">COA Kredit</label>
+            <label className="text-slate-500 text-xs font-bold uppercase tracking-wider font-sans">COA Kredit</label>
             <select
               value={form.coa_kredit_id}
               onChange={e => setForm(f => ({ ...f, coa_kredit_id: e.target.value }))}
@@ -727,7 +727,7 @@ function EditCoaModal({ item, coaList, onClose, onSaved }: { item: any; coaList:
             </select>
           </div>
 
-          {error && <div className="text-rose-500 text-xs mt-2 font-['Public_Sans']">{error}</div>}
+          {error && <div className="text-rose-500 text-xs mt-2 font-sans">{error}</div>}
         </div>
         <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
           <button onClick={onClose} className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-white transition-colors">Batal</button>
@@ -756,16 +756,16 @@ function RegulasiTab() {
       .catch(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="text-slate-500 font-['Public_Sans']">Memuat data regulasi...</div>;
-  if (!data) return <div className="text-slate-500 font-['Public_Sans']">Data regulasi belum diset. Jalankan seed database.</div>;
+  if (loading) return <div className="text-slate-500 font-sans">Memuat data regulasi...</div>;
+  if (!data) return <div className="text-slate-500 font-sans">Data regulasi belum diset. Jalankan seed database.</div>;
 
   return (
     <div className="flex flex-col gap-6 max-w-3xl">
       <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl flex gap-3">
         <span className="material-icons-round text-emerald-600">info</span>
         <div>
-          <h3 className="text-emerald-800 font-bold font-['Inter'] text-sm">Tarif Saat Ini (Berlaku sejak {new Date(data.effective_date).toLocaleDateString('id-ID')})</h3>
-          <p className="text-emerald-700 text-sm font-['Public_Sans'] mt-1">
+          <h3 className="text-emerald-800 font-bold font-sans text-sm">Tarif Saat Ini (Berlaku sejak {new Date(data.effective_date).toLocaleDateString('id-ID')})</h3>
+          <p className="text-emerald-700 text-sm font-sans mt-1">
             Persentase ini akan digunakan otomatis pada perhitungan komponen gaji yang diset <strong>pct_global_bpjs</strong>.
             Tarif dinyatakan dalam persentase (%).
           </p>
@@ -776,7 +776,7 @@ function RegulasiTab() {
         {/* BPJS Ketenagakerjaan */}
         <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
           <div className="bg-slate-50 px-4 py-3 border-b border-slate-200">
-            <h4 className="font-bold text-slate-800 font-['Inter'] flex items-center gap-2">
+            <h4 className="font-bold text-slate-800 font-sans flex items-center gap-2">
               <span className="material-icons-round text-amber-500 text-[18px]">engineering</span>
               BPJS Ketenagakerjaan (TK)
             </h4>
@@ -784,40 +784,40 @@ function RegulasiTab() {
           <div className="p-4 flex flex-col gap-4">
              <div className="flex justify-between items-center pb-3 border-b border-slate-100">
                <div>
-                 <div className="text-sm font-semibold text-slate-700 font-['Inter']">Jaminan Hari Tua (JHT)</div>
-                 <div className="text-xs text-slate-500 font-['Public_Sans']">Total: 5.7%</div>
+                 <div className="text-sm font-semibold text-slate-700 font-sans">Jaminan Hari Tua (JHT)</div>
+                 <div className="text-xs text-slate-500 font-sans">Total: 5.7%</div>
                </div>
-               <div className="text-right text-sm font-['Public_Sans']">
+               <div className="text-right text-sm font-sans">
                  <div>Employer: <span className="font-bold">{data.bpjs_tk_jht_employer_pct}%</span></div>
                  <div>Employee: <span className="font-bold">{data.bpjs_tk_jht_employee_pct}%</span></div>
                </div>
              </div>
              <div className="flex justify-between items-center pb-3 border-b border-slate-100">
                <div>
-                 <div className="text-sm font-semibold text-slate-700 font-['Inter']">Jaminan Pensiun (JP)</div>
-                 <div className="text-xs text-slate-500 font-['Public_Sans']">Total: 3.0%</div>
+                 <div className="text-sm font-semibold text-slate-700 font-sans">Jaminan Pensiun (JP)</div>
+                 <div className="text-xs text-slate-500 font-sans">Total: 3.0%</div>
                </div>
-               <div className="text-right text-sm font-['Public_Sans']">
+               <div className="text-right text-sm font-sans">
                  <div>Employer: <span className="font-bold">{data.bpjs_tk_jp_employer_pct}%</span></div>
                  <div>Employee: <span className="font-bold">{data.bpjs_tk_jp_employee_pct}%</span></div>
                </div>
              </div>
              <div className="flex justify-between items-center pb-3 border-b border-slate-100">
                <div>
-                 <div className="text-sm font-semibold text-slate-700 font-['Inter']">JKK &amp; JKM</div>
-                 <div className="text-xs text-slate-500 font-['Public_Sans']">Sepenuhnya ditanggung gereja</div>
+                 <div className="text-sm font-semibold text-slate-700 font-sans">JKK &amp; JKM</div>
+                 <div className="text-xs text-slate-500 font-sans">Sepenuhnya ditanggung gereja</div>
                </div>
-               <div className="text-right text-sm font-['Public_Sans']">
+               <div className="text-right text-sm font-sans">
                  <div>JKK (Employer): <span className="font-bold">{data.bpjs_tk_jkk_pct}%</span></div>
                  <div>JKM (Employer): <span className="font-bold">{data.bpjs_tk_jkm_pct}%</span></div>
                </div>
              </div>
              <div className="flex justify-between items-center">
                <div>
-                 <div className="text-sm font-semibold text-slate-700 font-['Inter']">JKP — Kehilangan Pekerjaan</div>
-                 <div className="text-xs text-slate-500 font-['Public_Sans']">PP 37/2021 · Berlaku untuk PK tertentu</div>
+                 <div className="text-sm font-semibold text-slate-700 font-sans">JKP — Kehilangan Pekerjaan</div>
+                 <div className="text-xs text-slate-500 font-sans">PP 37/2021 · Berlaku untuk PK tertentu</div>
                </div>
-               <div className="text-right text-sm font-['Public_Sans']">
+               <div className="text-right text-sm font-sans">
                  <div>Employer: <span className="font-bold">0.22%</span></div>
                  <div>Employee: <span className="font-bold">0.14%</span></div>
                </div>
@@ -829,7 +829,7 @@ function RegulasiTab() {
         {/* BPJS Kesehatan */}
         <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm h-fit">
           <div className="bg-slate-50 px-4 py-3 border-b border-slate-200">
-            <h4 className="font-bold text-slate-800 font-['Inter'] flex items-center gap-2">
+            <h4 className="font-bold text-slate-800 font-sans flex items-center gap-2">
               <span className="material-icons-round text-emerald-500 text-[18px]">health_and_safety</span>
               BPJS Kesehatan
             </h4>
@@ -837,10 +837,10 @@ function RegulasiTab() {
           <div className="p-4 flex flex-col gap-4">
              <div className="flex justify-between items-center">
                <div>
-                 <div className="text-sm font-semibold text-slate-700 font-['Inter']">Iuran BPJS Kesehatan</div>
-                 <div className="text-xs text-slate-500 font-['Public_Sans']">Total: 5.0%</div>
+                 <div className="text-sm font-semibold text-slate-700 font-sans">Iuran BPJS Kesehatan</div>
+                 <div className="text-xs text-slate-500 font-sans">Total: 5.0%</div>
                </div>
-               <div className="text-right text-sm font-['Public_Sans']">
+               <div className="text-right text-sm font-sans">
                  <div>Employer: <span className="font-bold">{data.bpjs_kes_employer_pct}%</span></div>
                  <div>Employee: <span className="font-bold">{data.bpjs_kes_employee_pct}%</span></div>
                </div>

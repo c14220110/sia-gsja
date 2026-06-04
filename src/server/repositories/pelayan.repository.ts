@@ -9,6 +9,7 @@ export interface PelayanFilterParams {
   date_to?:      string;
   limit?:        number;
   offset?:       number;
+  pending_only?: boolean | string;
 }
 
 export interface UpdatePelayanParams {
@@ -34,6 +35,7 @@ export class PelayanRepository {
     total: number;
     pelayan_baru: number;
     pelayan_nonaktif: number;
+    menunggu_konfirmasi: number;
   }> {
     const {
       search,
@@ -91,6 +93,16 @@ export class PelayanRepository {
       values.push(status);
     }
 
+    if (params.pending_only === 'true' || params.pending_only === true) {
+      conditions.push(`EXISTS (
+        SELECT 1 FROM kegiatan_jadwal_pelayan kjp2
+        JOIN kegiatan k2 ON kjp2.kegiatan_id = k2.id
+        WHERE kjp2.pelayan_id = p.id
+          AND kjp2.status_konfirmasi = 'Menunggu Konfirmasi'
+          AND DATE_TRUNC('month', k2.tanggal_mulai) = DATE_TRUNC('month', CURRENT_DATE)
+      )`);
+    }
+
     const where = conditions.join(' AND ');
 
     // Pisahkan klausa FROM dan WHERE agar bisa diselipkan JOIN
@@ -101,7 +113,7 @@ export class PelayanRepository {
     `;
     const whereStr = `WHERE ${where}`;
 
-    const [countRes, dataRes, newRes, roleRes] = await Promise.all([
+    const [countRes, dataRes, newRes, roleRes, waitRes] = await Promise.all([
       pool.query(`SELECT COUNT(DISTINCT p.id) AS count ${fromJoin} ${whereStr}`, values),
       pool.query(`
         SELECT
@@ -120,7 +132,14 @@ export class PelayanRepository {
             STRING_AGG(rp.nama_role, ' • ' ORDER BY rp.nama_role),
             ''
           )                   AS roles,
-          COUNT(pr.role_id)   AS jumlah_role
+          COUNT(pr.role_id)   AS jumlah_role,
+          (
+            SELECT COUNT(*) 
+            FROM kegiatan_jadwal_pelayan kjp 
+            JOIN kegiatan k ON kjp.kegiatan_id = k.id 
+            WHERE kjp.pelayan_id = p.id 
+              AND DATE_TRUNC('month', k.tanggal_mulai) = DATE_TRUNC('month', CURRENT_DATE)
+          ) AS jadwal_bulan_ini
         ${fromJoin}
         LEFT JOIN pelayan_role pr ON pr.pelayan_id = p.id
         LEFT JOIN role_pelayan rp ON rp.id = pr.role_id
@@ -136,6 +155,14 @@ export class PelayanRepository {
       `),
       // Total pelayan nonaktif
       pool.query(`SELECT COUNT(*) AS count FROM pelayan WHERE status_pelayan != 'Aktif'`),
+      // Menunggu Konfirmasi (Global / filter satelit)
+      pool.query(`
+        SELECT COUNT(DISTINCT kjp.id) AS count
+        FROM kegiatan_jadwal_pelayan kjp
+        JOIN pelayan p ON kjp.pelayan_id = p.id
+        WHERE kjp.status_konfirmasi = 'Menunggu Konfirmasi'
+        ${satelit_id ? 'AND p.satelit_id = ' + parseInt(satelit_id) : ''}
+      `)
     ]);
 
     return {
@@ -143,8 +170,82 @@ export class PelayanRepository {
       total:            parseInt(countRes.rows[0].count, 10),
       pelayan_baru:     parseInt(newRes.rows[0].count, 10),
       pelayan_nonaktif: parseInt(roleRes.rows[0].count, 10),
+      menunggu_konfirmasi: parseInt(waitRes.rows[0].count, 10),
     };
   }
+
+  async getRiwayatPelayanan(id: number) {
+    const riwayatQuery = `
+      SELECT 
+        k.nama_kegiatan,
+        k.tanggal_mulai,
+        k.waktu_mulai,
+        rp.nama_role,
+        kjp.status_konfirmasi
+      FROM kegiatan_jadwal_pelayan kjp
+      JOIN kegiatan k ON kjp.kegiatan_id = k.id
+      JOIN role_pelayan rp ON kjp.role_id = rp.id
+      WHERE kjp.pelayan_id = $1
+      ORDER BY k.tanggal_mulai DESC, k.waktu_mulai DESC
+    `;
+    const res = await pool.query(riwayatQuery, [id]);
+    
+    let totalJadwal = res.rows.length;
+    let totalHadir = 0;
+    let totalBatal = 0;
+    
+    res.rows.forEach(r => {
+      if (r.status_konfirmasi === 'Hadir' || r.status_konfirmasi === 'Bersedia') totalHadir++;
+      if (r.status_konfirmasi === 'Berhalangan' || r.status_konfirmasi === 'Tidak Hadir') totalBatal++;
+    });
+
+    // Menghitung komitmen hanya dari yang sudah lewat atau dikonfirmasi
+    const pastOrConfirmed = res.rows.filter(r => 
+      ['Hadir', 'Bersedia', 'Berhalangan', 'Tidak Hadir'].includes(r.status_konfirmasi)
+    ).length;
+    
+    const komitmen = pastOrConfirmed > 0 ? Math.round((totalHadir / pastOrConfirmed) * 100) : 0;
+
+    return {
+      statistik: {
+        total_jadwal: totalJadwal,
+        total_hadir: totalHadir,
+        total_batal: totalBatal,
+        komitmen: komitmen
+      },
+      riwayat: res.rows
+    };
+  }
+
+  async getRosterAdmin(month: number, year: number, satelit_id?: string) {
+    const startOfMonth = `${year}-${String(month).padStart(2, '0')}-01`;
+    const whereClause = satelit_id ? `AND p.satelit_id = ${parseInt(satelit_id)}` : '';
+    
+    const query = `
+      SELECT 
+        kjp.id AS roster_id,
+        k.tanggal_mulai,
+        k.nama_kegiatan,
+        k.waktu_mulai,
+        k.lokasi_kegiatan,
+        rp.nama_role,
+        p.id AS pelayan_id,
+        j.nama_lengkap,
+        j.foto_url,
+        kjp.status_konfirmasi
+      FROM kegiatan_jadwal_pelayan kjp
+      JOIN kegiatan k ON kjp.kegiatan_id = k.id
+      JOIN pelayan p ON kjp.pelayan_id = p.id
+      JOIN jemaat j ON p.jemaat_id = j.id
+      JOIN role_pelayan rp ON kjp.role_id = rp.id
+      WHERE DATE_TRUNC('month', k.tanggal_mulai) = DATE_TRUNC('month', $1::date)
+        ${whereClause}
+      ORDER BY k.tanggal_mulai ASC, k.waktu_mulai ASC
+    `;
+    const res = await pool.query(query, [startOfMonth]);
+    return res.rows;
+  }
+
 
   async updatePelayanStatus(id: string, status: string): Promise<boolean> {
     const res = await pool.query(

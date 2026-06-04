@@ -205,7 +205,7 @@ export default function ViewAnggaranPage({ params }: { params: Promise<{ id: str
       )}
       {/* Header Area */}
       <div className="w-full flex flex-col justify-start items-start gap-4">
-        <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-['Inter'] leading-4">
+        <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-sans leading-4">
           <span className="text-slate-500">Anggaran & Plotting</span>
           <span className="text-slate-500 material-icons-round text-[14px]">chevron_right</span>
           <Link href="/anggaran/rancangan" className="text-slate-500 hover:text-blue-600">Rancangan Anggaran</Link>
@@ -216,18 +216,18 @@ export default function ViewAnggaranPage({ params }: { params: Promise<{ id: str
         <div className="self-stretch inline-flex justify-between items-end">
           <div className="flex flex-col gap-2">
             <div className="inline-flex gap-4 items-center">
-              <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9">Detail Rancangan Anggaran</h1>
+              <h1 className="text-slate-900 text-3xl font-black font-sans leading-9">Detail Rancangan Anggaran</h1>
               {getStatusBadge(data.status)}
             </div>
             {data.nama_rancangan && <p className="text-slate-500 text-base font-medium">{data.nama_rancangan}</p>}
           </div>
           <div className="flex items-center gap-3">
-            <div className="text-slate-500 text-sm font-medium font-['Inter'] flex gap-1 items-center">
+            <div className="text-slate-500 text-sm font-medium font-sans flex gap-1 items-center">
               <span className="material-icons-round text-lg text-slate-400">qr_code</span> ID: <span className="text-slate-700 font-bold">{data.kode_dokumen}</span>
             </div>
             <button
               onClick={() => setShowTimeline(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-200 bg-white text-slate-600 text-sm font-semibold font-['Public_Sans'] hover:bg-slate-50 hover:border-slate-300 hover:text-slate-800 transition-all shadow-sm"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-200 bg-white text-slate-600 text-sm font-semibold font-sans hover:bg-slate-50 hover:border-slate-300 hover:text-slate-800 transition-all shadow-sm"
             >
               <span className="material-icons-round text-[18px]">history</span>
               Lihat Riwayat
@@ -312,16 +312,16 @@ export default function ViewAnggaranPage({ params }: { params: Promise<{ id: str
                 {penItems.length > 0 && <><tr><td colSpan={isReviewed ? 10 : 7} className="px-4 py-1.5 bg-emerald-50 border-b border-emerald-100 text-[10px] font-bold text-emerald-700">↑ PENERIMAAN</td></tr>
                 {penItems.map((item: any, idx: number) => <tr key={item.id} className={`border-b border-slate-100 hover:bg-slate-50 transition-colors ${isReviewed ? (item.status_item === 'ACC' ? 'bg-emerald-50/30' : item.status_item === 'ACC_DIPOTONG' ? 'bg-blue-50/30' : item.status_item === 'Ditolak' ? 'bg-red-50/30' : item.status_item === 'Revisi' ? 'bg-amber-50/30' : '') : ''}`}>
                   <td className="p-4 pl-6 text-sm font-semibold text-slate-800">{idx + 1}. {item.uraian}<p className="text-xs font-normal text-slate-400">{item.deskripsi}</p></td>
-                  <td className="p-4 text-xs font-mono text-slate-500">{item.kode_akun} — {item.nama_akun}</td>
+                  <td className="p-4 text-xs font-sans text-slate-500">{item.kode_akun} — {item.nama_akun}</td>
                   <td className="p-4"><span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${item.sumber_dana === 'Plafon Pusat' ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : item.sumber_dana === 'Kas Pusat' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-emerald-50 text-emerald-600 border-emerald-200'}`}>{item.sumber_dana}</span></td>
                   <td className="p-4 text-sm text-center font-medium">{item.jumlah}</td><td className="p-4 text-sm text-center text-slate-600">{item.satuan}</td>
-                  <td className="p-4 text-sm text-right font-mono text-slate-700">{fmt(Number(item.harga_satuan))}</td>
-                  <td className="p-4 text-sm text-right font-bold font-mono text-emerald-600">{fmt(Number(item.total))}</td>
+                  <td className="p-4 text-sm text-right font-sans text-slate-700">{fmt(Number(item.harga_satuan))}</td>
+                  <td className="p-4 text-sm text-right font-bold font-sans text-emerald-600">{fmt(Number(item.total))}</td>
                   {isReviewed && <>
                     <td className="p-4 text-center align-top border-l border-indigo-100">
                       {item.status_item ? <span className={`inline-block px-2 py-1 rounded-full text-[10px] font-bold border whitespace-nowrap ${getItemStatusBadge(item.status_item)}`}>{item.status_item}</span> : <span className="text-slate-300 text-xs">—</span>}
                     </td>
-                    <td className="p-4 text-sm text-right font-bold font-mono align-top">
+                    <td className="p-4 text-sm text-right font-bold font-sans align-top">
                       {item.nominal_disetujui != null ? (
                         <><span className={item.status_item === 'ACC_DIPOTONG' ? 'text-blue-700' : item.status_item === 'Ditolak' ? 'text-red-500 line-through' : 'text-emerald-600'}>{fmt(Number(item.nominal_disetujui))}</span>
                         {item.status_item === 'ACC_DIPOTONG' && <span className="block text-[9px] text-red-400 font-normal">↓ potong {fmt(Number(item.total) - Number(item.nominal_disetujui))}</span>}</>
@@ -333,16 +333,16 @@ export default function ViewAnggaranPage({ params }: { params: Promise<{ id: str
                 {kelItems.length > 0 && <><tr><td colSpan={isReviewed ? 10 : 7} className="px-4 py-1.5 bg-red-50 border-b border-red-100 border-t border-t-slate-200 text-[10px] font-bold text-red-700">↓ PENGELUARAN</td></tr>
                 {kelItems.map((item: any, idx: number) => <tr key={item.id} className={`border-b border-slate-100 hover:bg-slate-50 transition-colors ${isReviewed ? (item.status_item === 'ACC' ? 'bg-emerald-50/30' : item.status_item === 'ACC_DIPOTONG' ? 'bg-blue-50/30' : item.status_item === 'Ditolak' ? 'bg-red-50/30' : item.status_item === 'Revisi' ? 'bg-amber-50/30' : '') : ''}`}>
                   <td className="p-4 pl-6 text-sm font-semibold text-slate-800">{idx + 1}. {item.uraian}<p className="text-xs font-normal text-slate-400">{item.deskripsi}</p></td>
-                  <td className="p-4 text-xs font-mono text-slate-500">{item.kode_akun} — {item.nama_akun}</td>
+                  <td className="p-4 text-xs font-sans text-slate-500">{item.kode_akun} — {item.nama_akun}</td>
                   <td className="p-4"><span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${item.sumber_dana === 'Plafon Pusat' ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : item.sumber_dana === 'Kas Pusat' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-emerald-50 text-emerald-600 border-emerald-200'}`}>{item.sumber_dana}</span></td>
                   <td className="p-4 text-sm text-center font-medium">{item.jumlah}</td><td className="p-4 text-sm text-center text-slate-600">{item.satuan}</td>
-                  <td className="p-4 text-sm text-right font-mono text-slate-700">{fmt(Number(item.harga_satuan))}</td>
-                  <td className="p-4 text-sm text-right font-bold font-mono text-slate-800">{fmt(Number(item.total))}</td>
+                  <td className="p-4 text-sm text-right font-sans text-slate-700">{fmt(Number(item.harga_satuan))}</td>
+                  <td className="p-4 text-sm text-right font-bold font-sans text-slate-800">{fmt(Number(item.total))}</td>
                   {isReviewed && <>
                     <td className="p-4 text-center align-top border-l border-indigo-100">
                       {item.status_item ? <span className={`inline-block px-2 py-1 rounded-full text-[10px] font-bold border whitespace-nowrap ${getItemStatusBadge(item.status_item)}`}>{item.status_item}</span> : <span className="text-slate-300 text-xs">—</span>}
                     </td>
-                    <td className="p-4 text-sm text-right font-bold font-mono align-top">
+                    <td className="p-4 text-sm text-right font-bold font-sans align-top">
                       {item.nominal_disetujui != null ? (
                         <><span className={item.status_item === 'ACC_DIPOTONG' ? 'text-blue-700' : item.status_item === 'Ditolak' ? 'text-red-500 line-through' : 'text-slate-800'}>{fmt(Number(item.nominal_disetujui))}</span>
                         {item.status_item === 'ACC_DIPOTONG' && <span className="block text-[9px] text-red-400 font-normal">↓ potong {fmt(Number(item.total) - Number(item.nominal_disetujui))}</span>}</>
@@ -413,7 +413,7 @@ export default function ViewAnggaranPage({ params }: { params: Promise<{ id: str
               <React.Fragment key={label}>
                 <div className="flex flex-col text-right shrink-0">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{label}</span>
-                  <span className={`text-sm font-bold font-mono ${cls}`}>{value}</span>
+                  <span className={`text-sm font-bold font-sans ${cls}`}>{value}</span>
                 </div>
                 {i < arr.length - 1 && <div className="w-px h-8 bg-slate-700 shrink-0" />}
               </React.Fragment>

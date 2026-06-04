@@ -187,9 +187,9 @@ export default function ViewLPJPage() {
           <div className="flex items-start justify-between gap-6">
             <div className="flex flex-col gap-1">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Laporan Pertanggungjawaban Kegiatan</span>
-              <h1 className="text-2xl font-black text-slate-900 font-['Inter'] leading-tight">{kegiatan?.nama_kegiatan}</h1>
+              <h1 className="text-2xl font-black text-slate-900 font-sans leading-tight">{kegiatan?.nama_kegiatan}</h1>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
-                <span className="font-mono text-xs text-slate-400 bg-slate-50 px-2 py-0.5 rounded border">{kegiatan?.kode_kegiatan}</span>
+                <span className="font-sans text-xs text-slate-400 bg-slate-50 px-2 py-0.5 rounded border">{kegiatan?.kode_kegiatan}</span>
                 {lpj?.status_lpj && (
                   <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${statusColor(lpj.status_lpj)}`}>{lpj.status_lpj}</span>
                 )}
@@ -238,9 +238,9 @@ export default function ViewLPJPage() {
             </div>
             {raInfo.pola === 'Bertahap' && (
               <div className="ml-7 text-[10px] text-amber-700 flex flex-wrap gap-4 mt-0.5">
-                <span>Total Plafon RA: <strong className="font-mono">{fmt(raInfo.total_disetujui)}</strong></span>
+                <span>Total Plafon RA: <strong className="font-sans">{fmt(raInfo.total_disetujui)}</strong></span>
                 {raInfo.total_terpakai_lain > 0 && (
-                  <span>Terpakai (Kegiatan Lain): <strong className="font-mono text-amber-900">{fmt(raInfo.total_terpakai_lain)}</strong></span>
+                  <span>Terpakai (Kegiatan Lain): <strong className="font-sans text-amber-900">{fmt(raInfo.total_terpakai_lain)}</strong></span>
                 )}
                 <span className="text-amber-500 italic">· Analisis per-COA tersedia di tabel di bawah</span>
               </div>
@@ -297,7 +297,7 @@ export default function ViewLPJPage() {
                       {rows.map((row: any, idx: number) => (
                         <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50/50">
                           <td className="px-6 py-3 border-r border-slate-100">
-                            <div className="font-bold font-mono text-slate-800 text-[10px]">{row.kode}</div>
+                            <div className="font-bold font-sans text-slate-800 text-[10px]">{row.kode}</div>
                             <div className="text-[10px] text-slate-400 truncate w-44">{row.nama}</div>
                             <div className="text-[10px] text-slate-500 mt-0.5 italic">{row.uraian}</div>
                             {/* Progress bar */}
@@ -313,10 +313,10 @@ export default function ViewLPJPage() {
                               </div>
                             )}
                           </td>
-                          <td className="px-4 py-3 text-right font-mono text-blue-700 font-semibold border-r border-slate-100 bg-blue-50/30">{row.plafon > 0 ? fmt(row.plafon) : '-'}</td>
-                          <td className="px-4 py-3 text-right font-mono text-amber-600 border-r border-slate-100 bg-amber-50/20">{row.terpakai_sebelumnya > 0 ? fmt(row.terpakai_sebelumnya) : <span className="text-slate-300">-</span>}</td>
-                          <td className="px-4 py-3 text-right font-black font-mono text-slate-900 border-r border-slate-100 bg-emerald-50/20">{row.lpj_ini > 0 ? fmt(row.lpj_ini) : <span className="text-slate-300">-</span>}</td>
-                          <td className={`px-4 py-3 text-right font-black font-mono border-r border-slate-100 ${row.isOver ? 'text-red-600 bg-red-50/30' : 'text-emerald-700'}`}>
+                          <td className="px-4 py-3 text-right font-sans text-blue-700 font-semibold border-r border-slate-100 bg-blue-50/30">{row.plafon > 0 ? fmt(row.plafon) : '-'}</td>
+                          <td className="px-4 py-3 text-right font-sans text-amber-600 border-r border-slate-100 bg-amber-50/20">{row.terpakai_sebelumnya > 0 ? fmt(row.terpakai_sebelumnya) : <span className="text-slate-300">-</span>}</td>
+                          <td className="px-4 py-3 text-right font-black font-sans text-slate-900 border-r border-slate-100 bg-emerald-50/20">{row.lpj_ini > 0 ? fmt(row.lpj_ini) : <span className="text-slate-300">-</span>}</td>
+                          <td className={`px-4 py-3 text-right font-black font-sans border-r border-slate-100 ${row.isOver ? 'text-red-600 bg-red-50/30' : 'text-emerald-700'}`}>
                             {fmt(row.sisa)}
                           </td>
                           <td className="px-4 py-3 text-center">
@@ -367,17 +367,17 @@ export default function ViewLPJPage() {
                         : (row.selisih <= 0 ? 'text-emerald-600' : 'text-red-500');
                       return (
                         <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50/50">
-                          <td className="px-8 py-3 font-mono border-r border-slate-100">
+                          <td className="px-8 py-3 font-sans border-r border-slate-100">
                             <div className="font-bold text-slate-800">{row.kode}</div>
                             <div className="text-[10px] text-slate-400 truncate w-40">{row.nama}</div>
                           </td>
                           <td className="px-4 py-3 text-slate-500 italic">{row.ra_uraian}</td>
                           <td className="px-2 py-3 text-center text-slate-400">{row.ra_total > 0 ? `${row.ra_vol} ${row.ra_satuan}` : '-'}</td>
-                          <td className="px-4 py-3 text-right font-mono text-slate-500 border-r border-slate-100">{row.ra_total > 0 ? fmt(row.ra_total) : '-'}</td>
+                          <td className="px-4 py-3 text-right font-sans text-slate-500 border-r border-slate-100">{row.ra_total > 0 ? fmt(row.ra_total) : '-'}</td>
                           <td className="px-4 py-3 font-semibold text-slate-800">{row.lpj_total > 0 ? row.lpj_uraian : <span className="text-slate-200 italic">Tidak ada realisasi</span>}</td>
                           <td className="px-2 py-3 text-center font-bold text-slate-700">{row.lpj_total > 0 ? `${row.lpj_vol} ${row.lpj_satuan}` : '-'}</td>
                           <td className="px-4 py-3 text-right font-black text-slate-900 border-r border-slate-100 bg-slate-50/30">{row.lpj_total > 0 ? fmt(row.lpj_total) : '-'}</td>
-                          <td className={`px-8 py-3 text-right font-black font-mono ${selisihColor}`}>
+                          <td className={`px-8 py-3 text-right font-black font-sans ${selisihColor}`}>
                             {row.lpj_total > 0 || row.ra_total > 0 ? (row.selisih >= 0 ? `+${fmt(row.selisih)}` : fmt(row.selisih)) : '-'}
                           </td>
                         </tr>
@@ -403,7 +403,7 @@ export default function ViewLPJPage() {
             ].map(([label, value, cls]) => (
               <div key={String(label)} className="flex flex-col text-right">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{label}</span>
-                <span className={`text-sm font-bold font-mono ${cls}`}>{value}</span>
+                <span className={`text-sm font-bold font-sans ${cls}`}>{value}</span>
               </div>
             ))}
           </div>

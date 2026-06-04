@@ -111,7 +111,7 @@ export default function PenggajianPage() {
 
       {/* Action feedback */}
       {actionMsg && (
-        <div className={`px-4 py-3 rounded-xl flex items-center gap-2 text-sm font-['Public_Sans'] animate-in fade-in ${actionMsg.type === 'success' ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-rose-50 border border-rose-200 text-rose-700'}`}>
+        <div className={`px-4 py-3 rounded-xl flex items-center gap-2 text-sm font-sans animate-in fade-in ${actionMsg.type === 'success' ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-rose-50 border border-rose-200 text-rose-700'}`}>
           <span className="material-icons-round text-[16px]">{actionMsg.type === 'success' ? 'check_circle' : 'error_outline'}</span>
           {actionMsg.text}
         </div>
@@ -120,12 +120,12 @@ export default function PenggajianPage() {
       {/* Header Section */}
       <div className="w-full flex justify-between items-start">
         <div className="flex flex-col gap-1">
-          <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Daftar Run Penggajian</h1>
-          <div className="text-slate-500 text-base font-medium font-['Inter'] leading-6">Kelola dan pantau proses penggajian seluruh unit</div>
+          <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Daftar Run Penggajian</h1>
+          <div className="text-slate-500 text-base font-medium font-sans leading-6">Kelola dan pantau proses penggajian seluruh unit</div>
         </div>
         <Link href="/pegawai/penggajian/new" className="px-5 py-2.5 bg-slate-700 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none">
           <span className="material-icons-round text-white text-[20px]">add</span>
-          <span className="text-white text-sm font-bold font-['Inter'] leading-5">Buat Payroll Baru</span>
+          <span className="text-white text-sm font-bold font-sans leading-5">Buat Payroll Baru</span>
         </Link>
       </div>
 
@@ -138,9 +138,9 @@ export default function PenggajianPage() {
              <span className="material-icons-round text-indigo-700 text-3xl">account_balance_wallet</span>
           </div>
           <div className="flex flex-col truncate">
-            <span className="text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Total Netto Bulan Ini</span>
+            <span className="text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Total Netto Bulan Ini</span>
             <div className="flex items-end gap-2 mt-1">
-              <span className="text-slate-900 text-2xl font-bold font-['Public_Sans'] truncate">{formatRupiah(summary.total_payroll_amount)}</span>
+              <span className="text-slate-900 text-2xl font-bold font-sans truncate">{formatRupiah(summary.total_payroll_amount)}</span>
             </div>
             <span className="text-slate-400 text-xs mt-1 font-medium">{summary.total_payroll_count} Run</span>
           </div>
@@ -152,9 +152,9 @@ export default function PenggajianPage() {
              <span className="material-icons-round text-amber-600 text-3xl">pending_actions</span>
           </div>
           <div className="flex flex-col truncate">
-            <span className="text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Menunggu Approval</span>
+            <span className="text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Menunggu Approval</span>
             <div className="flex items-end gap-2 mt-1">
-              <span className="text-slate-900 text-2xl font-bold font-['Public_Sans']">{summary.menunggu_approval_count} Run</span>
+              <span className="text-slate-900 text-2xl font-bold font-sans">{summary.menunggu_approval_count} Run</span>
               {summary.menunggu_approval_count > 0 && <span className="text-[10px] font-bold text-amber-600 mb-1 ml-1 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">Action Req</span>}
             </div>
             <span className="text-slate-400 text-xs mt-1 font-medium truncate">{formatRupiah(summary.menunggu_approval_amount)}</span>
@@ -167,9 +167,9 @@ export default function PenggajianPage() {
              <span className="material-icons-round text-emerald-600 text-3xl">check_circle</span>
           </div>
           <div className="flex flex-col truncate">
-            <span className="text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Sudah Dibayar</span>
+            <span className="text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Sudah Dibayar</span>
             <div className="flex items-end gap-2 mt-1">
-              <span className="text-slate-900 text-2xl font-bold font-['Public_Sans'] truncate">{formatRupiah(summary.sudah_dibayar_amount)}</span>
+              <span className="text-slate-900 text-2xl font-bold font-sans truncate">{formatRupiah(summary.sudah_dibayar_amount)}</span>
             </div>
             <span className="text-slate-400 text-xs mt-1 font-medium">{summary.sudah_dibayar_count} Run</span>
           </div>
@@ -187,7 +187,7 @@ export default function PenggajianPage() {
             type="text" 
             placeholder="Cari run penggajian..."
             disabled
-            className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none cursor-not-allowed opacity-70 text-slate-700 font-['Public_Sans'] text-sm"
+            className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none cursor-not-allowed opacity-70 text-slate-700 font-sans text-sm"
           />
         </div>
 
@@ -196,7 +196,7 @@ export default function PenggajianPage() {
           <select 
             value={filterBulan}
             onChange={(e) => setFilterBulan(e.target.value)}
-            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
+            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
           >
             <option value="">Semua Bulan</option>
             {[1,2,3,4,5,6,7,8,9,10,11,12].map(b => (
@@ -211,7 +211,7 @@ export default function PenggajianPage() {
           <select 
             value={filterTahun}
             onChange={(e) => setFilterTahun(e.target.value)}
-            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
+            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
           >
             <option value="">Semua Tahun</option>
             {[2026, 2025, 2024].map(t => (
@@ -226,7 +226,7 @@ export default function PenggajianPage() {
           <select 
             value={filterSatelit}
             onChange={(e) => setFilterSatelit(e.target.value)}
-            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
+            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
           >
             <option value="">Semua Unit</option>
             {satelitOptions.map((s: any) => (
@@ -241,7 +241,7 @@ export default function PenggajianPage() {
           <select 
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
+            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
           >
             <option value="">Semua Status</option>
             <option value="Draft">Draft</option>
@@ -261,15 +261,15 @@ export default function PenggajianPage() {
           <div className="min-w-[1150px] flex flex-col">
             {/* Table Header BP Compliant */}
             <div className="w-full bg-slate-50 border-b border-slate-200 flex items-center px-6 py-4">
-              <div className="w-32 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Periode</div>
-              <div className="w-32 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Unit / Satelit</div>
-              <div className="w-40 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Terhubung RA</div>
-              <div className="w-24 shrink-0 text-right text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Pegawai</div>
-              <div className="flex-1 min-w-[140px] text-right text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Total Bruto</div>
-              <div className="flex-1 min-w-[140px] text-right text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Total Potongan</div>
-              <div className="flex-1 min-w-[140px] text-right text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Total Netto</div>
-              <div className="w-32 shrink-0 text-center text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider px-2">Status</div>
-              <div className="w-20 shrink-0 text-right text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Aksi</div>
+              <div className="w-32 shrink-0 text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Periode</div>
+              <div className="w-32 shrink-0 text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Unit / Satelit</div>
+              <div className="w-40 shrink-0 text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Terhubung RA</div>
+              <div className="w-24 shrink-0 text-right text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Pegawai</div>
+              <div className="flex-1 min-w-[140px] text-right text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Total Bruto</div>
+              <div className="flex-1 min-w-[140px] text-right text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Total Potongan</div>
+              <div className="flex-1 min-w-[140px] text-right text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Total Netto</div>
+              <div className="w-32 shrink-0 text-center text-slate-500 text-xs font-bold font-sans uppercase tracking-wider px-2">Status</div>
+              <div className="w-20 shrink-0 text-right text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Aksi</div>
             </div>
 
             {/* Table Body */}
@@ -277,12 +277,12 @@ export default function PenggajianPage() {
               {loading ? (
                 <div className="w-full py-12 flex flex-col items-center justify-center text-slate-500">
                   <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-500 rounded-full animate-spin mb-4"></div>
-                  <span className="text-sm font-['Public_Sans']">Memuat data...</span>
+                  <span className="text-sm font-sans">Memuat data...</span>
                 </div>
               ) : data.length === 0 ? (
                 <div className="w-full py-12 flex flex-col items-center justify-center text-slate-500">
                   <span className="material-icons-round text-5xl mb-2 text-slate-300">payments</span>
-                  <span className="text-sm font-['Public_Sans'] text-center max-w-[300px]">Belum ada data payroll run. Cek filter atau buat baru.</span>
+                  <span className="text-sm font-sans text-center max-w-[300px]">Belum ada data payroll run. Cek filter atau buat baru.</span>
                 </div>
               ) : (
                 data.map((item, idx) => {
@@ -290,38 +290,38 @@ export default function PenggajianPage() {
                   return (
                     <div key={item.id} className={`w-full flex items-center px-6 py-4 border-b border-slate-100 hover:bg-slate-50 transition-colors relative ${openMenuId === item.id ? 'z-50' : 'z-10'}`}>
                       
-                      <div className="w-32 shrink-0 text-slate-900 text-sm font-bold font-['Public_Sans'] pr-2">
+                      <div className="w-32 shrink-0 text-slate-900 text-sm font-bold font-sans pr-2">
                          {getBulanName(item.bulan)} {item.tahun}
                       </div>
                       
                       <div className="w-32 shrink-0 flex flex-col pr-2">
-                        <span className="text-slate-600 text-sm font-medium font-['Public_Sans'] truncate">{item.unit || '-'}</span>
+                        <span className="text-slate-600 text-sm font-medium font-sans truncate">{item.unit || '-'}</span>
                       </div>
                       
                       <div className="w-40 shrink-0 pr-2">
                         {item.kode_ra ? (
-                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 border border-slate-200 rounded text-xs font-['Liberation_Mono'] font-bold text-slate-600 truncate max-w-full" title="Sisa Plafon Anggaran: Cukup">
+                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 border border-slate-200 rounded text-xs font-sans font-bold text-slate-600 truncate max-w-full" title="Sisa Plafon Anggaran: Cukup">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
                             <span className="truncate">{item.kode_ra}</span>
                           </div>
                         ) : (
-                          <span className="text-slate-400 text-xs italic font-['Public_Sans']">Belum di-link</span>
+                          <span className="text-slate-400 text-xs italic font-sans">Belum di-link</span>
                         )}
                       </div>
                       
-                      <div className="w-24 shrink-0 text-slate-600 text-sm font-medium font-['Public_Sans'] text-right pr-4">
+                      <div className="w-24 shrink-0 text-slate-600 text-sm font-medium font-sans text-right pr-4">
                          {item.jumlah_pegawai}
                       </div>
                       
-                      <div className="flex-1 min-w-[140px] text-right text-slate-700 text-sm font-bold font-['Liberation_Mono'] pr-2 tracking-tight">
+                      <div className="flex-1 min-w-[140px] text-right text-slate-700 text-sm font-bold font-sans pr-2 tracking-tight">
                          {formatRupiah(parseFloat(item.total_bruto))}
                       </div>
 
-                      <div className="flex-1 min-w-[140px] text-right text-slate-500 text-sm font-bold font-['Liberation_Mono'] pr-2 tracking-tight">
+                      <div className="flex-1 min-w-[140px] text-right text-slate-500 text-sm font-bold font-sans pr-2 tracking-tight">
                          {formatRupiah(parseFloat(item.total_potongan))}
                       </div>
 
-                      <div className="flex-1 min-w-[140px] text-right text-emerald-600 text-sm font-bold font-['Liberation_Mono'] pr-4 tracking-tight">
+                      <div className="flex-1 min-w-[140px] text-right text-emerald-600 text-sm font-bold font-sans pr-4 tracking-tight">
                          {formatRupiah(parseFloat(item.total_netto))}
                       </div>
                       
@@ -343,7 +343,7 @@ export default function PenggajianPage() {
                              <div className={`absolute right-0 ${isLastRows ? 'bottom-full mb-1' : 'top-full mt-1'} w-48 bg-white rounded-lg shadow-[0_4px_20px_-4px_rgba(0,0,0,0.15)] border border-slate-200 z-50 py-1 overflow-visible`}>
                                <Link 
                                  href={`/pegawai/penggajian/${item.id}`}
-                                 className="w-full text-left px-4 py-2 hover:bg-slate-50 transition-colors flex items-center gap-3 text-sm text-slate-700 font-['Public_Sans']"
+                                 className="w-full text-left px-4 py-2 hover:bg-slate-50 transition-colors flex items-center gap-3 text-sm text-slate-700 font-sans"
                                >
                                  <span className="material-icons-round text-[18px] text-slate-400">visibility</span> Lihat Detail
                                </Link>
@@ -351,7 +351,7 @@ export default function PenggajianPage() {
                                {item.status === 'Draft' && (
                                  <Link 
                                    href={`/pegawai/penggajian/${item.id}/edit`}
-                                   className="w-full text-left px-4 py-2 hover:bg-slate-50 transition-colors flex items-center gap-3 text-sm text-slate-700 font-['Public_Sans']"
+                                   className="w-full text-left px-4 py-2 hover:bg-slate-50 transition-colors flex items-center gap-3 text-sm text-slate-700 font-sans"
                                  >
                                    <span className="material-icons-round text-[18px] text-slate-400">edit</span> Edit Setup
                                  </Link>
@@ -363,7 +363,7 @@ export default function PenggajianPage() {
                                     onClick={() => handleAjukanApproval(item.id)}
                                     disabled={!item.kode_ra || submittingId === item.id}
                                     title={!item.kode_ra ? 'Pilih RA terlebih dahulu sebelum mengajukan approval' : ''}
-                                    className={`w-full text-left px-4 py-2 transition-colors flex items-center gap-3 text-sm font-['Public_Sans'] font-bold ${!item.kode_ra || submittingId === item.id ? 'text-slate-400 cursor-not-allowed bg-slate-50/50' : 'hover:bg-blue-50 hover:text-blue-700 text-blue-600'}`}
+                                    className={`w-full text-left px-4 py-2 transition-colors flex items-center gap-3 text-sm font-sans font-bold ${!item.kode_ra || submittingId === item.id ? 'text-slate-400 cursor-not-allowed bg-slate-50/50' : 'hover:bg-blue-50 hover:text-blue-700 text-blue-600'}`}
                                   >
                                     {submittingId === item.id ? (
                                       <span className="material-icons-round text-[18px] text-slate-400 animate-spin">sync</span>
@@ -375,13 +375,13 @@ export default function PenggajianPage() {
                                 )}
 
                                {item.status === 'Menunggu Approval' && (
-                                 <button className="w-full text-left px-4 py-2 hover:bg-blue-50 hover:text-blue-700 transition-colors flex items-center gap-3 text-sm text-blue-600 font-['Public_Sans'] font-bold">
+                                 <button className="w-full text-left px-4 py-2 hover:bg-blue-50 hover:text-blue-700 transition-colors flex items-center gap-3 text-sm text-blue-600 font-sans font-bold">
                                    <span className="material-icons-round text-[18px] text-blue-500">task_alt</span> Approve
                                  </button>
                                )}
 
                                {item.status === 'Disetujui' && (
-                                 <button className="w-full text-left px-4 py-2 hover:bg-emerald-50 hover:text-emerald-700 transition-colors flex items-center gap-3 text-sm text-emerald-600 font-['Public_Sans'] font-bold">
+                                 <button className="w-full text-left px-4 py-2 hover:bg-emerald-50 hover:text-emerald-700 transition-colors flex items-center gap-3 text-sm text-emerald-600 font-sans font-bold">
                                    <span className="material-icons-round text-[18px] text-emerald-500">payments</span> Bayar
                                  </button>
                                )}

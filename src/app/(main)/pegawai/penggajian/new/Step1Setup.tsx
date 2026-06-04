@@ -133,7 +133,7 @@ export default function Step1Setup({ runId, setupData, setSetupData, onNext, set
   return (
     <div className="flex flex-col gap-8 animate-in fade-in">
        <div className="flex flex-col gap-1">
-         <h2 className="text-slate-900 text-xl font-bold font-['Inter'] flex items-center gap-2"><span className="material-icons-round text-blue-500">info</span> Informasi Dasar Payroll</h2>
+         <h2 className="text-slate-900 text-xl font-bold font-sans flex items-center gap-2"><span className="material-icons-round text-blue-500">info</span> Informasi Dasar Payroll</h2>
          <p className="text-slate-500 text-sm">Pilih periode dan unit operasional untuk penarikan data pegawai secara otomatis.</p>
        </div>
 
@@ -179,7 +179,7 @@ export default function Step1Setup({ runId, setupData, setSetupData, onNext, set
        </div>
 
        <div className="flex flex-col gap-1 mt-2">
-         <h2 className="text-slate-900 text-xl font-bold font-['Inter'] flex items-center gap-2"><span className="material-icons-round text-emerald-500">account_balance_wallet</span> Sumber Dana (Rencana Anggaran)</h2>
+         <h2 className="text-slate-900 text-xl font-bold font-sans flex items-center gap-2"><span className="material-icons-round text-emerald-500">account_balance_wallet</span> Sumber Dana (Rencana Anggaran)</h2>
          <p className="text-slate-500 text-sm">Pilih RA Penggajian aktif yang akan digunakan sebagai sumber dana payroll ini.</p>
        </div>
 
@@ -213,7 +213,7 @@ export default function Step1Setup({ runId, setupData, setSetupData, onNext, set
                   <span className={`material-icons-round ${setupData.sisa_plafon > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>{setupData.sisa_plafon > 0 ? 'check_circle' : 'error'}</span>
                   <span className={`text-sm font-bold uppercase ${setupData.sisa_plafon > 0 ? 'text-emerald-700' : 'text-rose-700'}`}>Status Plafon RA</span>
                 </div>
-                <span className={`text-xl font-bold font-['Liberation_Mono'] tracking-tight ${setupData.sisa_plafon > 0 ? 'text-emerald-800' : 'text-rose-800'}`}>
+                <span className={`text-xl font-bold font-sans tracking-tight ${setupData.sisa_plafon > 0 ? 'text-emerald-800' : 'text-rose-800'}`}>
                    Sisa Plafon: {formatRupiah(setupData.sisa_plafon)}
                 </span>
                 <span className={`text-xs ${setupData.sisa_plafon > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>

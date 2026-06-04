@@ -82,8 +82,8 @@ export default function ValidasiPembayaranPage() {
       {/* Header Section */}
       <div className="w-full flex justify-between items-start">
         <div className="flex flex-col gap-1">
-          <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Validasi Pembayaran</h1>
-          <div className="text-slate-500 text-base font-medium font-['Inter'] leading-6">Verifikasi antrean bukti transfer pendaftaran acara</div>
+          <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Validasi Pembayaran</h1>
+          <div className="text-slate-500 text-base font-medium font-sans leading-6">Verifikasi antrean bukti transfer pendaftaran acara</div>
         </div>
       </div>
 
@@ -94,9 +94,9 @@ export default function ValidasiPembayaranPage() {
              <span className="material-icons-round text-amber-600 text-3xl">hourglass_empty</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-slate-600 text-xs font-bold font-['Public_Sans'] uppercase tracking-wide">MENUNGGU VALIDASI</span>
+            <span className="text-slate-600 text-xs font-bold font-sans uppercase tracking-wide">MENUNGGU VALIDASI</span>
             <div className="flex items-end gap-2 mt-1">
-              <span className="text-amber-600 text-3xl font-bold font-['Public_Sans'] leading-9">
+              <span className="text-amber-600 text-3xl font-bold font-sans leading-9">
                 {loading ? '...' : filteredData.length}
               </span>
             </div>
@@ -111,7 +111,7 @@ export default function ValidasiPembayaranPage() {
           <input 
             type="text" 
             placeholder="Cari berdasarkan nama peserta atau nama acara..."
-            className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm"
+            className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -124,12 +124,12 @@ export default function ValidasiPembayaranPage() {
           <div className="min-w-[1050px] flex flex-col">
             {/* Table Header */}
             <div className="w-full bg-slate-50 border-b border-slate-200 flex items-center px-6 py-4">
-              <div className="w-[160px] shrink-0 text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">TANGGAL DAFTAR</div>
-              <div className="flex-1 min-w-[180px] text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider pr-4">NAMA PESERTA</div>
-              <div className="flex-1 min-w-[180px] text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider pr-4">NAMA ACARA</div>
-              <div className="w-40 shrink-0 text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">TOTAL TAGIHAN</div>
-              <div className="w-40 shrink-0 text-center text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">STATUS BUKTI</div>
-              <div className="w-32 shrink-0 text-center text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">AKSI</div>
+              <div className="w-[160px] shrink-0 text-slate-700 text-xs font-bold font-sans uppercase tracking-wider">TANGGAL DAFTAR</div>
+              <div className="flex-1 min-w-[180px] text-slate-700 text-xs font-bold font-sans uppercase tracking-wider pr-4">NAMA PESERTA</div>
+              <div className="flex-1 min-w-[180px] text-slate-700 text-xs font-bold font-sans uppercase tracking-wider pr-4">NAMA ACARA</div>
+              <div className="w-40 shrink-0 text-slate-700 text-xs font-bold font-sans uppercase tracking-wider">TOTAL TAGIHAN</div>
+              <div className="w-40 shrink-0 text-center text-slate-700 text-xs font-bold font-sans uppercase tracking-wider">STATUS BUKTI</div>
+              <div className="w-32 shrink-0 text-center text-slate-700 text-xs font-bold font-sans uppercase tracking-wider">AKSI</div>
             </div>
 
             {/* Table Body */}
@@ -137,18 +137,18 @@ export default function ValidasiPembayaranPage() {
               {loading ? (
                 <div className="w-full py-16 flex flex-col items-center justify-center text-slate-500">
                   <span className="material-icons-round text-4xl mb-3 text-slate-300 animate-spin">refresh</span>
-                  <span className="text-sm font-['Public_Sans'] font-medium">Memuat antrean...</span>
+                  <span className="text-sm font-sans font-medium">Memuat antrean...</span>
                 </div>
               ) : filteredData.length === 0 ? (
                 <div className="w-full py-16 flex flex-col items-center justify-center text-slate-500">
                   <span className="material-icons-round text-5xl mb-3 text-slate-300">verified</span>
-                  <span className="text-sm font-['Public_Sans'] font-medium">Belum ada antrean pembayaran yang perlu divalidasi.</span>
+                  <span className="text-sm font-sans font-medium">Belum ada antrean pembayaran yang perlu divalidasi.</span>
                   <span className="text-xs text-slate-400 mt-1">Sistem akan menampilkan data di sini saat ada bukti bayar masuk.</span>
                 </div>
               ) : (
                 filteredData.map((reg) => (
                   <div key={reg.id} className="w-full bg-white border-b border-slate-100 px-6 py-4 flex items-center hover:bg-slate-50 transition-colors">
-                    <div className="w-[160px] shrink-0 text-slate-500 text-sm font-['Public_Sans']">
+                    <div className="w-[160px] shrink-0 text-slate-500 text-sm font-sans">
                       {formatDateLabel(reg.tanggal_daftar)}
                     </div>
                     <div className="flex-1 min-w-[180px] pr-4 flex flex-col">
@@ -158,7 +158,7 @@ export default function ValidasiPembayaranPage() {
                     <div className="flex-1 min-w-[180px] pr-4 flex flex-col">
                       <span className="text-slate-700 font-medium text-sm line-clamp-2">{reg.nama_kegiatan}</span>
                     </div>
-                    <div className="w-40 shrink-0 text-slate-900 font-bold text-sm tracking-tight font-['Liberation_Mono']">
+                    <div className="w-40 shrink-0 text-slate-900 font-bold text-sm tracking-tight font-sans">
                       {formatRp(reg.total_biaya || 0)}
                     </div>
                     <div className="w-40 shrink-0 flex flex-col items-center gap-1.5">

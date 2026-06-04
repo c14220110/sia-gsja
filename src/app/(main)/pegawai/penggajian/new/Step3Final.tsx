@@ -75,7 +75,7 @@ export default function Step3Final({ runId, onPrev, setSubmitState, onSuccess }:
     return (
       <div className="w-full py-12 flex flex-col items-center justify-center text-slate-500">
         <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-500 rounded-full animate-spin mb-4"></div>
-        <span className="text-sm font-['Public_Sans']">Memuat ringkasan finalisasi...</span>
+        <span className="text-sm font-sans">Memuat ringkasan finalisasi...</span>
       </div>
     );
   }
@@ -86,7 +86,7 @@ export default function Step3Final({ runId, onPrev, setSubmitState, onSuccess }:
   return (
     <div className="flex flex-col gap-8 animate-in fade-in slide-in-from-right-4">
        <div className="flex flex-col gap-1">
-         <h2 className="text-slate-900 text-xl font-bold font-['Inter'] flex items-center gap-2"><span className="material-icons-round text-emerald-500">check_circle</span> Finalisasi & Pengajuan Approval</h2>
+         <h2 className="text-slate-900 text-xl font-bold font-sans flex items-center gap-2"><span className="material-icons-round text-emerald-500">check_circle</span> Finalisasi & Pengajuan Approval</h2>
          <p className="text-slate-500 text-sm">Review ringkasan total payroll dan konfirmasi bahwa seluruh data sudah divalidasi dengan benar.</p>
        </div>
 
@@ -116,33 +116,33 @@ export default function Step3Final({ runId, onPrev, setSubmitState, onSuccess }:
          <div className="flex flex-col gap-4">
             <h3 className="text-slate-900 font-bold text-sm uppercase tracking-wider border-b border-slate-200 pb-2">Ringkasan Finansial</h3>
             <div className="flex flex-col gap-3">
-              <div className="flex justify-between items-center text-sm font-['Public_Sans']">
+              <div className="flex justify-between items-center text-sm font-sans">
                 <span className="text-slate-600">Jumlah Pegawai Diproses</span>
                 <span className="text-slate-900 font-bold">{data.jumlah_pegawai} Orang</span>
               </div>
-              <div className="flex justify-between items-center text-sm font-['Public_Sans']">
+              <div className="flex justify-between items-center text-sm font-sans">
                 <span className="text-slate-600">Total Bruto (Penerimaan)</span>
-                <span className="text-slate-900 font-bold font-['Liberation_Mono']">{formatRupiah(Number(data.total_bruto))}</span>
+                <span className="text-slate-900 font-bold font-sans">{formatRupiah(Number(data.total_bruto))}</span>
               </div>
-              <div className="flex justify-between items-center text-sm font-['Public_Sans']">
+              <div className="flex justify-between items-center text-sm font-sans">
                 <span className="text-slate-600">Total Potongan (Karyawan)</span>
-                <span className="text-slate-900 font-bold font-['Liberation_Mono']">- {formatRupiah(Number(data.total_potongan))}</span>
+                <span className="text-slate-900 font-bold font-sans">- {formatRupiah(Number(data.total_potongan))}</span>
               </div>
               <div className="w-full h-px bg-slate-200 my-1"></div>
               <div className="flex justify-between items-center text-base font-bold">
                 <span className="text-slate-900">Total Take Home Pay (Netto)</span>
-                <span className="text-emerald-600 font-['Liberation_Mono'] text-lg">{formatRupiah(Number(data.total_netto))}</span>
+                <span className="text-emerald-600 font-sans text-lg">{formatRupiah(Number(data.total_netto))}</span>
               </div>
               
               <div className="w-full h-px border-t border-dashed border-slate-300 my-1"></div>
               
-              <div className="flex justify-between items-center text-sm font-['Public_Sans']">
+              <div className="flex justify-between items-center text-sm font-sans">
                 <span className="text-slate-600 flex items-center gap-1"><span className="material-icons-round text-[14px] text-purple-500">add_circle</span> Beban Gereja (BPJS Employer)</span>
-                <span className="text-purple-700 font-bold font-['Liberation_Mono']">+ {formatRupiah(data.total_beban_gereja)}</span>
+                <span className="text-purple-700 font-bold font-sans">+ {formatRupiah(data.total_beban_gereja)}</span>
               </div>
               <div className="flex justify-between items-center text-base font-bold bg-slate-50 p-2 rounded-lg mt-1 border border-slate-200">
                 <span className="text-slate-900">TOTAL COST (Pengeluaran Unit)</span>
-                <span className="text-slate-900 font-['Liberation_Mono']">{formatRupiah(Number(data.total_netto) + data.total_beban_gereja)}</span>
+                <span className="text-slate-900 font-sans">{formatRupiah(Number(data.total_netto) + data.total_beban_gereja)}</span>
               </div>
             </div>
          </div>
@@ -152,16 +152,16 @@ export default function Step3Final({ runId, onPrev, setSubmitState, onSuccess }:
             <div className={`p-5 rounded-xl border flex flex-col gap-3 ${isPlafonDefisit ? 'bg-rose-50 border-rose-200' : 'bg-emerald-50 border-emerald-200'}`}>
                <div className="flex justify-between items-center text-sm">
                  <span className={`font-medium ${isPlafonDefisit ? 'text-rose-700' : 'text-emerald-700'}`}>Sisa Plafon RA Saat Ini</span>
-                 <span className={`font-bold font-['Liberation_Mono'] ${isPlafonDefisit ? 'text-rose-900' : 'text-emerald-900'}`}>{formatRupiah(data.sisa_plafon)}</span>
+                 <span className={`font-bold font-sans ${isPlafonDefisit ? 'text-rose-900' : 'text-emerald-900'}`}>{formatRupiah(data.sisa_plafon)}</span>
                </div>
                <div className="flex justify-between items-center text-sm">
                  <span className={`font-medium ${isPlafonDefisit ? 'text-rose-700' : 'text-emerald-700'}`}>Estimasi Pengeluaran Payroll</span>
-                 <span className={`font-bold font-['Liberation_Mono'] ${isPlafonDefisit ? 'text-rose-900' : 'text-emerald-900'}`}>- {formatRupiah(data.estimasi_penggunaan)}</span>
+                 <span className={`font-bold font-sans ${isPlafonDefisit ? 'text-rose-900' : 'text-emerald-900'}`}>- {formatRupiah(data.estimasi_penggunaan)}</span>
                </div>
                <div className={`w-full h-px my-1 ${isPlafonDefisit ? 'bg-rose-200' : 'bg-emerald-200'}`}></div>
                <div className="flex justify-between items-center text-base font-bold">
                  <span className={`${isPlafonDefisit ? 'text-rose-800' : 'text-emerald-800'}`}>Sisa Plafon Setelah Payroll</span>
-                 <span className={`font-['Liberation_Mono'] ${isPlafonDefisit ? 'text-rose-700' : 'text-emerald-700'}`}>{formatRupiah(sisaPlafonAkhir)}</span>
+                 <span className={`font-sans ${isPlafonDefisit ? 'text-rose-700' : 'text-emerald-700'}`}>{formatRupiah(sisaPlafonAkhir)}</span>
                </div>
                
                {isPlafonDefisit && (

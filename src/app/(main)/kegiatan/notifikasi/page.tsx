@@ -224,7 +224,7 @@ export default function BroadcastNotifikasiPage() {
       {/* Header Section */}
       <div className="w-full flex justify-between items-start">
         <div className="w-full flex flex-col justify-start items-start gap-4">
-          <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-['Inter'] leading-4">
+          <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-sans leading-4">
             <Link href="/kegiatan" className="text-slate-500 hover:text-violet-600">Kegiatan</Link>
             <span className="text-slate-500 material-icons-round text-[14px]">chevron_right</span>
             <Link href="/kegiatan/survei" className="text-slate-500 hover:text-violet-600">Survei</Link>
@@ -233,8 +233,8 @@ export default function BroadcastNotifikasiPage() {
           </div>
           <div className="self-stretch inline-flex justify-between items-end">
             <div className="inline-flex flex-col justify-start items-start">
-              <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Broadcast Notifikasi</h1>
-              <div className="text-slate-500 text-base font-medium font-['Inter'] leading-6">Kirim notifikasi push ke perangkat jemaat secara massal</div>
+              <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Broadcast Notifikasi</h1>
+              <div className="text-slate-500 text-base font-medium font-sans leading-6">Kirim notifikasi push ke perangkat jemaat secara massal</div>
             </div>
           </div>
         </div>
@@ -247,9 +247,9 @@ export default function BroadcastNotifikasiPage() {
             <span className="material-icons-round text-indigo-600 text-3xl">campaign</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-slate-600 text-xs font-bold font-['Public_Sans'] uppercase tracking-wide">TOTAL BROADCAST</span>
+            <span className="text-slate-600 text-xs font-bold font-sans uppercase tracking-wide">TOTAL BROADCAST</span>
             <div className="flex items-end gap-2 mt-1">
-              <span className="text-slate-900 text-3xl font-bold font-['Public_Sans'] leading-9">{statsBroadcast}</span>
+              <span className="text-slate-900 text-3xl font-bold font-sans leading-9">{statsBroadcast}</span>
             </div>
           </div>
         </div>
@@ -259,9 +259,9 @@ export default function BroadcastNotifikasiPage() {
             <span className="material-icons-round text-emerald-600 text-3xl">check_circle</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-slate-600 text-xs font-bold font-['Public_Sans'] uppercase tracking-wide">TOTAL TERKIRIM</span>
+            <span className="text-slate-600 text-xs font-bold font-sans uppercase tracking-wide">TOTAL TERKIRIM</span>
             <div className="flex items-end gap-2 mt-1">
-              <span className="text-slate-900 text-3xl font-bold font-['Public_Sans'] leading-9">{statsTerkirim}</span>
+              <span className="text-slate-900 text-3xl font-bold font-sans leading-9">{statsTerkirim}</span>
             </div>
           </div>
         </div>
@@ -271,9 +271,9 @@ export default function BroadcastNotifikasiPage() {
             <span className="material-icons-round text-blue-600 text-3xl">people</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-slate-600 text-xs font-bold font-['Public_Sans'] uppercase tracking-wide">TOTAL TARGET</span>
+            <span className="text-slate-600 text-xs font-bold font-sans uppercase tracking-wide">TOTAL TARGET</span>
             <div className="flex items-end gap-2 mt-1">
-              <span className="text-slate-900 text-3xl font-bold font-['Public_Sans'] leading-9">{statsTarget}</span>
+              <span className="text-slate-900 text-3xl font-bold font-sans leading-9">{statsTarget}</span>
             </div>
           </div>
         </div>
@@ -283,7 +283,7 @@ export default function BroadcastNotifikasiPage() {
       <div className="w-full border-b border-slate-200 flex gap-0">
         <button 
           onClick={() => setActiveTab('kirim')}
-          className={`px-6 py-3 text-sm font-bold font-['Inter'] border-b-2 transition-colors ${activeTab === 'kirim' ? 'border-slate-700 text-slate-700' : 'border-transparent text-slate-400 hover:text-slate-500'}`}
+          className={`px-6 py-3 text-sm font-bold font-sans border-b-2 transition-colors ${activeTab === 'kirim' ? 'border-slate-700 text-slate-700' : 'border-transparent text-slate-400 hover:text-slate-500'}`}
         >
           <span className="flex items-center gap-2">
             <span className="material-icons-round text-[18px]">send</span>
@@ -292,7 +292,7 @@ export default function BroadcastNotifikasiPage() {
         </button>
         <button 
           onClick={() => setActiveTab('riwayat')}
-          className={`px-6 py-3 text-sm font-bold font-['Inter'] border-b-2 transition-colors ${activeTab === 'riwayat' ? 'border-slate-700 text-slate-700' : 'border-transparent text-slate-400 hover:text-slate-500'}`}
+          className={`px-6 py-3 text-sm font-bold font-sans border-b-2 transition-colors ${activeTab === 'riwayat' ? 'border-slate-700 text-slate-700' : 'border-transparent text-slate-400 hover:text-slate-500'}`}
         >
           <span className="flex items-center gap-2">
             <span className="material-icons-round text-[18px]">history</span>
@@ -311,42 +311,42 @@ export default function BroadcastNotifikasiPage() {
             <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col gap-6">
               <div className="w-full inline-flex justify-start items-center gap-2">
                 <span className="material-icons-round text-slate-700 text-[18px]">edit_note</span>
-                <span className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Konten Notifikasi</span>
+                <span className="text-slate-700 text-xs font-bold font-sans uppercase leading-4 tracking-wider">Konten Notifikasi</span>
               </div>
 
               <div className="w-full flex-col gap-4 flex">
                 <div className="w-full flex-col gap-1 flex">
-                  <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Judul Notifikasi <span className="text-rose-500">*</span></label>
+                  <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Judul Notifikasi <span className="text-rose-500">*</span></label>
                   <input 
                     type="text" 
                     value={formData.judul}
                     onChange={(e) => setFormData(prev => ({ ...prev, judul: e.target.value }))}
                     placeholder="Contoh: 📢 Pengumuman Ibadah Minggu"
                     maxLength={100}
-                    className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all"
+                    className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all"
                   />
                   <span className="text-slate-400 text-[11px]">{formData.judul.length}/100 karakter</span>
                 </div>
 
                 <div className="w-full flex-col gap-1 flex">
-                  <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Isi Pesan <span className="text-rose-500">*</span></label>
+                  <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Isi Pesan <span className="text-rose-500">*</span></label>
                   <textarea 
                     value={formData.isi_pesan}
                     onChange={(e) => setFormData(prev => ({ ...prev, isi_pesan: e.target.value }))}
                     placeholder="Tulis pesan yang akan diterima jemaat di HP mereka..."
                     rows={4}
                     maxLength={500}
-                    className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all resize-none"
+                    className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all resize-none"
                   />
                   <span className="text-slate-400 text-[11px]">{formData.isi_pesan.length}/500 karakter</span>
                 </div>
 
                 <div className="w-full flex-col gap-1 flex">
-                  <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Tujuan Ketika Diklik</label>
+                  <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Tujuan Ketika Diklik</label>
                   <select
                     value={formData.url_tujuan}
                     onChange={(e) => setFormData(prev => ({ ...prev, url_tujuan: e.target.value }))}
-                    className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all"
+                    className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all"
                   >
                     <option value="/">🏠 Dashboard (Halaman Utama)</option>
                     <option value="/survei-saya">📊 Halaman Survei Saya</option>
@@ -360,7 +360,7 @@ export default function BroadcastNotifikasiPage() {
             <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col gap-6">
               <div className="w-full inline-flex justify-start items-center gap-2">
                 <span className="material-icons-round text-slate-700 text-[18px]">group_add</span>
-                <span className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Target Penerima</span>
+                <span className="text-slate-700 text-xs font-bold font-sans uppercase leading-4 tracking-wider">Target Penerima</span>
               </div>
 
               <div className="w-full flex flex-col gap-4">
@@ -375,7 +375,7 @@ export default function BroadcastNotifikasiPage() {
                     }`}
                   >
                     <span className={`material-icons-round text-2xl ${formData.target_audience === 'semua_jemaat' ? 'text-emerald-600' : 'text-slate-400'}`}>public</span>
-                    <span className={`text-sm font-bold font-['Inter'] ${formData.target_audience === 'semua_jemaat' ? 'text-emerald-700' : 'text-slate-700'}`}>Semua Jemaat</span>
+                    <span className={`text-sm font-bold font-sans ${formData.target_audience === 'semua_jemaat' ? 'text-emerald-700' : 'text-slate-700'}`}>Semua Jemaat</span>
                     <span className="text-[11px] text-slate-400 text-center">Kirim ke semua jemaat aktif</span>
                   </button>
 
@@ -388,7 +388,7 @@ export default function BroadcastNotifikasiPage() {
                     }`}
                   >
                     <span className={`material-icons-round text-2xl ${formData.target_audience === 'per_satelit' ? 'text-blue-600' : 'text-slate-400'}`}>church</span>
-                    <span className={`text-sm font-bold font-['Inter'] ${formData.target_audience === 'per_satelit' ? 'text-blue-700' : 'text-slate-700'}`}>Per Satelit</span>
+                    <span className={`text-sm font-bold font-sans ${formData.target_audience === 'per_satelit' ? 'text-blue-700' : 'text-slate-700'}`}>Per Satelit</span>
                     <span className="text-[11px] text-slate-400 text-center">Kirim ke satelit tertentu</span>
                   </button>
 
@@ -401,7 +401,7 @@ export default function BroadcastNotifikasiPage() {
                     }`}
                   >
                     <span className={`material-icons-round text-2xl ${formData.target_audience === 'per_komisi' ? 'text-purple-600' : 'text-slate-400'}`}>groups</span>
-                    <span className={`text-sm font-bold font-['Inter'] ${formData.target_audience === 'per_komisi' ? 'text-purple-700' : 'text-slate-700'}`}>Per Komisi</span>
+                    <span className={`text-sm font-bold font-sans ${formData.target_audience === 'per_komisi' ? 'text-purple-700' : 'text-slate-700'}`}>Per Komisi</span>
                     <span className="text-[11px] text-slate-400 text-center">Kirim ke komisi tertentu</span>
                   </button>
                 </div>
@@ -409,11 +409,11 @@ export default function BroadcastNotifikasiPage() {
                 {/* Conditional selectors */}
                 {formData.target_audience === 'per_satelit' && (
                   <div className="w-full flex-col gap-1 flex animate-in fade-in slide-in-from-top-2">
-                    <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Pilih Satelit <span className="text-rose-500">*</span></label>
+                    <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Pilih Satelit <span className="text-rose-500">*</span></label>
                     <select 
                       value={formData.target_satelit_id}
                       onChange={(e) => setFormData(prev => ({ ...prev, target_satelit_id: e.target.value }))}
-                      className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all"
+                      className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all"
                     >
                       <option value="">-- Pilih Satelit --</option>
                       {satelitOptions.map(s => (
@@ -425,11 +425,11 @@ export default function BroadcastNotifikasiPage() {
 
                 {formData.target_audience === 'per_komisi' && (
                   <div className="w-full flex-col gap-1 flex animate-in fade-in slide-in-from-top-2">
-                    <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Pilih Komisi <span className="text-rose-500">*</span></label>
+                    <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Pilih Komisi <span className="text-rose-500">*</span></label>
                     <select 
                       value={formData.target_komisi_id}
                       onChange={(e) => setFormData(prev => ({ ...prev, target_komisi_id: e.target.value }))}
-                      className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all"
+                      className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all"
                     >
                       <option value="">-- Pilih Komisi --</option>
                       {komisiOptions.map(k => (
@@ -448,7 +448,7 @@ export default function BroadcastNotifikasiPage() {
             <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col gap-4">
               <div className="w-full inline-flex justify-start items-center gap-2">
                 <span className="material-icons-round text-slate-700 text-[18px]">preview</span>
-                <span className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Preview Notifikasi</span>
+                <span className="text-slate-700 text-xs font-bold font-sans uppercase leading-4 tracking-wider">Preview Notifikasi</span>
               </div>
 
               {/* Mock phone notification */}
@@ -476,7 +476,7 @@ export default function BroadcastNotifikasiPage() {
                 className="w-full py-3.5 bg-slate-700 rounded-xl flex justify-center items-center gap-2 hover:bg-slate-800 disabled:bg-slate-400 disabled:cursor-not-allowed transition-colors shadow-lg"
               >
                 <span className="material-icons-round text-white text-[20px]">send</span>
-                <span className="text-white text-sm font-bold font-['Inter']">Kirim Notifikasi Sekarang</span>
+                <span className="text-white text-sm font-bold font-sans">Kirim Notifikasi Sekarang</span>
               </button>
             )}
 
@@ -484,7 +484,7 @@ export default function BroadcastNotifikasiPage() {
             <div className="p-4 bg-amber-50 rounded-xl border border-amber-200 flex gap-3">
               <span className="material-icons-round text-amber-500 text-[20px] mt-0.5 flex-shrink-0">info</span>
               <div className="flex flex-col gap-1">
-                <span className="text-amber-800 text-xs font-bold font-['Inter']">Catatan Penting</span>
+                <span className="text-amber-800 text-xs font-bold font-sans">Catatan Penting</span>
                 <span className="text-amber-700 text-[11px] leading-relaxed">
                   Notifikasi hanya terkirim ke jemaat yang sudah mengaktifkan notifikasi di perangkat mereka. Pastikan pesan singkat dan jelas.
                 </span>
@@ -505,7 +505,7 @@ export default function BroadcastNotifikasiPage() {
               <input 
                 type="text" 
                 placeholder="Cari berdasarkan judul atau isi pesan..."
-                className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm"
+                className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm"
                 value={historySearch}
                 onChange={(e) => setHistorySearch(e.target.value)}
               />
@@ -518,11 +518,11 @@ export default function BroadcastNotifikasiPage() {
               <div className="min-w-[900px] flex flex-col">
                 {/* Table Header */}
                 <div className="w-full bg-slate-50 border-b border-slate-200 flex items-center px-6 py-4">
-                  <div className="flex-1 min-w-[250px] text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">NOTIFIKASI</div>
-                  <div className="w-[140px] shrink-0 text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">TARGET</div>
-                  <div className="w-[100px] shrink-0 text-center text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">TERKIRIM</div>
-                  <div className="w-[170px] shrink-0 text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">WAKTU KIRIM</div>
-                  <div className="w-[140px] shrink-0 text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">PENGIRIM</div>
+                  <div className="flex-1 min-w-[250px] text-slate-700 text-xs font-bold font-sans uppercase tracking-wider">NOTIFIKASI</div>
+                  <div className="w-[140px] shrink-0 text-slate-700 text-xs font-bold font-sans uppercase tracking-wider">TARGET</div>
+                  <div className="w-[100px] shrink-0 text-center text-slate-700 text-xs font-bold font-sans uppercase tracking-wider">TERKIRIM</div>
+                  <div className="w-[170px] shrink-0 text-slate-700 text-xs font-bold font-sans uppercase tracking-wider">WAKTU KIRIM</div>
+                  <div className="w-[140px] shrink-0 text-slate-700 text-xs font-bold font-sans uppercase tracking-wider">PENGIRIM</div>
                 </div>
 
                 {/* Table Body */}
@@ -530,7 +530,7 @@ export default function BroadcastNotifikasiPage() {
                   {historyData.length === 0 ? (
                     <div className="w-full py-12 flex flex-col items-center justify-center text-slate-500">
                       <span className="material-icons-round text-5xl mb-2 text-slate-300">notifications_off</span>
-                      <span className="text-sm font-['Public_Sans']">Belum ada notifikasi yang pernah dikirim.</span>
+                      <span className="text-sm font-sans">Belum ada notifikasi yang pernah dikirim.</span>
                     </div>
                   ) : (
                     historyData.map((item) => (
@@ -570,7 +570,7 @@ export default function BroadcastNotifikasiPage() {
             {/* Pagination Footer */}
             {historyTotal > 0 && (
               <div className="w-full px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center rounded-b-xl">
-                <div className="text-slate-500 text-sm font-['Public_Sans']">
+                <div className="text-slate-500 text-sm font-sans">
                   Menampilkan {((historyPage - 1) * historyLimit) + 1} - {Math.min(historyPage * historyLimit, historyTotal)} dari {historyTotal}
                 </div>
                 <div className="flex gap-2">

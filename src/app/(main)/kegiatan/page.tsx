@@ -289,26 +289,26 @@ export default function KegiatanPage() {
     // 'Menunggu Dimulai' = visual-only warning badge (pulsing amber)
     if (status === 'Menunggu Dimulai') {
       return (
-        <span className="px-2.5 py-1 text-xs font-black rounded-full border bg-amber-50 text-amber-700 border-amber-300 whitespace-nowrap flex items-center gap-1.5">
+        <span className="px-3 py-1 text-xs font-bold font-sans uppercase rounded-full bg-amber-100 text-amber-700 whitespace-nowrap flex items-center gap-1.5 w-fit">
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
           </span>
-          ⚠️ Menunggu Dimulai
+          MENUNGGU DIMULAI
         </span>
       );
     }
 
-    let colorClass = "bg-slate-100 text-slate-700 border-slate-200"; // Draft
-    if (status === 'Menunggu Persetujuan') colorClass = "bg-orange-50 text-orange-700 border-orange-200";
-    else if (status === 'Ditolak' || status === 'Dibatalkan') colorClass = "bg-red-50 text-red-700 border-red-200";
-    else if (status === 'Akan Datang') colorClass = "bg-indigo-50 text-indigo-700 border-indigo-200";
-    else if (status === 'Ongoing' || status === 'Registrasi') colorClass = "bg-blue-50 text-blue-700 border-blue-200";
-    else if (status === 'Selesai') colorClass = "bg-emerald-50 text-emerald-700 border-emerald-200";
-    else if (status === 'Menunggu LPJ') colorClass = "bg-amber-50 text-amber-700 border-amber-200";
+    let colorClass = "bg-slate-100 text-slate-600"; // Draft
+    if (status === 'Menunggu Persetujuan') colorClass = "bg-amber-100 text-amber-700";
+    else if (status === 'Ditolak' || status === 'Dibatalkan') colorClass = "bg-red-100 text-red-700";
+    else if (status === 'Akan Datang') colorClass = "bg-indigo-100 text-indigo-700";
+    else if (status === 'Ongoing' || status === 'Registrasi') colorClass = "bg-blue-100 text-blue-700";
+    else if (status === 'Selesai') colorClass = "bg-emerald-100 text-emerald-700";
+    else if (status === 'Menunggu LPJ') colorClass = "bg-orange-100 text-orange-700";
 
     return (
-      <span className={`px-2.5 py-1 text-xs font-bold rounded-full border ${colorClass} whitespace-nowrap`}>
+      <span className={`px-3 py-1 text-xs font-bold font-sans uppercase rounded-full ${colorClass} whitespace-nowrap`}>
         {status}
       </span>
     );
@@ -353,20 +353,20 @@ export default function KegiatanPage() {
       {/* Header Section */}
       <div className="w-full flex justify-between items-start">
           <div className="flex flex-col gap-1">
-            <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Daftar Kegiatan</h1>
-            <div className="text-slate-500 text-base font-medium font-['Inter'] leading-6">Sistem Informasi Manajemen Jadwal & Kegiatan Gereja</div>
+            <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Daftar Kegiatan</h1>
+            <div className="text-slate-500 text-base font-medium font-sans leading-6">Sistem Informasi Manajemen Jadwal & Kegiatan Gereja</div>
           </div>
           <div className="flex items-center gap-3">
             {hasPermission('kegiatan_manage') && (
               <Link href="/kegiatan/validasi-pembayaran" className="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-lg flex justify-center items-center gap-2 hover:bg-slate-50 transition-colors shadow-sm focus:ring-2 focus:ring-slate-400 focus:outline-none">
                 <span className="material-icons-round text-sky-600 text-[20px]">price_check</span>
-                <span className="text-sm font-bold font-['Inter'] leading-5">Validasi Pembayaran</span>
+                <span className="text-sm font-bold font-sans leading-5">Validasi Pembayaran</span>
               </Link>
             )}
             {hasPermission('kegiatan_create') && (
               <Link href="/kegiatan/new" className="px-5 py-2.5 bg-slate-700 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none">
                 <span className="material-icons-round text-white text-[20px]">add</span>
-                <span className="text-white text-sm font-bold font-['Inter'] leading-5">Tambah Kegiatan Baru</span>
+                <span className="text-white text-sm font-bold font-sans leading-5">Tambah Kegiatan Baru</span>
               </Link>
             )}
           </div>
@@ -381,9 +381,9 @@ export default function KegiatanPage() {
              <span className="material-icons-round text-indigo-600 text-3xl">calendar_month</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wide">TOTAL KEGIATAN (BULAN INI)</span>
+            <span className="text-slate-500 text-xs font-bold font-sans uppercase tracking-wide">TOTAL KEGIATAN (BULAN INI)</span>
             <div className="flex items-end gap-2 mt-1">
-              <span className="text-slate-900 text-3xl font-bold font-['Public_Sans'] leading-9">{bulanIni}</span>
+              <span className="text-slate-900 text-3xl font-bold font-sans leading-9">{bulanIni}</span>
             </div>
           </div>
         </div>
@@ -394,11 +394,11 @@ export default function KegiatanPage() {
             <span className="material-icons-round text-emerald-600 text-3xl">event_note</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wide leading-tight">
+            <span className="text-slate-500 text-xs font-bold font-sans uppercase tracking-wide leading-tight">
               KEGIATAN MENDATANG (7 HARI KEDEPAN)
             </span>
             <div className="flex items-end gap-2 mt-1">
-              <span className="text-slate-900 text-3xl font-bold font-['Public_Sans'] leading-9">
+              <span className="text-slate-900 text-3xl font-bold font-sans leading-9">
                 {mingguIni}
               </span>
             </div>
@@ -411,9 +411,9 @@ export default function KegiatanPage() {
             <span className="material-icons-round text-amber-600 text-3xl">assignment_late</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wide">MENUNGGU LPJ (LAPORAN)</span>
+            <span className="text-slate-500 text-xs font-bold font-sans uppercase tracking-wide">MENUNGGU LPJ (LAPORAN)</span>
             <div className="flex items-end gap-2 mt-1">
-              <span className="text-amber-600 text-3xl font-bold font-['Public_Sans'] leading-9">{menungguLpj}</span>
+              <span className="text-amber-600 text-3xl font-bold font-sans leading-9">{menungguLpj}</span>
             </div>
           </div>
         </div>
@@ -429,7 +429,7 @@ export default function KegiatanPage() {
           <input 
             type="text" 
             placeholder="Cari Acara..."
-            className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm"
+            className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -440,7 +440,7 @@ export default function KegiatanPage() {
           <select 
             value={filterTanggal}
             onChange={(e) => setFilterTanggal(e.target.value)}
-            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer font-bold text-blue-700"
+            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
           >
             <option value="Hari Ini">Hari Ini</option>
             <option value="Minggu Ini">Minggu Ini</option>
@@ -455,7 +455,7 @@ export default function KegiatanPage() {
           <select 
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
+            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
           >
             <option value="">Semua Status</option>
             <option value="Draft">Draft (Konsep)</option>
@@ -476,7 +476,7 @@ export default function KegiatanPage() {
             value={filterSatelit}
             onChange={(e) => setFilterSatelit(e.target.value)}
             disabled={userData?.role_name?.toUpperCase().includes('SATELIT')}
-            className={`appearance-none w-full pl-4 pr-10 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm ${
+            className={`appearance-none w-full pl-4 pr-10 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm ${
               userData?.role_name?.toUpperCase().includes('SATELIT') ? 'bg-slate-200 cursor-not-allowed opacity-70' : 'bg-slate-50 cursor-pointer'
             }`}
           >
@@ -493,7 +493,7 @@ export default function KegiatanPage() {
           <select 
             value={filterJenis}
             onChange={(e) => setFilterJenis(e.target.value)}
-            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
+            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
           >
             <option value="">Semua Kategori</option>
             {(() => {
@@ -532,7 +532,7 @@ export default function KegiatanPage() {
           className={`px-4 py-2.5 border rounded-lg flex items-center gap-2 transition-colors group ${showAdvancedFilters ? 'bg-slate-100 border-slate-300' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
         >
           <span className={`material-icons-round text-[20px] transition-colors ${showAdvancedFilters ? 'text-slate-800' : 'text-slate-500 group-hover:text-slate-700'}`}>tune</span>
-          <span className={`text-sm font-medium font-['Public_Sans'] transition-colors ${showAdvancedFilters ? 'text-slate-900' : 'text-slate-600 group-hover:text-slate-800'}`}>More Filters</span>
+          <span className={`text-sm font-medium font-sans transition-colors ${showAdvancedFilters ? 'text-slate-900' : 'text-slate-600 group-hover:text-slate-800'}`}>More Filters</span>
         </button>
       </div>
 
@@ -542,13 +542,13 @@ export default function KegiatanPage() {
           
           {/* Komisi Dropdown */}
           <div className="flex flex-col gap-2">
-            <label className="text-slate-700 text-sm font-bold font-['Public_Sans']">Komisi (Satelit Spesifik)</label>
+            <label className="text-slate-700 text-sm font-bold font-sans">Komisi (Satelit Spesifik)</label>
             <div className="relative">
               <select 
                 value={filterKomisi}
                 onChange={(e) => { setFilterKomisi(e.target.value); setFilterDepartemen(''); }}
                 disabled={!filterSatelit}
-                className={`appearance-none w-full pl-4 pr-10 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm ${!filterSatelit ? 'bg-slate-200 cursor-not-allowed opacity-70' : 'bg-slate-50 cursor-pointer'}`}
+                className={`appearance-none w-full pl-4 pr-10 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm ${!filterSatelit ? 'bg-slate-200 cursor-not-allowed opacity-70' : 'bg-slate-50 cursor-pointer'}`}
               >
                 <option value="">Semua Komisi</option>
                 {komisiOptions.map((komisi) => (
@@ -561,12 +561,12 @@ export default function KegiatanPage() {
           
           {/* Departemen Dropdown */}
           <div className="flex flex-col gap-2">
-            <label className="text-slate-700 text-sm font-bold font-['Public_Sans']">Departemen Pusat (Global)</label>
+            <label className="text-slate-700 text-sm font-bold font-sans">Departemen Pusat (Global)</label>
             <div className="relative">
               <select 
                 value={filterDepartemen}
                 onChange={(e) => { setFilterDepartemen(e.target.value); setFilterKomisi(''); }}
-                className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
+                className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
               >
                 <option value="">Semua Departemen</option>
                 {departemenOptions.map((dept) => (
@@ -580,21 +580,21 @@ export default function KegiatanPage() {
           {filterTanggal === 'Custom' && (
             <>
               <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
-                <label className="text-slate-700 text-sm font-bold font-['Public_Sans']">Dari Tanggal</label>
+                <label className="text-slate-700 text-sm font-bold font-sans">Dari Tanggal</label>
                 <input 
                   type="date" 
                   value={customStartDate} 
                   onChange={(e) => setCustomStartDate(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm"
                 />
               </div>
               <div className="flex flex-col gap-2">
-                <label className="text-slate-700 text-sm font-bold font-['Public_Sans']">Sampai Tanggal</label>
+                <label className="text-slate-700 text-sm font-bold font-sans">Sampai Tanggal</label>
                 <input 
                   type="date" 
                   value={customEndDate} 
                   onChange={(e) => setCustomEndDate(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm"
                 />
               </div>
             </>
@@ -609,12 +609,12 @@ export default function KegiatanPage() {
           <div className="min-w-[1200px] flex flex-col">
             {/* Table Header */}
             <div className="w-full bg-slate-50 border-b border-slate-200 flex items-center px-6 py-4">
-              <div className="w-[180px] shrink-0 text-left pr-4 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">TANGGAL & WAKTU</div>
-              <div className="w-[200px] shrink-0 text-left pr-4 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">STATUS</div>
-              <div className="flex-1 min-w-[200px] text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">INFORMASI KEGIATAN</div>
-              <div className="w-56 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">JENIS KEGIATAN</div>
-              <div className="w-[180px] shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">PELAKSANA</div>
-              <div className="w-12 shrink-0 text-center text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">AKSI</div>
+              <div className="w-[180px] shrink-0 text-left pr-4 text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">TANGGAL & WAKTU</div>
+              <div className="w-[200px] shrink-0 text-left pr-4 text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">STATUS</div>
+              <div className="flex-1 min-w-[200px] text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">INFORMASI KEGIATAN</div>
+              <div className="w-56 shrink-0 text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">JENIS KEGIATAN</div>
+              <div className="w-[180px] shrink-0 text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">PELAKSANA</div>
+              <div className="w-12 shrink-0 text-center text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">AKSI</div>
             </div>
 
             {/* Table Body */}
@@ -622,7 +622,7 @@ export default function KegiatanPage() {
               {data.length === 0 ? (
                 <div className="w-full py-12 flex flex-col items-center justify-center text-slate-500">
                   <span className="material-icons-round text-5xl mb-2 text-slate-300">event_busy</span>
-                  <span className="text-sm font-['Public_Sans']">Tidak ada data kegiatan yang ditemukan.</span>
+                  <span className="text-sm font-sans">Tidak ada data kegiatan yang ditemukan.</span>
                 </div>
               ) : (
                 data.map((kegiatan, idx) => {
@@ -691,7 +691,7 @@ export default function KegiatanPage() {
                   <div className="flex-1 min-w-[200px] flex flex-col justify-center pr-4">
                      <span className="text-slate-900 font-bold text-sm capitalize mb-1" title={kegiatan.nama_kegiatan}>{kegiatan.nama_kegiatan}</span>
                      <div className="flex flex-col gap-0.5">
-                       <span className="text-slate-400 text-[11px] font-['Liberation_Mono'] tracking-wide">ID: {kegiatan.kode_kegiatan}</span>
+                       <span className="text-slate-400 text-[11px] font-sans tracking-wide">ID: {kegiatan.kode_kegiatan}</span>
                        {/* Badge RA — hanya tampil jika ada RA terhubung */}
                        {kegiatan.ra_kode && (
                          <span className={`inline-flex items-center gap-1 w-fit px-1.5 py-0.5 rounded text-[10px] font-bold border ${
@@ -901,7 +901,7 @@ export default function KegiatanPage() {
         {/* Pagination Footer */}
         {totalItems > 0 && (
           <div className="w-full px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center rounded-b-xl">
-            <div className="text-slate-500 text-sm font-['Public_Sans']">
+            <div className="text-slate-500 text-sm font-sans">
               Menampilkan {((currentPage - 1) * limit) + 1} - {Math.min(currentPage * limit, totalItems)} dari {totalItems} acara
             </div>
             <div className="flex gap-2">
@@ -954,7 +954,7 @@ export default function KegiatanPage() {
             
             <div className="p-6 flex flex-col gap-4">
                <div className="w-full flex flex-col gap-1.5">
-                 <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase">Alasan Keputusan Pembatalan <span className="text-red-500">*</span></label>
+                 <label className="text-slate-500 text-xs font-bold font-sans uppercase">Alasan Keputusan Pembatalan <span className="text-red-500">*</span></label>
                  <textarea 
                    rows={3}
                    value={cancelModal.reason} 
@@ -1022,7 +1022,7 @@ export default function KegiatanPage() {
               )}
 
               <div className="w-full flex flex-col gap-1.5">
-                <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase">Jumlah Kehadiran via Hand Tally <span className="text-red-500">*</span></label>
+                <label className="text-slate-500 text-xs font-bold font-sans uppercase">Jumlah Kehadiran via Hand Tally <span className="text-red-500">*</span></label>
                 <input
                   type="number"
                   min="0"

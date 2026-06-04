@@ -165,11 +165,11 @@ export default function PegawaiPage() {
 
   const renderStatusBadge = (status: string) => {
     switch(status) {
-      case 'Aktif': return <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold leading-tight">Aktif</span>;
-      case 'Pending': return <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-bold leading-tight flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>Pending</span>;
-      case 'Resign': return <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-bold leading-tight">Resign</span>;
-      case 'PHK': return <span className="px-3 py-1 bg-rose-100 text-rose-700 rounded-full text-xs font-bold leading-tight">PHK</span>;
-      default: return <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-bold leading-tight">{status}</span>;
+      case 'Aktif': return <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold font-sans uppercase leading-tight">Aktif</span>;
+      case 'Pending': return <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-bold font-sans uppercase leading-tight flex items-center gap-1 w-fit"><span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>Pending</span>;
+      case 'Resign': return <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-bold font-sans uppercase leading-tight">Resign</span>;
+      case 'PHK': return <span className="px-3 py-1 bg-rose-100 text-rose-700 rounded-full text-xs font-bold font-sans uppercase leading-tight">PHK</span>;
+      default: return <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-bold font-sans uppercase leading-tight">{status}</span>;
     }
   };
 
@@ -183,13 +183,13 @@ export default function PegawaiPage() {
       {/* Header Section */}
       <div className="w-full flex justify-between items-start">
         <div className="flex flex-col gap-1">
-            <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Manajemen Pegawai</h1>
-            <div className="text-slate-500 text-base font-medium font-['Inter'] leading-6">HRIS System & Payroll Integration</div>
+            <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Manajemen Pegawai</h1>
+            <div className="text-slate-500 text-base font-medium font-sans leading-6">HRIS System & Payroll Integration</div>
           </div>
           {hasPermission('pegawai_create') && (
             <Link href="/pegawai/new" className="px-5 py-2.5 bg-slate-700 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none">
               <span className="material-icons-round text-white text-[20px]">badge</span>
-              <span className="text-white text-sm font-bold font-['Inter'] leading-5">Registrasi Pegawai</span>
+              <span className="text-white text-sm font-bold font-sans leading-5">Registrasi Pegawai</span>
             </Link>
           )}
         </div>
@@ -203,9 +203,9 @@ export default function PegawaiPage() {
              <span className="material-icons-round text-blue-700 text-3xl">badge</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-slate-500 text-sm font-medium font-['Public_Sans'] uppercase tracking-wide">Total Pegawai</span>
+            <span className="text-slate-500 text-sm font-medium font-sans uppercase tracking-wide">Total Pegawai</span>
             <div className="flex items-end gap-2 mt-1">
-              <span className="text-slate-900 text-3xl font-bold font-['Public_Sans'] leading-9">{totalItems.toLocaleString()}</span>
+              <span className="text-slate-900 text-3xl font-bold font-sans leading-9">{totalItems.toLocaleString()}</span>
             </div>
           </div>
         </div>
@@ -217,9 +217,9 @@ export default function PegawaiPage() {
              <span className="material-icons-round text-amber-600 text-3xl">pending_actions</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-slate-500 text-sm font-medium font-['Public_Sans'] uppercase tracking-wide">Pending Approval</span>
+            <span className="text-slate-500 text-sm font-medium font-sans uppercase tracking-wide">Pending Approval</span>
             <div className="flex items-end gap-2 mt-1">
-              <span className="text-slate-900 text-3xl font-bold font-['Public_Sans'] leading-9">{pendingApproval.toLocaleString()}</span>
+              <span className="text-slate-900 text-3xl font-bold font-sans leading-9">{pendingApproval.toLocaleString()}</span>
               {pendingApproval > 0 && <span className="text-sm font-bold text-amber-600 mb-1 ml-2 bg-amber-50 px-2 py-0.5 rounded border border-amber-100">Action Required</span>}
             </div>
           </div>
@@ -236,7 +236,7 @@ export default function PegawaiPage() {
           <input 
             type="text" 
             placeholder="Cari pegawai berdasarkan nama atau ID..."
-            className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm"
+            className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -248,7 +248,7 @@ export default function PegawaiPage() {
             value={filterSatelit}
             onChange={(e) => setFilterSatelit(e.target.value)}
             disabled={userData?.role_name?.toUpperCase().includes('SATELIT')}
-            className={`appearance-none w-full pl-4 pr-10 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm ${
+            className={`appearance-none w-full pl-4 pr-10 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm ${
               userData?.role_name?.toUpperCase().includes('SATELIT') ? 'bg-slate-200 cursor-not-allowed opacity-70' : 'bg-slate-50 cursor-pointer'
             }`}
           >
@@ -266,7 +266,7 @@ export default function PegawaiPage() {
           className={`px-4 py-2.5 border rounded-lg flex items-center gap-2 transition-colors group ${showAdvancedFilters ? 'bg-slate-100 border-slate-300' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
         >
           <span className={`material-icons-round text-[20px] transition-colors ${showAdvancedFilters ? 'text-slate-800' : 'text-slate-500 group-hover:text-slate-700'}`}>tune</span>
-          <span className={`text-sm font-medium font-['Public_Sans'] transition-colors ${showAdvancedFilters ? 'text-slate-900' : 'text-slate-600 group-hover:text-slate-800'}`}>More Filters</span>
+          <span className={`text-sm font-medium font-sans transition-colors ${showAdvancedFilters ? 'text-slate-900' : 'text-slate-600 group-hover:text-slate-800'}`}>More Filters</span>
         </button>
       </div>
 
@@ -275,12 +275,12 @@ export default function PegawaiPage() {
         <div className="w-full p-6 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in slide-in-from-top-2 duration-200 grid grid-cols-1 md:grid-cols-2 gap-6">
           
           <div className="flex flex-col gap-2">
-            <label className="text-slate-700 text-sm font-bold font-['Public_Sans']">Status Pegawai</label>
+            <label className="text-slate-700 text-sm font-bold font-sans">Status Pegawai</label>
             <div className="relative">
               <select 
                 value={filterStatusPegawai}
                 onChange={(e) => setFilterStatusPegawai(e.target.value)}
-                className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
+                className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
               >
                 <option value="Semua">Semua</option>
                 <option value="Aktif">Aktif</option>
@@ -293,12 +293,12 @@ export default function PegawaiPage() {
           </div>
 
           <div className="flex flex-col gap-2">
-            <label className="text-slate-700 text-sm font-bold font-['Public_Sans']">Tipe Pekerja (Payroll Scheme)</label>
+            <label className="text-slate-700 text-sm font-bold font-sans">Tipe Pekerja (Payroll Scheme)</label>
             <div className="relative">
               <select 
                 value={filterTipePekerja}
                 onChange={(e) => setFilterTipePekerja(e.target.value)}
-                className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
+                className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
               >
                 <option value="">Semua Tipe Pekerja</option>
                 <option value="Pegawai Tetap">Pegawai Tetap</option>
@@ -317,12 +317,12 @@ export default function PegawaiPage() {
           <div className="min-w-[1050px] flex flex-col">
             {/* Table Header BP Compliant */}
             <div className="w-full bg-slate-50 border-b border-slate-200 flex items-center px-6 py-4">
-              <div className="w-32 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">ID Pegawai</div>
-              <div className="w-64 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Profil Pegawai</div>
-              <div className="flex-1 min-w-[200px] text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Jabatan & Departemen</div>
-              <div className="w-48 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Tipe Pekerja</div>
-              <div className="w-32 shrink-0 text-center text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Status</div>
-              <div className="w-20 shrink-0 text-right text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Aksi</div>
+              <div className="w-32 shrink-0 text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">ID Pegawai</div>
+              <div className="w-64 shrink-0 text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Profil Pegawai</div>
+              <div className="flex-1 min-w-[200px] text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Jabatan & Departemen</div>
+              <div className="w-48 shrink-0 text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Tipe Pekerja</div>
+              <div className="w-32 shrink-0 text-center text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Status</div>
+              <div className="w-20 shrink-0 text-right text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Aksi</div>
             </div>
 
         {/* Table Body */}
@@ -330,7 +330,7 @@ export default function PegawaiPage() {
           {data.length === 0 ? (
             <div className="w-full py-12 flex flex-col items-center justify-center text-slate-500">
               <span className="material-icons-round text-5xl mb-2 text-slate-300">badge</span>
-              <span className="text-sm font-['Public_Sans'] text-center max-w-[300px]">Tidak ada data pegawai. Cek filter pencarian Anda.</span>
+              <span className="text-sm font-sans text-center max-w-[300px]">Tidak ada data pegawai. Cek filter pencarian Anda.</span>
             </div>
           ) : (
             data.map((pegawai, idx) => {
@@ -338,29 +338,29 @@ export default function PegawaiPage() {
               return (
             <div key={pegawai.id || idx} className={`w-full flex items-center px-6 py-4 border-b border-slate-100 hover:bg-slate-50 transition-colors relative ${openMenuId === pegawai.id ? 'z-50' : 'z-10'}`}>
               
-              <div className="w-32 shrink-0 text-slate-500 text-sm font-['Liberation_Mono'] font-bold tracking-tight">
+              <div className="w-32 shrink-0 text-slate-500 text-sm font-sans font-bold tracking-tight">
                  {pegawai.id_pegawai}
               </div>
               
               <div className="w-64 shrink-0 flex flex-col pr-4">
-                <span className="text-slate-900 text-sm font-black font-['Public_Sans'] truncate">{pegawai.nama_lengkap}</span>
+                <span className="text-slate-900 text-sm font-black font-sans truncate">{pegawai.nama_lengkap}</span>
                 <span className="text-slate-500 text-xs font-medium truncate flex items-center gap-1 mt-0.5">
                    <span className="material-icons-round text-[12px]">location_on</span> {pegawai.nama_satelit || '-'}
                 </span>
               </div>
               
               <div className="flex-1 min-w-[200px] flex flex-col pr-4">
-                <span className="text-slate-700 text-sm font-bold font-['Public_Sans'] truncate">{pegawai.nama_jabatan}</span>
+                <span className="text-slate-700 text-sm font-bold font-sans truncate">{pegawai.nama_jabatan}</span>
                 {pegawai.nama_departemen && (
-                  <span className="text-slate-400 text-xs font-medium font-['Public_Sans'] truncate">Dep: {pegawai.nama_departemen}</span>
+                  <span className="text-slate-400 text-xs font-medium font-sans truncate">Dep: {pegawai.nama_departemen}</span>
                 )}
               </div>
               
               <div className="w-48 shrink-0 flex items-center">
                 {pegawai.tipe_pekerja === 'Pegawai Tetap' ? (
-                   <span className="px-2.5 py-1 bg-blue-50 border border-blue-200 text-blue-700 text-[11px] font-black uppercase rounded shadow-sm">P. Tetap</span>
+                   <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-bold font-sans uppercase rounded-full">P. Tetap</span>
                 ) : pegawai.tipe_pekerja === 'Tidak Tetap' ? (
-                   <span className="px-2.5 py-1 bg-amber-50 border border-amber-200 text-amber-700 text-[11px] font-black uppercase rounded shadow-sm">Part-Time</span>
+                   <span className="px-3 py-1 bg-amber-100 text-amber-700 text-xs font-bold font-sans uppercase rounded-full">Part-Time</span>
                 ) : (
                    <span className="text-slate-400 text-xs italic">-</span>
                 )}
@@ -384,7 +384,7 @@ export default function PegawaiPage() {
                      <div className={`absolute right-0 ${isLastRows ? 'bottom-full mb-1' : 'top-full mt-1'} w-48 bg-white rounded-lg shadow-[0_4px_20px_-4px_rgba(0,0,0,0.15)] border border-slate-200 z-50 py-1 overflow-visible`}>
                        <Link 
                          href={`/pegawai/${pegawai.id}?mode=view`}
-                         className="w-full text-left px-4 py-2 hover:bg-slate-50 transition-colors flex items-center gap-3 text-sm text-slate-700 font-['Public_Sans']"
+                         className="w-full text-left px-4 py-2 hover:bg-slate-50 transition-colors flex items-center gap-3 text-sm text-slate-700 font-sans"
                        >
                          <span className="material-icons-round text-[18px] text-slate-400">visibility</span> Lihat Detail
                        </Link>
@@ -392,24 +392,24 @@ export default function PegawaiPage() {
                          <>
                            <Link 
                              href={`/pegawai/${pegawai.id}?mode=edit`}
-                             className="w-full text-left px-4 py-2 hover:bg-slate-50 transition-colors flex items-center gap-3 text-sm text-slate-700 font-['Public_Sans']"
+                             className="w-full text-left px-4 py-2 hover:bg-slate-50 transition-colors flex items-center gap-3 text-sm text-slate-700 font-sans"
                            >
                              <span className="material-icons-round text-[18px] text-slate-400">edit</span> Edit Pegawai
                            </Link>
                            <div className="w-full h-px bg-slate-100 my-1"></div>
                            
                            {pegawai.status_approval === 'Pending' && (
-                             <button onClick={() => { setOpenMenuId(null); setAlertState({ isOpen: true, id: pegawai.id, type: 'approve', newValue: '' }); }} className="w-full text-left px-4 py-2 hover:bg-blue-50 hover:text-blue-700 transition-colors flex items-center gap-3 text-sm text-blue-600 font-['Public_Sans'] font-bold">
+                             <button onClick={() => { setOpenMenuId(null); setAlertState({ isOpen: true, id: pegawai.id, type: 'approve', newValue: '' }); }} className="w-full text-left px-4 py-2 hover:bg-blue-50 hover:text-blue-700 transition-colors flex items-center gap-3 text-sm text-blue-600 font-sans font-bold">
                                <span className="material-icons-round text-[18px] text-blue-500">task_alt</span> Approve Data
                              </button>
                            )}
 
                            {pegawai.status_pegawai === 'Aktif' ? (
-                             <button onClick={() => { setOpenMenuId(null); setAlertState({ isOpen: true, id: pegawai.id, type: 'status', newValue: 'Resign' }); }} className="w-full text-left px-4 py-2 hover:bg-slate-100 hover:text-slate-800 transition-colors flex items-center gap-3 text-sm text-slate-600 font-['Public_Sans']">
+                             <button onClick={() => { setOpenMenuId(null); setAlertState({ isOpen: true, id: pegawai.id, type: 'status', newValue: 'Resign' }); }} className="w-full text-left px-4 py-2 hover:bg-slate-100 hover:text-slate-800 transition-colors flex items-center gap-3 text-sm text-slate-600 font-sans">
                                <span className="material-icons-round text-[18px] text-slate-400">directions_run</span> Proses Resign
                              </button>
                            ) : pegawai.status_pegawai !== 'Aktif' && pegawai.status_approval !== 'Pending' ? (
-                             <button onClick={() => { setOpenMenuId(null); setAlertState({ isOpen: true, id: pegawai.id, type: 'status', newValue: 'Aktif' }); }} className="w-full text-left px-4 py-2 hover:bg-emerald-50 hover:text-emerald-700 transition-colors flex items-center gap-3 text-sm text-emerald-600 font-['Public_Sans']">
+                             <button onClick={() => { setOpenMenuId(null); setAlertState({ isOpen: true, id: pegawai.id, type: 'status', newValue: 'Aktif' }); }} className="w-full text-left px-4 py-2 hover:bg-emerald-50 hover:text-emerald-700 transition-colors flex items-center gap-3 text-sm text-emerald-600 font-sans">
                                <span className="material-icons-round text-[18px] text-emerald-400">history</span> Jadikan Aktif
                              </button>
                            ) : null}
@@ -429,7 +429,7 @@ export default function PegawaiPage() {
 
     {/* Pagination Footer */}
     <div className="w-full px-6 py-4 bg-white border-t border-slate-200 flex flex-col md:flex-row justify-between items-center text-sm gap-4">
-          <span className="text-slate-500 font-['Public_Sans']">
+          <span className="text-slate-500 font-sans">
             Menampilkan {data.length > 0 ? ((currentPage - 1) * limit) + 1 : 0}-
             {Math.min(currentPage * limit, totalItems)} dari {totalItems} pegawai
           </span>

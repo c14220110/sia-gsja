@@ -46,7 +46,7 @@ const JemaatAutocomplete = ({
 
   return (
     <div className="w-full flex-col gap-1 flex relative" ref={wrapperRef}>
-      <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase leading-4">{label}</label>
+      <label className="text-slate-500 text-xs font-bold font-sans uppercase leading-4">{label}</label>
       <input type="text" value={query} onChange={(e) => search(e.target.value)} onFocus={() => { if(results.length > 0) setIsOpen(true); }} placeholder={placeholder}
         className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 w-full text-sm transition-all" />
       {isOpen && (
@@ -58,7 +58,7 @@ const JemaatAutocomplete = ({
               </div>
               <div className="flex flex-col">
                 <span className="text-sm font-semibold text-slate-900">{j.nama_lengkap}</span>
-                <span className="text-[11px] text-slate-500 font-mono">{j.jemaat_id}</span>
+                <span className="text-[11px] text-slate-500 font-sans">{j.jemaat_id}</span>
               </div>
             </div>
           ))}
@@ -554,8 +554,8 @@ export default function AkunAksesPage() {
       <div className="flex-col justify-start items-start gap-8 inline-flex w-full">
         {/* Header */}
         <div className="flex-col justify-start items-start gap-2 flex">
-          <div className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Akun &amp; Hak Akses</div>
-          <div className="text-slate-500 text-base font-medium font-['Inter'] leading-6 max-w-xl">
+          <div className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Akun &amp; Hak Akses</div>
+          <div className="text-slate-500 text-base font-medium font-sans leading-6 max-w-xl">
             Kelola Role Sistem (<strong>matriks akses/permissions</strong>) dan berikan kunci gembok (<strong>akun login</strong>) kepada jemaat yang berhak.
           </div>
         </div>
@@ -573,7 +573,7 @@ export default function AkunAksesPage() {
             <div key={tab.key} onClick={() => setActiveTab(tab.key as TabKey)}
               className={`flex-1 h-10 px-4 rounded-lg flex justify-center items-center gap-2 cursor-pointer transition-all whitespace-nowrap ${activeTab === tab.key ? 'bg-white shadow-sm border border-slate-200' : 'hover:bg-slate-200/50 text-slate-500'}`}>
               <span className={`material-icons-round text-[18px] ${activeTab === tab.key ? 'text-violet-600' : ''}`}>{tab.icon}</span>
-              <span className={`text-sm font-bold font-['Inter'] leading-5 ${activeTab === tab.key ? 'text-slate-800' : ''}`}>{tab.label}</span>
+              <span className={`text-sm font-bold font-sans leading-5 ${activeTab === tab.key ? 'text-slate-800' : ''}`}>{tab.label}</span>
             </div>
           ))}
         </div>
@@ -622,32 +622,31 @@ export default function AkunAksesPage() {
               </button>
             </div>
 
-            {/* Filter Options for Users */}
             <div className="w-full px-4 py-4 bg-white rounded-xl border border-slate-200 flex flex-wrap items-center gap-4 shadow-sm">
-              <div className="flex-1 min-w-[250px] relative flex items-center">
+              <div className="flex-1 min-w-[300px] relative flex items-center">
                 <span className="material-icons-round absolute left-4 text-slate-400 text-[20px]">search</span>
                 <input type="text" placeholder="Cari nama pengguna atau email..." 
-                  className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm font-['Public_Sans']"
+                  className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm font-sans"
                   value={userSearchQuery} onChange={e => setUserSearchQuery(e.target.value)} />
               </div>
-              <div className="relative min-w-[150px]">
-                <select className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer" 
+              <div className="relative min-w-[200px]">
+                <select className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-slate-700 font-sans text-sm cursor-pointer" 
                   value={filterUserRole} onChange={e => setFilterUserRole(e.target.value)}>
                   <option value="">Semua Role</option>
                   {dataRoles.filter(r => r.is_active).map(r => <option key={r.id} value={r.id}>{r.nama_role}</option>)}
                 </select>
                 <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
               </div>
-              <div className="relative min-w-[150px]">
-                <select className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer" 
+              <div className="relative min-w-[200px]">
+                <select className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-slate-700 font-sans text-sm cursor-pointer" 
                   value={filterUserSatelit} onChange={e => setFilterUserSatelit(e.target.value)}>
                   <option value="">Semua Satelit</option>
                   {satelitOptions.map(s => <option key={s.id} value={s.id}>{s.nama_satelit}</option>)}
                 </select>
                 <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
               </div>
-              <div className="relative min-w-[150px]">
-                <select className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer" 
+              <div className="relative min-w-[200px]">
+                <select className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-slate-700 font-sans text-sm cursor-pointer" 
                   value={filterUserStatus} onChange={e => setFilterUserStatus(e.target.value)}>
                   <option value="Semua">Semua Status</option>
                   <option value="Aktif">Aktif</option>
@@ -674,8 +673,8 @@ export default function AkunAksesPage() {
                       <tr key={user.id} className={`hover:bg-slate-50 transition-colors relative ${openMenuId === user.id ? 'z-50' : 'z-10'}`}>
                         <td className="px-6 py-4 align-top">
                           <div className="font-bold text-slate-900">{user.nama_lengkap}</div>
-                          <div className="text-xs text-slate-500 font-mono mt-0.5">{user.email}</div>
-                          {!user.is_active && <span className="mt-2 inline-block px-2 py-0.5 bg-rose-100 text-rose-700 text-[10px] font-bold rounded">SUSPENDED</span>}
+                          <div className="text-xs text-slate-500 font-sans mt-0.5">{user.email}</div>
+                          {!user.is_active && <span className="mt-2 inline-block px-3 py-1 bg-rose-100 text-rose-700 text-xs font-bold font-sans uppercase rounded-full">SUSPENDED</span>}
                         </td>
                         <td className="px-6 py-4 align-top">
                           <div className="flex flex-col gap-2">
@@ -702,16 +701,16 @@ export default function AkunAksesPage() {
                               <>
                                 <div className="fixed inset-0 z-40" onClick={() => setOpenMenuId(null)}></div>
                                 <div className={`absolute right-0 ${isLastRows ? 'bottom-full mb-1' : 'top-full mt-1'} w-52 bg-white rounded-lg shadow-[0_4px_20px_-4px_rgba(0,0,0,0.15)] border border-slate-200 z-50 py-1`}>
-                                  <button onClick={() => openEditModal(user)} className="w-full text-left px-4 py-2.5 hover:bg-slate-50 transition-colors flex items-center gap-3 text-sm text-slate-700 font-['Public_Sans']">
+                                  <button onClick={() => openEditModal(user)} className="w-full text-left px-4 py-2.5 hover:bg-slate-50 transition-colors flex items-center gap-3 text-sm text-slate-700 font-sans">
                                     <span className="material-icons-round text-[18px] text-slate-400">edit</span> Edit Akun &amp; Role
                                   </button>
                                   <div className="w-full h-px bg-slate-100 my-1"></div>
                                   {user.is_active ? (
-                                    <button onClick={() => handleToggleStatus(user.id, user.is_active)} className="w-full text-left px-4 py-2.5 hover:bg-amber-50 hover:text-amber-700 transition-colors flex items-center gap-3 text-sm text-amber-600 font-['Public_Sans']">
+                                    <button onClick={() => handleToggleStatus(user.id, user.is_active)} className="w-full text-left px-4 py-2.5 hover:bg-amber-50 hover:text-amber-700 transition-colors flex items-center gap-3 text-sm text-amber-600 font-sans">
                                       <span className="material-icons-round text-[18px] text-amber-400">person_off</span> Nonaktifkan
                                     </button>
                                   ) : (
-                                    <button onClick={() => handleToggleStatus(user.id, user.is_active)} className="w-full text-left px-4 py-2.5 hover:bg-emerald-50 hover:text-emerald-700 transition-colors flex items-center gap-3 text-sm text-emerald-600 font-['Public_Sans']">
+                                    <button onClick={() => handleToggleStatus(user.id, user.is_active)} className="w-full text-left px-4 py-2.5 hover:bg-emerald-50 hover:text-emerald-700 transition-colors flex items-center gap-3 text-sm text-emerald-600 font-sans">
                                       <span className="material-icons-round text-[18px] text-emerald-400">how_to_reg</span> Aktifkan Kembali
                                     </button>
                                   )}
@@ -754,7 +753,7 @@ export default function AkunAksesPage() {
                 <tbody className="divide-y divide-slate-100">
                   {dataUsers.filter(u => u.roles?.some((r: any) => r.tanggal_selesai)).map((user) => (
                     <tr key={user.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-4 align-top"><div className="font-bold text-slate-900">{user.nama_lengkap}</div><div className="text-xs text-slate-500 font-mono mt-0.5">{user.email}</div></td>
+                      <td className="px-6 py-4 align-top"><div className="font-bold text-slate-900">{user.nama_lengkap}</div><div className="text-xs text-slate-500 font-sans mt-0.5">{user.email}</div></td>
                       <td className="px-6 py-4 align-top">
                         <div className="flex flex-col gap-2">
                           {user.roles.filter((r: any) => r.tanggal_selesai).map((r: any, i: number) => {
@@ -772,7 +771,7 @@ export default function AkunAksesPage() {
                       <td className="px-6 py-4 align-top">
                         {user.roles.filter((r: any) => r.tanggal_selesai).map((r: any, i: number) => (
                           <div key={i} className="text-xs text-slate-700 mb-2">
-                            <span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded">{new Date(r.tanggal_mulai).toLocaleDateString('id-ID')}</span> <span className="mx-1">s/d</span> <span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded">{new Date(r.tanggal_selesai).toLocaleDateString('id-ID')}</span>
+                            <span className="font-sans bg-slate-100 px-1.5 py-0.5 rounded">{new Date(r.tanggal_mulai).toLocaleDateString('id-ID')}</span> <span className="mx-1">s/d</span> <span className="font-sans bg-slate-100 px-1.5 py-0.5 rounded">{new Date(r.tanggal_selesai).toLocaleDateString('id-ID')}</span>
                           </div>
                         ))}
                       </td>
@@ -805,11 +804,11 @@ export default function AkunAksesPage() {
               <div className="flex-1 min-w-[250px] relative flex items-center">
                 <span className="material-icons-round absolute left-4 text-slate-400 text-[20px]">search</span>
                 <input type="text" placeholder="Cari nama jemaat..." 
-                  className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-['Public_Sans']"
+                  className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-sans"
                   value={bulkSearchQuery} onChange={e => { setBulkSearchQuery(e.target.value); setBulkPage(1); }} />
               </div>
               <div className="relative min-w-[200px]">
-                <select className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer" 
+                <select className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700 font-sans text-sm cursor-pointer" 
                   value={filterBulkStatus} onChange={e => setFilterBulkStatus(e.target.value)}>
                   <option value="no_account">Hanya Belum Punya Akun</option>
                   <option value="all">Tampilkan Semua Status</option>
@@ -852,11 +851,11 @@ export default function AkunAksesPage() {
                             disabled={j.has_account}
                           />
                         </td>
-                        <td className="px-4 py-3 font-mono text-slate-500 text-xs">{j.jemaat_id}</td>
+                        <td className="px-4 py-3 font-sans text-slate-500 text-xs">{j.jemaat_id}</td>
                         <td className="px-4 py-3 font-bold text-slate-900">{j.nama_lengkap}</td>
                         <td className="px-4 py-3">
                           {j.tanggal_lahir ? 
-                            <span className="font-mono bg-slate-100 px-2 py-1 rounded text-slate-700 text-xs">{new Date(j.tanggal_lahir).toLocaleDateString('id-ID')}</span> : 
+                            <span className="font-sans bg-slate-100 px-2 py-1 rounded text-slate-700 text-xs">{new Date(j.tanggal_lahir).toLocaleDateString('id-ID')}</span> : 
                             <span className="text-rose-500 text-[10px] font-bold italic border border-rose-200 bg-rose-50 px-2 py-0.5 rounded">TIDAK ADA TGL LAHIR</span>
                           }
                         </td>
@@ -969,7 +968,7 @@ export default function AkunAksesPage() {
                     // Reset role assignment (JEMAAT tidak perlu di-assign manual)
                     setRoleAssignments([{ role_id: '', satelit_id: '' }]);
                   }} />
-                {newUserSelectedJemaat && <div className="mt-2 p-2 bg-emerald-50 text-emerald-700 text-xs font-bold font-mono border border-emerald-100 rounded flex gap-2 w-fit"><span className="material-icons-round text-[16px]">check_circle</span> {newUserSelectedJemaat.jemaat_id} - Terverifikasi</div>}
+                {newUserSelectedJemaat && <div className="mt-2 p-2 bg-emerald-50 text-emerald-700 text-xs font-bold font-sans border border-emerald-100 rounded flex gap-2 w-fit"><span className="material-icons-round text-[16px]">check_circle</span> {newUserSelectedJemaat.jemaat_id} - Terverifikasi</div>}
               </div>
               {(() => {
                 const existingUserForNew = newUserSelectedJemaat ? dataUsers.find(u => u.jemaat_id === newUserSelectedJemaat.id) : null;
@@ -1030,7 +1029,7 @@ export default function AkunAksesPage() {
             <div className="p-6 border-b border-slate-100 flex justify-between items-center flex-shrink-0">
               <div>
                 <h3 className="text-xl font-bold flex items-center gap-2 text-slate-800"><span className="material-icons-round text-amber-500">manage_accounts</span> Edit Akun Pengguna</h3>
-                <div className="text-sm text-slate-500 mt-0.5 font-mono">{editingUser.nama_lengkap}</div>
+                <div className="text-sm text-slate-500 mt-0.5 font-sans">{editingUser.nama_lengkap}</div>
               </div>
               <button onClick={() => setIsEditUserModalOpen(false)} className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex justify-center items-center"><span className="material-icons-round text-[20px] text-slate-500">close</span></button>
             </div>
@@ -1085,7 +1084,7 @@ export default function AkunAksesPage() {
                       setTempUserForm(p => ({ ...p, satelit_id: String(j.satelit_id) }));
                     }
                   }} />
-                {newUserSelectedJemaat && <div className="mt-2 p-2 bg-emerald-50 text-emerald-700 text-xs font-bold font-mono border border-emerald-100 rounded flex gap-2 w-fit"><span className="material-icons-round text-[16px]">check_circle</span> {newUserSelectedJemaat.jemaat_id} - Terverifikasi</div>}
+                {newUserSelectedJemaat && <div className="mt-2 p-2 bg-emerald-50 text-emerald-700 text-xs font-bold font-sans border border-emerald-100 rounded flex gap-2 w-fit"><span className="material-icons-round text-[16px]">check_circle</span> {newUserSelectedJemaat.jemaat_id} - Terverifikasi</div>}
               </div>
               {(() => {
                 const existingUserForTemp = newUserSelectedJemaat ? dataUsers.find(u => u.jemaat_id === newUserSelectedJemaat.id) : null;

@@ -41,14 +41,14 @@ export default function NewPayrollRunPage() {
       
       {/* Header */}
       <div className="w-full flex flex-col justify-start items-start gap-4">
-        <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-['Inter'] leading-4">
+        <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-sans leading-4">
           <Link href="/pegawai/penggajian" className="text-slate-500 hover:text-blue-600">Daftar Run Penggajian</Link>
           <span className="text-slate-500 material-icons-round text-[14px]">chevron_right</span>
           <span className="text-slate-700 font-bold">Buat Payroll Baru</span>
         </div>
         <div>
-          <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Buat Payroll Baru</h1>
-          <p className="text-slate-500 text-base font-medium font-['Inter']">Setup data awal untuk pemrosesan payroll periode ini.</p>
+          <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Buat Payroll Baru</h1>
+          <p className="text-slate-500 text-base font-medium font-sans">Setup data awal untuk pemrosesan payroll periode ini.</p>
         </div>
       </div>
 
@@ -71,7 +71,7 @@ export default function NewPayrollRunPage() {
               >
                  {activeTab > tab.id ? <span className="text-[16px] font-bold">{tab.id}</span> : <span className="text-[16px] font-bold">{tab.id}</span>}
               </button>
-              <span className={`text-xs font-bold font-['Inter'] tracking-wider ${activeTab === tab.id ? 'text-blue-700' : activeTab > tab.id ? 'text-slate-700' : 'text-slate-400'}`}>{tab.name}</span>
+              <span className={`text-xs font-bold font-sans tracking-wider ${activeTab === tab.id ? 'text-blue-700' : activeTab > tab.id ? 'text-slate-700' : 'text-slate-400'}`}>{tab.name}</span>
             </div>
          ))}
       </div>

@@ -198,9 +198,9 @@ export default function SurveiDetailPage({ params }: { params: Promise<{ id: str
             <button onClick={() => router.push('/kegiatan/survei')} className="w-8 h-8 rounded-lg border border-slate-200 bg-white flex justify-center items-center text-slate-600 hover:bg-slate-50 transition-colors">
               <span className="material-icons-round text-[18px]">arrow_back</span>
             </button>
-            <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9">{survei.judul}</h1>
+            <h1 className="text-slate-900 text-3xl font-black font-sans leading-9">{survei.judul}</h1>
           </div>
-          <div className="text-slate-500 text-base font-medium font-['Inter'] leading-6 flex items-center gap-3">
+          <div className="text-slate-500 text-base font-medium font-sans leading-6 flex items-center gap-3">
             {survei.nama_kegiatan && (
               <span className="flex items-center gap-1 text-blue-500">
                 <span className="material-icons-round text-[16px]">event</span>
@@ -222,8 +222,8 @@ export default function SurveiDetailPage({ params }: { params: Promise<{ id: str
             <span className="material-icons-round text-blue-600 text-2xl">groups</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-slate-500 text-[11px] font-bold font-['Public_Sans'] uppercase tracking-wide">RESPONDEN</span>
-            <span className="text-slate-900 text-2xl font-bold font-['Public_Sans']">{survei.total_responden || 0}</span>
+            <span className="text-slate-500 text-[11px] font-bold font-sans uppercase tracking-wide">RESPONDEN</span>
+            <span className="text-slate-900 text-2xl font-bold font-sans">{survei.total_responden || 0}</span>
           </div>
         </div>
         <div className="p-5 bg-white rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
@@ -231,8 +231,8 @@ export default function SurveiDetailPage({ params }: { params: Promise<{ id: str
             <span className="material-icons-round text-amber-600 text-2xl">stars</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-slate-500 text-[11px] font-bold font-['Public_Sans'] uppercase tracking-wide">SKOR KEPUASAN</span>
-            <span className={`text-2xl font-bold font-['Public_Sans'] ${(survei.avg_skor || 0) >= 4 ? 'text-emerald-600' : (survei.avg_skor || 0) >= 3 ? 'text-amber-600' : 'text-rose-600'}`}>{survei.avg_skor ? Number(survei.avg_skor).toFixed(1) : '-'}</span>
+            <span className="text-slate-500 text-[11px] font-bold font-sans uppercase tracking-wide">SKOR KEPUASAN</span>
+            <span className={`text-2xl font-bold font-sans ${(survei.avg_skor || 0) >= 4 ? 'text-emerald-600' : (survei.avg_skor || 0) >= 3 ? 'text-amber-600' : 'text-rose-600'}`}>{survei.avg_skor ? Number(survei.avg_skor).toFixed(1) : '-'}</span>
           </div>
         </div>
         <div className="p-5 bg-white rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
@@ -240,8 +240,8 @@ export default function SurveiDetailPage({ params }: { params: Promise<{ id: str
             <span className="material-icons-round text-rose-600 text-2xl">flag</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-slate-500 text-[11px] font-bold font-['Public_Sans'] uppercase tracking-wide">KELUHAN (FLAG)</span>
-            <span className="text-rose-600 text-2xl font-bold font-['Public_Sans']">{survei.total_flagged || 0}</span>
+            <span className="text-slate-500 text-[11px] font-bold font-sans uppercase tracking-wide">KELUHAN (FLAG)</span>
+            <span className="text-rose-600 text-2xl font-bold font-sans">{survei.total_flagged || 0}</span>
           </div>
         </div>
         <div className="p-5 bg-white rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
@@ -249,8 +249,8 @@ export default function SurveiDetailPage({ params }: { params: Promise<{ id: str
             <span className="material-icons-round text-emerald-600 text-2xl">quiz</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-slate-500 text-[11px] font-bold font-['Public_Sans'] uppercase tracking-wide">PERTANYAAN</span>
-            <span className="text-slate-900 text-2xl font-bold font-['Public_Sans']">{pertanyaan.length}</span>
+            <span className="text-slate-500 text-[11px] font-bold font-sans uppercase tracking-wide">PERTANYAAN</span>
+            <span className="text-slate-900 text-2xl font-bold font-sans">{pertanyaan.length}</span>
           </div>
         </div>
       </div>
@@ -286,7 +286,7 @@ export default function SurveiDetailPage({ params }: { params: Promise<{ id: str
               {pertanyaan.length === 0 ? (
                 <div className="py-12 flex flex-col items-center justify-center text-slate-500">
                   <span className="material-icons-round text-5xl mb-2 text-slate-300">quiz</span>
-                  <span className="text-sm font-['Public_Sans']">Belum ada pertanyaan dalam survei ini.</span>
+                  <span className="text-sm font-sans">Belum ada pertanyaan dalam survei ini.</span>
                 </div>
               ) : (
                 pertanyaan.map((q, i) => (
@@ -305,7 +305,7 @@ export default function SurveiDetailPage({ params }: { params: Promise<{ id: str
                       </div>
                       {q.tipe_jawaban === 'skala' && q.avg_skor != null && (
                         <div className="flex flex-col items-center shrink-0">
-                          <span className={`text-2xl font-bold font-['Public_Sans'] ${Number(q.avg_skor) >= 4 ? 'text-emerald-600' : Number(q.avg_skor) >= 3 ? 'text-amber-600' : 'text-rose-600'}`}>
+                          <span className={`text-2xl font-bold font-sans ${Number(q.avg_skor) >= 4 ? 'text-emerald-600' : Number(q.avg_skor) >= 3 ? 'text-amber-600' : 'text-rose-600'}`}>
                             {Number(q.avg_skor).toFixed(1)}
                           </span>
                           <span className="text-slate-400 text-[10px] font-medium">rata-rata</span>
@@ -325,7 +325,7 @@ export default function SurveiDetailPage({ params }: { params: Promise<{ id: str
               {respons.length === 0 ? (
                 <div className="py-12 flex flex-col items-center justify-center text-slate-500">
                   <span className="material-icons-round text-5xl mb-2 text-slate-300">inbox</span>
-                  <span className="text-sm font-['Public_Sans']">Belum ada respons yang masuk.</span>
+                  <span className="text-sm font-sans">Belum ada respons yang masuk.</span>
                 </div>
               ) : (
                 respons.map(r => (
@@ -382,7 +382,7 @@ export default function SurveiDetailPage({ params }: { params: Promise<{ id: str
               {tindakLanjut.length === 0 ? (
                 <div className="py-12 flex flex-col items-center justify-center text-slate-500">
                   <span className="material-icons-round text-5xl mb-2 text-slate-300">sentiment_satisfied</span>
-                  <span className="text-sm font-['Public_Sans']">Tidak ada keluhan yang perlu ditindaklanjuti. 🎉</span>
+                  <span className="text-sm font-sans">Tidak ada keluhan yang perlu ditindaklanjuti. 🎉</span>
                 </div>
               ) : (
                 tindakLanjut.map(tl => (

@@ -127,11 +127,11 @@ export default function Step2Review({ runId, onNext, onPrev, setSubmitState }: S
       {/* Header */}
       <div className="flex justify-between items-start">
         <div className="flex flex-col gap-1">
-          <h2 className="text-slate-900 text-xl font-bold font-['Inter'] flex items-center gap-2">
+          <h2 className="text-slate-900 text-xl font-bold font-sans flex items-center gap-2">
             <span className="material-icons-round text-amber-500">group</span>
             Review Daftar Pegawai Payroll
           </h2>
-          <p className="text-slate-500 text-sm font-['Public_Sans']">
+          <p className="text-slate-500 text-sm font-sans">
             Step 2: Review data gaji sebelum diajukan untuk approval.
           </p>
         </div>
@@ -148,8 +148,8 @@ export default function Step2Review({ runId, onNext, onPrev, setSubmitState }: S
             <span className="material-icons-round text-slate-600 text-3xl">group</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Total Pegawai</span>
-            <span className="text-slate-900 text-3xl font-bold font-['Public_Sans'] mt-1">{loading ? '—' : data.length}</span>
+            <span className="text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Total Pegawai</span>
+            <span className="text-slate-900 text-3xl font-bold font-sans mt-1">{loading ? '—' : data.length}</span>
           </div>
         </div>
 
@@ -158,8 +158,8 @@ export default function Step2Review({ runId, onNext, onPrev, setSubmitState }: S
             <span className="material-icons-round text-indigo-700 text-3xl">account_balance_wallet</span>
           </div>
           <div className="flex flex-col truncate">
-            <span className="text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Total Netto</span>
-            <span className="text-slate-900 text-xl font-bold font-['Liberation_Mono'] mt-1 truncate">
+            <span className="text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Total Netto</span>
+            <span className="text-slate-900 text-xl font-bold font-sans mt-1 truncate">
               {loading ? '—' : formatRupiah(totalNetto)}
             </span>
           </div>
@@ -170,9 +170,9 @@ export default function Step2Review({ runId, onNext, onPrev, setSubmitState }: S
             <span className="material-icons-round text-amber-600 text-3xl">tune</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Penyesuaian</span>
+            <span className="text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Penyesuaian</span>
             <div className="flex items-end gap-2 mt-1">
-              <span className="text-slate-900 text-3xl font-bold font-['Public_Sans']">{loading ? '—' : adjCount}</span>
+              <span className="text-slate-900 text-3xl font-bold font-sans">{loading ? '—' : adjCount}</span>
               {adjCount > 0 && <span className="text-[10px] font-bold text-amber-600 mb-1 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">Perlu Cek</span>}
             </div>
           </div>
@@ -188,7 +188,7 @@ export default function Step2Review({ runId, onNext, onPrev, setSubmitState }: S
             placeholder="Cari pegawai..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-10 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm"
+            className="w-full pl-10 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm"
           />
           {search && (
             <button onClick={() => setSearch('')} className="absolute right-3 text-slate-400 hover:text-slate-600">
@@ -200,7 +200,7 @@ export default function Step2Review({ runId, onNext, onPrev, setSubmitState }: S
 
       {/* Adj feedback */}
       {adjMsg && (
-        <div className={`px-4 py-2.5 rounded-lg flex items-center gap-2 text-sm font-['Public_Sans'] animate-in fade-in ${adjMsg.type === 'success' ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-rose-50 border border-rose-200 text-rose-700'}`}>
+        <div className={`px-4 py-2.5 rounded-lg flex items-center gap-2 text-sm font-sans animate-in fade-in ${adjMsg.type === 'success' ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-rose-50 border border-rose-200 text-rose-700'}`}>
           <span className="material-icons-round text-[16px]">{adjMsg.type === 'success' ? 'check_circle' : 'error_outline'}</span>
           {adjMsg.text}
         </div>
@@ -214,13 +214,13 @@ export default function Step2Review({ runId, onNext, onPrev, setSubmitState }: S
             {/* Header */}
             <div className="w-full bg-slate-50 border-b border-slate-200 flex items-center px-6 py-4 gap-2">
               <div className="w-9 shrink-0"></div>
-              <div className="w-52 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Nama Pegawai</div>
-              <div className="w-36 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Jabatan</div>
-              <div className="flex-1 min-w-[105px] text-right text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Gaji Pokok</div>
-              <div className="flex-1 min-w-[105px] text-right text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Tunjangan</div>
-              <div className="flex-1 min-w-[105px] text-right text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Potongan</div>
-              <div className="flex-1 min-w-[105px] text-right text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider pr-4">Netto</div>
-              <div className="w-28 shrink-0 text-center text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Status</div>
+              <div className="w-52 shrink-0 text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Nama Pegawai</div>
+              <div className="w-36 shrink-0 text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Jabatan</div>
+              <div className="flex-1 min-w-[105px] text-right text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Gaji Pokok</div>
+              <div className="flex-1 min-w-[105px] text-right text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Tunjangan</div>
+              <div className="flex-1 min-w-[105px] text-right text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Potongan</div>
+              <div className="flex-1 min-w-[105px] text-right text-slate-500 text-xs font-bold font-sans uppercase tracking-wider pr-4">Netto</div>
+              <div className="w-28 shrink-0 text-center text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Status</div>
               <div className="w-8 shrink-0"></div>
             </div>
 
@@ -229,12 +229,12 @@ export default function Step2Review({ runId, onNext, onPrev, setSubmitState }: S
               {loading ? (
                 <div className="w-full py-16 flex flex-col items-center justify-center gap-3 text-slate-500">
                   <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-500 rounded-full animate-spin"></div>
-                  <span className="text-sm font-['Public_Sans']">Mengkalkulasi komponen gaji...</span>
+                  <span className="text-sm font-sans">Mengkalkulasi komponen gaji...</span>
                 </div>
               ) : filtered.length === 0 ? (
                 <div className="w-full py-16 flex flex-col items-center justify-center text-slate-500">
                   <span className="material-icons-round text-5xl mb-2 text-slate-300">group_off</span>
-                  <span className="text-sm font-['Public_Sans']">
+                  <span className="text-sm font-sans">
                     {search ? `Tidak ada pegawai "${search}".` : 'Tidak ada pegawai aktif di unit ini.'}
                   </span>
                 </div>
@@ -256,27 +256,27 @@ export default function Step2Review({ runId, onNext, onPrev, setSubmitState }: S
                         onClick={() => setExpandedId(isExpanded ? null : item.id)}
                       >
                         <div className="w-9 shrink-0 flex items-center">
-                          <div className={`w-8 h-8 rounded-full ${getAvatarColor(item.nama_lengkap || '')} flex items-center justify-center text-white text-xs font-bold font-['Public_Sans'] shrink-0`}>
+                          <div className={`w-8 h-8 rounded-full ${getAvatarColor(item.nama_lengkap || '')} flex items-center justify-center text-white text-xs font-bold font-sans shrink-0`}>
                             {getInitials(item.nama_lengkap || '')}
                           </div>
                         </div>
                         <div className="w-52 shrink-0 flex flex-col pr-2">
-                          <span className="text-slate-900 text-sm font-bold font-['Public_Sans'] truncate">{item.nama_lengkap}</span>
+                          <span className="text-slate-900 text-sm font-bold font-sans truncate">{item.nama_lengkap}</span>
 
                         </div>
                         <div className="w-36 shrink-0 pr-2">
-                          <span className="text-slate-600 text-sm font-medium font-['Public_Sans'] truncate block">{item.jabatan_snapshot || '—'}</span>
+                          <span className="text-slate-600 text-sm font-medium font-sans truncate block">{item.jabatan_snapshot || '—'}</span>
                         </div>
-                        <div className="flex-1 min-w-[105px] text-right text-slate-700 text-sm font-bold font-['Liberation_Mono'] tracking-tight pr-2">
+                        <div className="flex-1 min-w-[105px] text-right text-slate-700 text-sm font-bold font-sans tracking-tight pr-2">
                           {formatRupiah(gajiPokok(item))}
                         </div>
-                        <div className="flex-1 min-w-[105px] text-right text-slate-600 text-sm font-medium font-['Liberation_Mono'] tracking-tight pr-2">
+                        <div className="flex-1 min-w-[105px] text-right text-slate-600 text-sm font-medium font-sans tracking-tight pr-2">
                           {formatRupiah(tunjangan(item))}
                         </div>
-                        <div className="flex-1 min-w-[105px] text-right text-slate-700 text-sm font-bold font-['Liberation_Mono'] tracking-tight pr-2">
+                        <div className="flex-1 min-w-[105px] text-right text-slate-700 text-sm font-bold font-sans tracking-tight pr-2">
                           {formatRupiah(Number(item.total_potongan))}
                         </div>
-                        <div className="flex-1 min-w-[105px] text-right text-emerald-600 text-sm font-bold font-['Liberation_Mono'] tracking-tight pr-4">
+                        <div className="flex-1 min-w-[105px] text-right text-emerald-600 text-sm font-bold font-sans tracking-tight pr-4">
                           {formatRupiah(Number(item.total_netto))}
                         </div>
                         <div className="w-28 shrink-0 flex justify-center">
@@ -305,7 +305,7 @@ export default function Step2Review({ runId, onNext, onPrev, setSubmitState }: S
                                 {penerimaan.length === 0 ? (
                                   <span className="text-xs text-slate-400 italic">Tidak ada komponen penerimaan.</span>
                                 ) : penerimaan.map((k: any) => (
-                                  <div key={k.id} className="flex justify-between items-center text-sm font-['Public_Sans'] gap-2">
+                                  <div key={k.id} className="flex justify-between items-center text-sm font-sans gap-2">
                                     <span className="text-slate-700 truncate flex-1" title={k.nama_komponen}>{k.nama_komponen}</span>
                                     <div className="flex items-center gap-1 shrink-0">
                                       <span className="text-xs text-slate-400">Rp</span>
@@ -317,7 +317,7 @@ export default function Step2Review({ runId, onNext, onPrev, setSubmitState }: S
                                           ...prev,
                                           [item.id]: { ...(prev[item.id] || {}), [k.komponen_id]: e.target.value }
                                         }))}
-                                        className="w-28 text-right px-2 py-1 text-sm border border-slate-200 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 font-['Liberation_Mono'] text-slate-800"
+                                        className="w-28 text-right px-2 py-1 text-sm border border-slate-200 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 font-sans text-slate-800"
                                       />
                                     </div>
                                   </div>
@@ -326,7 +326,7 @@ export default function Step2Review({ runId, onNext, onPrev, setSubmitState }: S
                               {penerimaan.length > 0 && (
                                 <div className="flex justify-between items-center text-sm font-bold border-t border-slate-200 pt-2">
                                   <span className="text-slate-700">Total Pendapatan</span>
-                                  <span className="font-['Liberation_Mono'] text-slate-800">{formatRupiah(Number(item.total_penerimaan))}</span>
+                                  <span className="font-sans text-slate-800">{formatRupiah(Number(item.total_penerimaan))}</span>
                                 </div>
                               )}
                             </div>
@@ -340,25 +340,25 @@ export default function Step2Review({ runId, onNext, onPrev, setSubmitState }: S
                                 {potongan.length === 0 ? (
                                   <span className="text-xs text-slate-400 italic">Tidak ada potongan.</span>
                                 ) : potongan.map((k: any) => (
-                                  <div key={k.id} className="flex justify-between items-center text-sm font-['Public_Sans']">
+                                  <div key={k.id} className="flex justify-between items-center text-sm font-sans">
                                     <span className="text-slate-700 truncate pr-4" title={k.nama_komponen}>{k.nama_komponen}</span>
-                                    <span className="text-slate-700 font-bold font-['Liberation_Mono'] shrink-0">- {formatRupiah(Number(k.nominal))}</span>
+                                    <span className="text-slate-700 font-bold font-sans shrink-0">- {formatRupiah(Number(k.nominal))}</span>
                                   </div>
                                 ))}
                               </div>
                               {potongan.length > 0 && (
                                 <div className="flex justify-between items-center text-sm font-bold border-t border-slate-200 pt-2">
                                   <span className="text-slate-700">Total Potongan</span>
-                                  <span className="font-['Liberation_Mono'] text-slate-700">- {formatRupiah(Number(item.total_potongan))}</span>
+                                  <span className="font-sans text-slate-700">- {formatRupiah(Number(item.total_potongan))}</span>
                                 </div>
                               )}
                               {bebanGereja.length > 0 && (
                                 <div className="mt-2 pt-2 border-t border-dashed border-slate-200">
                                   <p className="text-[10px] font-bold text-purple-600 uppercase tracking-wider mb-1.5">Beban Gereja (tidak dipotong)</p>
                                   {bebanGereja.map((k: any) => (
-                                    <div key={k.id} className="flex justify-between items-center text-xs font-['Public_Sans']">
+                                    <div key={k.id} className="flex justify-between items-center text-xs font-sans">
                                       <span className="text-slate-500 truncate pr-2">{k.nama_komponen}</span>
-                                      <span className="text-purple-600 font-bold font-['Liberation_Mono']">{formatRupiah(Number(k.nominal))}</span>
+                                      <span className="text-purple-600 font-bold font-sans">{formatRupiah(Number(k.nominal))}</span>
                                     </div>
                                   ))}
                                 </div>
@@ -371,29 +371,29 @@ export default function Step2Review({ runId, onNext, onPrev, setSubmitState }: S
                                 <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block shrink-0"></span> Ringkasan
                               </h4>
                               <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col gap-2">
-                                <div className="flex justify-between text-sm font-['Public_Sans']">
+                                <div className="flex justify-between text-sm font-sans">
                                   <span className="text-slate-500">Bruto</span>
-                                  <span className="text-slate-700 font-bold font-['Liberation_Mono']">{formatRupiah(Number(item.total_penerimaan))}</span>
+                                  <span className="text-slate-700 font-bold font-sans">{formatRupiah(Number(item.total_penerimaan))}</span>
                                 </div>
-                                <div className="flex justify-between text-sm font-['Public_Sans']">
+                                <div className="flex justify-between text-sm font-sans">
                                   <span className="text-slate-500">Potongan</span>
-                                  <span className="text-slate-700 font-bold font-['Liberation_Mono']">- {formatRupiah(Number(item.total_potongan))}</span>
+                                  <span className="text-slate-700 font-bold font-sans">- {formatRupiah(Number(item.total_potongan))}</span>
                                 </div>
                                 <div className="w-full h-px bg-slate-100 my-1"></div>
                                 <div className="flex justify-between text-base font-bold">
                                   <span className="text-slate-900">Netto</span>
-                                  <span className="text-emerald-600 font-['Liberation_Mono']">{formatRupiah(Number(item.total_netto))}</span>
+                                  <span className="text-emerald-600 font-sans">{formatRupiah(Number(item.total_netto))}</span>
                                 </div>
                                 {totalBG > 0 && (
                                   <>
                                     <div className="w-full h-px border-t border-dashed border-slate-200 my-1"></div>
-                                    <div className="flex justify-between text-xs font-['Public_Sans']">
+                                    <div className="flex justify-between text-xs font-sans">
                                       <span className="text-slate-400">+ Beban Gereja (BPJS)</span>
-                                      <span className="text-purple-600 font-bold font-['Liberation_Mono']">{formatRupiah(totalBG)}</span>
+                                      <span className="text-purple-600 font-bold font-sans">{formatRupiah(totalBG)}</span>
                                     </div>
                                     <div className="flex justify-between text-xs font-bold text-slate-600">
                                       <span>Total Cost Unit</span>
-                                      <span className="font-['Liberation_Mono']">{formatRupiah(Number(item.total_netto) + totalBG)}</span>
+                                      <span className="font-sans">{formatRupiah(Number(item.total_netto) + totalBG)}</span>
                                     </div>
                                   </>
                                 )}
@@ -401,14 +401,14 @@ export default function Step2Review({ runId, onNext, onPrev, setSubmitState }: S
                               <div className="flex gap-2 mt-auto">
                                 <button
                                   onClick={e => { e.stopPropagation(); alert('Preview slip akan tersedia setelah finalisasi.'); }}
-                                  className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors flex items-center justify-center gap-1 font-['Public_Sans']"
+                                  className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors flex items-center justify-center gap-1 font-sans"
                                 >
                                   <span className="material-icons-round text-[14px]">print</span> Preview Slip
                                 </button>
                                 <button
                                   onClick={e => { e.stopPropagation(); handleSaveAdj(item); }}
                                   disabled={savingId === item.id}
-                                  className="flex-1 px-3 py-2 bg-slate-700 hover:bg-slate-800 rounded-lg text-xs font-bold text-white transition-colors flex items-center justify-center gap-1 font-['Public_Sans'] disabled:opacity-60"
+                                  className="flex-1 px-3 py-2 bg-slate-700 hover:bg-slate-800 rounded-lg text-xs font-bold text-white transition-colors flex items-center justify-center gap-1 font-sans disabled:opacity-60"
                                 >
                                   {savingId === item.id ? (
                                     <span className="material-icons-round text-[14px] animate-spin">sync</span>
@@ -434,9 +434,9 @@ export default function Step2Review({ runId, onNext, onPrev, setSubmitState }: S
         {/* Table Footer */}
         {!loading && data.length > 0 && (
           <div className="px-6 py-3 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center">
-            <span className="text-slate-400 text-xs font-['Public_Sans']">{filtered.length} dari {data.length} pegawai</span>
+            <span className="text-slate-400 text-xs font-sans">{filtered.length} dari {data.length} pegawai</span>
             <div className="flex gap-6">
-              <span className="text-slate-500 text-xs font-['Public_Sans']">Total Netto: <strong className="font-['Liberation_Mono'] text-slate-700">{formatRupiah(totalNetto)}</strong></span>
+              <span className="text-slate-500 text-xs font-sans">Total Netto: <strong className="font-sans text-slate-700">{formatRupiah(totalNetto)}</strong></span>
             </div>
           </div>
         )}
@@ -444,10 +444,10 @@ export default function Step2Review({ runId, onNext, onPrev, setSubmitState }: S
 
       {/* Footer */}
       <div className="w-full flex justify-between items-center pt-6 border-t border-slate-100">
-        <button onClick={onPrev} className="px-6 py-2.5 border border-slate-300 rounded-lg text-slate-600 font-bold hover:bg-slate-50 transition-colors flex items-center gap-2 font-['Public_Sans']">
+        <button onClick={onPrev} className="px-6 py-2.5 border border-slate-300 rounded-lg text-slate-600 font-bold hover:bg-slate-50 transition-colors flex items-center gap-2 font-sans">
           <span className="material-icons-round text-[18px]">arrow_back</span> Kembali ke Setup
         </button>
-        <button onClick={onNext} className="px-6 py-2.5 bg-blue-600 rounded-lg text-white font-bold hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-sm shadow-blue-600/20 font-['Public_Sans']">
+        <button onClick={onNext} className="px-6 py-2.5 bg-blue-600 rounded-lg text-white font-bold hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-sm shadow-blue-600/20 font-sans">
           Lanjut ke Finalisasi <span className="material-icons-round text-[18px]">arrow_forward</span>
         </button>
       </div>

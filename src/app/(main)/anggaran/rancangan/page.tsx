@@ -101,21 +101,21 @@ export default function RancanganAnggaranPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Draft':
-        return <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 flex items-center gap-1.5 w-max"><span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>DRAFT</span>;
+        return <span className="px-3 py-1 rounded-full text-xs font-bold font-sans uppercase bg-slate-100 text-slate-600">DRAFT</span>;
       case 'Menunggu Review':
-        return <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-600 flex items-center gap-1.5 w-max"><span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>MENUNGGU REVIEW</span>;
+        return <span className="px-3 py-1 rounded-full text-xs font-bold font-sans uppercase bg-amber-100 text-amber-700">MENUNGGU REVIEW</span>;
       case 'Sedang Direviu':
-        return <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-600 flex items-center gap-1.5 w-max"><span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>SEDANG DIREVIU</span>;
+        return <span className="px-3 py-1 rounded-full text-xs font-bold font-sans uppercase bg-blue-100 text-blue-700">SEDANG DIREVIU</span>;
       case 'Disetujui Sebagian':
-        return <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-50 text-orange-600 flex items-center gap-1.5 w-max"><span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span>DISETUJUI SEBAGIAN</span>;
+        return <span className="px-3 py-1 rounded-full text-xs font-bold font-sans uppercase bg-orange-100 text-orange-700">DISETUJUI SEBAGIAN</span>;
       case 'Disetujui Penuh':
-        return <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-600 flex items-center gap-1.5 w-max"><span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>DISETUJUI PENUH</span>;
+        return <span className="px-3 py-1 rounded-full text-xs font-bold font-sans uppercase bg-green-100 text-green-700">DISETUJUI PENUH</span>;
       case 'Ditolak':
-        return <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-600 flex items-center gap-1.5 w-max"><span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>DITOLAK</span>;
+        return <span className="px-3 py-1 rounded-full text-xs font-bold font-sans uppercase bg-red-100 text-red-700">DITOLAK</span>;
       case 'Dibatalkan':
-        return <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-zinc-100 text-zinc-500 flex items-center gap-1.5 w-max"><span className="w-1.5 h-1.5 rounded-full bg-zinc-400"></span>DIBATALKAN</span>;
+        return <span className="px-3 py-1 rounded-full text-xs font-bold font-sans uppercase bg-zinc-100 text-zinc-600">DIBATALKAN</span>;
       default:
-        return <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 flex items-center gap-1.5 w-max"><span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>{status.toUpperCase()}</span>;
+        return <span className="px-3 py-1 rounded-full text-xs font-bold font-sans uppercase bg-slate-100 text-slate-600">{status.toUpperCase()}</span>;
     }
   };
 
@@ -240,8 +240,8 @@ export default function RancanganAnggaranPage() {
       )}
       <div className="w-full flex justify-between items-start">
         <div className="flex flex-col gap-1">
-          <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Daftar Rancangan Anggaran</h1>
-          <div className="text-slate-500 text-base font-medium font-['Inter'] leading-6">Kelola pengajuan rancangan anggaran tiap komisi dan satelit</div>
+          <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Daftar Rancangan Anggaran</h1>
+          <div className="text-slate-500 text-base font-medium font-sans leading-6">Kelola pengajuan rancangan anggaran tiap komisi dan satelit</div>
         </div>
         <div className="flex items-center gap-3">
           {/* Badge: RA pending review */}
@@ -260,7 +260,7 @@ export default function RancanganAnggaranPage() {
           {isAuthorizedToCreate && (
             <Link href="/anggaran/rancangan/new" className="px-5 py-2.5 bg-slate-700 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none">
               <span className="material-icons-round text-white text-[20px]">add</span>
-              <span className="text-white text-sm font-bold font-['Inter'] leading-5">Buat Rancangan Baru</span>
+              <span className="text-white text-sm font-bold font-sans leading-5">Buat Rancangan Baru</span>
             </Link>
           )}
         </div>
@@ -270,14 +270,14 @@ export default function RancanganAnggaranPage() {
       <div className="w-full px-4 py-4 bg-white rounded-xl border border-slate-200 flex flex-wrap items-center gap-4 shadow-sm">
         
         {/* Search Bar */}
-        <div className="flex-1 min-w-[200px] relative flex items-center">
+        <div className="flex-1 min-w-[300px] relative flex items-center">
           <span className="material-icons-round absolute left-4 text-slate-400 text-[20px]">search</span>
           <input 
             type="text" 
             placeholder="Cari ID Dokumen atau Komisi..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm"
+            className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm"
           />
         </div>
 
@@ -285,7 +285,7 @@ export default function RancanganAnggaranPage() {
         <div className="relative min-w-[140px]">
           <select 
             value={filterTahun} onChange={e => setFilterTahun(e.target.value)}
-            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
+            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
           >
             <option value="">Semua Tahun</option>
             {tahunOptions.map(t => <option key={t} value={t}>{t}</option>)}
@@ -297,7 +297,7 @@ export default function RancanganAnggaranPage() {
         <div className="relative min-w-[150px]">
           <select 
             value={filterSatelit} onChange={e => { setFilterSatelit(e.target.value); setFilterKomisi(''); }}
-            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
+            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
           >
             <option value="">Semua Satelit</option>
             {satelitOptions.map(s => <option key={s} value={s}>{s}</option>)}
@@ -309,7 +309,7 @@ export default function RancanganAnggaranPage() {
         <div className="relative min-w-[150px]">
           <select 
             value={filterKomisi} onChange={e => setFilterKomisi(e.target.value)}
-            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
+            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
           >
             <option value="">Semua Komisi</option>
             <option value="Umum">- Umum (Satelit) -</option>
@@ -322,7 +322,7 @@ export default function RancanganAnggaranPage() {
         <div className="relative min-w-[150px]">
           <select 
             value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
+            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
           >
             <option value="">Semua Status</option>
             {statusOptions.map(st => <option key={st} value={st}>{st}</option>)}
@@ -341,16 +341,16 @@ export default function RancanganAnggaranPage() {
           <table className="w-full text-left border-collapse min-w-[1000px] relative">
             <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 shadow-sm">
               <tr>
-                <th className="p-4 font-bold text-slate-500 text-xs font-['Public_Sans'] uppercase tracking-wider whitespace-nowrap">ID DOKUMEN</th>
-                <th className="p-4 font-bold text-slate-500 text-xs font-['Public_Sans'] uppercase tracking-wider whitespace-nowrap">NAMA RANCANGAN</th>
-                <th className="p-4 font-bold text-slate-500 text-xs font-['Public_Sans'] uppercase tracking-wider whitespace-nowrap">KATEGORI RA</th>
-                <th className="p-4 font-bold text-slate-500 text-xs font-['Public_Sans'] uppercase tracking-wider whitespace-nowrap">TAHUN</th>
-                <th className="p-4 font-bold text-slate-500 text-xs font-['Public_Sans'] uppercase tracking-wider whitespace-nowrap">SATELIT</th>
-                <th className="p-4 font-bold text-slate-500 text-xs font-['Public_Sans'] uppercase tracking-wider whitespace-nowrap">KOMISI</th>
-                <th className="p-4 font-bold text-slate-500 text-xs font-['Public_Sans'] uppercase tracking-wider whitespace-nowrap text-right">TOTAL ANGGARAN</th>
-                <th className="p-4 font-bold text-slate-500 text-xs font-['Public_Sans'] uppercase tracking-wider whitespace-nowrap">TANGGAL UPDATE</th>
-                <th className="p-4 font-bold text-slate-500 text-xs font-['Public_Sans'] uppercase tracking-wider whitespace-nowrap">STATUS</th>
-                <th className="p-4 font-bold text-slate-500 text-xs font-['Public_Sans'] uppercase tracking-wider text-center w-24 whitespace-nowrap">AKSI</th>
+                <th className="p-4 font-bold text-slate-500 text-xs font-sans uppercase tracking-wider whitespace-nowrap">ID DOKUMEN</th>
+                <th className="p-4 font-bold text-slate-500 text-xs font-sans uppercase tracking-wider whitespace-nowrap">NAMA RANCANGAN</th>
+                <th className="p-4 font-bold text-slate-500 text-xs font-sans uppercase tracking-wider whitespace-nowrap">KATEGORI RA</th>
+                <th className="p-4 font-bold text-slate-500 text-xs font-sans uppercase tracking-wider whitespace-nowrap">TAHUN</th>
+                <th className="p-4 font-bold text-slate-500 text-xs font-sans uppercase tracking-wider whitespace-nowrap">SATELIT</th>
+                <th className="p-4 font-bold text-slate-500 text-xs font-sans uppercase tracking-wider whitespace-nowrap">KOMISI</th>
+                <th className="p-4 font-bold text-slate-500 text-xs font-sans uppercase tracking-wider whitespace-nowrap text-right">TOTAL ANGGARAN</th>
+                <th className="p-4 font-bold text-slate-500 text-xs font-sans uppercase tracking-wider whitespace-nowrap">TANGGAL UPDATE</th>
+                <th className="p-4 font-bold text-slate-500 text-xs font-sans uppercase tracking-wider whitespace-nowrap">STATUS</th>
+                <th className="p-4 font-bold text-slate-500 text-xs font-sans uppercase tracking-wider text-center w-24 whitespace-nowrap">AKSI</th>
               </tr>
             </thead>
             <tbody>
@@ -384,7 +384,7 @@ export default function RancanganAnggaranPage() {
                 filteredData.map((item) => (
                   <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                     <td className="p-4 text-sm font-medium text-slate-800">
-                      <span className="px-2 py-1 bg-slate-100 rounded font-mono text-xs">{item.kode_dokumen}</span>
+                      <span className="px-2 py-1 bg-slate-100 rounded font-sans text-xs">{item.kode_dokumen}</span>
                     </td>
                     <td className="p-4 text-sm text-slate-800 font-bold">{item.nama_rancangan || 'Rancangan Anggaran ' + item.tahun}</td>
                     <td className="p-4 text-sm text-slate-600">
@@ -396,11 +396,11 @@ export default function RancanganAnggaranPage() {
                     <td className="p-4 text-sm text-slate-700 font-medium">{item.satelit}</td>
                     <td className="p-4 text-sm text-slate-600">{item.komisi || <span className="text-slate-400 italic">Anggaran Umum Satelit</span>}</td>
                     <td className="p-4 text-sm text-right">
-                      <span className={`font-bold font-mono block ${
+                      <span className={`font-bold font-sans block ${
                         item.status === 'Disetujui Sebagian' ? 'text-slate-400 line-through text-xs' : 'text-slate-800'
                       }`}>{formatRupiah(item.total_anggaran)}</span>
                       {item.status === 'Disetujui Sebagian' && item.total_disetujui != null && (
-                        <span className="font-bold font-mono text-sm text-blue-700 block">
+                        <span className="font-bold font-sans text-sm text-blue-700 block">
                           {formatRupiah(item.total_disetujui)}
                           <span className="text-[9px] font-normal text-blue-400 ml-1">disetujui</span>
                         </span>

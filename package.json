@@ -20,6 +20,7 @@
     "clsx": "^2.1.1",
     "docxtemplater": "^3.68.6",
     "exceljs": "^4.4.0",
+    "heic2any": "^0.0.4",
     "jsonwebtoken": "^9.0.3",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",

@@ -147,7 +147,7 @@ export default function AbsensiSusulanPage({ params }: { params: Promise<{ id: s
   if (isLoadingHeader) return <div className="h-[70vh] flex items-center justify-center text-slate-800"><span className="material-icons-round text-5xl animate-spin text-blue-600">refresh</span></div>;
 
   return (
-    <div className="w-full flex flex-col gap-6 pb-10 font-['Inter']">
+    <div className="w-full flex flex-col gap-6 pb-10 font-sans">
       
       <SubmitOverlay 
         status={submitState.status} 
@@ -157,7 +157,7 @@ export default function AbsensiSusulanPage({ params }: { params: Promise<{ id: s
 
       {/* Breadcrumb & Title Area */}
       <div className="w-full flex flex-col justify-start items-start gap-4">
-          <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-['Inter'] leading-4">
+          <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-sans leading-4">
             <Link href="/kegiatan" className="text-slate-500 hover:text-blue-600">Modul Kegiatan</Link>
             <span className="text-slate-500 material-icons-round text-[14px]">chevron_right</span>
             <Link href="/kegiatan" className="text-slate-500 hover:text-blue-600">Daftar Kegiatan</Link>
@@ -166,14 +166,14 @@ export default function AbsensiSusulanPage({ params }: { params: Promise<{ id: s
           </div>
           <div className="self-stretch flex flex-col md:flex-row md:justify-between items-start md:items-end gap-4">
             <div className="inline-flex flex-col justify-start items-start">
-              <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">{kegiatan?.nama_kegiatan || 'Acara GSJA'}</h1>
-              <div className="text-slate-500 text-base font-medium font-['Inter'] leading-6 flex gap-1">
+              <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">{kegiatan?.nama_kegiatan || 'Acara GSJA'}</h1>
+              <div className="text-slate-500 text-base font-medium font-sans leading-6 flex gap-1">
                 <span className="material-icons-round text-[18px]">how_to_reg</span>
                 <span className="uppercase tracking-widest text-xs font-bold my-auto ml-1">Input Kehadiran Manual</span>
               </div>
             </div>
             
-            <div className="flex gap-2 text-xs font-bold font-['Public_Sans'] px-4 py-3 bg-slate-100/50 rounded-xl border border-slate-200/60 shadow-sm shrink-0">
+            <div className="flex gap-2 text-xs font-bold font-sans px-4 py-3 bg-slate-100/50 rounded-xl border border-slate-200/60 shadow-sm shrink-0">
                <span className="text-slate-500 uppercase tracking-widest mr-2 my-auto text-[10px]">TOTAL KEHADIRAN:</span>
                <div className="px-3 py-1 bg-white text-slate-800 rounded-md shadow-sm border border-slate-200/60">{stats.total_hadir} Jiwa</div>
             </div>
@@ -183,7 +183,7 @@ export default function AbsensiSusulanPage({ params }: { params: Promise<{ id: s
       {/* Tabs / Separator Indicator */}
       <div className="w-full border-b border-slate-200 inline-flex justify-start items-start gap-8 px-1">
           <div className="px-2 py-3 border-b-2 border-slate-700 inline-flex flex-col justify-center items-center cursor-default">
-            <span className="text-sm font-bold font-['Inter'] leading-5 text-slate-700">Form Absensi & Daftar Hadir</span>
+            <span className="text-sm font-bold font-sans leading-5 text-slate-700">Form Absensi & Daftar Hadir</span>
           </div>
       </div>
 
@@ -401,7 +401,7 @@ export default function AbsensiSusulanPage({ params }: { params: Promise<{ id: s
                                   {log.metode === 'QR Code' ? 'Aplikasi HP GSJA' : 'Back-Office / Usher'}
                                 </span>
                              </td>
-                             <td className="py-3 px-6 text-right text-xs font-bold font-['Liberation_Mono'] tracking-wide text-slate-500">
+                             <td className="py-3 px-6 text-right text-xs font-bold font-sans tracking-wide text-slate-500">
                                 {formatWaktu(log.waktu_hadir)}
                              </td>
                           </tr>

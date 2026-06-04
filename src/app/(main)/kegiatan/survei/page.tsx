@@ -412,7 +412,7 @@ export default function SurveiListPage() {
             }
           })}
         </div>
-        <span className="text-slate-700 text-sm font-bold font-['Public_Sans']">{rounded > 0 ? rounded.toFixed(1) : '-'}</span>
+        <span className="text-slate-700 text-sm font-bold font-sans">{rounded > 0 ? rounded.toFixed(1) : '-'}</span>
       </div>
     );
   };
@@ -428,8 +428,8 @@ export default function SurveiListPage() {
       {/* Header Section */}
       <div className="w-full flex justify-between items-start">
         <div className="flex flex-col gap-1">
-          <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Survei Kepuasan</h1>
-          <div className="text-slate-500 text-base font-medium font-['Inter'] leading-6">Kelola survei kepuasan jemaat terhadap kegiatan gereja</div>
+          <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Survei Kepuasan</h1>
+          <div className="text-slate-500 text-base font-medium font-sans leading-6">Kelola survei kepuasan jemaat terhadap kegiatan gereja</div>
         </div>
         {hasPermission('survei_manage') && (
           <div className="flex items-center gap-3">
@@ -438,14 +438,14 @@ export default function SurveiListPage() {
               className="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-lg flex justify-center items-center gap-2 hover:bg-slate-50 transition-colors shadow-sm"
             >
               <span className="material-icons-round text-[18px]">campaign</span>
-              <span className="text-sm font-bold font-['Inter']">Broadcast Notifikasi</span>
+              <span className="text-sm font-bold font-sans">Broadcast Notifikasi</span>
             </Link>
             <Link
               href="/kegiatan/survei/buat"
               className="px-5 py-2.5 bg-slate-700 text-white rounded-lg flex justify-center items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm"
             >
               <span className="material-icons-round text-[18px]">add</span>
-              <span className="text-sm font-bold font-['Inter']">Buat Survei Baru</span>
+              <span className="text-sm font-bold font-sans">Buat Survei Baru</span>
             </Link>
           </div>
         )}
@@ -460,9 +460,9 @@ export default function SurveiListPage() {
              <span className="material-icons-round text-indigo-600 text-3xl">poll</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-slate-600 text-xs font-bold font-['Public_Sans'] uppercase tracking-wide">TOTAL SURVEI</span>
+            <span className="text-slate-600 text-xs font-bold font-sans uppercase tracking-wide">TOTAL SURVEI</span>
             <div className="flex items-end gap-2 mt-1">
-              <span className="text-slate-900 text-3xl font-bold font-['Public_Sans'] leading-9">{totalSurvei}</span>
+              <span className="text-slate-900 text-3xl font-bold font-sans leading-9">{totalSurvei}</span>
             </div>
           </div>
         </div>
@@ -473,9 +473,9 @@ export default function SurveiListPage() {
             <span className="material-icons-round text-blue-600 text-3xl">groups</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-slate-600 text-xs font-bold font-['Public_Sans'] uppercase tracking-wide">TOTAL RESPONDEN</span>
+            <span className="text-slate-600 text-xs font-bold font-sans uppercase tracking-wide">TOTAL RESPONDEN</span>
             <div className="flex items-end gap-2 mt-1">
-              <span className="text-slate-900 text-3xl font-bold font-['Public_Sans'] leading-9">{totalResponden}</span>
+              <span className="text-slate-900 text-3xl font-bold font-sans leading-9">{totalResponden}</span>
             </div>
           </div>
         </div>
@@ -486,9 +486,9 @@ export default function SurveiListPage() {
             <span className="material-icons-round text-amber-600 text-3xl">stars</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-slate-600 text-xs font-bold font-['Public_Sans'] uppercase tracking-wide">RATA-RATA SKOR KEPUASAN</span>
+            <span className="text-slate-600 text-xs font-bold font-sans uppercase tracking-wide">RATA-RATA SKOR KEPUASAN</span>
             <div className="flex items-end gap-2 mt-1">
-              <span className={`text-3xl font-bold font-['Public_Sans'] leading-9 ${rataRataSkor >= 4 ? 'text-emerald-600' : rataRataSkor >= 3 ? 'text-amber-600' : 'text-rose-600'}`}>{rataRataSkor > 0 ? rataRataSkor.toFixed(1) : '-'}</span>
+              <span className={`text-3xl font-bold font-sans leading-9 ${rataRataSkor >= 4 ? 'text-emerald-600' : rataRataSkor >= 3 ? 'text-amber-600' : 'text-rose-600'}`}>{rataRataSkor > 0 ? rataRataSkor.toFixed(1) : '-'}</span>
               <span className="text-slate-400 text-sm font-medium mb-1">/ 5.0</span>
             </div>
           </div>
@@ -537,7 +537,7 @@ export default function SurveiListPage() {
               <input 
                 type="text" 
                 placeholder="Cari judul survei..."
-                className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm"
+                className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -548,7 +548,7 @@ export default function SurveiListPage() {
               <select 
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
+                className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
               >
                 <option value="">Semua Status</option>
                 <option value="terjadwal">Terjadwal</option>
@@ -564,7 +564,7 @@ export default function SurveiListPage() {
               <select 
                 value={filterTipe}
                 onChange={(e) => setFilterTipe(e.target.value)}
-                className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
+                className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
               >
                 <option value="">Semua Tipe</option>
                 <option value="otomatis">⚡ Otomatis</option>
@@ -581,12 +581,12 @@ export default function SurveiListPage() {
               <div className="min-w-[1000px] flex flex-col">
                 {/* Table Header */}
                 <div className="w-full bg-slate-50 border-b border-slate-200 flex items-center px-6 py-4">
-                  <div className="flex-1 min-w-[250px] text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">JUDUL SURVEI</div>
-                  <div className="w-[140px] shrink-0 text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">STATUS</div>
-                  <div className="w-[180px] shrink-0 text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">PERIODE</div>
-                  <div className="w-[120px] shrink-0 text-center text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">RESPONDEN</div>
-                  <div className="w-[160px] shrink-0 text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">RATA-RATA SKOR</div>
-                  <div className="w-12 shrink-0 text-center text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">AKSI</div>
+                  <div className="flex-1 min-w-[250px] text-slate-700 text-xs font-bold font-sans uppercase tracking-wider">JUDUL SURVEI</div>
+                  <div className="w-[140px] shrink-0 text-slate-700 text-xs font-bold font-sans uppercase tracking-wider">STATUS</div>
+                  <div className="w-[180px] shrink-0 text-slate-700 text-xs font-bold font-sans uppercase tracking-wider">PERIODE</div>
+                  <div className="w-[120px] shrink-0 text-center text-slate-700 text-xs font-bold font-sans uppercase tracking-wider">RESPONDEN</div>
+                  <div className="w-[160px] shrink-0 text-slate-700 text-xs font-bold font-sans uppercase tracking-wider">RATA-RATA SKOR</div>
+                  <div className="w-12 shrink-0 text-center text-slate-700 text-xs font-bold font-sans uppercase tracking-wider">AKSI</div>
                 </div>
 
                 {/* Table Body */}
@@ -594,7 +594,7 @@ export default function SurveiListPage() {
                   {data.length === 0 ? (
                     <div className="w-full py-12 flex flex-col items-center justify-center text-slate-500">
                       <span className="material-icons-round text-5xl mb-2 text-slate-300">poll</span>
-                      <span className="text-sm font-['Public_Sans']">Belum ada survei yang dibuat.</span>
+                      <span className="text-sm font-sans">Belum ada survei yang dibuat.</span>
                     </div>
                   ) : (
                     data.map((survei, idx) => {
@@ -633,7 +633,7 @@ export default function SurveiListPage() {
 
                       {/* Kolom 4: Responden */}
                       <div className="w-[120px] shrink-0 flex justify-center items-center">
-                         <span className="text-slate-700 text-sm font-bold font-['Public_Sans']">{survei.total_responden || 0}</span>
+                         <span className="text-slate-700 text-sm font-bold font-sans">{survei.total_responden || 0}</span>
                       </div>
 
                       {/* Kolom 5: Rata-rata Skor */}
@@ -731,7 +731,7 @@ export default function SurveiListPage() {
             {/* Pagination Footer */}
             {totalItems > 0 && (
               <div className="w-full px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center rounded-b-xl">
-                <div className="text-slate-500 text-sm font-['Public_Sans']">
+                <div className="text-slate-500 text-sm font-sans">
                   Menampilkan {((currentPage - 1) * limit) + 1} - {Math.min(currentPage * limit, totalItems)} dari {totalItems} survei
                 </div>
                 <div className="flex gap-2">
@@ -768,7 +768,7 @@ export default function SurveiListPage() {
               </div>
               <div className="flex flex-col">
                 <span className="text-slate-500 text-[11px] font-bold uppercase tracking-wide">BELUM DITANGANI</span>
-                <span className="text-rose-600 text-2xl font-bold font-['Public_Sans']">{keluhanMeta.total_belum}</span>
+                <span className="text-rose-600 text-2xl font-bold font-sans">{keluhanMeta.total_belum}</span>
               </div>
             </div>
             <div className="p-5 bg-white rounded-xl shadow-sm border border-amber-100 flex items-center gap-4 hover:shadow-md transition-shadow">
@@ -777,7 +777,7 @@ export default function SurveiListPage() {
               </div>
               <div className="flex flex-col">
                 <span className="text-slate-500 text-[11px] font-bold uppercase tracking-wide">SEDANG DITANGANI</span>
-                <span className="text-amber-600 text-2xl font-bold font-['Public_Sans']">{keluhanMeta.total_sedang}</span>
+                <span className="text-amber-600 text-2xl font-bold font-sans">{keluhanMeta.total_sedang}</span>
               </div>
             </div>
             <div className="p-5 bg-white rounded-xl shadow-sm border border-emerald-100 flex items-center gap-4 hover:shadow-md transition-shadow">
@@ -786,7 +786,7 @@ export default function SurveiListPage() {
               </div>
               <div className="flex flex-col">
                 <span className="text-slate-500 text-[11px] font-bold uppercase tracking-wide">SELESAI</span>
-                <span className="text-emerald-600 text-2xl font-bold font-['Public_Sans']">{keluhanMeta.total_selesai}</span>
+                <span className="text-emerald-600 text-2xl font-bold font-sans">{keluhanMeta.total_selesai}</span>
               </div>
             </div>
           </div>
@@ -798,7 +798,7 @@ export default function SurveiListPage() {
               <input 
                 type="text" 
                 placeholder="Cari survei atau pertanyaan..."
-                className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm"
+                className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm"
                 value={keluhanSearch}
                 onChange={(e) => setKeluhanSearch(e.target.value)}
               />
@@ -807,7 +807,7 @@ export default function SurveiListPage() {
               <select 
                 value={keluhanFilterStatus}
                 onChange={(e) => setKeluhanFilterStatus(e.target.value)}
-                className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
+                className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
               >
                 <option value="">Semua Status</option>
                 <option value="Belum Ditangani">🔴 Belum Ditangani</option>
@@ -836,12 +836,12 @@ export default function SurveiListPage() {
               <div className="min-w-[1100px] flex flex-col">
                 {/* Table Header */}
                 <div className="w-full bg-slate-50 border-b border-slate-200 flex items-center px-6 py-4">
-                  <div className="flex-1 min-w-[280px] text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">KELUHAN</div>
-                  <div className="w-[200px] shrink-0 text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">ASAL SURVEI</div>
-                  <div className="w-[100px] shrink-0 text-center text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">SKOR</div>
-                  <div className="w-[140px] shrink-0 text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">STATUS</div>
-                  <div className="w-[160px] shrink-0 text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">WAKTU</div>
-                  <div className="w-[100px] shrink-0 text-center text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">AKSI</div>
+                  <div className="flex-1 min-w-[280px] text-slate-700 text-xs font-bold font-sans uppercase tracking-wider">KELUHAN</div>
+                  <div className="w-[200px] shrink-0 text-slate-700 text-xs font-bold font-sans uppercase tracking-wider">ASAL SURVEI</div>
+                  <div className="w-[100px] shrink-0 text-center text-slate-700 text-xs font-bold font-sans uppercase tracking-wider">SKOR</div>
+                  <div className="w-[140px] shrink-0 text-slate-700 text-xs font-bold font-sans uppercase tracking-wider">STATUS</div>
+                  <div className="w-[160px] shrink-0 text-slate-700 text-xs font-bold font-sans uppercase tracking-wider">WAKTU</div>
+                  <div className="w-[100px] shrink-0 text-center text-slate-700 text-xs font-bold font-sans uppercase tracking-wider">AKSI</div>
                 </div>
 
                 {/* Table Body */}
@@ -849,7 +849,7 @@ export default function SurveiListPage() {
                   {keluhanData.length === 0 ? (
                     <div className="w-full py-16 flex flex-col items-center justify-center text-slate-500">
                       <span className="material-icons-round text-5xl mb-2 text-slate-300">sentiment_satisfied</span>
-                      <span className="text-sm font-['Public_Sans'] font-medium">Tidak ada keluhan yang ditemukan. 🎉</span>
+                      <span className="text-sm font-sans font-medium">Tidak ada keluhan yang ditemukan. 🎉</span>
                       <span className="text-xs text-slate-400 mt-1">Semua respons survei dalam kondisi baik.</span>
                     </div>
                   ) : (
@@ -941,7 +941,7 @@ export default function SurveiListPage() {
             {/* Keluhan Pagination */}
             {keluhanTotal > 0 && (
               <div className="w-full px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center rounded-b-xl">
-                <div className="text-slate-500 text-sm font-['Public_Sans']">
+                <div className="text-slate-500 text-sm font-sans">
                   Menampilkan {((keluhanPage - 1) * keluhanLimit) + 1} - {Math.min(keluhanPage * keluhanLimit, keluhanTotal)} dari {keluhanTotal} keluhan
                 </div>
                 <div className="flex gap-2">

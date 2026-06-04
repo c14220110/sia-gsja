@@ -155,7 +155,7 @@ export default function JemaatPwaLayout({
   }
 
   return (
-    <div className={`w-full min-h-screen ${wrapperBgClass} flex flex-col font-['Inter'] relative selection:bg-blue-100 selection:text-blue-900 overflow-hidden`}>
+    <div className={`w-full min-h-screen ${wrapperBgClass} flex flex-col font-sans relative selection:bg-blue-100 selection:text-blue-900 overflow-hidden`}>
 
       {/* PAGE TRANSITION STYLES */}
       <style>{`
@@ -566,7 +566,7 @@ export default function JemaatPwaLayout({
             </div>
 
             <h3 className="text-xl font-bold text-slate-800 mb-1">{userData?.email || userData?.nama_lengkap || 'Jemaat GSJA'}</h3>
-            <div className="flex items-center gap-1.5 px-4 py-1.5 bg-blue-50 text-blue-700 font-mono font-bold tracking-widest rounded-lg border border-blue-100">
+            <div className="flex items-center gap-1.5 px-4 py-1.5 bg-blue-50 text-blue-700 font-sans font-bold tracking-widest rounded-lg border border-blue-100">
               <span className="material-icons-round text-[16px]">badge</span>
               {userData?.jemaat_nomor || 'ID TIDAK DITEMUKAN'}
             </div>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useLoader } from '@/components/ui/GlobalLoader';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
 import { AlertModal } from '@/components/ui/AlertModal';
 
@@ -13,9 +14,10 @@ export default function MembersPage() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-  const [hideDummy, setHideDummy] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [submitState, setSubmitState] = useState<{ status: 'idle'|'loading'|'success'|'error', message: string, errors?: any }>({ status: 'idle', message: '' });
+  const [previewPhotoUrl, setPreviewPhotoUrl] = useState<string | null>(null);
+  const router = useRouter();
 
   // Alert Modal State
   const [alertState, setAlertState] = useState<{ isOpen: boolean; id: number | null; newStatus: string }>({
@@ -94,7 +96,7 @@ export default function MembersPage() {
   // Reset page to 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, filterSatelit, filterKomisi, filterStatusJemaat, filterStatusBaptis, filterGender, filterUmur, hideDummy]);
+  }, [debouncedSearch, filterSatelit, filterKomisi, filterStatusJemaat, filterStatusBaptis, filterGender, filterUmur]);
 
   // Fetch Data
   useEffect(() => {
@@ -109,7 +111,6 @@ export default function MembersPage() {
         if (filterStatusBaptis) queryParams.append('status_baptis', filterStatusBaptis);
         if (filterGender) queryParams.append('jenis_kelamin', filterGender);
         if (filterUmur) queryParams.append('rentang_umur', filterUmur);
-        if (hideDummy) queryParams.append('hide_dummy', 'true');
         
         queryParams.append('limit', limit.toString());
         queryParams.append('offset', ((currentPage - 1) * limit).toString());
@@ -130,7 +131,7 @@ export default function MembersPage() {
     };
 
     fetchData();
-  }, [debouncedSearch, filterSatelit, filterKomisi, filterStatusJemaat, filterStatusBaptis, filterGender, filterUmur, hideDummy, currentPage]);
+  }, [debouncedSearch, filterSatelit, filterKomisi, filterStatusJemaat, filterStatusBaptis, filterGender, filterUmur, currentPage]);
 
   const handleToggleStatus = (id: number, currentStatus: string) => {
     const newStatus = currentStatus === 'Aktif' ? 'Tidak Aktif' : 'Aktif';
@@ -170,13 +171,13 @@ export default function MembersPage() {
       {/* Header Section */}
       <div className="w-full flex justify-between items-start">
         <div className="flex flex-col gap-1">
-            <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Database Jemaat</h1>
-            <div className="text-slate-500 text-base font-medium font-['Inter'] leading-6">Sistem Informasi Manajemen Data Jemaat</div>
+            <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Database Jemaat</h1>
+            <div className="text-slate-500 text-base font-medium font-sans leading-6">Sistem Informasi Manajemen Data Jemaat</div>
           </div>
           {hasPermission('jemaat_create') && (
             <Link href="/jemaat/new" className="px-5 py-2.5 bg-slate-700 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none">
               <span className="material-icons-round text-white text-[20px]">add</span>
-              <span className="text-white text-sm font-bold font-['Inter'] leading-5">Tambah Jemaat Baru</span>
+              <span className="text-white text-sm font-bold font-sans leading-5">Tambah Jemaat Baru</span>
             </Link>
           )}
         </div>
@@ -190,9 +191,9 @@ export default function MembersPage() {
              <span className="material-icons-round text-slate-700 text-3xl">groups</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-slate-500 text-sm font-medium font-['Public_Sans'] uppercase tracking-wide">Total Jemaat</span>
+            <span className="text-slate-500 text-sm font-medium font-sans uppercase tracking-wide">Total Jemaat</span>
             <div className="flex items-end gap-2 mt-1">
-              <span className="text-slate-900 text-3xl font-bold font-['Public_Sans'] leading-9">{totalItems.toLocaleString()}</span>
+              <span className="text-slate-900 text-3xl font-bold font-sans leading-9">{totalItems.toLocaleString()}</span>
             </div>
           </div>
         </div>
@@ -203,11 +204,11 @@ export default function MembersPage() {
             <span className="material-icons-round text-slate-700 text-3xl">person_add</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-slate-500 text-sm font-medium font-['Public_Sans'] uppercase tracking-wide leading-tight">
+            <span className="text-slate-500 text-sm font-medium font-sans uppercase tracking-wide leading-tight">
               Jemaat Baru Bulan Ini
             </span>
             <div className="flex items-end gap-2 mt-1">
-              <span className="text-slate-900 text-3xl font-bold font-['Public_Sans'] leading-9">
+              <span className="text-slate-900 text-3xl font-bold font-sans leading-9">
                 {newThisMonth.toLocaleString()}
               </span>
             </div>
@@ -220,9 +221,9 @@ export default function MembersPage() {
             <span className="material-icons-round text-emerald-600 text-3xl">how_to_reg</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-slate-500 text-sm font-medium font-['Public_Sans'] uppercase tracking-wide">Keaktifan Kehadiran</span>
+            <span className="text-slate-500 text-sm font-medium font-sans uppercase tracking-wide">Keaktifan Kehadiran</span>
             <div className="flex items-end gap-2 mt-1">
-              <span className="text-slate-900 text-3xl font-bold font-['Public_Sans'] leading-9">-</span>
+              <span className="text-slate-900 text-3xl font-bold font-sans leading-9">-</span>
             </div>
           </div>
         </div>
@@ -238,7 +239,7 @@ export default function MembersPage() {
           <input 
             type="text" 
             placeholder="Cari jemaat berdasarkan nama atau ID..."
-            className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm"
+            className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -250,7 +251,7 @@ export default function MembersPage() {
             value={filterSatelit}
             onChange={(e) => setFilterSatelit(e.target.value)}
             disabled={userData?.role_name?.toUpperCase().includes('SATELIT')}
-            className={`appearance-none w-full pl-4 pr-10 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm ${
+            className={`appearance-none w-full pl-4 pr-10 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm ${
               userData?.role_name?.toUpperCase().includes('SATELIT') ? 'bg-slate-200 cursor-not-allowed opacity-70' : 'bg-slate-50 cursor-pointer'
             }`}
           >
@@ -267,7 +268,7 @@ export default function MembersPage() {
           <select 
             value={filterKomisi}
             onChange={(e) => setFilterKomisi(e.target.value)}
-            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
+            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
           >
             <option value="">Semua Komisi</option>
             <option value="none">Tanpa komisi</option>
@@ -288,16 +289,7 @@ export default function MembersPage() {
           className={`px-4 py-2.5 border rounded-lg flex items-center gap-2 transition-colors group ${showAdvancedFilters ? 'bg-slate-100 border-slate-300' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
         >
           <span className={`material-icons-round text-[20px] transition-colors ${showAdvancedFilters ? 'text-slate-800' : 'text-slate-500 group-hover:text-slate-700'}`}>tune</span>
-          <span className={`text-sm font-medium font-['Public_Sans'] transition-colors ${showAdvancedFilters ? 'text-slate-900' : 'text-slate-600 group-hover:text-slate-800'}`}>More Filters</span>
-        </button>
-
-        {/* Hide Dummy Toggle */}
-        <button 
-          onClick={() => setHideDummy(!hideDummy)}
-          className={`px-4 py-2.5 border rounded-lg flex items-center gap-2 transition-colors ${hideDummy ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600'}`}
-        >
-          <span className="material-icons-round text-[20px]">{hideDummy ? 'visibility_off' : 'visibility'}</span>
-          <span className="text-sm font-medium font-['Public_Sans']">Hide Dummy Data</span>
+          <span className={`text-sm font-medium font-sans transition-colors ${showAdvancedFilters ? 'text-slate-900' : 'text-slate-600 group-hover:text-slate-800'}`}>More Filters</span>
         </button>
       </div>
 
@@ -307,12 +299,12 @@ export default function MembersPage() {
           
           {/* 1. Status Jemaat */}
           <div className="flex flex-col gap-2">
-            <label className="text-slate-700 text-sm font-bold font-['Public_Sans']">Status Jemaat</label>
+            <label className="text-slate-700 text-sm font-bold font-sans">Status Jemaat</label>
             <div className="relative">
               <select 
                 value={filterStatusJemaat}
                 onChange={(e) => setFilterStatusJemaat(e.target.value)}
-                className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
+                className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
               >
                 <option value="Semua">Semua</option>
                 <option value="Aktif">Aktif</option>
@@ -325,12 +317,12 @@ export default function MembersPage() {
 
           {/* 2. Status Baptis */}
           <div className="flex flex-col gap-2">
-            <label className="text-slate-700 text-sm font-bold font-['Public_Sans']">Status Baptis</label>
+            <label className="text-slate-700 text-sm font-bold font-sans">Status Baptis</label>
             <div className="relative">
               <select 
                 value={filterStatusBaptis}
                 onChange={(e) => setFilterStatusBaptis(e.target.value)}
-                className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
+                className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
               >
                 <option value="">Semua</option>
                 <option value="true">Sudah Baptis</option>
@@ -342,12 +334,12 @@ export default function MembersPage() {
 
           {/* 3. Jenis Kelamin */}
           <div className="flex flex-col gap-2">
-            <label className="text-slate-700 text-sm font-bold font-['Public_Sans']">Jenis Kelamin</label>
+            <label className="text-slate-700 text-sm font-bold font-sans">Jenis Kelamin</label>
             <div className="relative">
               <select 
                 value={filterGender}
                 onChange={(e) => setFilterGender(e.target.value)}
-                className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
+                className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
               >
                 <option value="">Semua</option>
                 <option value="Laki-laki">Laki-laki</option>
@@ -359,12 +351,12 @@ export default function MembersPage() {
 
           {/* 4. Rentang Umur */}
           <div className="flex flex-col gap-2">
-            <label className="text-slate-700 text-sm font-bold font-['Public_Sans']">Rentang Umur</label>
+            <label className="text-slate-700 text-sm font-bold font-sans">Rentang Umur</label>
             <div className="relative">
               <select 
                 value={filterUmur}
                 onChange={(e) => setFilterUmur(e.target.value)}
-                className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
+                className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
               >
                 <option value="">Semua</option>
                 <option value="anak">Anak (&lt;12)</option>
@@ -386,12 +378,12 @@ export default function MembersPage() {
           <div className="min-w-[1050px] flex flex-col">
             {/* Table Header */}
             <div className="w-full bg-slate-50 border-b border-slate-200 flex items-center px-6 py-4">
-              <div className="w-32 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">ID Jemaat</div>
-              <div className="w-64 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Nama Lengkap</div>
-              <div className="flex-1 min-w-[200px] text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Satelit/Cabang</div>
-              <div className="w-48 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Komisi</div>
-              <div className="w-32 shrink-0 text-center text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Status</div>
-              <div className="w-20 shrink-0 text-right text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Aksi</div>
+              <div className="w-32 shrink-0 text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">ID Jemaat</div>
+              <div className="w-64 shrink-0 text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Nama Lengkap</div>
+              <div className="flex-1 min-w-[200px] text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Satelit/Cabang</div>
+              <div className="w-48 shrink-0 text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Komisi</div>
+              <div className="w-32 shrink-0 text-center text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Status</div>
+              <div className="w-20 shrink-0 text-right text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Aksi</div>
             </div>
 
         {/* Table Body */}
@@ -399,38 +391,57 @@ export default function MembersPage() {
           {data.length === 0 ? (
             <div className="w-full py-12 flex flex-col items-center justify-center text-slate-500">
               <span className="material-icons-round text-5xl mb-2 text-slate-300">search_off</span>
-              <span className="text-sm font-['Public_Sans']">Tidak ada data jemaat yang ditemukan.</span>
+              <span className="text-sm font-sans">Tidak ada data jemaat yang ditemukan.</span>
             </div>
           ) : (
             data.map((jemaat, idx) => {
               const isLastRows = data.length > 2 && idx >= data.length - 2;
               return (
-            <div key={jemaat.id || idx} className={`w-full flex items-center px-6 py-4 border-b border-slate-100 hover:bg-slate-50 transition-colors relative ${openMenuId === jemaat.id ? 'z-50' : 'z-10'}`}>
-              <div className="w-32 shrink-0 text-slate-500 text-sm font-['Liberation_Mono']">{jemaat.jemaat_id}</div>
+            <div 
+              key={jemaat.id || idx} 
+              onClick={() => router.push(`/jemaat/${jemaat.id}?mode=view`)}
+              className={`w-full flex items-center px-6 py-4 border-b border-slate-100 hover:bg-slate-50 transition-colors relative cursor-pointer ${openMenuId === jemaat.id ? 'z-50' : 'z-10'}`}
+            >
+              <div className="w-32 shrink-0 text-slate-500 text-sm font-sans">{jemaat.jemaat_id}</div>
               <div className="w-64 shrink-0 flex items-center gap-3">
-                <img className="w-9 h-9 rounded-full object-cover border border-slate-200" src={jemaat.foto_url || `https://ui-avatars.com/api/?name=${jemaat.nama_lengkap}&background=random`} alt="avatar" />
-                <span className="text-slate-900 text-sm font-semibold font-['Public_Sans'] w-full truncate pr-2">{jemaat.nama_lengkap}</span>
+                <div 
+                  className="relative group cursor-pointer shrink-0"
+                  title="Lihat foto"
+                  onClick={(e) => {
+                    e.stopPropagation(); // Mencegah pindah halaman saat klik foto
+                    setPreviewPhotoUrl(jemaat.foto_url || `https://ui-avatars.com/api/?name=${jemaat.nama_lengkap}&background=random`);
+                  }}
+                >
+                  <img className="w-11 h-11 rounded-full object-cover border border-slate-200" src={jemaat.foto_url || `https://ui-avatars.com/api/?name=${jemaat.nama_lengkap}&background=random`} alt="avatar" />
+                  <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex justify-center items-center">
+                    <span className="material-icons-round text-white text-[20px]">zoom_in</span>
+                  </div>
+                </div>
+                <span className="text-slate-900 text-sm font-semibold font-sans w-full truncate pr-2">{jemaat.nama_lengkap}</span>
               </div>
-              <div className="flex-1 min-w-[200px] text-slate-600 text-sm font-['Public_Sans'] truncate pr-2">{jemaat.nama_satelit || '-'}</div>
+              <div className="flex-1 min-w-[200px] text-slate-600 text-sm font-sans truncate pr-2">{jemaat.nama_satelit || '-'}</div>
               <div className="w-48 shrink-0 flex flex-wrap gap-1 items-center py-1">
                 {jemaat.komisi ? 
                   jemaat.komisi.split(', ').map((k: string, i: number) => (
-                    <span key={i} className="px-2 py-0.5 bg-slate-100 border border-slate-200 rounded text-slate-700 text-[10px] font-bold font-['Public_Sans'] uppercase whitespace-nowrap">
+                    <span key={i} className="px-2 py-0.5 bg-slate-100 border border-slate-200 rounded text-slate-700 text-[10px] font-bold font-sans uppercase whitespace-nowrap">
                       {k}
                     </span>
                   ))
                 : (
-                  <span className="text-slate-400 text-xs italic font-['Public_Sans']">Tanpa Komisi</span>
+                  <span className="text-slate-400 font-bold ml-1">-</span>
                 )}
               </div>
               <div className="w-32 shrink-0 flex justify-center">
-                <span className={`px-3 py-1 rounded-full text-xs font-bold font-['Public_Sans'] uppercase ${jemaat.status_jemaat === 'Aktif' ? 'bg-emerald-100 text-emerald-700' : jemaat.status_jemaat === 'Keluar' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'}`}>
+                <span className={`px-3 py-1 rounded-full text-xs font-bold font-sans uppercase ${jemaat.status_jemaat === 'Aktif' ? 'bg-emerald-100 text-emerald-700' : jemaat.status_jemaat === 'Keluar' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'}`}>
                   {jemaat.status_jemaat}
                 </span>
               </div>
               <div className="w-20 shrink-0 flex justify-end gap-2 text-slate-400 relative">
                  <button 
-                  onClick={() => setOpenMenuId(openMenuId === jemaat.id ? null : jemaat.id)}
+                  onClick={(e) => {
+                    e.stopPropagation(); // Mencegah pindah halaman saat klik menu titik tiga
+                    setOpenMenuId(openMenuId === jemaat.id ? null : jemaat.id);
+                  }}
                   className="hover:text-slate-700 hover:bg-slate-100 p-1.5 rounded transition-colors"
                  >
                    <span className="material-icons-round text-[24px]">more_horiz</span>
@@ -442,7 +453,7 @@ export default function MembersPage() {
                      <div className={`absolute right-0 ${isLastRows ? 'bottom-full mb-1' : 'top-full mt-1'} w-48 bg-white rounded-lg shadow-[0_4px_20px_-4px_rgba(0,0,0,0.15)] border border-slate-200 z-50 py-1 overflow-visible`}>
                        <Link 
                          href={`/jemaat/${jemaat.id}?mode=view`}
-                         className="w-full text-left px-4 py-2 hover:bg-slate-50 transition-colors flex items-center gap-3 text-sm text-slate-700 font-['Public_Sans']"
+                         className="w-full text-left px-4 py-2 hover:bg-slate-50 transition-colors flex items-center gap-3 text-sm text-slate-700 font-sans"
                        >
                          <span className="material-icons-round text-[18px] text-slate-400">visibility</span> Lihat Detail
                        </Link>
@@ -450,17 +461,17 @@ export default function MembersPage() {
                          <>
                            <Link 
                              href={`/jemaat/${jemaat.id}?mode=edit`}
-                             className="w-full text-left px-4 py-2 hover:bg-slate-50 transition-colors flex items-center gap-3 text-sm text-slate-700 font-['Public_Sans']"
+                             className="w-full text-left px-4 py-2 hover:bg-slate-50 transition-colors flex items-center gap-3 text-sm text-slate-700 font-sans"
                            >
                              <span className="material-icons-round text-[18px] text-slate-400">edit</span> Edit Data
                            </Link>
                            <div className="w-full h-px bg-slate-100 my-1"></div>
                            {jemaat.status_jemaat === 'Aktif' ? (
-                             <button onClick={() => { setOpenMenuId(null); handleToggleStatus(jemaat.id, jemaat.status_jemaat); }} className="w-full text-left px-4 py-2 hover:bg-amber-50 hover:text-amber-700 transition-colors flex items-center gap-3 text-sm text-amber-600 font-['Public_Sans']">
+                             <button onClick={() => { setOpenMenuId(null); handleToggleStatus(jemaat.id, jemaat.status_jemaat); }} className="w-full text-left px-4 py-2 hover:bg-amber-50 hover:text-amber-700 transition-colors flex items-center gap-3 text-sm text-amber-600 font-sans">
                                <span className="material-icons-round text-[18px] text-amber-400">person_off</span> Nonaktifkan
                              </button>
                            ) : (
-                             <button onClick={() => { setOpenMenuId(null); handleToggleStatus(jemaat.id, jemaat.status_jemaat); }} className="w-full text-left px-4 py-2 hover:bg-emerald-50 hover:text-emerald-700 transition-colors flex items-center gap-3 text-sm text-emerald-600 font-['Public_Sans']">
+                             <button onClick={() => { setOpenMenuId(null); handleToggleStatus(jemaat.id, jemaat.status_jemaat); }} className="w-full text-left px-4 py-2 hover:bg-emerald-50 hover:text-emerald-700 transition-colors flex items-center gap-3 text-sm text-emerald-600 font-sans">
                                <span className="material-icons-round text-[18px] text-emerald-400">person_add</span> Aktifkan
                              </button>
                            )}
@@ -480,7 +491,7 @@ export default function MembersPage() {
 
     {/* Pagination Footer */}
     <div className="w-full px-6 py-4 bg-white border-t border-slate-200 flex flex-col md:flex-row justify-between items-center text-sm gap-4">
-          <span className="text-slate-500 font-['Public_Sans']">
+          <span className="text-slate-500 font-sans">
             Menampilkan {data.length > 0 ? ((currentPage - 1) * limit) + 1 : 0}-
             {Math.min(currentPage * limit, totalItems)} dari {totalItems} jemaat
           </span>
@@ -518,6 +529,29 @@ export default function MembersPage() {
         errors={submitState.errors} 
         onClose={() => setSubmitState({ status: 'idle', message: '' })} 
       />
+
+      {/* Photo Preview Modal */}
+      {previewPhotoUrl && (
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" 
+          onClick={() => setPreviewPhotoUrl(null)}
+        >
+          <div className="relative max-w-2xl w-full p-4 flex flex-col items-center">
+            <button 
+              className="absolute top-0 right-0 m-4 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex justify-center items-center text-white transition-colors"
+              onClick={(e) => { e.stopPropagation(); setPreviewPhotoUrl(null); }}
+            >
+              <span className="material-icons-round">close</span>
+            </button>
+            <img 
+              src={previewPhotoUrl} 
+              alt="Preview Jemaat" 
+              className="max-h-[85vh] w-auto object-contain rounded-xl shadow-2xl border border-white/20 bg-white" 
+              onClick={(e) => e.stopPropagation()} // Prevent closing when clicking the image itself
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

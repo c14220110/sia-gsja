@@ -71,14 +71,14 @@ const AsyncAutocomplete = ({
 
   return (
     <div className="w-full flex-col gap-1 flex relative" ref={wrapperRef}>
-      <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase leading-4">{label}</label>
+      <label className="text-slate-500 text-xs font-bold font-sans uppercase leading-4">{label}</label>
       <div className="relative">
         <input 
           type="text" 
           value={query} 
           onChange={handleInputChange}
           placeholder={placeholder} 
-          className="px-4 py-3 pr-10 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" 
+          className="px-4 py-3 pr-10 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" 
         />
         {isLoading && (
           <div className="absolute right-3 top-3 w-4 h-4 rounded-full border-2 border-slate-200 border-t-blue-500 animate-spin"></div>
@@ -711,7 +711,7 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
       <div className="w-full max-w-[1200px] flex flex-col gap-6">
         
         {/* Breadcrumb */}
-        <div className="w-full inline-flex justify-start items-center gap-2 text-xs font-medium font-['Inter'] leading-4">
+        <div className="w-full inline-flex justify-start items-center gap-2 text-xs font-medium font-sans leading-4">
           <span className="text-slate-500">Modul Kegiatan</span>
           <span className="text-slate-500 material-icons-round text-[14px]">chevron_right</span>
           <Link href="/kegiatan" className="text-slate-500 hover:text-blue-600">Daftar Kegiatan</Link>
@@ -742,7 +742,7 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
                   {data.status_kegiatan}
                 </span>
               </div>
-              <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mt-1">
+              <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mt-1">
                 {data.nama_kegiatan}
               </h1>
               <div className="flex items-center gap-2 text-slate-500 text-sm font-medium mt-1">
@@ -965,13 +965,13 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
                            )}
                         </span>
                         <div className="text-sm font-semibold text-slate-900 bg-white border border-emerald-100 p-3.5 rounded-lg flex flex-col gap-1">
-                           <span className="text-xs text-slate-500 font-mono">{data.ra_kode}</span>
+                           <span className="text-xs text-slate-500 font-sans">{data.ra_kode}</span>
                            <span className="font-bold">{data.ra_nama}</span>
                         </div>
                       </div>
                       <div className="flex flex-col gap-1">
                         <span className="text-xs text-emerald-800 font-bold uppercase">Total Disetujui (RA)</span>
-                        <span className="text-sm font-semibold text-slate-900 bg-white border border-emerald-100 p-3.5 rounded-lg flex items-center gap-2 font-mono">
+                        <span className="text-sm font-semibold text-slate-900 bg-white border border-emerald-100 p-3.5 rounded-lg flex items-center gap-2 font-sans">
                            <span className="material-icons-round text-emerald-500 text-[18px]">payments</span>
                            {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(data.ra_total || 0)}
                         </span>
@@ -1010,7 +1010,7 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
                                <input type="radio" name="ra_pilihan" value={ra.id} checked={selectedNewRA === ra.id}
                                  onChange={() => setSelectedNewRA(ra.id)} className="mt-0.5 accent-indigo-600" />
                                <div className="flex flex-col gap-0.5">
-                                 <span className="text-xs font-mono text-slate-500">{ra.kode_dokumen}</span>
+                                 <span className="text-xs font-sans text-slate-500">{ra.kode_dokumen}</span>
                                  <span className="text-sm font-bold text-slate-900">{ra.nama_rancangan}</span>
                                  <span className="text-xs text-emerald-700 font-semibold">
                                    {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(ra.total_disetujui || ra.total_anggaran || 0)}
@@ -1692,7 +1692,7 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
                                    <span className="text-[11px] font-bold text-slate-500">{log.metode}</span>
                                  </div>
                                </td>
-                               <td className="py-3 px-5 text-right font-['Liberation_Mono'] text-xs font-bold text-slate-600">
+                               <td className="py-3 px-5 text-right font-sans text-xs font-bold text-slate-600">
                                  {d.toLocaleString('id-ID', { dateStyle: 'long', timeStyle: 'short' })} WIB
                                </td>
                              </tr>
@@ -1825,7 +1825,7 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
                  <div className="absolute top-0 right-0 p-3 opacity-20 pointer-events-none">
                    <span className="material-icons-round text-6xl text-blue-500">assignment_ind</span>
                  </div>
-                 <label className="text-blue-900 text-xs font-bold font-['Inter'] uppercase flex items-center gap-2">
+                 <label className="text-blue-900 text-xs font-bold font-sans uppercase flex items-center gap-2">
                    1. Tentukan Role/Tugas <span className="text-red-500">*</span>
                  </label>
                  <select 
@@ -1850,7 +1850,7 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
                </div>
 
                <div className="w-full flex flex-col gap-2">
-                 <label className={`text-xs font-bold font-['Inter'] uppercase transition-colors ${!formPelayan.role_id ? 'text-slate-400' : 'text-slate-500'}`}>
+                 <label className={`text-xs font-bold font-sans uppercase transition-colors ${!formPelayan.role_id ? 'text-slate-400' : 'text-slate-500'}`}>
                    2. Cari Pelayan Aktif <span className="text-red-500">*</span>
                  </label>
                  
@@ -1983,7 +1983,7 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 z-20">
                  <div className="flex flex-col gap-2 w-full relative z-20">
                    <div className="flex justify-between items-center">
-                     <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase">Data Pasien <span className="text-red-500">*</span></label>
+                     <label className="text-slate-500 text-xs font-bold font-sans uppercase">Data Pasien <span className="text-red-500">*</span></label>
                      <label className="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 px-2 py-0.5 rounded transition">
                        <input type="checkbox" checked={formPasien.is_pasien_luar} onChange={(e) => setFormPasien(prev => ({...prev, is_pasien_luar: e.target.checked, jemaat_id: '', nama_pasien_luar: '', no_hp_pasien_luar: ''}))} className="w-3.5 h-3.5 text-blue-600 rounded border-slate-300" />
                        <span className="text-[10px] font-bold text-slate-500 uppercase">Pasien Eksternal (Umum)</span>
@@ -2004,7 +2004,7 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
                  </div>
                  <div className="flex flex-col gap-2 w-full relative z-10">
                    <div className="flex justify-between items-center">
-                     <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase">Dokter / Petugas</label>
+                     <label className="text-slate-500 text-xs font-bold font-sans uppercase">Dokter / Petugas</label>
                      <label className="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 px-2 py-0.5 rounded transition">
                        <input type="checkbox" checked={formPasien.is_pelayan_luar} onChange={(e) => setFormPasien(prev => ({...prev, is_pelayan_luar: e.target.checked, pelayan_medis_id: '', nama_pelayan_luar: ''}))} className="w-3.5 h-3.5 text-blue-600 rounded border-slate-300" />
                        <span className="text-[10px] font-bold text-slate-500 uppercase">Petugas Luar</span>
@@ -2046,7 +2046,7 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
                    </div>
                    
                    <div className="w-full flex flex-col gap-1.5">
-                     <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase flex items-center gap-1.5"><span className="material-icons-round text-[14px]">sick</span> Keluhan / Simptom</label>
+                     <label className="text-slate-500 text-xs font-bold font-sans uppercase flex items-center gap-1.5"><span className="material-icons-round text-[14px]">sick</span> Keluhan / Simptom</label>
                      <textarea 
                        value={formPasien.keluhan_simptom} 
                        onChange={(e) => setFormPasien(prev => ({ ...prev, keluhan_simptom: e.target.value }))}
@@ -2055,7 +2055,7 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
                      ></textarea>
                    </div>
                    <div className="w-full flex flex-col gap-1.5">
-                     <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase flex items-center gap-1.5"><span className="material-icons-round text-[14px] text-blue-500">biotech</span> Diagnosa Utama</label>
+                     <label className="text-slate-500 text-xs font-bold font-sans uppercase flex items-center gap-1.5"><span className="material-icons-round text-[14px] text-blue-500">biotech</span> Diagnosa Utama</label>
                      <textarea 
                        value={formPasien.diagnosa} 
                        onChange={(e) => setFormPasien(prev => ({ ...prev, diagnosa: e.target.value }))}
@@ -2067,7 +2067,7 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
 
                  <div className="flex flex-col gap-4">
                    <div className="w-full flex flex-col gap-1.5">
-                     <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase flex items-center gap-1.5"><span className="material-icons-round text-[14px] text-emerald-500">medication</span> Tindakan & Obat</label>
+                     <label className="text-slate-500 text-xs font-bold font-sans uppercase flex items-center gap-1.5"><span className="material-icons-round text-[14px] text-emerald-500">medication</span> Tindakan & Obat</label>
                      <textarea 
                        value={formPasien.tindakan_obat} 
                        onChange={(e) => setFormPasien(prev => ({ ...prev, tindakan_obat: e.target.value }))}

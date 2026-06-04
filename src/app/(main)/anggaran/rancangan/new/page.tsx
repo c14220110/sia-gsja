@@ -265,7 +265,7 @@ export default function InputAnggaranBaruPage() {
       />
       {/* Header Area */}
       <div className="w-full flex flex-col justify-start items-start gap-4">
-        <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-['Inter'] leading-4">
+        <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-sans leading-4">
           <span className="text-slate-500">Anggaran & Plotting</span>
           <span className="text-slate-500 material-icons-round text-[14px]">chevron_right</span>
           <Link href="/anggaran/rancangan" className="text-slate-500 hover:text-blue-600">Daftar Rancangan Anggaran</Link>
@@ -275,13 +275,13 @@ export default function InputAnggaranBaruPage() {
         
         <div className="self-stretch inline-flex justify-between items-end">
           <div className="inline-flex gap-4 items-center">
-            <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Input Rancangan Anggaran</h1>
+            <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Input Rancangan Anggaran</h1>
             <div className="px-3 py-1 bg-amber-100 rounded border border-amber-300 flex items-center gap-1 mt-1">
                <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
                <span className="text-amber-800 text-xs font-bold uppercase tracking-wide">DRAFT</span>
             </div>
           </div>
-          <div className="text-slate-500 text-sm font-medium font-['Inter'] flex gap-1 items-center">
+          <div className="text-slate-500 text-sm font-medium font-sans flex gap-1 items-center">
             <span className="material-icons-round text-lg text-slate-400">qr_code</span> ID: <span className="text-slate-700 font-bold">Otomatis Terbuat</span>
           </div>
         </div>
@@ -289,7 +289,7 @@ export default function InputAnggaranBaruPage() {
 
       <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-5 mt-2">
         <div className="flex flex-col gap-2 border-b border-slate-100 pb-4">
-          <div className="text-slate-800 text-sm font-bold font-['Inter'] uppercase tracking-wider flex items-center gap-2">
+          <div className="text-slate-800 text-sm font-bold font-sans uppercase tracking-wider flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
               <span className="material-icons-round text-[18px]">request_quote</span>
             </div>
@@ -379,7 +379,7 @@ export default function InputAnggaranBaruPage() {
           </div>
           <div>
             <label className={labelCls}>Tahun <span className="text-red-500">*</span></label>
-            <select value={tahun} onChange={e=>setTahun(e.target.value)} className={selectCls+' font-mono font-bold'}>
+            <select value={tahun} onChange={e=>setTahun(e.target.value)} className={selectCls+' font-sans font-bold'}>
               {tahunOptions.map(y=><option key={y} value={y}>{y}{y===currentYear?' (Tahun Ini)':y===currentYear+1?' (Tahun Depan)':''}</option>)}
             </select>
           </div>
@@ -393,7 +393,7 @@ export default function InputAnggaranBaruPage() {
       {/* Card 2: Input Item Anggaran */}
       <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-5">
         <div className="flex flex-col gap-2 border-b border-slate-100 pb-4">
-          <div className="text-slate-800 text-sm font-bold font-['Inter'] uppercase tracking-wider flex items-center gap-2">
+          <div className="text-slate-800 text-sm font-bold font-sans uppercase tracking-wider flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
               <span className="material-icons-round text-[18px]">playlist_add</span>
             </div>
@@ -466,7 +466,7 @@ export default function InputAnggaranBaruPage() {
                           form.coaId === c.id.toString() ? 'bg-indigo-50' : ''
                         }`}
                       >
-                        <div className="text-xs font-mono font-bold text-indigo-700">{c.label.split('—')[0].trim()}</div>
+                        <div className="text-xs font-sans font-bold text-indigo-700">{c.label.split('—')[0].trim()}</div>
                         <div className="text-sm text-slate-700 truncate">{c.label.split('—').slice(1).join('—').trim()}</div>
                       </button>
                     ))}
@@ -527,12 +527,12 @@ export default function InputAnggaranBaruPage() {
               <label className={labelCls}>Harga Satuan <span className="text-red-500">*</span></label>
               <div className="relative">
                 <span className="absolute left-3 top-2.5 text-slate-400 text-sm font-semibold">Rp</span>
-                <input type="number" min={0} step={1} value={form.harga === 0 ? '' : form.harga} onChange={e => setForm(p => ({ ...p, harga: e.target.value === '' ? ('' as any) : Math.round(Number(e.target.value)) }))} className={inputCls+' pl-9 font-mono'}/>
+                <input type="number" min={0} step={1} value={form.harga === 0 ? '' : form.harga} onChange={e => setForm(p => ({ ...p, harga: e.target.value === '' ? ('' as any) : Math.round(Number(e.target.value)) }))} className={inputCls+' pl-9 font-sans'}/>
               </div>
             </div>
             <div>
               <label className={labelCls}>Total Estimasi</label>
-              <div className="w-full h-10 px-3 rounded-lg border border-slate-200 bg-slate-100 text-sm font-bold text-slate-700 flex items-center font-mono">{fmt((Number(form.jumlah)||0)*(Number(form.harga)||0))}</div>
+              <div className="w-full h-10 px-3 rounded-lg border border-slate-200 bg-slate-100 text-sm font-bold text-slate-700 flex items-center font-sans">{fmt((Number(form.jumlah)||0)*(Number(form.harga)||0))}</div>
             </div>
             <div>
               <button onClick={handleAdd} className="w-full h-10 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-sm flex justify-center items-center gap-2 transition-colors shadow-sm">
@@ -582,18 +582,18 @@ export default function InputAnggaranBaruPage() {
                           <td className="p-3"><select disabled className="px-2 py-1 border border-slate-200 rounded text-xs bg-slate-50 w-full"><option>{item.sumber_dana}</option></select></td>
                           <td className="p-3 text-center"><input type="number" min={1} step={1} value={editValues.jumlah} onChange={e => setEditValues(p => ({ ...p, jumlah: Math.round(Number(e.target.value)) || 1 }))} className="w-16 px-2 py-1 border border-emerald-300 rounded text-sm text-center outline-none" /></td>
                           <td className="p-3 text-center"><input type="text" value={editValues.satuan} onChange={e => setEditValues(p => ({ ...p, satuan: e.target.value }))} placeholder="satuan" className="w-20 px-2 py-1 border border-slate-200 rounded text-xs outline-none" /></td>
-                          <td className="p-3 text-right"><input type="number" min={0} step={1} value={editValues.harga || ''} onChange={e => setEditValues(p => ({ ...p, harga: Math.round(Number(e.target.value)) || 0 }))} className="w-28 px-2 py-1 border border-emerald-300 rounded text-sm text-right font-mono outline-none" /></td>
-                          <td className="p-3 text-right font-bold font-mono text-emerald-600 text-sm">{fmt(editValues.jumlah * editValues.harga)}</td>
+                          <td className="p-3 text-right"><input type="number" min={0} step={1} value={editValues.harga || ''} onChange={e => setEditValues(p => ({ ...p, harga: Math.round(Number(e.target.value)) || 0 }))} className="w-28 px-2 py-1 border border-emerald-300 rounded text-sm text-right font-sans outline-none" /></td>
+                          <td className="p-3 text-right font-bold font-sans text-emerald-600 text-sm">{fmt(editValues.jumlah * editValues.harga)}</td>
                           <td className="p-3 text-center"><div className="flex items-center justify-center gap-1"><button onClick={() => handleEditSave(item.id)} className="w-7 h-7 rounded bg-emerald-600 text-white flex justify-center items-center hover:bg-emerald-700"><span className="material-icons-round text-[14px]">check</span></button><button onClick={() => setEditingId(null)} className="w-7 h-7 rounded bg-slate-200 text-slate-600 flex justify-center items-center hover:bg-slate-300"><span className="material-icons-round text-[14px]">close</span></button></div></td>
                         </tr>
                       ) : (
                         <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50 group">
                           <td className="p-4 pl-6 text-sm font-semibold text-slate-800">{idx + 1}. {item.uraian}<p className="text-xs font-normal text-slate-400">{item.deskripsi}</p></td>
-                          <td className="p-4 text-xs font-mono text-slate-500">{item.coa}</td>
+                          <td className="p-4 text-xs font-sans text-slate-500">{item.coa}</td>
                           <td className="p-4"><span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${item.sumber_dana === 'Plafon Pusat' ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : item.sumber_dana === 'Kas Pusat' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-emerald-50 text-emerald-600 border-emerald-200'}`}>{item.sumber_dana}</span></td>
                           <td className="p-4 text-sm text-center font-medium">{item.jumlah}</td><td className="p-4 text-sm text-center text-slate-600">{item.satuan}</td>
-                          <td className="p-4 text-sm text-right font-mono text-slate-700">{fmt(item.harga)}</td>
-                          <td className="p-4 text-sm text-right font-bold font-mono text-emerald-600">{fmt(item.total)}</td>
+                          <td className="p-4 text-sm text-right font-sans text-slate-700">{fmt(item.harga)}</td>
+                          <td className="p-4 text-sm text-right font-bold font-sans text-emerald-600">{fmt(item.total)}</td>
                           <td className="p-4 text-center"><div className="flex items-center justify-center gap-1"><button onClick={() => handleStartEdit(item)} title="Edit" className="w-7 h-7 rounded text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 flex justify-center items-center"><span className="material-icons-round text-[16px]">edit</span></button><button onClick={() => setItems(items.filter(i => i.id !== item.id))} title="Hapus" className="w-7 h-7 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 flex justify-center items-center"><span className="material-icons-round text-[16px]">delete</span></button></div></td>
                         </tr>
                       ))}
@@ -611,18 +611,18 @@ export default function InputAnggaranBaruPage() {
                           <td className="p-3"><select disabled className="px-2 py-1 border border-slate-200 rounded text-xs bg-slate-50 w-full"><option>{item.sumber_dana}</option></select></td>
                           <td className="p-3 text-center"><input type="number" min={1} step={1} value={editValues.jumlah} onChange={e => setEditValues(p => ({ ...p, jumlah: Math.round(Number(e.target.value)) || 1 }))} className="w-16 px-2 py-1 border border-indigo-300 rounded text-sm text-center outline-none" /></td>
                           <td className="p-3 text-center"><input type="text" value={editValues.satuan} onChange={e => setEditValues(p => ({ ...p, satuan: e.target.value }))} placeholder="satuan" className="w-20 px-2 py-1 border border-slate-200 rounded text-xs outline-none" /></td>
-                          <td className="p-3 text-right"><input type="number" min={0} step={1} value={editValues.harga || ''} onChange={e => setEditValues(p => ({ ...p, harga: Math.round(Number(e.target.value)) || 0 }))} className="w-28 px-2 py-1 border border-indigo-300 rounded text-sm text-right font-mono outline-none" /></td>
-                          <td className="p-3 text-right font-bold font-mono text-slate-800 text-sm">{fmt(editValues.jumlah * editValues.harga)}</td>
+                          <td className="p-3 text-right"><input type="number" min={0} step={1} value={editValues.harga || ''} onChange={e => setEditValues(p => ({ ...p, harga: Math.round(Number(e.target.value)) || 0 }))} className="w-28 px-2 py-1 border border-indigo-300 rounded text-sm text-right font-sans outline-none" /></td>
+                          <td className="p-3 text-right font-bold font-sans text-slate-800 text-sm">{fmt(editValues.jumlah * editValues.harga)}</td>
                           <td className="p-3 text-center"><div className="flex items-center justify-center gap-1"><button onClick={() => handleEditSave(item.id)} className="w-7 h-7 rounded bg-indigo-600 text-white flex justify-center items-center hover:bg-indigo-700"><span className="material-icons-round text-[14px]">check</span></button><button onClick={() => setEditingId(null)} className="w-7 h-7 rounded bg-slate-200 text-slate-600 flex justify-center items-center hover:bg-slate-300"><span className="material-icons-round text-[14px]">close</span></button></div></td>
                         </tr>
                       ) : (
                         <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50 group">
                           <td className="p-4 pl-6 text-sm font-semibold text-slate-800">{idx + 1}. {item.uraian}<p className="text-xs font-normal text-slate-400">{item.deskripsi}</p></td>
-                          <td className="p-4 text-xs font-mono text-slate-500">{item.coa}</td>
+                          <td className="p-4 text-xs font-sans text-slate-500">{item.coa}</td>
                           <td className="p-4"><span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${item.sumber_dana === 'Plafon Pusat' ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : item.sumber_dana === 'Kas Pusat' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-emerald-50 text-emerald-600 border-emerald-200'}`}>{item.sumber_dana}</span></td>
                           <td className="p-4 text-sm text-center font-medium">{item.jumlah}</td><td className="p-4 text-sm text-center text-slate-600">{item.satuan}</td>
-                          <td className="p-4 text-sm text-right font-mono text-slate-700">{fmt(item.harga)}</td>
-                          <td className="p-4 text-sm text-right font-bold font-mono text-slate-800">{fmt(item.total)}</td>
+                          <td className="p-4 text-sm text-right font-sans text-slate-700">{fmt(item.harga)}</td>
+                          <td className="p-4 text-sm text-right font-bold font-sans text-slate-800">{fmt(item.total)}</td>
                           <td className="p-4 text-center"><div className="flex items-center justify-center gap-1"><button onClick={() => handleStartEdit(item)} title="Edit" className="w-7 h-7 rounded text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 flex justify-center items-center"><span className="material-icons-round text-[16px]">edit</span></button><button onClick={() => setItems(items.filter(i => i.id !== item.id))} title="Hapus" className="w-7 h-7 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 flex justify-center items-center"><span className="material-icons-round text-[16px]">delete</span></button></div></td>
                         </tr>
                       ))}
@@ -657,7 +657,7 @@ export default function InputAnggaranBaruPage() {
               <React.Fragment key={label}>
                 <div className="flex flex-col text-right shrink-0">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{label}</span>
-                  <span className={`text-sm font-bold font-mono ${cls}`}>{value}</span>
+                  <span className={`text-sm font-bold font-sans ${cls}`}>{value}</span>
                 </div>
                 {i<arr.length-1&&<div className="w-px h-8 bg-slate-700 shrink-0"/>}
               </React.Fragment>

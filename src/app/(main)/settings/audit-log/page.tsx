@@ -151,8 +151,8 @@ export default function AuditLogPage() {
     <div className="flex flex-col gap-6 w-full">
       {/* Header */}
       <div className="flex flex-col gap-1">
-        <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Audit Log</h1>
-        <p className="text-slate-500 text-base font-medium font-['Inter'] leading-6">Riwayat seluruh aksi berdasarkan kategori data</p>
+        <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Audit Log</h1>
+        <p className="text-slate-500 text-base font-medium font-sans leading-6">Riwayat seluruh aksi berdasarkan kategori data</p>
       </div>
 
       {/* Log Type Tabs */}
@@ -161,7 +161,7 @@ export default function AuditLogPage() {
           <button
             key={key}
             onClick={() => setLogType(key)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-semibold font-['Public_Sans'] transition-all ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-semibold font-sans transition-all ${
               logType === key
                 ? 'bg-slate-800 text-white border-slate-800 shadow-sm'
                 : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
@@ -191,8 +191,8 @@ export default function AuditLogPage() {
               >
                 <span className={`material-icons-round text-[28px] ${filterAksi === aksi ? cfg.text : 'text-slate-400'}`}>{cfg.icon}</span>
                 <div>
-                  <div className="text-xs text-slate-500 font-['Public_Sans'] font-bold uppercase tracking-wide">{cfg.label}</div>
-                  <div className="text-lg font-bold text-slate-800 font-['Inter']">
+                  <div className="text-xs text-slate-500 font-sans font-bold uppercase tracking-wide">{cfg.label}</div>
+                  <div className="text-lg font-bold text-slate-800 font-sans">
                     {loading ? '—' : count}
                     {!loading && total > limit && (
                       <span className="text-xs font-normal text-slate-400 ml-1">di halaman ini</span>
@@ -220,8 +220,8 @@ export default function AuditLogPage() {
               >
                 <span className={`material-icons-round text-[24px] ${filterAksi === aksi ? cfg.text : 'text-slate-400'}`}>{cfg.icon}</span>
                 <div>
-                  <div className="text-xs text-slate-500 font-['Public_Sans'] font-bold uppercase tracking-wide">{cfg.label}</div>
-                  <div className="text-lg font-bold text-slate-800 font-['Inter']">
+                  <div className="text-xs text-slate-500 font-sans font-bold uppercase tracking-wide">{cfg.label}</div>
+                  <div className="text-lg font-bold text-slate-800 font-sans">
                     {loading ? '—' : count}
                     {!loading && total > limit && (
                       <span className="text-xs font-normal text-slate-400 ml-1">di halaman ini</span>
@@ -234,47 +234,68 @@ export default function AuditLogPage() {
         </div>
       )}
 
-      {/* Filter Bar */}
-      <div className="flex flex-col md:flex-row gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-[200px]">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 material-icons-round text-slate-400 text-[20px]">search</span>
+      {/* Filter Options */}
+      <div className="w-full px-4 py-4 bg-white rounded-xl border border-slate-200 flex flex-wrap items-center gap-4 shadow-sm">
+        
+        {/* Search Bar */}
+        <div className="flex-1 min-w-[300px] relative flex items-center">
+          <span className="material-icons-round absolute left-4 text-slate-400 text-[20px]">search</span>
           <input
             type="text"
             placeholder={isAnggaran ? 'Cari kode dokumen, pelaksana, atau keterangan...' : `Cari nama ${entityConfig.entityLabel.toLowerCase()} atau pelaksana...`}
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 bg-white font-['Public_Sans']"
+            className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm"
           />
         </div>
-        <select
-          value={filterAksi}
-          onChange={e => setFilterAksi(e.target.value)}
-          className="px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 bg-white font-['Public_Sans'] text-slate-700"
-        >
-          <option value="">Semua Aksi</option>
-          {isAnggaran
-            ? ANGGARAN_AKSI_OPTIONS.map(a => <option key={a} value={a}>{a}</option>)
-            : <>
-                <option value="CREATE">CREATE</option>
-                <option value="UPDATE">UPDATE</option>
-                <option value="DEACTIVATE">DEACTIVATE</option>
-              </>
-          }
-        </select>
-        <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-          className="px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 bg-white font-['Public_Sans'] text-slate-700"
-          title="Tanggal mulai"
-        />
-        <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-          className="px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 bg-white font-['Public_Sans'] text-slate-700"
-          title="Tanggal akhir"
-        />
+
+        {/* Action Dropdown */}
+        <div className="relative min-w-[200px]">
+          <select
+            value={filterAksi}
+            onChange={e => setFilterAksi(e.target.value)}
+            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
+          >
+            <option value="">Semua Aksi</option>
+            {isAnggaran
+              ? ANGGARAN_AKSI_OPTIONS.map(a => <option key={a} value={a}>{a}</option>)
+              : <>
+                  <option value="CREATE">CREATE</option>
+                  <option value="UPDATE">UPDATE</option>
+                  <option value="DEACTIVATE">DEACTIVATE</option>
+                </>
+            }
+          </select>
+          <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
+        </div>
+
+        {/* Date Filters */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <input 
+            type="date" 
+            value={dateFrom} 
+            onChange={e => setDateFrom(e.target.value)}
+            className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
+            title="Tanggal mulai"
+          />
+          <span className="text-slate-400 font-bold">-</span>
+          <input 
+            type="date" 
+            value={dateTo} 
+            onChange={e => setDateTo(e.target.value)}
+            className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
+            title="Tanggal akhir"
+          />
+        </div>
+
+        {/* Reset Button */}
         {(filterAksi || dateFrom || dateTo || search) && (
           <button
             onClick={() => { setFilterAksi(''); setDateFrom(''); setDateTo(''); setSearch(''); }}
-            className="px-4 py-2.5 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 bg-white font-['Public_Sans'] flex items-center gap-2 transition-colors"
+            className="px-4 py-2.5 bg-white border border-slate-200 rounded-lg flex items-center gap-2 transition-colors hover:bg-slate-50 text-slate-600 group"
           >
-            <span className="material-icons-round text-[18px]">filter_alt_off</span> Reset
+            <span className="material-icons-round text-[20px] text-slate-500 group-hover:text-rose-500 transition-colors">filter_alt_off</span>
+            <span className="text-sm font-medium font-sans group-hover:text-slate-800 transition-colors">Reset</span>
           </button>
         )}
       </div>
@@ -286,24 +307,24 @@ export default function AuditLogPage() {
             {/* Header */}
             {isAnggaran ? (
               <div className="w-full bg-slate-50 border-b border-slate-200 flex items-center px-6 py-4 gap-4">
-                <div className="w-40 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">Waktu</div>
-                <div className="w-32 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">Kode RA</div>
-                <div className="w-28 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">Aksi</div>
-                <div className="w-64 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">Transisi Status</div>
-                <div className="w-28 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">Pelaksana</div>
-                <div className="w-32 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">Role</div>
-                <div className="w-28 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">Satelit</div>
-                <div className="flex-1 min-w-[180px] text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">Keterangan</div>
+                <div className="w-40 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-sans">Waktu</div>
+                <div className="w-32 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-sans">Kode RA</div>
+                <div className="w-28 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-sans">Aksi</div>
+                <div className="w-64 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-sans">Transisi Status</div>
+                <div className="w-28 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-sans">Pelaksana</div>
+                <div className="w-32 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-sans">Role</div>
+                <div className="w-28 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-sans">Satelit</div>
+                <div className="flex-1 min-w-[180px] text-slate-500 text-xs font-bold uppercase tracking-wider font-sans">Keterangan</div>
               </div>
             ) : (
               <div className="w-full bg-slate-50 border-b border-slate-200 flex items-center px-6 py-4 gap-4">
-                <div className="w-40 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">Waktu</div>
-                <div className="w-44 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">{entityConfig.entityLabel}</div>
-                <div className="w-28 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">Aksi</div>
-                <div className="w-28 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">Pelaksana</div>
-                <div className="w-36 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">Role</div>
-                <div className="w-28 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">Satelit</div>
-                <div className="flex-1 min-w-[180px] text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">Keterangan</div>
+                <div className="w-40 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-sans">Waktu</div>
+                <div className="w-44 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-sans">{entityConfig.entityLabel}</div>
+                <div className="w-28 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-sans">Aksi</div>
+                <div className="w-28 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-sans">Pelaksana</div>
+                <div className="w-36 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-sans">Role</div>
+                <div className="w-28 shrink-0 text-slate-500 text-xs font-bold uppercase tracking-wider font-sans">Satelit</div>
+                <div className="flex-1 min-w-[180px] text-slate-500 text-xs font-bold uppercase tracking-wider font-sans">Keterangan</div>
               </div>
             )}
 
@@ -316,30 +337,30 @@ export default function AuditLogPage() {
               anggaranData.length === 0 ? (
                 <div className="w-full py-16 flex flex-col items-center justify-center text-slate-400 gap-2">
                   <span className="material-icons-round text-5xl text-slate-300">receipt_long</span>
-                  <p className="text-sm font-['Public_Sans']">Belum ada audit log anggaran.</p>
+                  <p className="text-sm font-sans">Belum ada audit log anggaran.</p>
                 </div>
               ) : (
                 anggaranData.map(entry => {
                   const cfg = ANGGARAN_ACTION_CONFIG[entry.aksi] ?? { label: entry.aksi, bg: 'bg-gray-100', text: 'text-gray-700', icon: 'info' };
                   return (
                     <div key={entry.id} className="w-full flex items-center px-6 py-4 border-b border-slate-100 hover:bg-slate-50 transition-colors gap-4">
-                      <div className="w-40 shrink-0 text-slate-500 text-xs font-['Public_Sans']">{formatDate(entry.created_at)}</div>
+                      <div className="w-40 shrink-0 text-slate-500 text-xs font-sans">{formatDate(entry.created_at)}</div>
                       <div className="w-32 shrink-0">
                         <Link
                           href={`${entityConfig.detailPath}/${entry.anggaran_id}`}
-                          className="text-slate-800 text-sm font-semibold font-['Public_Sans'] hover:text-slate-600 hover:underline truncate block"
+                          className="text-slate-800 text-sm font-semibold font-sans hover:text-slate-600 hover:underline truncate block"
                         >
                           {entry.kode_dokumen}
                         </Link>
                       </div>
                       <div className="w-36 shrink-0">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold font-['Public_Sans'] ${cfg.bg} ${cfg.text}`}>
-                          <span className="material-icons-round text-[12px]">{cfg.icon}</span>
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold font-sans uppercase ${cfg.bg} ${cfg.text}`}>
+                          <span className="material-icons-round text-[14px]">{cfg.icon}</span>
                           {cfg.label}
                         </span>
                       </div>
                       <div className="w-64 shrink-0">
-                        <div className="flex items-center gap-1.5 text-xs font-['Public_Sans']" title={entry.status_sebelum ? `${entry.status_sebelum} → ${entry.status_sesudah}` : entry.status_sesudah}>
+                        <div className="flex items-center gap-1.5 text-xs font-sans" title={entry.status_sebelum ? `${entry.status_sebelum} → ${entry.status_sesudah}` : entry.status_sesudah}>
                           {entry.status_sebelum ? (
                             <>
                               <span className="text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded whitespace-nowrap">{entry.status_sebelum}</span>
@@ -351,10 +372,10 @@ export default function AuditLogPage() {
                           )}
                         </div>
                       </div>
-                      <div className="w-28 shrink-0 text-slate-700 text-sm font-['Public_Sans'] truncate" title={entry.nama_pelaksana}>{entry.nama_pelaksana}</div>
-                      <div className="w-32 shrink-0 text-slate-500 text-xs font-['Public_Sans'] truncate" title={entry.nama_role.replace(/_/g, ' ')}>{entry.nama_role.replace(/_/g, ' ')}</div>
-                      <div className="w-28 shrink-0 text-slate-500 text-xs font-['Public_Sans'] truncate" title={entry.nama_satelit}>{entry.nama_satelit}</div>
-                      <div className="flex-1 min-w-[180px] text-slate-400 text-xs font-['Public_Sans'] italic leading-relaxed" title={entry.keterangan || '-'}>{entry.keterangan || '-'}</div>
+                      <div className="w-28 shrink-0 text-slate-700 text-sm font-sans truncate" title={entry.nama_pelaksana}>{entry.nama_pelaksana}</div>
+                      <div className="w-32 shrink-0 text-slate-500 text-xs font-sans truncate" title={entry.nama_role.replace(/_/g, ' ')}>{entry.nama_role.replace(/_/g, ' ')}</div>
+                      <div className="w-28 shrink-0 text-slate-500 text-xs font-sans truncate" title={entry.nama_satelit}>{entry.nama_satelit}</div>
+                      <div className="flex-1 min-w-[180px] text-slate-400 text-xs font-sans italic leading-relaxed" title={entry.keterangan || '-'}>{entry.keterangan || '-'}</div>
                     </div>
                   );
                 })
@@ -363,32 +384,32 @@ export default function AuditLogPage() {
               data.length === 0 ? (
                 <div className="w-full py-16 flex flex-col items-center justify-center text-slate-400 gap-2">
                   <span className="material-icons-round text-5xl text-slate-300">history_edu</span>
-                  <p className="text-sm font-['Public_Sans']">Belum ada data audit log untuk kategori ini.</p>
+                  <p className="text-sm font-sans">Belum ada data audit log untuk kategori ini.</p>
                 </div>
               ) : (
                 data.map(entry => {
                   const cfg = ACTION_CONFIG[entry.aksi] ?? ACTION_CONFIG.UPDATE;
                   return (
                     <div key={entry.id} className="w-full flex items-center px-6 py-4 border-b border-slate-100 hover:bg-slate-50 transition-colors gap-4">
-                      <div className="w-40 shrink-0 text-slate-500 text-xs font-['Public_Sans']">{formatDate(entry.created_at)}</div>
+                      <div className="w-40 shrink-0 text-slate-500 text-xs font-sans">{formatDate(entry.created_at)}</div>
                       <div className="w-44 shrink-0">
                         <Link
                           href={`${entityConfig.detailPath}/${entry.entity_id}?mode=view`}
-                          className="text-slate-800 text-sm font-semibold font-['Public_Sans'] hover:text-slate-600 hover:underline truncate block"
+                          className="text-slate-800 text-sm font-semibold font-sans hover:text-slate-600 hover:underline truncate block"
                         >
                           {entry.nama_entity}
                         </Link>
                       </div>
                       <div className="w-28 shrink-0">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold font-['Public_Sans'] uppercase ${cfg.bg} ${cfg.text}`}>
-                          <span className="material-icons-round text-[12px]">{cfg.icon}</span>
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold font-sans uppercase ${cfg.bg} ${cfg.text}`}>
+                          <span className="material-icons-round text-[14px]">{cfg.icon}</span>
                           {cfg.label}
                         </span>
                       </div>
-                      <div className="w-28 shrink-0 text-slate-700 text-sm font-['Public_Sans'] truncate" title={entry.nama_pelaksana}>{entry.nama_pelaksana}</div>
-                      <div className="w-36 shrink-0 text-slate-500 text-xs font-['Public_Sans'] truncate" title={entry.nama_role.replace(/_/g, ' ')}>{entry.nama_role.replace(/_/g, ' ')}</div>
-                      <div className="w-28 shrink-0 text-slate-500 text-xs font-['Public_Sans'] truncate" title={entry.nama_satelit}>{entry.nama_satelit}</div>
-                      <div className="flex-1 min-w-[180px] text-slate-400 text-xs font-['Public_Sans'] italic leading-relaxed" title={entry.keterangan || '-'}>{entry.keterangan || '-'}</div>
+                      <div className="w-28 shrink-0 text-slate-700 text-sm font-sans truncate" title={entry.nama_pelaksana}>{entry.nama_pelaksana}</div>
+                      <div className="w-36 shrink-0 text-slate-500 text-xs font-sans truncate" title={entry.nama_role.replace(/_/g, ' ')}>{entry.nama_role.replace(/_/g, ' ')}</div>
+                      <div className="w-28 shrink-0 text-slate-500 text-xs font-sans truncate" title={entry.nama_satelit}>{entry.nama_satelit}</div>
+                      <div className="flex-1 min-w-[180px] text-slate-400 text-xs font-sans italic leading-relaxed" title={entry.keterangan || '-'}>{entry.keterangan || '-'}</div>
                     </div>
                   );
                 })
@@ -399,7 +420,7 @@ export default function AuditLogPage() {
 
         {/* Pagination Footer */}
         <div className="w-full px-6 py-4 bg-white border-t border-slate-200 flex flex-col md:flex-row justify-between items-center text-sm gap-4">
-          <span className="text-slate-500 font-['Public_Sans']">
+          <span className="text-slate-500 font-sans">
             Menampilkan {(isAnggaran ? anggaranData.length : data.length) > 0 ? ((currentPage - 1) * limit) + 1 : 0}–
             {Math.min(currentPage * limit, total)} dari {total} log
           </span>
@@ -411,7 +432,7 @@ export default function AuditLogPage() {
             >
               <span className="material-icons-round text-[20px]">chevron_left</span>
             </button>
-            <span className="text-slate-600 font-['Public_Sans'] text-sm px-2">Halaman {currentPage} dari {totalPages}</span>
+            <span className="text-slate-600 font-sans text-sm px-2">Halaman {currentPage} dari {totalPages}</span>
             <button
               onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
               disabled={currentPage >= totalPages}

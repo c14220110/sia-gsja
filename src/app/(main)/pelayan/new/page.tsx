@@ -67,14 +67,14 @@ const JemaatAutocomplete = ({
 
   return (
     <div className="w-full flex-col gap-1 flex relative" ref={wrapperRef}>
-      <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">{label}</label>
+      <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">{label}</label>
       <input 
         type="text" 
         value={query} 
         onChange={(e) => search(e.target.value)} 
         onFocus={() => { if(results.length > 0) setIsOpen(true); }}
         placeholder={placeholder} 
-        className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" 
+        className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-sans w-full transition-all" 
       />
       
       {isOpen && (
@@ -269,7 +269,7 @@ export default function NewPelayanPage() {
       
       {/* Breadcrumb & Title Area */}
       <div className="w-full flex flex-col justify-start items-start gap-4">
-        <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-['Inter'] leading-4">
+        <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-sans leading-4">
           <Link href="/dashboard" className="text-slate-500 hover:text-violet-600">Manajemen User</Link>
           <span className="text-slate-500 material-icons-round text-[14px]">chevron_right</span>
           <Link href="/pelayan" className="text-slate-500 hover:text-violet-600">Pelayan</Link>
@@ -278,8 +278,8 @@ export default function NewPelayanPage() {
         </div>
         <div className="self-stretch inline-flex justify-between items-end">
           <div className="inline-flex flex-col justify-start items-start">
-            <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Registrasi Pelayan</h1>
-            <div className="text-slate-500 text-base font-medium font-['Inter'] leading-6 flex gap-1">
+            <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Registrasi Pelayan</h1>
+            <div className="text-slate-500 text-base font-medium font-sans leading-6 flex gap-1">
               <span>ID Pelayanan:</span>
               <span className="text-slate-700 font-bold">Otomatis Terbuat (P...)</span>
             </div>
@@ -290,7 +290,7 @@ export default function NewPelayanPage() {
       {/* Tabs */}
       <div className="w-full border-b border-slate-200 inline-flex justify-start items-start gap-8">
         <div className="px-2 py-3 border-b-2 border-slate-700 inline-flex flex-col justify-center items-center cursor-pointer">
-          <span className="text-slate-700 text-sm font-bold font-['Inter'] leading-5">Data Pelayan</span>
+          <span className="text-slate-700 text-sm font-bold font-sans leading-5">Data Pelayan</span>
         </div>
       </div>
 
@@ -322,12 +322,12 @@ export default function NewPelayanPage() {
               <div className="mt-3 inline-flex items-center gap-4 text-sm font-medium text-slate-600 bg-slate-50 border border-slate-200 p-3 rounded-lg w-fit relative overflow-hidden animate-in fade-in slide-in-from-top-2">
                  <div className="flex flex-col">
                    <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider mb-0.5">ID Jemaat</span>
-                   <span className="font-['Liberation_Mono'] text-slate-800">{selectedJemaat.jemaat_id}</span>
+                   <span className="font-sans text-slate-800">{selectedJemaat.jemaat_id}</span>
                  </div>
                  <div className="w-px h-8 bg-slate-200"></div>
                  <div className="flex flex-col">
                    <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider mb-0.5">Satelit Terdaftar</span>
-                   <span className="font-['Inter'] font-semibold text-slate-800">{selectedJemaat.nama_satelit || '-'}</span>
+                   <span className="font-sans font-semibold text-slate-800">{selectedJemaat.nama_satelit || '-'}</span>
                  </div>
               </div>
             )}
@@ -343,23 +343,23 @@ export default function NewPelayanPage() {
             <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-start items-start gap-6 h-fit">
               <div className="w-full inline-flex justify-start items-center gap-2">
                 <span className="material-icons-round text-slate-700 text-[18px]">volunteer_activism</span>
-                <span className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Informasi Kepelayanan</span>
+                <span className="text-slate-700 text-xs font-bold font-sans uppercase leading-4 tracking-wider">Informasi Kepelayanan</span>
               </div>
               
               <div className="w-full flex-col gap-4 flex lg:flex-row">
                 <div className="flex-1 flex-col gap-1 flex">
-                  <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">ID Pelayanan</label>
-                  <input type="text" disabled value="Akan di-generate otomatis" className="px-3 py-2 bg-slate-50 rounded-lg border border-slate-200 text-slate-400 text-sm font-['Inter'] w-full italic cursor-not-allowed" />
+                  <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">ID Pelayanan</label>
+                  <input type="text" disabled value="Akan di-generate otomatis" className="px-3 py-2 bg-slate-50 rounded-lg border border-slate-200 text-slate-400 text-sm font-sans w-full italic cursor-not-allowed" />
                 </div>
                 <div className="flex-1 flex-col gap-1 flex">
-                  <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Tgl Mulai (Global)</label>
-                  <input type="date" name="tanggal_mulai" value={formData.tanggal_mulai} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
+                  <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Tgl Mulai (Global)</label>
+                  <input type="date" name="tanggal_mulai" value={formData.tanggal_mulai} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-sans w-full transition-all" />
                 </div>
               </div>
 
               {/* Lokasi Satelit Pelayanan — bisa berbeda dari satelit asal jemaat */}
               <div className="w-full flex-col gap-1 flex">
-                <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4 flex items-center gap-1">
+                <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4 flex items-center gap-1">
                   Lokasi Satelit Pelayanan
                   {selectedJemaat && selectedSatelitId && selectedSatelitId !== selectedJemaat.satelit_id?.toString() && (
                     <span className="ml-1 px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded-full normal-case tracking-normal">
@@ -370,7 +370,7 @@ export default function NewPelayanPage() {
                 <select
                   value={selectedSatelitId}
                   onChange={e => setSelectedSatelitId(e.target.value)}
-                  className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-['Inter'] w-full transition-all cursor-pointer"
+                  className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-sans w-full transition-all cursor-pointer"
                 >
                   <option value="">-- Pilih Satelit Pelayanan --</option>
                   {satelitOptions.map((s: any) => (
@@ -380,7 +380,7 @@ export default function NewPelayanPage() {
                     </option>
                   ))}
                 </select>
-                <p className="text-slate-400 text-[11px] font-['Inter'] mt-0.5">
+                <p className="text-slate-400 text-[11px] font-sans mt-0.5">
                   Default: satelit asal jemaat. Ubah jika jemaat ini melayani di satelit lain.
                 </p>
               </div>
@@ -390,17 +390,17 @@ export default function NewPelayanPage() {
             <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-start items-start gap-6 h-fit">
               <div className="w-full inline-flex justify-start items-center gap-2">
                 <span className="material-icons-round text-slate-700 text-[18px]">edit_note</span>
-                <span className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Catatan Khusus</span>
+                <span className="text-slate-700 text-xs font-bold font-sans uppercase leading-4 tracking-wider">Catatan Khusus</span>
               </div>
               
               <div className="w-full flex-col gap-1 flex">
-                <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Catatan (Opsional)</label>
+                <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Catatan (Opsional)</label>
                 <textarea 
                   name="catatan" 
                   value={formData.catatan} 
                   onChange={handleInputChange} 
                   placeholder="Isi jika ada catatan riwayat / teguran / pujian khusus..." 
-                  className="px-3 py-3 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-['Inter'] w-full min-h-[140px] resize-y transition-all" 
+                  className="px-3 py-3 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-sans w-full min-h-[140px] resize-y transition-all" 
                 />
               </div>
             </div>
@@ -414,7 +414,7 @@ export default function NewPelayanPage() {
               <div className="w-full inline-flex justify-between items-center gap-2">
                 <div className="flex items-center gap-2">
                   <span className="material-icons-round text-slate-700 text-[20px]">assignment_ind</span>
-                  <span className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Role Pelayanan</span>
+                  <span className="text-slate-700 text-xs font-bold font-sans uppercase leading-4 tracking-wider">Role Pelayanan</span>
                 </div>
                 <button type="button" onClick={handleAddRole} className="px-3 py-1.5 bg-violet-50 hover:bg-violet-100 text-violet-600 rounded-lg flex items-center gap-1 transition-colors text-xs font-bold border border-violet-100">
                   <span className="material-icons-round text-[16px]">add</span> Tambah Role
@@ -424,11 +424,11 @@ export default function NewPelayanPage() {
               {formData.roles.map((role, idx) => (
                 <div key={idx} className="w-full bg-slate-50 rounded-xl border border-slate-100 p-4 flex flex-col md:flex-row gap-4 items-end animate-in fade-in slide-in-from-top-1">
                   <div className="flex-1 w-full flex-col gap-1 flex">
-                    <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Role / Departemen</label>
+                    <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Role / Departemen</label>
                     <select 
                       value={role.role_id} 
                       onChange={(e) => handleRoleChange(idx, 'role_id', e.target.value)} 
-                      className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-['Inter'] w-full transition-all cursor-pointer"
+                      className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-sans w-full transition-all cursor-pointer"
                     >
                       <option value="">-- Pilih Role --</option>
                       {roleOptions.map(r => (
@@ -437,12 +437,12 @@ export default function NewPelayanPage() {
                     </select>
                   </div>
                   <div className="flex-1 w-full flex-col gap-1 flex">
-                    <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Tanggal Mulai Role</label>
+                    <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Tanggal Mulai Role</label>
                     <input 
                       type="date" 
                       value={role.tanggal_mulai} 
                       onChange={(e) => handleRoleChange(idx, 'tanggal_mulai', e.target.value)} 
-                      className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" 
+                      className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-sans w-full transition-all" 
                     />
                   </div>
                   <button type="button" onClick={() => handleRemoveRole(idx)}
@@ -455,7 +455,7 @@ export default function NewPelayanPage() {
               {formData.roles.length === 0 && (
                 <div className="w-full py-6 text-center text-slate-400 flex flex-col items-center gap-2 bg-slate-50/50 rounded-lg border border-dashed border-slate-300">
                   <span className="material-icons-round text-4xl opacity-50">note_add</span>
-                  <span className="text-sm font-['Inter']">Belum ada role diassign. Silakan klik tombol "+ Tambah Role".</span>
+                  <span className="text-sm font-sans">Belum ada role diassign. Silakan klik tombol "+ Tambah Role".</span>
                 </div>
               )}
             </div>
@@ -467,7 +467,7 @@ export default function NewPelayanPage() {
         {/* Actions */}
         <div className="w-full inline-flex justify-end items-center gap-4 mt-8">
           <Link href="/pelayan" className="px-8 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg inline-flex flex-col justify-center items-center transition-colors">
-            <span className="text-slate-700 text-sm font-bold font-['Inter'] uppercase leading-5 tracking-wide">Batal</span>
+            <span className="text-slate-700 text-sm font-bold font-sans uppercase leading-5 tracking-wide">Batal</span>
           </Link>
           <button 
             onClick={handleCreate} 
@@ -478,7 +478,7 @@ export default function NewPelayanPage() {
             ) : (
               <span className="material-icons-round text-white text-[20px]">save</span>
             )}
-            <span className="text-white text-sm font-bold font-['Inter'] uppercase leading-5 tracking-wide">Simpan Data</span>
+            <span className="text-white text-sm font-bold font-sans uppercase leading-5 tracking-wide">Simpan Data</span>
           </button>
         </div>
         

@@ -190,13 +190,13 @@ export default function ReviewAnggaranPage({ params }: { params: Promise<{ id: s
           {idx + 1}. {item.uraian}
           <p className="text-xs font-normal text-slate-400 mt-0.5">{item.deskripsi}</p>
         </td>
-        <td className="p-4 text-xs font-mono text-slate-500 align-top">{item.kode_akun} — {item.nama_akun}</td>
+        <td className="p-4 text-xs font-sans text-slate-500 align-top">{item.kode_akun} — {item.nama_akun}</td>
         <td className="p-4 align-top">
           <span className={`inline-block px-2 py-1 rounded-full text-[10px] font-bold border whitespace-nowrap ${item.sumber_dana === 'Plafon Pusat' ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : item.sumber_dana === 'Kas Pusat' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-emerald-50 text-emerald-600 border-emerald-200'}`}>{item.sumber_dana}</span>
         </td>
         <td className="p-4 text-sm text-center font-medium align-top">{item.jumlah}</td>
         <td className="p-4 text-sm text-center text-slate-600 align-top">{item.satuan}</td>
-        <td className={`p-4 text-sm text-right font-bold font-mono align-top ${type === 'pen' ? 'text-emerald-600' : 'text-slate-800'}`}>{fmt(originalTotal)}</td>
+        <td className={`p-4 text-sm text-right font-bold font-sans align-top ${type === 'pen' ? 'text-emerald-600' : 'text-slate-800'}`}>{fmt(originalTotal)}</td>
 
         {/* Keputusan */}
         <td className="p-3 align-top">
@@ -234,7 +234,7 @@ export default function ReviewAnggaranPage({ params }: { params: Promise<{ id: s
                     updateDecision(item.id, 'catatan', '');
                   }
                 }}
-                className={`w-full px-2 py-1.5 rounded border text-xs font-mono text-right focus:outline-none focus:ring-2 ${
+                className={`w-full px-2 py-1.5 rounded border text-xs font-sans text-right focus:outline-none focus:ring-2 ${
                   isCut ? 'border-blue-300 bg-blue-50 text-blue-700 focus:ring-blue-200' : 'border-slate-200 bg-white focus:ring-emerald-200'
                 }`}
               />
@@ -303,7 +303,7 @@ export default function ReviewAnggaranPage({ params }: { params: Promise<{ id: s
 
       {/* Header */}
       <div className="w-full flex flex-col gap-4">
-        <div className="flex items-center gap-2 text-xs font-medium font-['Inter']">
+        <div className="flex items-center gap-2 text-xs font-medium font-sans">
           <span className="text-slate-500">Anggaran & Plotting</span>
           <span className="text-slate-500 material-icons-round text-[14px]">chevron_right</span>
           <Link href="/anggaran/rancangan" className="text-slate-500 hover:text-blue-600">Rancangan Anggaran</Link>
@@ -313,7 +313,7 @@ export default function ReviewAnggaranPage({ params }: { params: Promise<{ id: s
         <div className="flex justify-between items-end">
           <div className="flex flex-col gap-2">
             <div className="inline-flex gap-4 items-center">
-              <h1 className="text-slate-900 text-3xl font-black font-['Inter']">Review Rancangan Anggaran</h1>
+              <h1 className="text-slate-900 text-3xl font-black font-sans">Review Rancangan Anggaran</h1>
               <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-amber-50 text-amber-700 flex items-center gap-1.5 border border-amber-200">
                 <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>Menunggu Review
               </span>
@@ -460,7 +460,7 @@ export default function ReviewAnggaranPage({ params }: { params: Promise<{ id: s
               <React.Fragment key={label}>
                 <div className="flex flex-col text-right shrink-0">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{label}</span>
-                  <span className={`text-sm font-bold font-mono ${cls}`}>{value}</span>
+                  <span className={`text-sm font-bold font-sans ${cls}`}>{value}</span>
                 </div>
                 {i < arr.length - 1 && <div className="w-px h-8 bg-slate-700 shrink-0" />}
               </React.Fragment>

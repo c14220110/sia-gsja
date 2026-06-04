@@ -281,8 +281,8 @@ export default function InputLPJPage() {
         <div className="flex items-center gap-3 border-b border-slate-100 pb-4 mb-4">
           <span className="material-icons-round text-amber-500 text-3xl">assignment</span>
           <div>
-            <h1 className="text-xl font-black text-slate-800 font-['Inter']">Input LPJ — Laporan Pertanggungjawaban</h1>
-            <p className="text-xs text-slate-400 font-['Public_Sans'] mt-0.5">{kegiatan ? `${kegiatan.nama_kegiatan} · ${kegiatan.kode_kegiatan}` : 'Memuat data kegiatan...'}</p>
+            <h1 className="text-xl font-black text-slate-800 font-sans">Input LPJ — Laporan Pertanggungjawaban</h1>
+            <p className="text-xs text-slate-400 font-sans mt-0.5">{kegiatan ? `${kegiatan.nama_kegiatan} · ${kegiatan.kode_kegiatan}` : 'Memuat data kegiatan...'}</p>
           </div>
           {existingStatus && (
             <span className={`ml-auto px-3 py-1 rounded-full text-xs font-bold border ${
@@ -315,17 +315,17 @@ export default function InputLPJPage() {
                <div className="flex gap-4 z-10 w-full md:w-auto justify-end">
                   <div className="flex flex-col text-right">
                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Disetujui</span>
-                     <span className="text-sm font-bold font-mono text-slate-800">{fmt(raInfo.total_disetujui)}</span>
+                     <span className="text-sm font-bold font-sans text-slate-800">{fmt(raInfo.total_disetujui)}</span>
                   </div>
                   <div className="w-px h-8 bg-emerald-200"></div>
                   <div className="flex flex-col text-right">
                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Terpakai (LPJ Lain)</span>
-                     <span className="text-sm font-bold font-mono text-red-600">{fmt(raInfo.total_terpakai_lain)}</span>
+                     <span className="text-sm font-bold font-sans text-red-600">{fmt(raInfo.total_terpakai_lain)}</span>
                   </div>
                   <div className="w-px h-8 bg-emerald-200"></div>
                   <div className="flex flex-col text-right">
                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Sisa Anggaran</span>
-                     <span className="text-sm font-bold font-mono text-emerald-700">{fmt(raInfo.total_disetujui - raInfo.total_terpakai_lain)}</span>
+                     <span className="text-sm font-bold font-sans text-emerald-700">{fmt(raInfo.total_disetujui - raInfo.total_terpakai_lain)}</span>
                   </div>
                </div>
              )}
@@ -390,11 +390,11 @@ export default function InputLPJPage() {
                   {raItemsReference.map((r: any, i: number) => (
                     <tr key={i} className="border-b border-blue-50 last:border-0 hover:bg-blue-50/30 group">
                       <td className="px-4 py-2 font-medium text-slate-700">{r.uraian}</td>
-                      <td className="px-4 py-2 font-mono text-slate-500">{r.kode_akun} — {r.nama_akun}</td>
+                      <td className="px-4 py-2 font-sans text-slate-500">{r.kode_akun} — {r.nama_akun}</td>
                       <td className="px-4 py-2 text-center text-slate-600">{r.jumlah}</td>
                       <td className="px-4 py-2 text-slate-500">{r.satuan || '-'}</td>
-                      <td className="px-4 py-2 text-right font-mono text-slate-600">{fmt(parseFloat(r.harga_satuan))}</td>
-                      <td className="px-4 py-2 text-right font-bold font-mono text-blue-700">{fmt(r.jumlah * parseFloat(r.harga_satuan))}</td>
+                      <td className="px-4 py-2 text-right font-sans text-slate-600">{fmt(parseFloat(r.harga_satuan))}</td>
+                      <td className="px-4 py-2 text-right font-bold font-sans text-blue-700">{fmt(r.jumlah * parseFloat(r.harga_satuan))}</td>
                       {isDraft && (
                         <td className="px-4 py-2 text-center">
                           <button
@@ -511,12 +511,12 @@ export default function InputLPJPage() {
                 <label className={lbl}>Harga Satuan <span className="text-red-500">*</span></label>
                 <div className="relative">
                   <span className="absolute left-3 top-2.5 text-slate-400 text-sm font-semibold">Rp</span>
-                  <input type="number" min={0} step={1} value={form.harga || ''} onChange={e => setForm(p => ({ ...p, harga: Math.round(Number(e.target.value)) || 0 }))} className={inp + ' pl-9 font-mono'} />
+                  <input type="number" min={0} step={1} value={form.harga || ''} onChange={e => setForm(p => ({ ...p, harga: Math.round(Number(e.target.value)) || 0 }))} className={inp + ' pl-9 font-sans'} />
                 </div>
               </div>
               <div>
                 <label className={lbl}>Total Estimasi</label>
-                <div className="w-full h-10 px-3 rounded-lg border border-slate-200 bg-slate-100 text-sm font-bold text-slate-700 flex items-center font-mono">{fmt(form.jumlah * form.harga)}</div>
+                <div className="w-full h-10 px-3 rounded-lg border border-slate-200 bg-slate-100 text-sm font-bold text-slate-700 flex items-center font-sans">{fmt(form.jumlah * form.harga)}</div>
               </div>
               <div>
                 <button onClick={handleAdd} className="w-full h-10 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-sm flex justify-center items-center gap-2 transition-colors shadow-sm">
@@ -581,9 +581,9 @@ export default function InputLPJPage() {
                               <input type="text" value={editValues.satuan} onChange={e => setEditValues(p => ({ ...p, satuan: e.target.value }))} placeholder="satuan" className="w-20 px-2 py-1 border border-slate-200 rounded text-xs outline-none" />
                             </td>
                             <td className="p-3 text-right">
-                              <input type="number" min={0} step={1} value={editValues.harga || ''} onChange={e => setEditValues(p => ({ ...p, harga: Math.round(Number(e.target.value)) || 0 }))} className="w-28 px-2 py-1 border border-emerald-300 rounded text-sm text-right font-mono outline-none focus:ring-1 focus:ring-emerald-500" />
+                              <input type="number" min={0} step={1} value={editValues.harga || ''} onChange={e => setEditValues(p => ({ ...p, harga: Math.round(Number(e.target.value)) || 0 }))} className="w-28 px-2 py-1 border border-emerald-300 rounded text-sm text-right font-sans outline-none focus:ring-1 focus:ring-emerald-500" />
                             </td>
-                            <td className="p-3 text-right font-bold font-mono text-emerald-600 text-sm">{fmt(editValues.jumlah * editValues.harga)}</td>
+                            <td className="p-3 text-right font-bold font-sans text-emerald-600 text-sm">{fmt(editValues.jumlah * editValues.harga)}</td>
                             <td className="p-3 text-center">
                               <div className="flex items-center justify-center gap-1">
                                 <button onClick={() => handleEditSave(item.id)} title="Simpan" className="w-7 h-7 rounded bg-emerald-600 text-white flex justify-center items-center hover:bg-emerald-700"><span className="material-icons-round text-[14px]">check</span></button>
@@ -594,12 +594,12 @@ export default function InputLPJPage() {
                         ) : (
                         <tr key={item.id} className="border-b border-slate-100 hover:bg-emerald-50/30 group">
                           <td className="p-4 pl-6 text-sm font-semibold text-slate-800">{idx + 1}. {item.uraian}<p className="text-xs font-normal text-slate-400">{item.deskripsi}</p></td>
-                          <td className="p-4 text-xs font-mono text-slate-500">{item.coaLabel}</td>
+                          <td className="p-4 text-xs font-sans text-slate-500">{item.coaLabel}</td>
                           <td className="p-4"><span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${item.sumber_dana === 'Kas Pusat' ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : item.sumber_dana === 'Kontribusi Peserta' ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-emerald-50 text-emerald-600 border-emerald-200'}`}>{item.sumber_dana}</span></td>
                           <td className="p-4 text-sm text-center font-medium">{item.jumlah}</td>
                           <td className="p-4 text-sm text-center text-slate-600">{item.satuan}</td>
-                          <td className="p-4 text-sm text-right font-mono text-slate-700">{fmt(item.harga)}</td>
-                          <td className="p-4 text-sm text-right font-bold font-mono text-emerald-600">{fmt(item.total)}</td>
+                          <td className="p-4 text-sm text-right font-sans text-slate-700">{fmt(item.harga)}</td>
+                          <td className="p-4 text-sm text-right font-bold font-sans text-emerald-600">{fmt(item.total)}</td>
                           {isDraft && <td className="p-4 text-center">
                             <div className="flex items-center justify-center gap-1">
                               <button onClick={() => handleStartEdit(item)} title="Edit" className="w-7 h-7 rounded text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 flex justify-center items-center"><span className="material-icons-round text-[16px]">edit</span></button>
@@ -634,9 +634,9 @@ export default function InputLPJPage() {
                               <input type="text" value={editValues.satuan} onChange={e => setEditValues(p => ({ ...p, satuan: e.target.value }))} placeholder="satuan" className="w-20 px-2 py-1 border border-slate-200 rounded text-xs outline-none" />
                             </td>
                             <td className="p-3 text-right">
-                              <input type="number" min={0} step={1} value={editValues.harga || ''} onChange={e => setEditValues(p => ({ ...p, harga: Math.round(Number(e.target.value)) || 0 }))} className="w-28 px-2 py-1 border border-indigo-300 rounded text-sm text-right font-mono outline-none focus:ring-1 focus:ring-indigo-500" />
+                              <input type="number" min={0} step={1} value={editValues.harga || ''} onChange={e => setEditValues(p => ({ ...p, harga: Math.round(Number(e.target.value)) || 0 }))} className="w-28 px-2 py-1 border border-indigo-300 rounded text-sm text-right font-sans outline-none focus:ring-1 focus:ring-indigo-500" />
                             </td>
-                            <td className="p-3 text-right font-bold font-mono text-slate-800 text-sm">{fmt(editValues.jumlah * editValues.harga)}</td>
+                            <td className="p-3 text-right font-bold font-sans text-slate-800 text-sm">{fmt(editValues.jumlah * editValues.harga)}</td>
                             <td className="p-3 text-center">
                               <div className="flex items-center justify-center gap-1">
                                 <button onClick={() => handleEditSave(item.id)} title="Simpan" className="w-7 h-7 rounded bg-indigo-600 text-white flex justify-center items-center hover:bg-indigo-700"><span className="material-icons-round text-[14px]">check</span></button>
@@ -647,12 +647,12 @@ export default function InputLPJPage() {
                         ) : (
                         <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50 group">
                           <td className="p-4 pl-6 text-sm font-semibold text-slate-800">{idx + 1}. {item.uraian}<p className="text-xs font-normal text-slate-400">{item.deskripsi}</p></td>
-                          <td className="p-4 text-xs font-mono text-slate-500">{item.coaLabel}</td>
+                          <td className="p-4 text-xs font-sans text-slate-500">{item.coaLabel}</td>
                           <td className="p-4"><span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${item.sumber_dana === 'Kas Pusat' ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : item.sumber_dana === 'Kontribusi Peserta' ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-emerald-50 text-emerald-600 border-emerald-200'}`}>{item.sumber_dana}</span></td>
                           <td className="p-4 text-sm text-center font-medium">{item.jumlah}</td>
                           <td className="p-4 text-sm text-center text-slate-600">{item.satuan}</td>
-                          <td className="p-4 text-sm text-right font-mono text-slate-700">{fmt(item.harga)}</td>
-                          <td className="p-4 text-sm text-right font-bold font-mono text-slate-800">{fmt(item.total)}</td>
+                          <td className="p-4 text-sm text-right font-sans text-slate-700">{fmt(item.harga)}</td>
+                          <td className="p-4 text-sm text-right font-bold font-sans text-slate-800">{fmt(item.total)}</td>
                           {isDraft && <td className="p-4 text-center">
                             <div className="flex items-center justify-center gap-1">
                               <button onClick={() => handleStartEdit(item)} title="Edit" className="w-7 h-7 rounded text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 flex justify-center items-center"><span className="material-icons-round text-[16px]">edit</span></button>
@@ -704,7 +704,7 @@ export default function InputLPJPage() {
               <React.Fragment key={String(label)}>
                 <div className="flex flex-col text-right shrink-0">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{label}</span>
-                  <span className={`text-sm font-bold font-mono ${cls}`}>{value}</span>
+                  <span className={`text-sm font-bold font-sans ${cls}`}>{value}</span>
                 </div>
                 {i < arr.length - 1 && <div className="w-px h-8 bg-slate-700 shrink-0" />}
               </React.Fragment>

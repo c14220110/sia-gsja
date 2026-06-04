@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
       date_to:    searchParams.get('date_to')    || undefined,
       limit:      parseInt(searchParams.get('limit')  ?? '10'),
       offset:     parseInt(searchParams.get('offset') ?? '0'),
+      pending_only: searchParams.get('pending_only') || undefined,
     };
 
     const caller = getCallerFromRequest(request);
@@ -33,11 +34,12 @@ export async function GET(request: NextRequest) {
       success: true,
       data:    result.data,
       meta: {
-        total:            result.total,
-        pelayan_baru:     result.pelayan_baru,
-        pelayan_nonaktif: result.pelayan_nonaktif,
-        limit:            params.limit,
-        offset:           params.offset,
+        total:               result.total,
+        pelayan_baru:        result.pelayan_baru,
+        pelayan_nonaktif:    result.pelayan_nonaktif,
+        menunggu_konfirmasi: result.menunggu_konfirmasi,
+        limit:               params.limit,
+        offset:              params.offset,
       },
     });
   } catch (error) {

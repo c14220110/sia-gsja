@@ -31,9 +31,9 @@ function PersonCard({ nama, jabatan, foto, idPengurus, hasAkun, highlight = 'blu
     <div className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border ${colors[highlight] || colors.slate}`}>
       <Avatar src={foto} name={nama} size={9} />
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-slate-800 truncate font-['Inter']">{nama}</p>
-        <p className="text-xs text-slate-500 font-['Public_Sans']">{jabatan}</p>
-        {idPengurus && <p className="text-[10px] text-slate-400 font-mono">{idPengurus}</p>}
+        <p className="text-sm font-semibold text-slate-800 truncate font-sans">{nama}</p>
+        <p className="text-xs text-slate-500 font-sans">{jabatan}</p>
+        {idPengurus && <p className="text-[10px] text-slate-400 font-sans">{idPengurus}</p>}
       </div>
       {hasAkun !== undefined && (
         <span title={hasAkun ? 'Punya akun sistem' : 'Belum punya akun'}
@@ -50,7 +50,7 @@ function EmptyState({ icon, text }: { icon: string; text: string }) {
   return (
     <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
       <span className="material-icons-round text-4xl text-slate-300">{icon}</span>
-      <p className="text-sm text-slate-400 font-['Public_Sans']">{text}</p>
+      <p className="text-sm text-slate-400 font-sans">{text}</p>
     </div>
   );
 }
@@ -64,8 +64,8 @@ function KomisiBlock({ komisi }: { komisi: any }) {
         className="w-full flex items-center justify-between px-4 py-3 bg-violet-50 hover:bg-violet-100 transition-colors">
         <div className="flex items-center gap-2">
           <span className="material-icons-round text-violet-600 text-[18px]">groups</span>
-          <span className="font-semibold text-sm text-violet-800 font-['Inter']">{komisi.nama_komisi}</span>
-          <span className="text-xs text-violet-500 font-['Public_Sans']">
+          <span className="font-semibold text-sm text-violet-800 font-sans">{komisi.nama_komisi}</span>
+          <span className="text-xs text-violet-500 font-sans">
             {komisi.bph_list?.length || 0} pengurus
           </span>
         </div>
@@ -104,7 +104,7 @@ function RayonBlock({
       <div className="w-full flex items-center justify-between px-4 py-3 bg-amber-50 hover:bg-amber-100 transition-colors cursor-pointer group" onClick={() => setOpen(v => !v)}>
         <div className="flex items-center gap-2 flex-1">
           <span className="material-icons-round text-amber-600 text-[18px]">holiday_village</span>
-          <span className="font-semibold text-sm text-amber-800 font-['Inter']">{rayon.nama_rayon}</span>
+          <span className="font-semibold text-sm text-amber-800 font-sans">{rayon.nama_rayon}</span>
           {rayon.ketua_rayon_nama && (
             <span className="text-xs text-amber-600">• Ketua: {rayon.ketua_rayon_nama}</span>
           )}
@@ -140,7 +140,7 @@ function RayonBlock({
             <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-amber-100 bg-amber-50 group/kel">
               <span className="material-icons-round text-amber-400 text-[16px]">home</span>
               <div className="flex-1">
-                <p className="text-xs font-semibold text-amber-800 font-['Inter']">{k.nama_kelompok}</p>
+                <p className="text-xs font-semibold text-amber-800 font-sans">{k.nama_kelompok}</p>
                 {k.ketua_nama && <p className="text-[11px] text-amber-600">Ketua: {k.ketua_nama}</p>}
               </div>
               <div className="flex items-center gap-1 opacity-0 group-hover/kel:opacity-100 transition-opacity">
@@ -350,10 +350,10 @@ export default function OrganisasiPage() {
 
       {/* Header */}
       <div className="flex flex-col gap-1 pb-5">
-        <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">
+        <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">
           Bagan Organisasi
         </h1>
-        <p className="text-slate-500 text-base font-medium font-['Inter'] leading-6">
+        <p className="text-slate-500 text-base font-medium font-sans leading-6">
           Visualisasi struktur kepengurusan, komisi, departemen, dan deteksi jabatan rangkap
         </p>
       </div>
@@ -364,7 +364,7 @@ export default function OrganisasiPage() {
           const active = activeTab === t.key;
           return (
             <button key={t.key} onClick={() => handleTabChange(t.key)}
-              className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-all whitespace-nowrap font-['Inter'] ${
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-all whitespace-nowrap font-sans ${
                 active ? tabColor[t.color] : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
               }`}>
               <span className="material-icons-round text-[18px]">{t.icon}</span>
@@ -386,7 +386,7 @@ export default function OrganisasiPage() {
           <div className="flex flex-wrap gap-2">
             {satelitList.map(s => (
               <button key={s.id} onClick={() => setSelectedSatelit(s.id)}
-                className={`px-4 py-2 rounded-full text-sm font-semibold transition-all border font-['Inter'] ${
+                className={`px-4 py-2 rounded-full text-sm font-semibold transition-all border font-sans ${
                   selectedSatelit === s.id
                     ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
                     : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300'
@@ -400,7 +400,7 @@ export default function OrganisasiPage() {
           {loading ? (
             <div className="flex items-center justify-center gap-3 py-20">
               <div className="w-6 h-6 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin" />
-              <span className="text-slate-500 text-sm font-['Public_Sans']">Memuat bagan...</span>
+              <span className="text-slate-500 text-sm font-sans">Memuat bagan...</span>
             </div>
           ) : bagan ? (
             <div className="relative flex flex-col mt-2 pb-10">
@@ -408,7 +408,7 @@ export default function OrganisasiPage() {
               <div className={`bg-white rounded-xl shadow-md overflow-hidden relative z-10 w-full lg:w-3/4 border ${bagan.is_pusat ? 'border-amber-300' : 'border-blue-200'}`}>
                 <div className={`px-5 py-3.5 flex items-center gap-2 bg-gradient-to-r ${bagan.is_pusat ? 'from-amber-700 to-amber-500' : 'from-blue-700 to-blue-500'}`}>
                   <span className="material-icons-round text-white text-[20px]">{bagan.is_pusat ? 'account_balance' : 'shield'}</span>
-                  <span className="text-white font-bold font-['Inter']">{bagan.is_pusat ? 'Majelis / BPH Pusat' : 'BPH Satelit'}</span>
+                  <span className="text-white font-bold font-sans">{bagan.is_pusat ? 'Majelis / BPH Pusat' : 'BPH Satelit'}</span>
                   <span className={`text-sm ml-1 font-semibold ${bagan.is_pusat ? 'text-amber-100' : 'text-blue-100'}`}>({bagan.bph.length} jabatan)</span>
                 </div>
                 <div className="p-4 flex flex-wrap gap-3">
@@ -443,7 +443,7 @@ export default function OrganisasiPage() {
                       <div className="bg-white rounded-xl border border-violet-200 shadow-sm overflow-hidden">
                         <div className="bg-gradient-to-r from-violet-600 to-violet-500 px-5 py-3.5 flex items-center gap-2">
                           <span className="material-icons-round text-white text-[20px]">groups</span>
-                          <span className="text-white font-bold font-['Inter']">Komisi Satelit</span>
+                          <span className="text-white font-bold font-sans">Komisi Satelit</span>
                           <span className="text-violet-200 text-sm ml-1 font-semibold">({bagan.komisi.length} komisi)</span>
                         </div>
                         <div className="p-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-start">
@@ -465,7 +465,7 @@ export default function OrganisasiPage() {
                         <div className="bg-gradient-to-r from-amber-500 to-orange-400 px-5 py-3.5 flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="material-icons-round text-white text-[20px]">holiday_village</span>
-                            <span className="text-white font-bold font-['Inter']">Rayon & Kelompok Sel</span>
+                            <span className="text-white font-bold font-sans">Rayon & Kelompok Sel</span>
                             <span className="text-amber-100 text-sm ml-1 font-semibold">({bagan.rayon.length} rayon)</span>
                           </div>
                           <button onClick={() => openRayonModal()} className="px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1">
@@ -508,7 +508,7 @@ export default function OrganisasiPage() {
           {loading ? (
             <div className="flex items-center justify-center gap-3 py-20">
               <div className="w-6 h-6 border-4 border-slate-200 border-t-violet-600 rounded-full animate-spin" />
-              <span className="text-slate-500 text-sm font-['Public_Sans']">Memuat departemen...</span>
+              <span className="text-slate-500 text-sm font-sans">Memuat departemen...</span>
             </div>
           ) : departemen.length === 0 ? (
             <EmptyState icon="business" text="Belum ada data departemen." />
@@ -518,10 +518,10 @@ export default function OrganisasiPage() {
               <div className="bg-white rounded-xl border border-violet-200 shadow-md overflow-hidden relative z-10 w-full lg:w-1/2">
                 <div className="bg-gradient-to-r from-violet-700 to-violet-500 px-5 py-3.5 flex items-center gap-2">
                   <span className="material-icons-round text-white text-[20px]">account_balance</span>
-                  <span className="text-white font-bold font-['Inter']">Pengurus Pusat (BPP)</span>
+                  <span className="text-white font-bold font-sans">Pengurus Pusat (BPP)</span>
                 </div>
                 <div className="p-4 flex flex-col gap-2">
-                  <p className="text-sm text-slate-500 font-['Public_Sans']">Struktur hierarki departemen tingkat pusat yang membawahi seluruh satelit.</p>
+                  <p className="text-sm text-slate-500 font-sans">Struktur hierarki departemen tingkat pusat yang membawahi seluruh satelit.</p>
                 </div>
               </div>
 
@@ -540,7 +540,7 @@ export default function OrganisasiPage() {
                         <div className="px-5 py-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="material-icons-round text-violet-600 text-[20px]">business</span>
-                            <span className="font-bold text-sm text-slate-800 font-['Inter']">{d.nama_departemen}</span>
+                            <span className="font-bold text-sm text-slate-800 font-sans">{d.nama_departemen}</span>
                             <span className="text-xs text-slate-400 font-semibold ml-1">({d.koordinator_list?.length || 0} koordinator)</span>
                           </div>
                           <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full font-bold ${d.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400'}`}>
@@ -574,7 +574,7 @@ export default function OrganisasiPage() {
           {loading ? (
             <div className="flex items-center justify-center gap-3 py-20">
               <div className="w-6 h-6 border-4 border-slate-200 border-t-amber-500 rounded-full animate-spin" />
-              <span className="text-slate-500 text-sm font-['Public_Sans']">Menganalisis konflik...</span>
+              <span className="text-slate-500 text-sm font-sans">Menganalisis konflik...</span>
             </div>
           ) : konflik ? (
             <>
@@ -582,8 +582,8 @@ export default function OrganisasiPage() {
               <div className="flex items-start gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl">
                 <span className="material-icons-round text-amber-500 text-[20px] mt-0.5">info</span>
                 <div>
-                  <p className="text-sm font-semibold text-amber-800 font-['Inter']">Kebijakan Jabatan Rangkap</p>
-                  <p className="text-xs text-amber-600 mt-0.5 font-['Public_Sans']">
+                  <p className="text-sm font-semibold text-amber-800 font-sans">Kebijakan Jabatan Rangkap</p>
+                  <p className="text-xs text-amber-600 mt-0.5 font-sans">
                     Sistem <strong>tidak memblokir</strong> jabatan rangkap (ini adalah kondisi normal di gereja).
                     Data di bawah hanya sebagai informasi agar Gembala dapat memantau beban kerja SDM.
                   </p>
@@ -594,7 +594,7 @@ export default function OrganisasiPage() {
               <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="px-5 py-3.5 bg-amber-50 border-b border-amber-200 flex items-center gap-2">
                   <span className="material-icons-round text-amber-600 text-[20px]">warning</span>
-                  <span className="font-bold text-sm text-amber-800 font-['Inter']">Rangkap Jabatan</span>
+                  <span className="font-bold text-sm text-amber-800 font-sans">Rangkap Jabatan</span>
                   <span className="ml-auto text-xs bg-amber-500 text-white px-2 py-0.5 rounded-full font-bold">
                     {konflik.jabatan_ganda.length} orang
                   </span>
@@ -608,14 +608,14 @@ export default function OrganisasiPage() {
                         <Avatar src={p.foto_url} name={p.nama_lengkap} size={10} />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <p className="font-semibold text-sm text-slate-800 font-['Inter']">{p.nama_lengkap}</p>
-                            <span className="text-xs text-slate-400 font-mono">{p.id_pengurus}</span>
+                            <p className="font-semibold text-sm text-slate-800 font-sans">{p.nama_lengkap}</p>
+                            <span className="text-xs text-slate-400 font-sans">{p.id_pengurus}</span>
                             <span className="text-xs font-bold text-amber-600">· {p.jumlah_jabatan} jabatan</span>
                             {p.satelit_asal && <span className="text-xs text-slate-400">({p.satelit_asal})</span>}
                           </div>
                           <div className="mt-2 flex flex-wrap gap-1.5">
                             {p.jabatan_list?.map((j: any, ji: number) => (
-                              <span key={ji} className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 text-slate-600 text-xs rounded-full font-['Public_Sans']">
+                              <span key={ji} className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 text-slate-600 text-xs rounded-full font-sans">
                                 <span className="material-icons-round text-[12px] text-slate-400">
                                   {j.lingkup === 'Komisi' ? 'groups' : j.lingkup === 'Departemen' ? 'business' : 'shield'}
                                 </span>
@@ -640,14 +640,14 @@ export default function OrganisasiPage() {
                 <div className="bg-white rounded-xl border border-rose-200 shadow-sm overflow-hidden">
                   <div className="px-5 py-3.5 bg-rose-50 border-b border-rose-200 flex items-center gap-2">
                     <span className="material-icons-round text-rose-500 text-[20px]">timer</span>
-                    <span className="font-bold text-sm text-rose-700 font-['Inter']">Masa Jabatan Hampir Berakhir (≤90 hari)</span>
+                    <span className="font-bold text-sm text-rose-700 font-sans">Masa Jabatan Hampir Berakhir (≤90 hari)</span>
                   </div>
                   <div className="divide-y divide-slate-100">
                     {konflik.segera_habis.map((item, i) => (
                       <div key={i} className="px-5 py-3 flex items-center justify-between gap-4">
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-slate-800 truncate font-['Inter']">{item.nama_lengkap}</p>
-                          <p className="text-xs text-slate-500 font-['Public_Sans']">
+                          <p className="text-sm font-semibold text-slate-800 truncate font-sans">{item.nama_lengkap}</p>
+                          <p className="text-xs text-slate-500 font-sans">
                             {item.nama_jabatan}
                             {item.nama_satelit && ` · ${item.nama_satelit}`}
                             {item.nama_komisi && ` · ${item.nama_komisi}`}
@@ -678,7 +678,7 @@ export default function OrganisasiPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-              <h3 className="font-bold text-slate-800 font-['Inter']">
+              <h3 className="font-bold text-slate-800 font-sans">
                 {showRayonModal 
                   ? (rayonToEdit ? 'Edit Rayon' : 'Tambah Rayon Baru') 
                   : (kelompokToEdit ? 'Edit Kelompok Sel' : 'Tambah Kelompok Sel')

@@ -95,7 +95,7 @@ export function MasterTemplateSurvei() {
       <div className="w-full bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col min-h-[400px]">
         <div className="flex items-center justify-center py-16 gap-3">
           <div className="w-7 h-7 border-4 border-slate-200 border-t-rose-500 rounded-full animate-spin" />
-          <span className="text-slate-500 text-sm font-['Public_Sans']">Memuat data template survei...</span>
+          <span className="text-slate-500 text-sm font-sans">Memuat data template survei...</span>
         </div>
       </div>
     );
@@ -138,8 +138,8 @@ export function MasterTemplateSurvei() {
             <span className="material-icons-round text-white text-[22px]">quiz</span>
           </div>
           <div>
-            <div className="text-white font-bold font-['Inter'] text-base leading-tight">Template Survei</div>
-            <div className="text-white/70 text-xs font-['Public_Sans'] leading-tight">
+            <div className="text-white font-bold font-sans text-base leading-tight">Template Survei</div>
+            <div className="text-white/70 text-xs font-sans leading-tight">
               {data.length} jenis kegiatan · {data.filter(d => d.has_template).length} template dikustomisasi
             </div>
           </div>
@@ -149,7 +149,7 @@ export function MasterTemplateSurvei() {
       {/* Info banner */}
       <div className="px-4 py-3 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-3">
         <span className="material-icons-round text-rose-500 text-[18px] mt-0.5">info</span>
-        <div className="text-xs text-rose-700 font-['Public_Sans'] leading-relaxed">
+        <div className="text-xs text-rose-700 font-sans leading-relaxed">
           <strong>Cara kerja:</strong> Setiap jenis kegiatan bisa punya template survei sendiri. 
           Ketika kegiatan selesai (Menunggu LPJ), survei otomatis dikirim ke jemaat yang hadir menggunakan pertanyaan dari template. 
           Jika belum ada template custom, survei menggunakan <strong>3 pertanyaan default</strong> (2 skala + 1 teks).
@@ -164,8 +164,8 @@ export function MasterTemplateSurvei() {
             {/* Category header */}
             <div className="px-5 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-rose-400 inline-block" />
-              <span className="text-xs font-bold text-slate-600 uppercase tracking-wider font-['Inter']">{group.kategori}</span>
-              <span className="text-[10px] text-slate-400 font-['Public_Sans']">({group.items.length})</span>
+              <span className="text-xs font-bold text-slate-600 uppercase tracking-wider font-sans">{group.kategori}</span>
+              <span className="text-[10px] text-slate-400 font-sans">({group.items.length})</span>
             </div>
 
             {/* Rows */}
@@ -189,7 +189,7 @@ export function MasterTemplateSurvei() {
 
                 {/* Name */}
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-slate-700 font-['Public_Sans'] truncate">{item.nama_jenis_kegiatan}</div>
+                  <div className="text-sm font-semibold text-slate-700 font-sans truncate">{item.nama_jenis_kegiatan}</div>
                 </div>
 
                 {/* Status badge */}
@@ -227,7 +227,7 @@ export function MasterTemplateSurvei() {
 
         {/* Footer */}
         <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/50">
-          <span className="text-slate-400 text-xs font-['Public_Sans']">
+          <span className="text-slate-400 text-xs font-sans">
             {data.length} jenis kegiatan
           </span>
         </div>
@@ -347,8 +347,8 @@ function EditTemplateModal({ item, onClose, onSaved }: {
         {/* Header */}
         <div className="bg-rose-600 px-6 py-4 flex justify-between items-center flex-shrink-0">
           <div>
-            <h2 className="text-white font-bold font-['Inter'] text-base">Template Survei</h2>
-            <p className="text-white/70 text-xs font-['Public_Sans'] mt-0.5">{item.nama_jenis_kegiatan} · {item.kategori}</p>
+            <h2 className="text-white font-bold font-sans text-base">Template Survei</h2>
+            <p className="text-white/70 text-xs font-sans mt-0.5">{item.nama_jenis_kegiatan} · {item.kategori}</p>
           </div>
           <button onClick={onClose} className="text-white/70 hover:text-white transition-colors">
             <span className="material-icons-round text-[20px]">close</span>
@@ -358,14 +358,14 @@ function EditTemplateModal({ item, onClose, onSaved }: {
         {/* Body */}
         <div className="overflow-y-auto flex-1">
           {loading ? (
-            <div className="py-12 text-center text-slate-500 font-['Public_Sans']">Memuat pertanyaan template...</div>
+            <div className="py-12 text-center text-slate-500 font-sans">Memuat pertanyaan template...</div>
           ) : (
             <div className="flex flex-col">
               {/* Toggle active */}
               <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-4">
                 <div>
-                  <div className="text-sm font-semibold text-slate-700 font-['Inter']">Survei Otomatis Aktif</div>
-                  <div className="text-xs text-slate-400 font-['Public_Sans'] mt-0.5">
+                  <div className="text-sm font-semibold text-slate-700 font-sans">Survei Otomatis Aktif</div>
+                  <div className="text-xs text-slate-400 font-sans mt-0.5">
                     {isActive 
                       ? 'Survei akan otomatis dikirim ke jemaat saat kegiatan jenis ini selesai'
                       : 'Jemaat tidak akan mendapat survei otomatis untuk kegiatan jenis ini'}
@@ -387,19 +387,19 @@ function EditTemplateModal({ item, onClose, onSaved }: {
               <div className="px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="material-icons-round text-rose-500 text-[18px]">list_alt</span>
-                  <span className="text-sm font-bold text-slate-700 font-['Inter']">Daftar Pertanyaan ({pertanyaan.length})</span>
+                  <span className="text-sm font-bold text-slate-700 font-sans">Daftar Pertanyaan ({pertanyaan.length})</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={resetToDefault}
-                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors font-['Public_Sans']"
+                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors font-sans"
                   >
                     <span className="material-icons-round text-[14px]">restart_alt</span>
                     Reset Default
                   </button>
                   <button
                     onClick={addPertanyaan}
-                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-lg transition-colors font-['Public_Sans']"
+                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-lg transition-colors font-sans"
                   >
                     <span className="material-icons-round text-[14px]">add</span>
                     Tambah
@@ -411,8 +411,8 @@ function EditTemplateModal({ item, onClose, onSaved }: {
                 <div className="px-6 pb-6 text-center">
                   <div className="py-8 bg-slate-50 rounded-xl border border-slate-200 border-dashed">
                     <span className="material-icons-round text-4xl text-slate-300 mb-2 block">quiz</span>
-                    <p className="text-sm text-slate-400 font-['Public_Sans']">Belum ada pertanyaan.</p>
-                    <button onClick={addPertanyaan} className="mt-2 text-xs font-semibold text-rose-600 hover:underline font-['Public_Sans']">
+                    <p className="text-sm text-slate-400 font-sans">Belum ada pertanyaan.</p>
+                    <button onClick={addPertanyaan} className="mt-2 text-xs font-semibold text-rose-600 hover:underline font-sans">
                       + Tambah pertanyaan pertama
                     </button>
                   </div>
@@ -424,10 +424,10 @@ function EditTemplateModal({ item, onClose, onSaved }: {
                       {/* Header row */}
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
-                          <span className="w-6 h-6 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center text-xs font-bold font-['Inter']">
+                          <span className="w-6 h-6 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center text-xs font-bold font-sans">
                             {index + 1}
                           </span>
-                          <span className="text-xs text-slate-400 font-['Public_Sans'] uppercase font-bold tracking-wider">
+                          <span className="text-xs text-slate-400 font-sans uppercase font-bold tracking-wider">
                             Pertanyaan {index + 1}
                           </span>
                         </div>
@@ -448,18 +448,18 @@ function EditTemplateModal({ item, onClose, onSaved }: {
                         onChange={(e) => updatePertanyaan(index, 'teks_pertanyaan', e.target.value)}
                         placeholder="Tulis pertanyaan survei..."
                         rows={2}
-                        className="w-full px-3 py-2.5 bg-white rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-300 font-['Public_Sans'] resize-none"
+                        className="w-full px-3 py-2.5 bg-white rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-300 font-sans resize-none"
                       />
 
                       {/* Options row */}
                       <div className="flex items-center gap-4">
                         {/* Tipe jawaban */}
                         <div className="flex items-center gap-2">
-                          <label className="text-[11px] text-slate-400 font-bold uppercase font-['Inter']">Tipe:</label>
+                          <label className="text-[11px] text-slate-400 font-bold uppercase font-sans">Tipe:</label>
                           <select
                             value={p.tipe_jawaban}
                             onChange={(e) => updatePertanyaan(index, 'tipe_jawaban', e.target.value)}
-                            className="px-2 py-1.5 bg-white rounded-lg border border-slate-200 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-rose-300 font-['Public_Sans']"
+                            className="px-2 py-1.5 bg-white rounded-lg border border-slate-200 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-rose-300 font-sans"
                           >
                             <option value="skala">⭐ Skala 1-5</option>
                             <option value="teks">📝 Teks Bebas</option>
@@ -468,7 +468,7 @@ function EditTemplateModal({ item, onClose, onSaved }: {
 
                         {/* Wajib toggle */}
                         <div className="flex items-center gap-2">
-                          <label className="text-[11px] text-slate-400 font-bold uppercase font-['Inter']">Wajib:</label>
+                          <label className="text-[11px] text-slate-400 font-bold uppercase font-sans">Wajib:</label>
                           <button
                             onClick={() => updatePertanyaan(index, 'is_required', !p.is_required)}
                             className={`w-9 h-5 rounded-full transition-colors relative ${
@@ -492,23 +492,23 @@ function EditTemplateModal({ item, onClose, onSaved }: {
         {/* Footer */}
         <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-between items-center flex-shrink-0">
           {error ? (
-            <div className="flex items-center gap-2 text-xs text-rose-600 font-['Public_Sans']">
+            <div className="flex items-center gap-2 text-xs text-rose-600 font-sans">
               <span className="material-icons-round text-[14px]">error_outline</span>
               {error}
             </div>
           ) : (
-            <span className="text-xs text-slate-400 font-['Public_Sans']">
+            <span className="text-xs text-slate-400 font-sans">
               {pertanyaan.length} pertanyaan · {pertanyaan.filter(p => p.tipe_jawaban === 'skala').length} skala, {pertanyaan.filter(p => p.tipe_jawaban === 'teks').length} teks
             </span>
           )}
           <div className="flex gap-3">
-            <button onClick={onClose} className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-white font-['Public_Sans'] transition-colors">
+            <button onClick={onClose} className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-white font-sans transition-colors">
               Batal
             </button>
             <button
               onClick={handleSave}
               disabled={saving || loading}
-              className="bg-rose-600 hover:bg-rose-700 text-white px-5 py-2 rounded-lg text-sm font-semibold font-['Public_Sans'] transition-colors disabled:opacity-60 flex items-center gap-2"
+              className="bg-rose-600 hover:bg-rose-700 text-white px-5 py-2 rounded-lg text-sm font-semibold font-sans transition-colors disabled:opacity-60 flex items-center gap-2"
             >
               {saving && <span className="material-icons-round text-[16px] animate-spin">sync</span>}
               Simpan Template

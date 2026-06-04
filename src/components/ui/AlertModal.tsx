@@ -37,8 +37,8 @@ export const AlertModal: React.FC<AlertModalProps> = ({
 
         {/* Text Area */}
         <div className="flex flex-col gap-2 w-full">
-          <h3 className="text-xl font-bold font-['Inter'] text-slate-900">{title}</h3>
-          <div className="text-sm font-['Public_Sans'] leading-normal text-slate-500">
+          <h3 className="text-xl font-bold font-sans text-slate-900">{title}</h3>
+          <div className="text-sm font-sans leading-normal text-slate-500">
             {message}
           </div>
         </div>
@@ -47,13 +47,13 @@ export const AlertModal: React.FC<AlertModalProps> = ({
         <div className="flex flex-col sm:flex-row w-full gap-3 mt-4">
           <button
             onClick={onCancel}
-            className="flex-1 px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-sm font-bold font-['Inter'] transition-colors"
+            className="flex-1 px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-sm font-bold font-sans transition-colors"
           >
             {cancelText}
           </button>
           <button
             onClick={onConfirm}
-            className="flex-1 px-4 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-sm font-bold font-['Inter'] shadow-sm transition-colors"
+            className="flex-1 px-4 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-sm font-bold font-sans shadow-sm transition-colors"
           >
             {confirmText}
           </button>

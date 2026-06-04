@@ -46,10 +46,10 @@ const JemaatAutocomplete = ({
 
   return (
     <div className="w-full flex-col gap-1 flex relative" ref={wrapperRef}>
-      <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">{label}</label>
+      <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">{label}</label>
       <input type="text" value={query} onChange={e => search(e.target.value)} onFocus={() => { if (results.length > 0) setIsOpen(true); }}
         placeholder={placeholder}
-        className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
+        className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-sans w-full transition-all" />
       {isOpen && (
         <div className="absolute z-20 top-full mt-1 w-full bg-white rounded-lg border border-slate-200 shadow-lg max-h-48 overflow-y-auto">
           {loading ? <div className="p-3 text-sm text-slate-500">Mencari...</div> : results.map(j => (
@@ -219,15 +219,15 @@ export default function NewPengurusPage() {
 
       {/* Breadcrumb & Title */}
       <div className="w-full flex flex-col justify-start items-start gap-4">
-        <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-['Inter'] leading-4">
+        <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-sans leading-4">
           <Link href="/pengurus" className="text-slate-500 hover:text-violet-600">Database Pengurus</Link>
           <span className="text-slate-500 material-icons-round text-[14px]">chevron_right</span>
           <span className="text-slate-700 font-bold">Tambah Pengurus</span>
         </div>
         <div className="self-stretch inline-flex justify-between items-end">
           <div className="inline-flex flex-col justify-start items-start">
-            <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Registrasi Pengurus</h1>
-            <div className="text-slate-500 text-base font-medium font-['Inter'] leading-6 flex gap-1">
+            <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Registrasi Pengurus</h1>
+            <div className="text-slate-500 text-base font-medium font-sans leading-6 flex gap-1">
               <span>ID Pengurus:</span>
               <span className="text-slate-700 font-bold">Otomatis Terbuat (P...)</span>
             </div>
@@ -238,7 +238,7 @@ export default function NewPengurusPage() {
       {/* Tabs */}
       <div className="w-full border-b border-slate-200 inline-flex justify-start items-start gap-8">
         <div className="px-2 py-3 border-b-2 border-slate-700 inline-flex flex-col justify-center items-center cursor-pointer">
-          <span className="text-slate-700 text-sm font-bold font-['Inter'] leading-5">Data Pengurus</span>
+          <span className="text-slate-700 text-sm font-bold font-sans leading-5">Data Pengurus</span>
         </div>
       </div>
 
@@ -266,12 +266,12 @@ export default function NewPengurusPage() {
               <div className="mt-3 inline-flex items-center gap-4 text-sm font-medium text-slate-600 bg-slate-50 border border-slate-200 p-3 rounded-lg w-fit animate-in fade-in slide-in-from-top-2">
                 <div className="flex flex-col">
                   <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider mb-0.5">ID Jemaat</span>
-                  <span className="font-mono text-slate-800">{selectedJemaat.jemaat_id}</span>
+                  <span className="font-sans text-slate-800">{selectedJemaat.jemaat_id}</span>
                 </div>
                 <div className="w-px h-8 bg-slate-200"></div>
                 <div className="flex flex-col">
                   <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider mb-0.5">Satelit Terdaftar</span>
-                  <span className="font-['Inter'] font-semibold text-slate-800">{selectedJemaat.nama_satelit || '-'}</span>
+                  <span className="font-sans font-semibold text-slate-800">{selectedJemaat.nama_satelit || '-'}</span>
                 </div>
               </div>
             )}
@@ -284,7 +284,7 @@ export default function NewPengurusPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="material-icons-round text-slate-700 text-[20px]">workspace_premium</span>
-              <span className="text-slate-900 text-base font-black font-['Inter']">Daftar Jabatan</span>
+              <span className="text-slate-900 text-base font-black font-sans">Daftar Jabatan</span>
               <span className="w-6 h-6 rounded-full bg-violet-100 text-violet-700 text-xs font-black flex items-center justify-center">{jabatanList.length}</span>
             </div>
             <button
@@ -303,7 +303,7 @@ export default function NewPengurusPage() {
               <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-full bg-violet-600 text-white text-sm font-black flex items-center justify-center shrink-0">{idx + 1}</div>
-                  <span className="text-slate-700 text-sm font-bold font-['Inter']">
+                  <span className="text-slate-700 text-sm font-bold font-sans">
                     {jab.jabatan_id
                       ? jabatanOptions.find(j => j.id.toString() === jab.jabatan_id)?.nama_jabatan || 'Jabatan Baru'
                       : `Jabatan ${idx + 1}`}
@@ -339,7 +339,7 @@ export default function NewPengurusPage() {
         {/* Actions */}
         <div className="w-full inline-flex justify-end items-center gap-4 mt-4">
           <Link href="/pengurus" className="px-8 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg inline-flex flex-col justify-center items-center transition-colors">
-            <span className="text-slate-700 text-sm font-bold font-['Inter'] uppercase leading-5 tracking-wide">Batal</span>
+            <span className="text-slate-700 text-sm font-bold font-sans uppercase leading-5 tracking-wide">Batal</span>
           </Link>
           <button
             onClick={handleCreate}
@@ -350,7 +350,7 @@ export default function NewPengurusPage() {
             ) : (
               <span className="material-icons-round text-white text-[20px]">save</span>
             )}
-            <span className="text-white text-sm font-bold font-['Inter'] uppercase leading-5 tracking-wide">
+            <span className="text-white text-sm font-bold font-sans uppercase leading-5 tracking-wide">
               Simpan {jabatanList.length > 1 ? `(${jabatanList.length} Jabatan)` : 'Data'}
             </span>
           </button>

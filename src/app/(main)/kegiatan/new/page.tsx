@@ -67,14 +67,14 @@ const GenericAutocomplete = ({
 
   return (
     <div className="w-full flex-col gap-1 flex relative" ref={wrapperRef}>
-      <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">{label}</label>
+      <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">{label}</label>
       <input 
         type="text" 
         value={query} 
         onChange={(e) => search(e.target.value)} 
         onFocus={(e) => search(e.target.value)}
         placeholder={placeholder} 
-        className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" 
+        className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" 
       />
       
       {isOpen && (
@@ -168,7 +168,7 @@ const HybridAsyncAutocomplete = ({
 
   return (
     <div className="w-full flex-col gap-1 flex relative" ref={wrapperRef}>
-      <label className="text-blue-800 text-xs font-bold font-['Inter'] uppercase leading-4">{label}</label>
+      <label className="text-blue-800 text-xs font-bold font-sans uppercase leading-4">{label}</label>
       <div className="relative">
         <input 
           type="text" 
@@ -176,7 +176,7 @@ const HybridAsyncAutocomplete = ({
           onChange={handleInputChange}
           onFocus={() => { if(query.length >= 3 && results.length > 0) setIsOpen(true); }}
           placeholder={placeholder} 
-          className="px-4 py-3 pr-10 bg-white rounded-lg border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" 
+          className="px-4 py-3 pr-10 bg-white rounded-lg border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" 
         />
         {isLoading && (
           <div className="absolute right-3 top-3 w-4 h-4 rounded-full border-2 border-slate-200 border-t-blue-500 animate-spin"></div>
@@ -266,7 +266,7 @@ const JemaatIDAutocomplete = ({
 
   return (
     <div className="w-full flex-col gap-1 flex relative" ref={wrapperRef}>
-      <label className="text-rose-700 text-xs font-bold font-['Inter'] uppercase leading-4">{label}</label>
+      <label className="text-rose-700 text-xs font-bold font-sans uppercase leading-4">{label}</label>
       <div className="relative">
         <input
           type="text"
@@ -274,7 +274,7 @@ const JemaatIDAutocomplete = ({
           onChange={handleChange}
           onFocus={() => { if (query.length >= 3 && results.length > 0) setIsOpen(true); }}
           placeholder={placeholder}
-          className="px-4 py-3 pr-10 bg-white rounded-lg border border-rose-200 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 text-slate-900 text-sm font-['Inter'] w-full transition-all"
+          className="px-4 py-3 pr-10 bg-white rounded-lg border border-rose-200 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 text-slate-900 text-sm font-sans w-full transition-all"
         />
         {isLoading && <div className="absolute right-3 top-3 w-4 h-4 rounded-full border-2 border-slate-200 border-t-rose-500 animate-spin" />}
         {valueId && !isOpen && (
@@ -564,7 +564,7 @@ export default function NewKegiatanPage() {
 
       {/* Header Area */}
       <div className="w-full flex flex-col justify-start items-start gap-4">
-        <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-['Inter'] leading-4">
+        <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-sans leading-4">
           <span className="text-slate-500">Modul Kegiatan</span>
           <span className="text-slate-500 material-icons-round text-[14px]">chevron_right</span>
           <Link href="/kegiatan" className="text-slate-500 hover:text-blue-600">Daftar Kegiatan</Link>
@@ -574,13 +574,13 @@ export default function NewKegiatanPage() {
         
         <div className="self-stretch inline-flex justify-between items-end">
           <div className="inline-flex gap-4 items-center">
-            <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Buat Kegiatan Baru</h1>
+            <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Buat Kegiatan Baru</h1>
             <div className="px-3 py-1 bg-amber-100 rounded border border-amber-300 flex items-center gap-1 mt-1">
                <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
                <span className="text-amber-800 text-xs font-bold uppercase tracking-wide">DRAFT</span>
             </div>
           </div>
-          <div className="text-slate-500 text-sm font-medium font-['Inter'] flex gap-1 items-center">
+          <div className="text-slate-500 text-sm font-medium font-sans flex gap-1 items-center">
             <span className="material-icons-round text-lg text-slate-400">qr_code</span> ID: <span className="text-slate-700 font-bold">Otomatis Terbuat</span>
           </div>
         </div>
@@ -596,22 +596,22 @@ export default function NewKegiatanPage() {
               <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
                 <span className="material-icons-round text-[18px]">info</span>
               </div>
-              <span className="text-slate-800 text-sm font-bold font-['Inter'] uppercase tracking-wider">Informasi Dasar</span>
+              <span className="text-slate-800 text-sm font-bold font-sans uppercase tracking-wider">Informasi Dasar</span>
             </div>
             
             <div className="w-full flex-col gap-5 flex">
               <div className="w-full flex-col gap-1.5 flex">
-                <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase">Nama Kegiatan <span className="text-red-500">*</span></label>
+                <label className="text-slate-500 text-xs font-bold font-sans uppercase">Nama Kegiatan <span className="text-red-500">*</span></label>
                 <input 
                   type="text" name="nama_kegiatan" value={formData.nama_kegiatan} onChange={handleInputChange} 
                   placeholder="Contoh: Ibadah Raya 1 Pagi" 
-                  className="px-4 py-2.5 bg-slate-50 rounded-lg border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" 
+                  className="px-4 py-2.5 bg-slate-50 rounded-lg border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" 
                 />
               </div>
 
               <div className="w-full flex gap-5">
                 <div className="flex-[2] flex-col gap-1.5 flex">
-                  <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase flex items-center gap-2">
+                  <label className="text-slate-500 text-xs font-bold font-sans uppercase flex items-center gap-2">
                     Jenis Kegiatan <span className="text-red-500">*</span>
                     {raLockedJenisId && (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-violet-100 text-violet-700 border border-violet-200 rounded text-[9px] font-bold tracking-wide">
@@ -625,7 +625,7 @@ export default function NewKegiatanPage() {
                     value={formData.jenis_kegiatan_id}
                     onChange={handleInputChange}
                     disabled={!!raLockedJenisId}
-                    className={`px-4 py-2.5 rounded-lg border text-slate-900 text-sm font-['Inter'] w-full transition-all ${
+                    className={`px-4 py-2.5 rounded-lg border text-slate-900 text-sm font-sans w-full transition-all ${
                       raLockedJenisId
                         ? 'bg-violet-50 border-violet-200 cursor-not-allowed opacity-80'
                         : 'bg-slate-50 border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer'
@@ -668,8 +668,8 @@ export default function NewKegiatanPage() {
                 </div>
 
                 <div className="flex-1 flex-col gap-1.5 flex">
-                  <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase">Frekuensi <span className="text-red-500">*</span></label>
-                  <select name="frekuensi_kegiatan" value={formData.frekuensi_kegiatan} onChange={handleInputChange} className="px-4 py-2.5 bg-slate-50 rounded-lg border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all cursor-pointer">
+                  <label className="text-slate-500 text-xs font-bold font-sans uppercase">Frekuensi <span className="text-red-500">*</span></label>
+                  <select name="frekuensi_kegiatan" value={formData.frekuensi_kegiatan} onChange={handleInputChange} className="px-4 py-2.5 bg-slate-50 rounded-lg border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all cursor-pointer">
                     <option value="Mingguan">Mingguan</option>
                     <option value="Bulanan">Bulanan</option>
                     <option value="Tahunan">Tahunan</option>
@@ -679,7 +679,7 @@ export default function NewKegiatanPage() {
               </div>
               
               <div className="w-full flex-col gap-1.5 flex mt-2 border-t border-slate-100 pt-5">
-                <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase">Poster / Banner Kegiatan (Opsional)</label>
+                <label className="text-slate-500 text-xs font-bold font-sans uppercase">Poster / Banner Kegiatan (Opsional)</label>
                 {imagePreview ? (
                   <div className="relative w-full h-48 bg-slate-100 rounded-lg border border-slate-200 overflow-hidden group">
                     <img src={imagePreview} alt="Banner Preview" onClick={() => setIsLightboxOpen(true)} className="w-full h-full object-cover cursor-pointer hover:opacity-95 transition-opacity" />
@@ -706,45 +706,45 @@ export default function NewKegiatanPage() {
               <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
                 <span className="material-icons-round text-[18px]">event</span>
               </div>
-              <span className="text-slate-800 text-sm font-bold font-['Inter'] uppercase tracking-wider">Jadwal & Lokasi</span>
+              <span className="text-slate-800 text-sm font-bold font-sans uppercase tracking-wider">Jadwal & Lokasi</span>
             </div>
             
             <div className="w-full flex-col gap-5 flex">
               <div className="w-full flex gap-5">
                 <div className="flex-1 flex-col gap-1.5 flex">
-                  <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase flex items-center gap-1"><span className="material-icons-round text-[14px]">calendar_today</span> Tanggal Mulai <span className="text-red-500">*</span></label>
-                  <input type="date" name="tanggal_mulai" value={formData.tanggal_mulai} onChange={handleInputChange} className="px-4 py-2.5 bg-slate-50 rounded-lg border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
+                  <label className="text-slate-500 text-xs font-bold font-sans uppercase flex items-center gap-1"><span className="material-icons-round text-[14px]">calendar_today</span> Tanggal Mulai <span className="text-red-500">*</span></label>
+                  <input type="date" name="tanggal_mulai" value={formData.tanggal_mulai} onChange={handleInputChange} className="px-4 py-2.5 bg-slate-50 rounded-lg border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-900 text-sm font-sans w-full transition-all" />
                 </div>
                 <div className="flex-1 flex-col gap-1.5 flex">
-                  <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase flex items-center gap-1"><span className="material-icons-round text-[14px]">event_busy</span> Tanggal Selesai</label>
-                  <input type="date" name="tanggal_selesai" value={formData.tanggal_selesai} onChange={handleInputChange} className="px-4 py-2.5 bg-slate-50 rounded-lg border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
+                  <label className="text-slate-500 text-xs font-bold font-sans uppercase flex items-center gap-1"><span className="material-icons-round text-[14px]">event_busy</span> Tanggal Selesai</label>
+                  <input type="date" name="tanggal_selesai" value={formData.tanggal_selesai} onChange={handleInputChange} className="px-4 py-2.5 bg-slate-50 rounded-lg border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-900 text-sm font-sans w-full transition-all" />
                   <span className="text-[10px] text-slate-400 mt-0.5 ml-1">Kosongkan jika acara hanya 1 hari melaju.</span>
                 </div>
               </div>
 
               <div className="w-full flex gap-5">
                 <div className="flex-1 flex-col gap-1.5 flex">
-                  <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase flex items-center gap-1"><span className="material-icons-round text-[14px]">schedule</span> Jam Pelaksanaan <span className="text-red-500">*</span></label>
+                  <label className="text-slate-500 text-xs font-bold font-sans uppercase flex items-center gap-1"><span className="material-icons-round text-[14px]">schedule</span> Jam Pelaksanaan <span className="text-red-500">*</span></label>
                   <div className="flex items-center gap-2">
-                    <input type="time" name="waktu_mulai" value={formData.waktu_mulai} onChange={handleInputChange} className="px-4 py-2 bg-slate-50 rounded-lg border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
+                    <input type="time" name="waktu_mulai" value={formData.waktu_mulai} onChange={handleInputChange} className="px-4 py-2 bg-slate-50 rounded-lg border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-900 text-sm font-sans w-full transition-all" />
                     <span className="text-slate-400 font-bold">-</span>
-                    <input type="time" name="waktu_selesai" value={formData.waktu_selesai} onChange={handleInputChange} className="px-4 py-2 bg-slate-50 rounded-lg border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
+                    <input type="time" name="waktu_selesai" value={formData.waktu_selesai} onChange={handleInputChange} className="px-4 py-2 bg-slate-50 rounded-lg border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-900 text-sm font-sans w-full transition-all" />
                   </div>
                 </div>
               </div>
 
               <div className="w-full flex-col gap-1.5 flex mt-2 border-t border-slate-100 pt-5">
-                <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase flex items-center gap-1">
+                <label className="text-slate-500 text-xs font-bold font-sans uppercase flex items-center gap-1">
                   <span className="material-icons-round text-[14px]">pin_drop</span> Lokasi Kegiatan
                 </label>
                 <div className="relative">
                   <span className="material-icons-round absolute left-4 top-3 text-slate-400 text-[18px]">place</span>
-                  <input type="text" name="lokasi_kegiatan" value={formData.lokasi_kegiatan} onChange={handleInputChange} placeholder="contoh: Ruang Ibadah Utama / Balai Rw 05" className="pl-11 pr-4 py-3 bg-slate-50 rounded-lg border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
+                  <input type="text" name="lokasi_kegiatan" value={formData.lokasi_kegiatan} onChange={handleInputChange} placeholder="contoh: Ruang Ibadah Utama / Balai Rw 05" className="pl-11 pr-4 py-3 bg-slate-50 rounded-lg border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-900 text-sm font-sans w-full transition-all" />
                 </div>
               </div>
 
               <div className="w-full flex-col gap-1.5 flex mt-2">
-                <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase flex items-center gap-1">
+                <label className="text-slate-500 text-xs font-bold font-sans uppercase flex items-center gap-1">
                   <span className="material-icons-round text-[14px]">notes</span> Keterangan / Catatan Tambahan (Opsional)
                 </label>
                 <textarea 
@@ -753,7 +753,7 @@ export default function NewKegiatanPage() {
                   onChange={handleInputChange} 
                   placeholder="Instruksi khusus Sekretaris, misal: Gunakan AC utama maksimal 22 derajat..." 
                   rows={3}
-                  className="px-4 py-3 bg-slate-50 rounded-lg border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-900 text-sm font-['Inter'] w-full transition-all resize-none" 
+                  className="px-4 py-3 bg-slate-50 rounded-lg border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-900 text-sm font-sans w-full transition-all resize-none" 
                 />
               </div>
 
@@ -771,7 +771,7 @@ export default function NewKegiatanPage() {
                   <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center">
                     <span className="material-icons-round text-[18px]">{isEdukasi ? 'school' : 'church'}</span>
                   </div>
-                  <span className="text-blue-900 text-sm font-bold font-['Inter'] uppercase tracking-wider">
+                  <span className="text-blue-900 text-sm font-bold font-sans uppercase tracking-wider">
                     {isEdukasi ? 'Detail Pembicara & Topik' : isKomsel ? 'Detail Komsel' : 'Detail Ibadah'}
                   </span>
                 </div>
@@ -782,11 +782,11 @@ export default function NewKegiatanPage() {
 
               <div className="w-full flex-col gap-5 flex z-10">
                 <div className="w-full flex-col gap-1.5 flex">
-                  <label className="text-blue-800 text-xs font-bold font-['Inter'] uppercase">{labelTema}</label>
+                  <label className="text-blue-800 text-xs font-bold font-sans uppercase">{labelTema}</label>
                   <input
                     type="text" name="tema_khotbah" value={formData.tema_khotbah} onChange={handleInputChange}
                     placeholder={isEdukasi ? 'Contoh: Strategi Digital Marketing untuk UMKM...' : isKomsel ? 'Contoh: Hidup dalam Anugerah Tuhan...' : 'Contoh: Garam dan Terang Dunia...'}
-                    className="px-4 py-3 bg-white rounded-lg border border-blue-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-['Inter'] text-sm w-full placeholder-slate-400 transition-all"
+                    className="px-4 py-3 bg-white rounded-lg border border-blue-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-sans text-sm w-full placeholder-slate-400 transition-all"
                   />
                 </div>
 
@@ -821,14 +821,14 @@ export default function NewKegiatanPage() {
                   <div className="w-8 h-8 rounded-lg bg-teal-100 text-teal-700 flex items-center justify-center">
                     <span className="material-icons-round text-[18px]">hotel</span>
                   </div>
-                  <span className="text-teal-900 text-sm font-bold font-['Inter'] uppercase tracking-wider">
+                  <span className="text-teal-900 text-sm font-bold font-sans uppercase tracking-wider">
                     {isEdukasi ? 'Fasilitas Peserta' : 'Akomodasi & Fasilitas'}
                   </span>
                 </div>
                 <div className="px-2 py-0.5 bg-teal-100 text-teal-700 border border-teal-200 rounded text-[10px] font-bold tracking-wide">OPSIONAL</div>
               </div>
               <div className="w-full flex-col gap-1.5 flex">
-                <label className="text-teal-800 text-xs font-bold font-['Inter'] uppercase">
+                <label className="text-teal-800 text-xs font-bold font-sans uppercase">
                   {isEdukasi ? 'Fasilitas yang Didapat Peserta' : 'Detail Akomodasi / Fasilitas'}
                 </label>
                 <textarea
@@ -839,7 +839,7 @@ export default function NewKegiatanPage() {
                     ? 'Contoh: Modul materi, sertifikat, snack, makan siang...'
                     : 'Contoh: Penginapan 2 malam, 3x makan, kaos, tas...\nKosongkan jika tidak ada akomodasi khusus.'}
                   rows={3}
-                  className="px-4 py-3 bg-white rounded-lg border border-teal-200 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 text-slate-900 text-sm font-['Inter'] w-full transition-all resize-none"
+                  className="px-4 py-3 bg-white rounded-lg border border-teal-200 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 text-slate-900 text-sm font-sans w-full transition-all resize-none"
                 />
               </div>
             </div>
@@ -853,7 +853,7 @@ export default function NewKegiatanPage() {
                   <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center">
                     <span className="material-icons-round text-[18px]">water_drop</span>
                   </div>
-                  <span className="text-amber-900 text-sm font-bold font-['Inter'] uppercase tracking-wider">Detail Sakramen</span>
+                  <span className="text-amber-900 text-sm font-bold font-sans uppercase tracking-wider">Detail Sakramen</span>
                 </div>
                 <div className="px-2 py-0.5 bg-amber-100 text-amber-700 border border-amber-200 rounded text-[10px] font-bold tracking-wide">
                   {jenisNama.toUpperCase()}
@@ -861,15 +861,15 @@ export default function NewKegiatanPage() {
               </div>
               <div className="w-full flex-col gap-5 flex">
                 <div className="w-full flex-col gap-1.5 flex">
-                  <label className="text-amber-800 text-xs font-bold font-['Inter'] uppercase">Nama Pendeta / Pelayan Sakramen</label>
+                  <label className="text-amber-800 text-xs font-bold font-sans uppercase">Nama Pendeta / Pelayan Sakramen</label>
                   <input
                     type="text" name="nama_pendeta_pelayan" value={formData.nama_pendeta_pelayan} onChange={handleInputChange}
                     placeholder="Contoh: Pdt. Samuel Hatane, S.Th."
-                    className="px-4 py-3 bg-white rounded-lg border border-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-slate-900 text-sm font-['Inter'] w-full transition-all"
+                    className="px-4 py-3 bg-white rounded-lg border border-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-slate-900 text-sm font-sans w-full transition-all"
                   />
                 </div>
                 <div className="w-full flex-col gap-1.5 flex">
-                  <label className="text-amber-800 text-xs font-bold font-['Inter'] uppercase">Keterangan Tambahan (Opsional)</label>
+                  <label className="text-amber-800 text-xs font-bold font-sans uppercase">Keterangan Tambahan (Opsional)</label>
                   <textarea
                     name="keterangan_sakramen" value={formData.keterangan_sakramen} onChange={handleInputChange}
                     placeholder={
@@ -878,7 +878,7 @@ export default function NewKegiatanPage() {
                       : 'Contoh: Penyerahan anak ke-5 tahun ini...'
                     }
                     rows={2}
-                    className="px-4 py-3 bg-white rounded-lg border border-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-slate-900 text-sm font-['Inter'] w-full transition-all resize-none"
+                    className="px-4 py-3 bg-white rounded-lg border border-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-slate-900 text-sm font-sans w-full transition-all resize-none"
                   />
                 </div>
               </div>
@@ -893,7 +893,7 @@ export default function NewKegiatanPage() {
                   <div className="w-8 h-8 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center">
                     <span className="material-icons-round text-[18px]">favorite</span>
                   </div>
-                  <span className="text-rose-900 text-sm font-bold font-['Inter'] uppercase tracking-wider">
+                  <span className="text-rose-900 text-sm font-bold font-sans uppercase tracking-wider">
                     {jenisNama === 'Pernikahan' ? 'Data Mempelai' : jenisNama === 'Penyerahan Anak' ? 'Data Anak & Orang Tua' : 'Penerima Layanan'}
                   </span>
                 </div>
@@ -913,7 +913,7 @@ export default function NewKegiatanPage() {
                   onSelect={(id, name) => setFormData(prev => ({ ...prev, jemaat_target_2_id: id, jemaat_target_2_name: name }))}
                 />
                 <div className="w-full flex-col gap-1.5 flex">
-                  <label className="text-rose-700 text-xs font-bold font-['Inter'] uppercase">
+                  <label className="text-rose-700 text-xs font-bold font-sans uppercase">
                     {jenisNama === 'Pernikahan' ? 'Catatan Pemberkatan' : jenisNama === 'Penyerahan Anak' ? 'Catatan Penyerahan' : 'Keterangan / Kondisi / Lokasi Kunjungan'}
                   </label>
                   <textarea
@@ -926,7 +926,7 @@ export default function NewKegiatanPage() {
                       : 'Catatan tambahan mengenai layanan ini...'
                     }
                     rows={3}
-                    className="px-4 py-3 bg-white rounded-lg border border-rose-200 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 text-slate-900 text-sm font-['Inter'] w-full transition-all resize-none"
+                    className="px-4 py-3 bg-white rounded-lg border border-rose-200 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 text-slate-900 text-sm font-sans w-full transition-all resize-none"
                   />
                 </div>
               </div>
@@ -978,7 +978,7 @@ export default function NewKegiatanPage() {
                     <div className="w-8 h-8 rounded-lg bg-violet-100 text-violet-700 flex items-center justify-center">
                       <span className="material-icons-round text-[18px]">receipt_long</span>
                     </div>
-                    <span className="text-violet-900 text-sm font-bold font-['Inter'] uppercase tracking-wider">Sumber Anggaran</span>
+                    <span className="text-violet-900 text-sm font-bold font-sans uppercase tracking-wider">Sumber Anggaran</span>
                   </div>
                   <div className="px-2 py-0.5 bg-violet-100 text-violet-700 border border-violet-200 rounded text-[10px] font-bold tracking-wide">WAJIB SAAT AJUKAN</div>
                 </div>
@@ -1039,7 +1039,7 @@ export default function NewKegiatanPage() {
                         value={raSearchQuery}
                         onChange={(e) => setRaSearchQuery(e.target.value)}
                         placeholder="Cari kode RA atau nama rancangan..."
-                        className="pl-10 pr-4 py-2.5 bg-white rounded-lg border border-violet-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-['Inter'] w-full transition-all placeholder-slate-400"
+                        className="pl-10 pr-4 py-2.5 bg-white rounded-lg border border-violet-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-sans w-full transition-all placeholder-slate-400"
                       />
                     </div>
 
@@ -1047,7 +1047,7 @@ export default function NewKegiatanPage() {
                     {(formData.tipe_penyelenggara === 'Satelit' && formData.satelit_id) || (formData.tipe_penyelenggara === 'Komisi' && formData.komisi_id) ? (
                       <div className="flex items-center gap-1.5 px-2 py-1.5 bg-violet-50 border border-violet-100 rounded-lg">
                         <span className="material-icons-round text-violet-500 text-[13px]">filter_list</span>
-                        <span className="text-[11px] text-violet-700 font-semibold font-['Public_Sans']">
+                        <span className="text-[11px] text-violet-700 font-semibold font-sans">
                           {formData.tipe_penyelenggara === 'Komisi' && formData.komisi_id
                             ? `RA milik: ${komisiOptions.find(k => k.id.toString() === formData.komisi_id)?.nama_komisi || 'Komisi'}`
                             : `RA milik: ${satelitOptions.find(s => s.id.toString() === formData.satelit_id)?.nama_satelit || 'Satelit'}`
@@ -1196,17 +1196,17 @@ export default function NewKegiatanPage() {
           <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col gap-5 animate-in fade-in slide-in-from-right-2 duration-300">
             <div className="w-full inline-flex items-center gap-2 border-b border-slate-100 pb-3">
               <span className="material-icons-round text-slate-700 text-[20px]">groups</span>
-              <span className="text-slate-800 text-sm font-bold font-['Inter'] uppercase tracking-wider">Eksekutor</span>
+              <span className="text-slate-800 text-sm font-bold font-sans uppercase tracking-wider">Eksekutor</span>
             </div>
             
             <div className="w-full flex-col gap-4 flex">
               <div className="w-full flex flex-col gap-2">
-                <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase">Level Organisasi <span className="text-red-500">*</span></label>
+                <label className="text-slate-500 text-xs font-bold font-sans uppercase">Level Organisasi <span className="text-red-500">*</span></label>
                 <div className="flex bg-slate-50 p-1 rounded-lg border border-slate-200 shadow-inner">
                   {['Satelit', 'Departemen', 'Komisi'].map(type => (
                     <label key={type} className={`flex-1 flex items-center justify-center p-2 rounded transition-colors ${formData.tipe_penyelenggara === type ? 'bg-white shadow border border-slate-200 text-blue-700 font-bold' : 'text-slate-500 font-medium hover:text-slate-700'} ${!!formData.anggaran_tahunan_id ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}>
                       <input type="radio" value={type} checked={formData.tipe_penyelenggara === type} onChange={handleRadioChange} disabled={!!formData.anggaran_tahunan_id} className="hidden" />
-                      <span className="text-xs font-['Inter'] uppercase tracking-wide">{type}</span>
+                      <span className="text-xs font-sans uppercase tracking-wide">{type}</span>
                     </label>
                   ))}
                 </div>
@@ -1214,7 +1214,7 @@ export default function NewKegiatanPage() {
 
               {formData.tipe_penyelenggara === 'Satelit' && (
                 <div className="w-full flex flex-col gap-1.5 animate-in fade-in slide-in-from-top-1">
-                  <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase">Pilih Satelit <span className="text-red-500">*</span></label>
+                  <label className="text-slate-500 text-xs font-bold font-sans uppercase">Pilih Satelit <span className="text-red-500">*</span></label>
                   <select
                     name="satelit_id"
                     value={formData.satelit_id}
@@ -1236,7 +1236,7 @@ export default function NewKegiatanPage() {
 
               {formData.tipe_penyelenggara === 'Departemen' && (
                 <div className="w-full flex flex-col gap-1.5 animate-in fade-in slide-in-from-top-1">
-                  <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase">Pilih Departemen Pusat <span className="text-red-500">*</span></label>
+                  <label className="text-slate-500 text-xs font-bold font-sans uppercase">Pilih Departemen Pusat <span className="text-red-500">*</span></label>
                   <select name="departemen_id" value={formData.departemen_id} disabled={!!formData.anggaran_tahunan_id} onChange={handleInputChange} className={`px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-sm w-full transition-all ${!!formData.anggaran_tahunan_id ? 'bg-slate-100 opacity-70 cursor-not-allowed' : 'bg-slate-50 focus:bg-white cursor-pointer'}`}>
                     <option value="">-- Pilih --</option>
                     {departemenOptions.map((d) => <option key={d.id} value={d.id}>{d.nama_departemen}</option>)}
@@ -1247,7 +1247,7 @@ export default function NewKegiatanPage() {
               {formData.tipe_penyelenggara === 'Komisi' && (
                 <div className="w-full flex flex-col gap-4 animate-in fade-in slide-in-from-top-1">
                   <div className="w-full flex flex-col gap-1.5 border border-blue-100 bg-blue-50/30 p-3 rounded-lg">
-                    <label className="text-blue-800 text-xs font-bold font-['Inter'] uppercase">1. Induk Satelit <span className="text-red-500">*</span></label>
+                    <label className="text-blue-800 text-xs font-bold font-sans uppercase">1. Induk Satelit <span className="text-red-500">*</span></label>
                     <select
                       name="satelit_id"
                       value={formData.satelit_id}
@@ -1266,7 +1266,7 @@ export default function NewKegiatanPage() {
                   </div>
                   
                   <div className="w-full flex flex-col gap-1.5 border border-slate-200 bg-slate-50 p-3 rounded-lg">
-                    <label className="text-slate-500 text-xs font-bold font-['Inter'] uppercase">2. Pilih Komisi Lokal <span className="text-red-500">*</span></label>
+                    <label className="text-slate-500 text-xs font-bold font-sans uppercase">2. Pilih Komisi Lokal <span className="text-red-500">*</span></label>
                     <select
                       name="komisi_id"
                       value={formData.komisi_id}
@@ -1306,7 +1306,7 @@ export default function NewKegiatanPage() {
                <div className="w-7 h-7 rounded bg-blue-50 text-blue-600 flex items-center justify-center">
                  <span className="material-icons-round text-[16px]">settings_accessibility</span>
                </div>
-              <span className="text-slate-800 text-sm font-bold font-['Inter'] uppercase tracking-wider">Akses & Publikasi</span>
+              <span className="text-slate-800 text-sm font-bold font-sans uppercase tracking-wider">Akses & Publikasi</span>
             </div>
             
             <div className="flex flex-col gap-5">
@@ -1351,10 +1351,10 @@ export default function NewKegiatanPage() {
             {formData.berbayar && kategori !== 'Ibadah Rutin' && (
               <div className="w-full p-4 bg-blue-50 border border-blue-100 rounded-lg animate-in fade-in slide-in-from-top-2">
                  <div className="w-full flex-col gap-1.5 flex">
-                    <label className="text-blue-800 text-xs font-bold font-['Inter'] uppercase">Harga Tiket (Rp)</label>
+                    <label className="text-blue-800 text-xs font-bold font-sans uppercase">Harga Tiket (Rp)</label>
                     <div className="relative">
                       <span className="absolute left-4 top-3 text-slate-500 text-sm font-bold">Rp</span>
-                      <input type="number" min="0" step="1" name="harga_tiket_rp" value={formData.harga_tiket_rp} onChange={handleInputChange} placeholder="0" className="pl-11 pr-4 py-3 bg-white rounded-lg border border-blue-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-['Inter'] text-sm w-full transition-all" />
+                      <input type="number" min="0" step="1" name="harga_tiket_rp" value={formData.harga_tiket_rp} onChange={handleInputChange} placeholder="0" className="pl-11 pr-4 py-3 bg-white rounded-lg border border-blue-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-sans text-sm w-full transition-all" />
                     </div>
                  </div>
               </div>
@@ -1363,8 +1363,8 @@ export default function NewKegiatanPage() {
             {formData.butuh_registrasi && (
               <div className="w-full p-4 bg-amber-50 border border-amber-100 rounded-lg animate-in fade-in slide-in-from-top-2">
                  <div className="w-full flex-col gap-1.5 flex">
-                    <label className="text-amber-800 text-xs font-bold font-['Inter'] uppercase">Kuota / Batas Peserta (Opsional)</label>
-                    <input type="number" min="1" name="kuota_peserta" value={formData.kuota_peserta} onChange={handleInputChange} placeholder="Biarkan kosong jika tidak berbatas" className="px-4 py-3 bg-white rounded-lg border border-amber-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 font-['Inter'] text-sm w-full transition-all" />
+                    <label className="text-amber-800 text-xs font-bold font-sans uppercase">Kuota / Batas Peserta (Opsional)</label>
+                    <input type="number" min="1" name="kuota_peserta" value={formData.kuota_peserta} onChange={handleInputChange} placeholder="Biarkan kosong jika tidak berbatas" className="px-4 py-3 bg-white rounded-lg border border-amber-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 font-sans text-sm w-full transition-all" />
                  </div>
               </div>
             )}

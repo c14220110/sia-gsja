@@ -145,8 +145,8 @@ export default function KeluhanTimeline({ surveiId, isOpen, onClose, tindakLanju
               <span className="material-icons-round text-white text-[22px]">flag</span>
             </div>
             <div>
-              <h2 className="text-lg font-black text-slate-900 font-['Inter']">Riwayat Keluhan</h2>
-              <p className="text-xs text-slate-500 font-['Public_Sans']">
+              <h2 className="text-lg font-black text-slate-900 font-sans">Riwayat Keluhan</h2>
+              <p className="text-xs text-slate-500 font-sans">
                 {totalKeluhan} keluhan tercatat
               </p>
             </div>
@@ -292,7 +292,7 @@ export default function KeluhanTimeline({ surveiId, isOpen, onClose, tindakLanju
         <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 shrink-0">
           <button
             onClick={onClose}
-            className="w-full py-2.5 rounded-xl bg-slate-800 text-white text-sm font-bold font-['Inter'] hover:bg-slate-900 transition-colors flex items-center justify-center gap-2"
+            className="w-full py-2.5 rounded-xl bg-slate-800 text-white text-sm font-bold font-sans hover:bg-slate-900 transition-colors flex items-center justify-center gap-2"
           >
             <span className="material-icons-round text-[18px]">close</span>
             Tutup Riwayat

@@ -216,14 +216,14 @@ export default function NewPegawaiPage() {
       
       {/* Header */}
       <div className="w-full flex flex-col justify-start items-start gap-4">
-        <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-['Inter'] leading-4">
+        <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-sans leading-4">
           <Link href="/pegawai" className="text-slate-500 hover:text-blue-600">Pegawai (HRD)</Link>
           <span className="text-slate-500 material-icons-round text-[14px]">chevron_right</span>
           <span className="text-slate-700 font-bold">Registrasi</span>
         </div>
         <div>
-          <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Registrasi Pegawai Baru</h1>
-          <p className="text-slate-500 text-base font-medium font-['Inter']">Pengisian formulir kelengkapan biodata dan verifikasi operasional.</p>
+          <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Registrasi Pegawai Baru</h1>
+          <p className="text-slate-500 text-base font-medium font-sans">Pengisian formulir kelengkapan biodata dan verifikasi operasional.</p>
         </div>
       </div>
 
@@ -245,7 +245,7 @@ export default function NewPegawaiPage() {
               >
                  {activeTab > tab.id ? <span className="material-icons-round text-[20px]">check</span> : <span className="material-icons-round text-[20px]">{tab.icon}</span>}
               </button>
-              <span className={`text-xs font-bold font-['Inter'] ${activeTab === tab.id ? 'text-blue-700' : activeTab > tab.id ? 'text-slate-700' : 'text-slate-400'}`}>{tab.name}</span>
+              <span className={`text-xs font-bold font-sans ${activeTab === tab.id ? 'text-blue-700' : activeTab > tab.id ? 'text-slate-700' : 'text-slate-400'}`}>{tab.name}</span>
             </div>
          ))}
       </div>
@@ -256,12 +256,12 @@ export default function NewPegawaiPage() {
         {activeTab === 1 && (
           <div className="flex flex-col gap-8 animate-in fade-in">
              <div className="flex flex-col gap-1">
-               <h2 className="text-slate-900 text-xl font-bold font-['Inter'] flex items-center gap-2"><span className="material-icons-round text-blue-500">badge</span> Biodata & Pekerjaan</h2>
+               <h2 className="text-slate-900 text-xl font-bold font-sans flex items-center gap-2"><span className="material-icons-round text-blue-500">badge</span> Biodata & Pekerjaan</h2>
                <p className="text-slate-500 text-sm">Masukan detail identitas dasar calon pegawai sesuai KTP dan Penempatan Kerja.</p>
              </div>
 
              <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 flex flex-col gap-3">
-               <label className="text-slate-700 text-sm font-bold font-['Inter']">Sinkronisasi Database Jemaat (Opsional)</label>
+               <label className="text-slate-700 text-sm font-bold font-sans">Sinkronisasi Database Jemaat (Opsional)</label>
                <p className="text-slate-500 text-xs mb-1">Jika pegawai ini sudah terdaftar sebagai jemaat GSJA, klik tombol di bawah untuk menyalin data.</p>
                <button onClick={() => setJemaatSearchModal(true)} className="w-fit px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-bold hover:bg-slate-100 transition-colors flex items-center gap-2 shadow-sm">
                  <span className="material-icons-round text-[18px]">search</span> Cari Data Jemaat
@@ -316,7 +316,7 @@ export default function NewPegawaiPage() {
 
              {/* Penempatan Unit Kerja */}
              <div className="flex flex-col gap-4">
-               <h3 className="text-slate-900 text-lg font-bold font-['Inter'] flex items-center gap-2"><span className="material-icons-round text-emerald-500">business_center</span> Penempatan & Posisi</h3>
+               <h3 className="text-slate-900 text-lg font-bold font-sans flex items-center gap-2"><span className="material-icons-round text-emerald-500">business_center</span> Penempatan & Posisi</h3>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-5 bg-emerald-50/50 rounded-lg border border-emerald-100">
                   <div className="flex flex-col gap-1 w-full">
                     <label className="text-slate-700 text-xs font-bold uppercase">Satelit Penugasan *</label>
@@ -365,7 +365,7 @@ export default function NewPegawaiPage() {
         {activeTab === 2 && (
           <div className="flex flex-col gap-8 animate-in fade-in slide-in-from-right-4">
              <div className="flex flex-col gap-1">
-               <h2 className="text-slate-900 text-xl font-bold font-['Inter'] flex items-center gap-2"><span className="material-icons-round text-amber-500">maps_home_work</span> Alamat & Kontak Darurat</h2>
+               <h2 className="text-slate-900 text-xl font-bold font-sans flex items-center gap-2"><span className="material-icons-round text-amber-500">maps_home_work</span> Alamat & Kontak Darurat</h2>
                <p className="text-slate-500 text-sm">Informasi letak domisili pegawai dan narahubung yang bisa diakses saat mendesak.</p>
              </div>
 
@@ -394,7 +394,7 @@ export default function NewPegawaiPage() {
 
              {/* Darurat */}
              <div className="flex flex-col gap-4">
-               <h3 className="text-slate-900 text-lg font-bold font-['Inter'] flex items-center gap-2"><span className="material-icons-round text-rose-500">contact_phone</span> Kontak Darurat (Emergency)</h3>
+               <h3 className="text-slate-900 text-lg font-bold font-sans flex items-center gap-2"><span className="material-icons-round text-rose-500">contact_phone</span> Kontak Darurat (Emergency)</h3>
                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-5 bg-rose-50/30 rounded-lg border border-rose-100">
                   <div className="flex flex-col gap-1 w-full">
                     <label className="text-slate-700 text-xs font-bold uppercase">Nama Kontak</label>
@@ -417,7 +417,7 @@ export default function NewPegawaiPage() {
         {activeTab === 3 && (
           <div className="flex flex-col gap-8 animate-in fade-in slide-in-from-right-4">
              <div className="flex flex-col gap-1">
-               <h2 className="text-slate-900 text-xl font-bold font-['Inter'] flex items-center gap-2"><span className="material-icons-round text-purple-500">account_balance_wallet</span> Kewajiban Perpajakan (PPh 21)</h2>
+               <h2 className="text-slate-900 text-xl font-bold font-sans flex items-center gap-2"><span className="material-icons-round text-purple-500">account_balance_wallet</span> Kewajiban Perpajakan (PPh 21)</h2>
                <p className="text-slate-500 text-sm">Validasi subjek pajak pegawai untuk kebutuhan kalkulasi Payroll bulanan HRD.</p>
              </div>
 
@@ -434,7 +434,7 @@ export default function NewPegawaiPage() {
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="flex flex-col gap-1 w-full">
                   <label className="text-slate-700 text-xs font-bold uppercase">Nomor NPWP</label>
-                  <input type="text" name="no_npwp" value={formData.no_npwp} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-500 font-['Liberation_Mono'] tracking-widest" placeholder="00.000.000.0-000.000" />
+                  <input type="text" name="no_npwp" value={formData.no_npwp} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-500 font-sans tracking-widest" placeholder="00.000.000.0-000.000" />
                 </div>
                 <div className="flex flex-col gap-1 w-full">
                   <label className="text-slate-700 text-xs font-bold uppercase">Status PTKP (Penghasilan Tidak Kena Pajak) *</label>
@@ -457,7 +457,7 @@ export default function NewPegawaiPage() {
         {activeTab === 4 && (
           <div className="flex flex-col gap-8 animate-in fade-in slide-in-from-right-4">
              <div className="flex flex-col gap-1">
-               <h2 className="text-slate-900 text-xl font-bold font-['Inter'] flex items-center gap-2"><span className="material-icons-round text-blue-500">payments</span> Konfigurasi Rekening Payroll</h2>
+               <h2 className="text-slate-900 text-xl font-bold font-sans flex items-center gap-2"><span className="material-icons-round text-blue-500">payments</span> Konfigurasi Rekening Payroll</h2>
                <p className="text-slate-500 text-sm">Informasi bank penerima untuk penyaluran gaji otomatis. Sangat rahasia dan diawasi Audit Log.</p>
              </div>
 
@@ -479,7 +479,7 @@ export default function NewPegawaiPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10 w-full lg:w-3/4">
                   <div className="flex flex-col gap-1 w-full">
                     <label className="text-slate-700 text-xs font-bold uppercase">Nomor Rekening Tujuan *</label>
-                    <input type="text" name="no_rekening" value={formData.no_rekening} onChange={handleInputChange} placeholder="00019283..." className="px-3 py-3 bg-white rounded-lg border shadow-sm border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold text-lg font-['Liberation_Mono'] tracking-wider" />
+                    <input type="text" name="no_rekening" value={formData.no_rekening} onChange={handleInputChange} placeholder="00019283..." className="px-3 py-3 bg-white rounded-lg border shadow-sm border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold text-lg font-sans tracking-wider" />
                   </div>
                   <div className="flex flex-col gap-1 w-full">
                     <label className="text-slate-700 text-xs font-bold uppercase">Atas Nama Pemilik Rekening *</label>

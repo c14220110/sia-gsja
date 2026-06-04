@@ -132,7 +132,7 @@ export default function KonsolidasiAnggaranPage() {
                    MASTER REPORT
                  </span>
               </div>
-              <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mt-1">
+              <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mt-1">
                 Rekapitulasi Anggaran
               </h1>
               <p className="text-slate-500 text-sm font-medium mt-1 max-w-2xl">

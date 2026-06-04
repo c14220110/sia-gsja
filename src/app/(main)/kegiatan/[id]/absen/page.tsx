@@ -303,7 +303,7 @@ export default function KioskAbsensiPage({ params }: { params: Promise<{ id: str
   if (isLoadingHeader) return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-800"><span className="material-icons-round text-5xl animate-spin text-blue-600">refresh</span></div>;
 
   return (
-    <div className="w-full min-h-[calc(100vh-64px)] lg:h-screen lg:min-h-screen bg-slate-50 text-slate-800 flex flex-col lg:overflow-hidden font-['Inter']">
+    <div className="w-full min-h-[calc(100vh-64px)] lg:h-screen lg:min-h-screen bg-slate-50 text-slate-800 flex flex-col lg:overflow-hidden font-sans">
       
       <AlertModal
         isOpen={showCloseAlert}
@@ -377,7 +377,7 @@ export default function KioskAbsensiPage({ params }: { params: Promise<{ id: str
 
       {/* HEADER BAR - Mode Breadcrumb */}
       <div className="w-full bg-white border-b border-slate-200 flex flex-col justify-center px-4 md:px-8 py-4 md:py-5 shrink-0 relative z-10 shadow-sm gap-2 mt-0">
-        <div className="flex flex-wrap items-center gap-1 md:gap-2 text-[10px] md:text-xs font-medium font-['Inter'] leading-4">
+        <div className="flex flex-wrap items-center gap-1 md:gap-2 text-[10px] md:text-xs font-medium font-sans leading-4">
            <span className="text-slate-500 hover:text-blue-600 hidden sm:inline cursor-pointer">Modul Kegiatan</span>
            <span className="text-slate-400 material-icons-round text-[14px] hidden sm:inline">chevron_right</span>
            <Link href="/kegiatan" className="text-slate-500 hover:text-blue-600 transition-colors">Daftar Kegiatan</Link>
@@ -386,7 +386,7 @@ export default function KioskAbsensiPage({ params }: { params: Promise<{ id: str
         </div>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-3 mt-1">
            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 items-start sm:items-center">
-              <h1 className="text-slate-900 text-xl md:text-2xl lg:text-3xl font-black font-['Inter'] leading-tight tracking-tight max-w-full break-words">
+              <h1 className="text-slate-900 text-xl md:text-2xl lg:text-3xl font-black font-sans leading-tight tracking-tight max-w-full break-words">
                 {kegiatan?.nama_kegiatan || 'Acara GSJA'}
               </h1>
               {sessionActive && (
@@ -396,7 +396,7 @@ export default function KioskAbsensiPage({ params }: { params: Promise<{ id: str
                 </div>
               )}
            </div>
-           <div className="text-slate-500 text-[10px] md:text-sm font-medium font-['Inter'] flex gap-1.5 md:gap-2 items-center">
+           <div className="text-slate-500 text-[10px] md:text-sm font-medium font-sans flex gap-1.5 md:gap-2 items-center">
               <span className="material-icons-round text-base md:text-lg text-slate-400">qr_code_scanner</span> <span className="uppercase tracking-wider font-bold">Absensi Terpusat</span>
            </div>
         </div>
@@ -539,9 +539,9 @@ export default function KioskAbsensiPage({ params }: { params: Promise<{ id: str
              <div className="w-full flex justify-between items-end">
                 <div>
                    <p className="text-slate-500 text-[10px] md:text-xs font-bold uppercase tracking-widest mb-1">Status Kehadiran Realtime</p>
-                   <h2 className="text-slate-900 text-3xl md:text-4xl font-black font-['Public_Sans'] leading-tight">{stats.total_hadir} <span className="text-sm md:text-lg text-slate-500 font-bold">Jiwa</span></h2>
+                   <h2 className="text-slate-900 text-3xl md:text-4xl font-black font-sans leading-tight">{stats.total_hadir} <span className="text-sm md:text-lg text-slate-500 font-bold">Jiwa</span></h2>
                 </div>
-                <div className="flex gap-1.5 md:gap-2 text-[10px] md:text-xs font-bold font-['Public_Sans']">
+                <div className="flex gap-1.5 md:gap-2 text-[10px] md:text-xs font-bold font-sans">
                   <div className="px-2 md:px-3 py-1 md:py-1.5 bg-blue-100 text-blue-700 rounded-lg shadow-sm border border-blue-200">Jemaat: {stats.total_jemaat}</div>
                   <div className="px-2 md:px-3 py-1 md:py-1.5 bg-emerald-100 text-emerald-700 rounded-lg shadow-sm border border-emerald-200">Tamu: {stats.total_tamu}</div>
                 </div>
@@ -680,7 +680,7 @@ export default function KioskAbsensiPage({ params }: { params: Promise<{ id: str
                            <span className="text-slate-500 text-[9px] md:text-[10px] font-bold uppercase truncate">{log.jenis} / Via {log.metode}</span>
                          </div>
                        </div>
-                       <div className="text-slate-400 text-[10px] md:text-xs font-bold font-['Liberation_Mono'] tracking-wide shrink-0 ml-2">
+                       <div className="text-slate-400 text-[10px] md:text-xs font-bold font-sans tracking-wide shrink-0 ml-2">
                           {formatWaktu(log.waktu_hadir)}
                        </div>
                     </div>

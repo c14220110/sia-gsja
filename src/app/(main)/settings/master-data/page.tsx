@@ -227,7 +227,7 @@ function DataModal({
         <div className={`${gs.activeBg} px-6 py-4 flex justify-between items-center`}>
           <div className="flex items-center gap-2.5">
             <span className="material-icons-round text-white/80 text-[22px]">{mode === 'edit' ? 'edit' : tab.icon}</span>
-            <h2 className="text-white font-bold font-['Inter'] text-base">
+            <h2 className="text-white font-bold font-sans text-base">
               {mode === 'edit' ? `Edit ${tab.label}` : `Tambah ${tab.label}`}
             </h2>
           </div>
@@ -238,7 +238,7 @@ function DataModal({
         <div className="px-6 py-5 flex flex-col gap-4">
           {tab.formFields.map(field => (
             <div key={field.key} className="flex flex-col gap-1.5">
-              <label className="text-slate-500 text-xs font-bold uppercase tracking-wider font-['Inter'] flex items-center gap-1">
+              <label className="text-slate-500 text-xs font-bold uppercase tracking-wider font-sans flex items-center gap-1">
                 {field.label.replace(/ \(mis:.*\)/, '')}
                 {field.optional && <span className="font-normal normal-case text-slate-400">(opsional)</span>}
               </label>
@@ -246,7 +246,7 @@ function DataModal({
                 <select
                   value={form[field.key] || ''}
                   onChange={e => setForm(p => ({ ...p, [field.key]: e.target.value }))}
-                  className="px-3 py-2.5 bg-slate-50 rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-300 font-['Public_Sans']"
+                  className="px-3 py-2.5 bg-slate-50 rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-300 font-sans"
                 >
                   <option value="">— Pilih —</option>
                   {(selectOptions[field.optionsKey!] || []).map(opt => (
@@ -258,7 +258,7 @@ function DataModal({
                   type={field.type || 'text'}
                   value={form[field.key] || ''}
                   onChange={e => setForm(p => ({ ...p, [field.key]: e.target.value }))}
-                  className="px-3 py-2.5 bg-slate-50 rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-300 font-['Public_Sans']"
+                  className="px-3 py-2.5 bg-slate-50 rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-300 font-sans"
                 />
               )}
             </div>
@@ -266,18 +266,18 @@ function DataModal({
           {error && (
             <div className="px-3 py-2.5 bg-rose-50 border border-rose-200 rounded-lg flex items-center gap-2">
               <span className="material-icons-round text-rose-500 text-[16px]">error_outline</span>
-              <p className="text-xs text-rose-600 font-['Public_Sans']">{error}</p>
+              <p className="text-xs text-rose-600 font-sans">{error}</p>
             </div>
           )}
         </div>
         <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50">
-          <button onClick={onClose} className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-white font-['Public_Sans'] transition-colors">
+          <button onClick={onClose} className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-white font-sans transition-colors">
             Batal
           </button>
           <button
             onClick={handleSubmit}
             disabled={sub}
-            className={`${gs.activeBg} ${gs.h} text-white px-5 py-2 rounded-lg text-sm font-semibold font-['Public_Sans'] transition-colors disabled:opacity-60 flex items-center gap-2`}
+            className={`${gs.activeBg} ${gs.h} text-white px-5 py-2 rounded-lg text-sm font-semibold font-sans transition-colors disabled:opacity-60 flex items-center gap-2`}
           >
             {sub && <span className="material-icons-round text-[16px] animate-spin">sync</span>}
             {mode === 'edit' ? 'Simpan Perubahan' : 'Simpan Data'}
@@ -324,7 +324,7 @@ function ActionMenu({
             {/* Edit */}
             <button
               onClick={() => { setOpen(false); onEdit(row); }}
-              className="w-full text-left px-4 py-2 hover:bg-slate-50 transition-colors flex items-center gap-3 text-sm text-slate-700 font-['Public_Sans']"
+              className="w-full text-left px-4 py-2 hover:bg-slate-50 transition-colors flex items-center gap-3 text-sm text-slate-700 font-sans"
             >
               <span className="material-icons-round text-[18px] text-slate-400">edit</span>
               Edit Data
@@ -336,7 +336,7 @@ function ActionMenu({
                 <div className="w-full h-px bg-slate-100 my-1" />
                 <button
                   onClick={() => { setOpen(false); onToggle(row.id, row.is_active); }}
-                  className="w-full text-left px-4 py-2 hover:bg-amber-50 hover:text-amber-700 transition-colors flex items-center gap-3 text-sm text-amber-600 font-['Public_Sans']"
+                  className="w-full text-left px-4 py-2 hover:bg-amber-50 hover:text-amber-700 transition-colors flex items-center gap-3 text-sm text-amber-600 font-sans"
                 >
                   <span className="material-icons-round text-[18px] text-amber-400">
                     {row.is_active ? 'toggle_on' : 'toggle_off'}
@@ -352,7 +352,7 @@ function ActionMenu({
                 <div className="w-full h-px bg-slate-100 my-1" />
                 <button
                   onClick={() => { setOpen(false); onDelete(row.id, rowLabel(row)); }}
-                  className="w-full text-left px-4 py-2 hover:bg-rose-50 hover:text-rose-700 transition-colors flex items-center gap-3 text-sm text-rose-600 font-['Public_Sans']"
+                  className="w-full text-left px-4 py-2 hover:bg-rose-50 hover:text-rose-700 transition-colors flex items-center gap-3 text-sm text-rose-600 font-sans"
                 >
                   <span className="material-icons-round text-[18px] text-rose-500">delete</span>
                   Hapus Data
@@ -534,8 +534,8 @@ export default function MasterDataPage() {
 
       {/* Header */}
       <div className="flex flex-col gap-1 pb-5">
-        <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Master Data</h1>
-        <p className="text-slate-500 text-base font-medium font-['Inter'] leading-6">Kelola semua tabel referensi dan parameter sistem dalam satu tempat</p>
+        <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Master Data</h1>
+        <p className="text-slate-500 text-base font-medium font-sans leading-6">Kelola semua tabel referensi dan parameter sistem dalam satu tempat</p>
       </div>
 
       {/* 2-column layout */}
@@ -549,7 +549,7 @@ export default function MasterDataPage() {
               <div key={g.name}>
                 <div className="px-3 pt-3 pb-1 flex items-center gap-1.5">
                   <span className={`material-icons-round text-[14px] ${gs2.text}`}>{g.icon}</span>
-                  <span className={`text-[10px] font-bold uppercase tracking-widest font-['Inter'] ${gs2.text}`}>{g.name}</span>
+                  <span className={`text-[10px] font-bold uppercase tracking-widest font-sans ${gs2.text}`}>{g.name}</span>
                 </div>
                 {g.tabs.map(([key, cfg]) => {
                   const active = activeTab === key;
@@ -557,7 +557,7 @@ export default function MasterDataPage() {
                     <button
                       key={key}
                       onClick={() => setActiveTab(key)}
-                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium transition-all text-left font-['Public_Sans'] ${
+                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium transition-all text-left font-sans ${
                         active ? `${gs2.activeBg} text-white` : 'text-slate-600 hover:bg-slate-50'
                       }`}
                     >
@@ -583,15 +583,15 @@ export default function MasterDataPage() {
                 <span className="material-icons-round text-white text-[22px]">{tab.icon}</span>
               </div>
               <div>
-                <div className="text-white font-bold font-['Inter'] text-base leading-tight">{tab.label}</div>
-                <div className="text-white/70 text-xs font-['Public_Sans'] leading-tight">
+                <div className="text-white font-bold font-sans text-base leading-tight">{tab.label}</div>
+                <div className="text-white/70 text-xs font-sans leading-tight">
                   {loadingTable ? 'Memuat...' : `${data.length} data tersimpan`}
                 </div>
               </div>
             </div>
             <button
               onClick={() => setModalState({ open: true, mode: 'add' })}
-              className="flex items-center gap-1.5 px-4 py-2 bg-white/20 hover:bg-white/30 text-white text-sm font-semibold rounded-lg transition-colors font-['Public_Sans'] shrink-0 border border-white/30"
+              className="flex items-center gap-1.5 px-4 py-2 bg-white/20 hover:bg-white/30 text-white text-sm font-semibold rounded-lg transition-colors font-sans shrink-0 border border-white/30"
             >
               <span className="material-icons-round text-[18px]">add</span>
               Tambah {tab.label}
@@ -608,7 +608,7 @@ export default function MasterDataPage() {
               placeholder={`Cari ${tab.label}...`}
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 bg-white font-['Public_Sans']"
+              className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 bg-white font-sans"
             />
             {search && (
               <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
@@ -630,12 +630,12 @@ export default function MasterDataPage() {
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200">
                     {tab.columns.map(col => (
-                      <th key={col.key} className={`${col.width ?? ''} px-5 py-3.5 text-left text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']`}>
+                      <th key={col.key} className={`${col.width ?? ''} px-5 py-3.5 text-left text-slate-500 text-xs font-bold uppercase tracking-wider font-sans`}>
                         {col.label}
                       </th>
                     ))}
                     {(tab.hasToggle || tab.hasDel) && (
-                      <th className="w-16 px-5 py-3.5 text-right text-slate-500 text-xs font-bold uppercase tracking-wider font-['Public_Sans']">Aksi</th>
+                      <th className="w-16 px-5 py-3.5 text-right text-slate-500 text-xs font-bold uppercase tracking-wider font-sans">Aksi</th>
                     )}
                   </tr>
                 </thead>
@@ -645,7 +645,7 @@ export default function MasterDataPage() {
                       <td colSpan={tab.columns.length + 1} className="py-16 text-center">
                         <div className="flex items-center justify-center gap-3">
                           <div className="w-7 h-7 border-4 border-slate-200 border-t-slate-600 rounded-full animate-spin" />
-                          <span className="text-slate-500 text-sm font-['Public_Sans']">Memuat data {tab.label}...</span>
+                          <span className="text-slate-500 text-sm font-sans">Memuat data {tab.label}...</span>
                         </div>
                       </td>
                     </tr>
@@ -654,8 +654,8 @@ export default function MasterDataPage() {
                       <td colSpan={tab.columns.length + 1} className="py-16 text-center">
                         <div className="flex flex-col items-center gap-2">
                           <span className={`material-icons-round text-5xl ${gs.text} opacity-25`}>{tab.icon}</span>
-                          <p className="text-sm text-slate-400 font-['Public_Sans']">Belum ada data {tab.label}</p>
-                          <button onClick={() => setModalState({ open: true, mode: 'add' })} className={`mt-2 text-xs font-semibold ${gs.text} hover:underline font-['Public_Sans']`}>
+                          <p className="text-sm text-slate-400 font-sans">Belum ada data {tab.label}</p>
+                          <button onClick={() => setModalState({ open: true, mode: 'add' })} className={`mt-2 text-xs font-semibold ${gs.text} hover:underline font-sans`}>
                             + Tambah sekarang
                           </button>
                         </div>
@@ -671,10 +671,10 @@ export default function MasterDataPage() {
                           className="border-b border-slate-100 hover:bg-slate-50/70 transition-colors relative"
                         >
                           {tab.columns.map(col => (
-                            <td key={col.key} className={`${col.width ?? ''} px-5 py-3.5 text-sm font-['Public_Sans']`}>
+                            <td key={col.key} className={`${col.width ?? ''} px-5 py-3.5 text-sm font-sans`}>
                               {col.key === 'is_active' ? (
-                                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                                  row[col.key] ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400'
+                                <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold font-sans uppercase ${
+                                  row[col.key] ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
                                 }`}>
                                   <span className="material-icons-round text-[12px]">{row[col.key] ? 'check_circle' : 'cancel'}</span>
                                   {row[col.key] ? 'Aktif' : 'Nonaktif'}
@@ -706,7 +706,7 @@ export default function MasterDataPage() {
               </table>
             </div>
             <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/50">
-              <span className="text-slate-400 text-xs font-['Public_Sans']">
+              <span className="text-slate-400 text-xs font-sans">
                 {loadingTable ? 'Memuat...' : `${data.length} entri`}
               </span>
             </div>

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
+import heic2any from 'heic2any';
 
 // Helper component for Jemaat Autocomplete
 const JemaatAutocomplete = ({ 
@@ -70,14 +71,14 @@ const JemaatAutocomplete = ({
 
   return (
     <div className="w-full flex-col gap-1 flex relative" ref={wrapperRef}>
-      <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">{label}</label>
+      <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">{label}</label>
       <input 
         type="text" 
         value={query} 
         onChange={(e) => search(e.target.value)} 
         onFocus={() => { if(results.length > 0) setIsOpen(true); }}
         placeholder={placeholder} 
-        className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" 
+        className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" 
       />
       
       {isOpen && (
@@ -212,16 +213,42 @@ export default function NewJemaatPage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
+      let file = e.target.files[0];
       if (file.size > 10 * 1024 * 1024) {
         alert('Ukuran maksimal foto 10MB');
         return;
       }
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
-      setFormData(prev => ({ ...prev, foto_url: '' }));
+      
+      try {
+        // Konversi otomatis HEIC -> JPEG untuk dukungan Browser
+        if (file.type === 'image/heic' || file.name.toLowerCase().endsWith('.heic')) {
+          setSubmitState({ status: 'loading', message: 'Mengkonversi format HEIC...' });
+          const convertedBlob = await heic2any({
+            blob: file,
+            toType: 'image/jpeg',
+            quality: 0.8
+          });
+          
+          const finalBlob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+          const originalNameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.'));
+          
+          file = new File([finalBlob], `${originalNameWithoutExt}.jpeg`, {
+            type: 'image/jpeg',
+            lastModified: new Date().getTime()
+          });
+          setSubmitState({ status: 'idle', message: '' });
+        }
+        
+        setImageFile(file);
+        setImagePreview(URL.createObjectURL(file));
+        setFormData(prev => ({ ...prev, foto_url: '' }));
+      } catch (err) {
+        console.error('Error converting HEIC:', err);
+        alert('Gagal memproses file HEIC. Coba unggah format JPEG/PNG.');
+        setSubmitState({ status: 'idle', message: '' });
+      }
     }
   };
 
@@ -375,7 +402,7 @@ export default function NewJemaatPage() {
       
       {/* Breadcrumb & Title Area */}
       <div className="w-full flex flex-col justify-start items-start gap-4">
-          <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-['Inter'] leading-4">
+          <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-sans leading-4">
             <Link href="/dashboard" className="text-slate-500 hover:text-blue-600">Manajemen User</Link>
             <span className="text-slate-500 material-icons-round text-[14px]">chevron_right</span>
             <Link href="/jemaat" className="text-slate-500 hover:text-blue-600">Jemaat</Link>
@@ -384,8 +411,8 @@ export default function NewJemaatPage() {
           </div>
           <div className="self-stretch inline-flex justify-between items-end">
             <div className="inline-flex flex-col justify-start items-start">
-              <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Registrasi Jemaat</h1>
-              <div className="text-slate-500 text-base font-medium font-['Inter'] leading-6 flex gap-1">
+              <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Registrasi Jemaat</h1>
+              <div className="text-slate-500 text-base font-medium font-sans leading-6 flex gap-1">
                 <span>ID Jemaat:</span>
                 <span className="text-slate-700 font-bold">Otomatis Terbuat</span>
               </div>
@@ -396,10 +423,10 @@ export default function NewJemaatPage() {
       {/* Tabs */}
       <div className="w-full border-b border-slate-200 inline-flex justify-start items-start gap-8">
           <div className="px-2 py-3 border-b-2 border-slate-700 inline-flex flex-col justify-center items-center cursor-pointer">
-            <span className="text-slate-700 text-sm font-bold font-['Inter'] leading-5">Data Jemaat</span>
+            <span className="text-slate-700 text-sm font-bold font-sans leading-5">Data Jemaat</span>
           </div>
           <div className="px-2 py-3 border-b-2 border-transparent inline-flex flex-col justify-center items-center cursor-not-allowed opacity-50">
-            <span className="text-slate-400 text-sm font-bold font-['Inter'] leading-5">Family Tree</span>
+            <span className="text-slate-400 text-sm font-bold font-sans leading-5">Family Tree</span>
           </div>
         </div>
 
@@ -428,14 +455,14 @@ export default function NewJemaatPage() {
                   value={formData.nama_lengkap}
                   onChange={handleInputChange}
                   placeholder="Ketik nama lengkap di sini..."
-                  className="w-full bg-transparent focus:outline-none focus:border-blue-500 border-b border-transparent text-slate-900 text-2xl font-bold font-['Inter'] leading-8 mb-1" 
+                  className="w-full bg-transparent focus:outline-none focus:border-blue-500 border-b border-transparent text-slate-900 text-2xl font-bold font-sans leading-8 mb-1" 
                 />
-                <div className="text-slate-500 text-base font-medium font-['Inter'] leading-6 mb-3">
+                <div className="text-slate-500 text-base font-medium font-sans leading-6 mb-3">
                   Silakan lengkapi seluruh formulir registrasi jemaat baru.
                 </div>
                 <div className="self-stretch pt-2 inline-flex justify-start items-start gap-2">
                     <div className="px-3 py-1 bg-green-100 rounded-full inline-flex flex-col justify-start items-start">
-                        <div className="text-green-700 text-[10px] font-bold font-['Inter'] uppercase leading-4 tracking-wide">Pendaftaran Baru</div>
+                        <div className="text-green-700 text-[10px] font-bold font-sans uppercase leading-4 tracking-wide">Pendaftaran Baru</div>
                     </div>
                 </div>
               </div>
@@ -450,13 +477,13 @@ export default function NewJemaatPage() {
                 <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-start items-start gap-6">
                   <div className="w-full inline-flex justify-start items-center gap-2">
                     <span className="material-icons-round text-slate-700 text-[18px]">badge</span>
-                    <span className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Informasi Personal</span>
+                    <span className="text-slate-700 text-xs font-bold font-sans uppercase leading-4 tracking-wider">Informasi Personal</span>
                   </div>
                   
                   <div className="w-full flex-col gap-4 flex">
                     <div className="w-full flex-col gap-1 flex">
-                      <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Jenis Kelamin</label>
-                      <select name="jenis_kelamin" value={formData.jenis_kelamin} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all">
+                      <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Jenis Kelamin</label>
+                      <select name="jenis_kelamin" value={formData.jenis_kelamin} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all">
                         <option value="Laki-laki">Laki-laki</option>
                         <option value="Perempuan">Perempuan</option>
                       </select>
@@ -464,18 +491,18 @@ export default function NewJemaatPage() {
                     
                     <div className="w-full flex gap-4">
                       <div className="flex-1 flex-col gap-1 flex">
-                        <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Kota Lahir</label>
-                        <input type="text" name="tempat_lahir" value={formData.tempat_lahir} onChange={handleInputChange} placeholder="" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
+                        <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Kota Lahir</label>
+                        <input type="text" name="tempat_lahir" value={formData.tempat_lahir} onChange={handleInputChange} placeholder="" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" />
                       </div>
                       <div className="flex-1 flex-col gap-1 flex">
-                        <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Tanggal Lahir <span className="text-red-500">*</span></label>
-                        <input type="date" name="tanggal_lahir" value={formData.tanggal_lahir} onChange={handleInputChange} required className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
+                        <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Tanggal Lahir <span className="text-red-500">*</span></label>
+                        <input type="date" name="tanggal_lahir" value={formData.tanggal_lahir} onChange={handleInputChange} required className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" />
                       </div>
                     </div>
 
                     <div className="w-full flex-col gap-1 flex">
-                      <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Pekerjaan</label>
-                      <select name="pekerjaan_id" value={formData.pekerjaan_id || (inputPekerjaanManual ? 'Other' : '')} onChange={handlePekerjaanChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all">
+                      <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Pekerjaan</label>
+                      <select name="pekerjaan_id" value={formData.pekerjaan_id || (inputPekerjaanManual ? 'Other' : '')} onChange={handlePekerjaanChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all">
                         <option value="">-- Pilih Pekerjaan --</option>
                         {pekerjaanOptions.map((p) => (
                            <option key={p.id} value={p.id}>{p.nama_pekerjaan}</option>
@@ -483,7 +510,7 @@ export default function NewJemaatPage() {
                         <option value="Other">Lainnya (Ketik Manual)</option>
                       </select>
                       {inputPekerjaanManual && (
-                         <input type="text" name="pekerjaan" value={formData.pekerjaan || ''} onChange={handleInputChange} placeholder="Ketik profesi/pekerjaan manual..." className="mt-2 px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
+                         <input type="text" name="pekerjaan" value={formData.pekerjaan || ''} onChange={handleInputChange} placeholder="Ketik profesi/pekerjaan manual..." className="mt-2 px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" />
                       )}
                     </div>
                   </div>
@@ -493,28 +520,28 @@ export default function NewJemaatPage() {
                 <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-start items-start gap-6 h-fit">
                   <div className="w-full inline-flex justify-start items-center gap-2">
                     <span className="material-icons-round text-slate-700 text-[20px]">how_to_reg</span>
-                    <span className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Status Jemaat & Baptis</span>
+                    <span className="text-slate-700 text-xs font-bold font-sans uppercase leading-4 tracking-wider">Status Jemaat & Baptis</span>
                   </div>
                   
                   <div className="w-full flex-col gap-4 flex">
                     <div className="w-full flex gap-4">
                       <div className="flex-1 flex-col gap-1 flex">
-                        <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Status Baptis</label>
-                        <select name="status_baptis" value={formData.status_baptis} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all">
+                        <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Status Baptis</label>
+                        <select name="status_baptis" value={formData.status_baptis} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all">
                           <option value="Sudah">Sudah Baptis</option>
                           <option value="Belum">Belum Baptis</option>
                         </select>
                       </div>
                       <div className="flex-1 flex-col gap-1 flex">
-                        <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Tanggal Baptis</label>
-                        <input type="date" name="tanggal_baptis" value={formData.tanggal_baptis} onChange={handleInputChange} disabled={formData.status_baptis !== 'Sudah'} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none disabled:bg-slate-50 disabled:text-slate-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
+                        <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Tanggal Baptis</label>
+                        <input type="date" name="tanggal_baptis" value={formData.tanggal_baptis} onChange={handleInputChange} disabled={formData.status_baptis !== 'Sudah'} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none disabled:bg-slate-50 disabled:text-slate-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" />
                       </div>
                     </div>
 
                     <div className="w-full flex gap-4">
                       <div className="flex-1 flex-col gap-1 flex">
-                        <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Status Hubungan</label>
-                        <select name="status_pernikahan" value={formData.status_pernikahan} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all">
+                        <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Status Hubungan</label>
+                        <select name="status_pernikahan" value={formData.status_pernikahan} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all">
                           <option value="Lajang">Lajang</option>
                           <option value="Menikah">Menikah</option>
                           <option value="Duda">Duda</option>
@@ -523,8 +550,8 @@ export default function NewJemaatPage() {
                       </div>
                       
                       <div className="flex-1 flex-col gap-1 flex">
-                        <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Keaktifan Jemaat</label>
-                        <select name="status_jemaat" value={formData.status_jemaat} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all">
+                        <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Keaktifan Jemaat</label>
+                        <select name="status_jemaat" value={formData.status_jemaat} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all">
                           <option value="Aktif">Aktif</option>
                           <option value="Tidak Aktif">Tidak Aktif</option>
                           <option value="Keluar">Keluar</option>
@@ -539,7 +566,7 @@ export default function NewJemaatPage() {
                 <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-start items-start gap-6 h-fit">
                   <div className="w-full inline-flex justify-start items-center gap-2">
                     <span className="material-icons-round text-slate-700 text-[20px]">favorite</span>
-                    <span className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Data Pasangan</span>
+                    <span className="text-slate-700 text-xs font-bold font-sans uppercase leading-4 tracking-wider">Data Pasangan</span>
                   </div>
                   <div className="w-full flex-col gap-4 flex">
                     <JemaatAutocomplete 
@@ -551,8 +578,8 @@ export default function NewJemaatPage() {
                     />
                     {!formData.pasangan_id && formData.pasangan_nama.length > 2 && (
                       <div className="w-full flex-col gap-1 flex animate-in fade-in slide-in-from-top-1">
-                        <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Gereja Asal Pasangan</label>
-                        <input type="text" name="gereja_asal_pasangan" value={formData.gereja_asal_pasangan} onChange={handleInputChange} placeholder="Isi jika dari gereja luar" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
+                        <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Gereja Asal Pasangan</label>
+                        <input type="text" name="gereja_asal_pasangan" value={formData.gereja_asal_pasangan} onChange={handleInputChange} placeholder="Isi jika dari gereja luar" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" />
                       </div>
                     )}
                   </div>
@@ -563,7 +590,7 @@ export default function NewJemaatPage() {
                   <div className="w-full inline-flex justify-between items-center gap-2">
                     <div className="flex items-center gap-2">
                       <span className="material-icons-round text-slate-700 text-[20px]">child_care</span>
-                      <span className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Data Anak</span>
+                      <span className="text-slate-700 text-xs font-bold font-sans uppercase leading-4 tracking-wider">Data Anak</span>
                     </div>
                     <button type="button" onClick={handleAddAnak} className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg flex items-center gap-1 transition-colors text-xs font-bold">
                       <span className="material-icons-round text-[16px]">add</span> Tambah Anak
@@ -592,8 +619,8 @@ export default function NewJemaatPage() {
                       />
                       {!ank.anak_jemaat_id && ank.nama_anak.length > 2 && (
                         <div className="w-full flex-col gap-1 flex">
-                          <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Gereja Asal</label>
-                          <input type="text" value={ank.gereja_asal_anak} onChange={(e) => handleAnakChange(idx, 'gereja_asal_anak', e.target.value)} placeholder="Isi jika dari gereja luar" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
+                          <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Gereja Asal</label>
+                          <input type="text" value={ank.gereja_asal_anak} onChange={(e) => handleAnakChange(idx, 'gereja_asal_anak', e.target.value)} placeholder="Isi jika dari gereja luar" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" />
                         </div>
                       )}
                     </div>
@@ -602,7 +629,7 @@ export default function NewJemaatPage() {
                   {formData.anak.length === 0 && (
                     <div className="w-full py-4 text-center text-slate-400 flex flex-col items-center gap-2 bg-slate-50 rounded-lg border border-dashed border-slate-200">
                       <span className="material-icons-round text-3xl opacity-50">child_care</span>
-                      <span className="text-xs font-['Inter']">Belum ada data anak. Klik "+ Tambah Anak".</span>
+                      <span className="text-xs font-sans">Belum ada data anak. Klik "+ Tambah Anak".</span>
                     </div>
                   )}
                 </div>
@@ -612,7 +639,7 @@ export default function NewJemaatPage() {
                   <div className="w-full inline-flex justify-between items-center gap-2">
                     <div className="flex items-center gap-2">
                       <span className="material-icons-round text-slate-700 text-[20px]">people</span>
-                      <span className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Data Saudara Kandung</span>
+                      <span className="text-slate-700 text-xs font-bold font-sans uppercase leading-4 tracking-wider">Data Saudara Kandung</span>
                     </div>
                     <button type="button" onClick={handleAddSaudara} className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-600 rounded-lg flex items-center gap-1 transition-colors text-xs font-bold">
                       <span className="material-icons-round text-[16px]">add</span> Tambah Saudara
@@ -642,13 +669,13 @@ export default function NewJemaatPage() {
                       />
                       {!sd.saudara_jemaat_id && sd.nama_saudara.length > 2 && (
                         <div className="w-full flex-col gap-1 flex">
-                          <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Gereja Asal</label>
+                          <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Gereja Asal</label>
                           <input
                             type="text"
                             value={(sd as any).gereja_asal_saudara || ''}
                             onChange={(e) => handleSaudaraChange(idx, 'gereja_asal_saudara', e.target.value)}
                             placeholder="Isi jika dari gereja luar"
-                            className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-300/30 focus:border-amber-400 text-slate-900 text-sm font-['Inter'] w-full transition-all"
+                            className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-300/30 focus:border-amber-400 text-slate-900 text-sm font-sans w-full transition-all"
                           />
                         </div>
                       )}
@@ -658,7 +685,7 @@ export default function NewJemaatPage() {
                   {formData.saudara.length === 0 && (
                     <div className="w-full py-4 text-center text-slate-400 flex flex-col items-center gap-2 bg-slate-50 rounded-lg border border-dashed border-slate-200">
                       <span className="material-icons-round text-3xl opacity-50">people_outline</span>
-                      <span className="text-xs font-['Inter']">Belum ada data saudara. Klik "+ Tambah Saudara".</span>
+                      <span className="text-xs font-sans">Belum ada data saudara. Klik "+ Tambah Saudara".</span>
                     </div>
                   )}
                 </div>
@@ -671,50 +698,50 @@ export default function NewJemaatPage() {
                 <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-start items-start gap-6 h-fit">
                   <div className="w-full inline-flex justify-start items-center gap-2">
                     <span className="material-icons-round text-slate-700 text-xl">contact_mail</span>
-                    <span className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Kontak & Domisili</span>
+                    <span className="text-slate-700 text-xs font-bold font-sans uppercase leading-4 tracking-wider">Kontak & Domisili</span>
                   </div>
                   
                   <div className="w-full flex-col gap-4 flex">
                     <div className="w-full flex-col gap-1 flex">
-                      <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Alamat Domisili</label>
-                      <input type="text" name="alamat" value={formData.alamat} onChange={handleInputChange} placeholder="Masukkan alamat lengkap" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
+                      <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Alamat Domisili</label>
+                      <input type="text" name="alamat" value={formData.alamat} onChange={handleInputChange} placeholder="Masukkan alamat lengkap" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" />
                     </div>
                     
                     <div className="w-full flex gap-4">
                       <div className="flex-1 flex-col gap-1 flex">
-                        <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Kecamatan</label>
-                        <input type="text" name="kecamatan" value={formData.kecamatan} onChange={handleInputChange} placeholder="" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
+                        <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Kecamatan</label>
+                        <input type="text" name="kecamatan" value={formData.kecamatan} onChange={handleInputChange} placeholder="" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" />
                       </div>
                       <div className="flex-1 flex-col gap-1 flex">
-                        <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Kelurahan</label>
-                        <input type="text" name="kelurahan" value={formData.kelurahan} onChange={handleInputChange} placeholder="" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
+                        <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Kelurahan</label>
+                        <input type="text" name="kelurahan" value={formData.kelurahan} onChange={handleInputChange} placeholder="" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" />
                       </div>
                     </div>
 
                     <div className="w-full flex gap-4">
                       <div className="flex-[2] flex-col gap-1 flex">
-                        <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Kota</label>
-                        <input type="text" name="kota" value={formData.kota} onChange={handleInputChange} placeholder="" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
+                        <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Kota</label>
+                        <input type="text" name="kota" value={formData.kota} onChange={handleInputChange} placeholder="" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" />
                       </div>
                       <div className="flex-1 flex-col gap-1 flex">
-                        <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Kode Pos</label>
-                        <input type="text" name="kode_pos" value={formData.kode_pos} onChange={handleInputChange} placeholder="" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
+                        <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Kode Pos</label>
+                        <input type="text" name="kode_pos" value={formData.kode_pos} onChange={handleInputChange} placeholder="" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" />
                       </div>
                     </div>
                     
                     <div className="w-full p-3 bg-blue-50 rounded-lg border border-blue-100">
-                      <p className="text-blue-700 text-xs font-semibold font-['Inter'] mb-2">Kontak <span className="text-red-500">*</span> — Isi minimal salah satu</p>
+                      <p className="text-blue-700 text-xs font-semibold font-sans mb-2">Kontak <span className="text-red-500">*</span> — Isi minimal salah satu</p>
                       <div className="w-full flex gap-4">
                         <div className="flex-1 flex-col gap-1 flex">
-                          <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">No Telepon / WA</label>
+                          <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">No Telepon / WA</label>
                           <div className="relative w-full">
-                            <span className="absolute left-3 top-2.5 text-slate-400 text-sm font-bold font-['Inter']">+62</span>
-                            <input type="text" name="no_hp" value={formData.no_hp} onChange={handleInputChange} placeholder="" className="pl-12 pr-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
+                            <span className="absolute left-3 top-2.5 text-slate-400 text-sm font-bold font-sans">+62</span>
+                            <input type="text" name="no_hp" value={formData.no_hp} onChange={handleInputChange} placeholder="" className="pl-12 pr-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" />
                           </div>
                         </div>
                         <div className="flex-1 flex-col gap-1 flex">
-                          <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Alamat Email</label>
-                          <input type="email" name="email" value={formData.email} onChange={handleInputChange} placeholder="" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
+                          <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Alamat Email</label>
+                          <input type="email" name="email" value={formData.email} onChange={handleInputChange} placeholder="" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" />
                         </div>
                       </div>
                     </div>
@@ -725,7 +752,7 @@ export default function NewJemaatPage() {
                 <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-start items-start gap-6 h-fit">
                   <div className="w-full inline-flex justify-start items-center gap-2">
                     <span className="material-icons-round text-slate-700 text-[20px]">family_restroom</span>
-                    <span className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Data Orang Tua</span>
+                    <span className="text-slate-700 text-xs font-bold font-sans uppercase leading-4 tracking-wider">Data Orang Tua</span>
                   </div>
                   
                   <div className="w-full flex-col gap-4 flex border-b border-slate-100 pb-4 mb-1">
@@ -738,8 +765,8 @@ export default function NewJemaatPage() {
                     />
                     {!formData.ayah_id && formData.ayah_nama.length > 2 && (
                       <div className="w-full flex-col gap-1 flex animate-in fade-in slide-in-from-top-1">
-                        <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Gereja Asal Ayah</label>
-                        <input type="text" name="gereja_asal_ayah" value={formData.gereja_asal_ayah} onChange={handleInputChange} placeholder="Isi jika dari gereja luar" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
+                        <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Gereja Asal Ayah</label>
+                        <input type="text" name="gereja_asal_ayah" value={formData.gereja_asal_ayah} onChange={handleInputChange} placeholder="Isi jika dari gereja luar" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" />
                       </div>
                     )}
                   </div>
@@ -754,8 +781,8 @@ export default function NewJemaatPage() {
                     />
                     {!formData.ibu_id && formData.ibu_nama.length > 2 && (
                       <div className="w-full flex-col gap-1 flex animate-in fade-in slide-in-from-top-1">
-                        <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Gereja Asal Ibu</label>
-                        <input type="text" name="gereja_asal_ibu" value={formData.gereja_asal_ibu} onChange={handleInputChange} placeholder="Isi jika dari gereja luar" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-['Inter'] w-full transition-all" />
+                        <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Gereja Asal Ibu</label>
+                        <input type="text" name="gereja_asal_ibu" value={formData.gereja_asal_ibu} onChange={handleInputChange} placeholder="Isi jika dari gereja luar" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" />
                       </div>
                     )}
                   </div>
@@ -765,18 +792,18 @@ export default function NewJemaatPage() {
                 <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-start items-start gap-6 h-fit">
                   <div className="w-full inline-flex justify-start items-center gap-2">
                     <span className="material-icons-round text-slate-700 text-xl">church</span>
-                    <span className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Detail Satelit</span>
+                    <span className="text-slate-700 text-xs font-bold font-sans uppercase leading-4 tracking-wider">Detail Satelit</span>
                   </div>
                   
                   <div className="w-full flex-col gap-4 flex">
                     <div className="w-full flex-col gap-1 flex">
-                      <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Nama Satelit</label>
+                      <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Nama Satelit</label>
                       <select 
                         name="satelit_id" 
                         value={formData.satelit_id} 
                         onChange={handleInputChange} 
                         disabled={userData?.role_name === 'GEMBALA SATELIT'}
-                        className={`px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-900 text-sm font-['Inter'] w-full transition-all ${
+                        className={`px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-900 text-sm font-sans w-full transition-all ${
                           userData?.role_name === 'GEMBALA SATELIT' ? 'bg-slate-200 cursor-not-allowed opacity-70' : 'bg-white focus:border-blue-500 scrollbar-hide'
                         }`}
                       >
@@ -788,7 +815,7 @@ export default function NewJemaatPage() {
                     </div>
                     
                     <div className="w-full flex-col gap-1 flex">
-                      <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4 mb-2">Nama Komisi (Bisa Pilih Lebih dari 1)</label>
+                      <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4 mb-2">Nama Komisi (Bisa Pilih Lebih dari 1)</label>
                       <div className="flex flex-col gap-2 p-3 bg-white rounded-lg border border-slate-200">
                         {!formData.satelit_id ? (
                           <span className="text-sm text-slate-400 italic">Pilih satelit utama terlebih dahulu</span>
@@ -804,7 +831,7 @@ export default function NewJemaatPage() {
                                   onChange={handleCheckboxChange}
                                   className="w-4 h-4 text-blue-600 bg-slate-100 border-slate-300 rounded focus:ring-blue-500"
                                 />
-                                <span className="text-slate-700 text-sm font-['Inter']">{k.nama_komisi}</span>
+                                <span className="text-slate-700 text-sm font-sans">{k.nama_komisi}</span>
                               </label>
                             ))
                         )}
@@ -815,7 +842,7 @@ export default function NewJemaatPage() {
                     </div>
 
                     <div className="w-full flex-col gap-1 flex">
-                      <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4 mb-2">Nama Departemen (Bisa Pilih Lebih dari 1)</label>
+                      <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4 mb-2">Nama Departemen (Bisa Pilih Lebih dari 1)</label>
                       <div className="flex flex-col gap-2 p-3 bg-white rounded-lg border border-slate-200">
                         {departemenOptions.length === 0 ? (
                             <span className="text-sm text-slate-400 italic">Belum ada data departemen</span>
@@ -829,7 +856,7 @@ export default function NewJemaatPage() {
                                   onChange={handleDeptCheckboxChange}
                                   className="w-4 h-4 text-purple-600 bg-slate-100 border-slate-300 rounded focus:ring-purple-500"
                                 />
-                                <span className="text-slate-700 text-sm font-['Inter']">{d.nama_departemen}</span>
+                                <span className="text-slate-700 text-sm font-sans">{d.nama_departemen}</span>
                               </label>
                             ))
                           )}
@@ -845,7 +872,7 @@ export default function NewJemaatPage() {
             {/* Actions */}
             <div className="w-full inline-flex justify-end items-center gap-4 mt-8">
               <Link href="/jemaat" className="px-8 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg inline-flex flex-col justify-center items-center transition-colors">
-                <span className="text-slate-700 text-sm font-bold font-['Inter'] uppercase leading-5 tracking-wide">Batal</span>
+                <span className="text-slate-700 text-sm font-bold font-sans uppercase leading-5 tracking-wide">Batal</span>
               </Link>
               <button 
                 onClick={handleCreate} 
@@ -856,7 +883,7 @@ export default function NewJemaatPage() {
                 ) : (
                   <span className="material-icons-round text-white text-[20px]">save</span>
                 )}
-                <span className="text-white text-sm font-bold font-['Inter'] uppercase leading-5 tracking-wide">Simpan Data</span>
+                <span className="text-white text-sm font-bold font-sans uppercase leading-5 tracking-wide">Simpan Data</span>
               </button>
             </div>
             

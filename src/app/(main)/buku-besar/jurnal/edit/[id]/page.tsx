@@ -196,7 +196,7 @@ export default function EditJurnalPage() {
 
       {/* Header Area */}
       <div className="w-full flex flex-col justify-start items-start gap-4">
-        <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-['Inter'] leading-4">
+        <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-sans leading-4">
           <span className="text-slate-500">Buku Besar & Keuangan</span>
           <span className="text-slate-500 material-icons-round text-[14px]">chevron_right</span>
           <Link href="/buku-besar/jurnal" className="text-slate-500 hover:text-blue-600">Daftar Jurnal Umum</Link>
@@ -206,13 +206,13 @@ export default function EditJurnalPage() {
         
         <div className="self-stretch inline-flex justify-between items-end">
           <div className="inline-flex gap-4 items-center">
-            <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Edit Jurnal Umum</h1>
+            <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Edit Jurnal Umum</h1>
             <div className="px-3 py-1 bg-amber-100 rounded border border-amber-300 flex items-center gap-1 mt-1">
                <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
                <span className="text-amber-800 text-xs font-bold uppercase tracking-wide">DRAFT</span>
             </div>
           </div>
-          <div className="text-slate-500 text-sm font-medium font-['Inter'] flex gap-1 items-center">
+          <div className="text-slate-500 text-sm font-medium font-sans flex gap-1 items-center">
             <span className="material-icons-round text-lg text-slate-400">qr_code</span> ID: <span className="text-slate-700 font-bold">{formData.id}</span>
           </div>
         </div>
@@ -283,7 +283,7 @@ export default function EditJurnalPage() {
                       </select>
                     </td>
                     <td className="p-3">
-                      <input type="number" value={row.nominal} onChange={(e) => updateRow(index, 'nominal', e.target.value)} className="w-full h-10 px-3 rounded-lg border border-slate-200 focus:border-indigo-500 outline-none text-sm text-right font-mono font-medium" placeholder="0" min="0" />
+                      <input type="number" value={row.nominal} onChange={(e) => updateRow(index, 'nominal', e.target.value)} className="w-full h-10 px-3 rounded-lg border border-slate-200 focus:border-indigo-500 outline-none text-sm text-right font-sans font-medium" placeholder="0" min="0" />
                     </td>
                     <td className="p-3 text-center">
                       <div className="flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -304,12 +304,12 @@ export default function EditJurnalPage() {
 
         <div className="p-6 bg-slate-50 border-t border-slate-200 flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex gap-8 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-             <div className="flex flex-col"><span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Debit</span><span className="text-xl font-bold font-mono text-blue-700">{formatRupiah(totalDebit)}</span></div>
+             <div className="flex flex-col"><span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Debit</span><span className="text-xl font-bold font-sans text-blue-700">{formatRupiah(totalDebit)}</span></div>
              <div className="w-px bg-slate-200"></div>
-             <div className="flex flex-col"><span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Kredit</span><span className="text-xl font-bold font-mono text-orange-700">{formatRupiah(totalKredit)}</span></div>
+             <div className="flex flex-col"><span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Kredit</span><span className="text-xl font-bold font-sans text-orange-700">{formatRupiah(totalKredit)}</span></div>
              <div className="w-px bg-slate-200"></div>
              <div className="flex flex-col"><span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Selisih (Balance)</span>
-               <span className={`text-xl font-bold font-mono ${isBalanced ? 'text-green-600' : 'text-red-600'}`}>
+               <span className={`text-xl font-bold font-sans ${isBalanced ? 'text-green-600' : 'text-red-600'}`}>
                  {formatRupiah(balanceDiff)}
                  {isBalanced && balanceDiff === 0 && totalDebit > 0 && <span className="material-icons-round text-sm ml-2 align-middle">check_circle</span>}
                </span>

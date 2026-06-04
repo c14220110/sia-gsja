@@ -157,7 +157,7 @@ export default function BuatSurveiPage() {
       {/* Header */}
       <div className="w-full flex justify-between items-start">
         <div className="w-full flex flex-col justify-start items-start gap-4">
-          <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-['Inter'] leading-4">
+          <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-sans leading-4">
             <Link href="/kegiatan" className="text-slate-500 hover:text-violet-600">Kegiatan</Link>
             <span className="text-slate-500 material-icons-round text-[14px]">chevron_right</span>
             <Link href="/kegiatan/survei" className="text-slate-500 hover:text-violet-600">Survei</Link>
@@ -166,8 +166,8 @@ export default function BuatSurveiPage() {
           </div>
           <div className="self-stretch inline-flex justify-between items-end">
             <div className="inline-flex flex-col justify-start items-start">
-              <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Buat Survei Baru</h1>
-              <div className="text-slate-500 text-base font-medium font-['Inter'] leading-6">Buat survei kepuasan untuk mengukur kualitas pelayanan</div>
+              <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Buat Survei Baru</h1>
+              <div className="text-slate-500 text-base font-medium font-sans leading-6">Buat survei kepuasan untuk mengukur kualitas pelayanan</div>
             </div>
           </div>
         </div>
@@ -176,7 +176,7 @@ export default function BuatSurveiPage() {
       {/* Form Card: Info Dasar */}
       <div className="w-full bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col gap-5">
         <div className="pb-2 border-b border-slate-100">
-          <h3 className="text-slate-800 text-lg font-bold font-['Inter']">Informasi Survei</h3>
+          <h3 className="text-slate-800 text-lg font-bold font-sans">Informasi Survei</h3>
         </div>
 
         <div className="flex flex-col gap-4">
@@ -282,7 +282,7 @@ export default function BuatSurveiPage() {
       {/* Form Card: Pertanyaan */}
       <div className="w-full bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col gap-5">
         <div className="pb-2 border-b border-slate-100 flex justify-between items-center">
-          <h3 className="text-slate-800 text-lg font-bold font-['Inter']">Daftar Pertanyaan</h3>
+          <h3 className="text-slate-800 text-lg font-bold font-sans">Daftar Pertanyaan</h3>
           <span className="text-slate-400 text-sm font-medium">{pertanyaan.length} pertanyaan</span>
         </div>
 

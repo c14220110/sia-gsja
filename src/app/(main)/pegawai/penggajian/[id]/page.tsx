@@ -69,7 +69,7 @@ export default function DetailRunPage({ params }: { params: Promise<{ id: string
     <div className="w-full flex flex-col gap-8 pb-10">
       <div className="w-full py-24 flex flex-col items-center justify-center gap-3 text-slate-500">
         <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-600 rounded-full animate-spin"></div>
-        <span className="text-sm font-['Public_Sans']">Memuat detail run...</span>
+        <span className="text-sm font-sans">Memuat detail run...</span>
       </div>
     </div>
   );
@@ -78,8 +78,8 @@ export default function DetailRunPage({ params }: { params: Promise<{ id: string
     <div className="w-full flex flex-col gap-8 pb-10">
       <div className="w-full py-24 flex flex-col items-center justify-center gap-3 text-slate-500">
         <span className="material-icons-round text-5xl text-slate-300">error_outline</span>
-        <span className="text-sm font-['Public_Sans']">Data run tidak ditemukan.</span>
-        <Link href="/pegawai/penggajian" className="px-4 py-2 bg-slate-700 text-white text-sm rounded-lg font-bold font-['Public_Sans']">← Kembali ke Daftar</Link>
+        <span className="text-sm font-sans">Data run tidak ditemukan.</span>
+        <Link href="/pegawai/penggajian" className="px-4 py-2 bg-slate-700 text-white text-sm rounded-lg font-bold font-sans">← Kembali ke Daftar</Link>
       </div>
     </div>
   );
@@ -91,7 +91,7 @@ export default function DetailRunPage({ params }: { params: Promise<{ id: string
     <div className="w-full flex flex-col gap-8 pb-10">
 
       {/* Breadcrumb */}
-      <div className="inline-flex items-center gap-2 text-xs font-medium font-['Inter']">
+      <div className="inline-flex items-center gap-2 text-xs font-medium font-sans">
         <Link href="/pegawai/penggajian" className="text-slate-500 hover:text-blue-600">Daftar Run Penggajian</Link>
         <span className="material-icons-round text-slate-400 text-[14px]">chevron_right</span>
         <span className="text-slate-700 font-bold">Detail Run</span>
@@ -101,27 +101,27 @@ export default function DetailRunPage({ params }: { params: Promise<{ id: string
       <div className="w-full flex justify-between items-start gap-4">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9">
+            <h1 className="text-slate-900 text-3xl font-black font-sans leading-9">
               Detail Run — {getBulanName(summary.bulan)} {summary.tahun}
             </h1>
             <StatusBadge status={summary.status} />
           </div>
-          <div className="text-slate-500 text-base font-medium font-['Inter']">{summary.nama_satelit} · Dibuat oleh {summary.nama_pembuat || 'Sistem'}</div>
+          <div className="text-slate-500 text-base font-medium font-sans">{summary.nama_satelit} · Dibuat oleh {summary.nama_pembuat || 'Sistem'}</div>
         </div>
         <div className="flex gap-2 shrink-0">
           {isDraft && (
             <>
-              <Link href={`/pegawai/penggajian/${runId}/edit`} className="px-4 py-2.5 border border-slate-300 rounded-lg text-slate-600 text-sm font-bold font-['Public_Sans'] hover:bg-slate-50 transition-colors flex items-center gap-2">
+              <Link href={`/pegawai/penggajian/${runId}/edit`} className="px-4 py-2.5 border border-slate-300 rounded-lg text-slate-600 text-sm font-bold font-sans hover:bg-slate-50 transition-colors flex items-center gap-2">
                 <span className="material-icons-round text-[16px]">edit</span> Edit Setup
               </Link>
-              <button onClick={handleAjukanApproval} disabled={actionLoading} className="px-5 py-2.5 bg-blue-600 rounded-lg text-white text-sm font-bold font-['Public_Sans'] hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-sm shadow-blue-600/20 disabled:opacity-60">
+              <button onClick={handleAjukanApproval} disabled={actionLoading} className="px-5 py-2.5 bg-blue-600 rounded-lg text-white text-sm font-bold font-sans hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-sm shadow-blue-600/20 disabled:opacity-60">
                 {actionLoading ? <span className="material-icons-round text-[16px] animate-spin">sync</span> : <span className="material-icons-round text-[16px]">send</span>}
                 Ajukan Approval
               </button>
             </>
           )}
           {isMenunggu && (
-            <span className="px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-sm font-bold font-['Public_Sans'] flex items-center gap-2">
+            <span className="px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-sm font-bold font-sans flex items-center gap-2">
               <span className="material-icons-round text-[16px]">pending_actions</span> Menunggu Approval Bendahara
             </span>
           )}
@@ -130,7 +130,7 @@ export default function DetailRunPage({ params }: { params: Promise<{ id: string
 
       {/* Action feedback */}
       {msg && (
-        <div className={`px-4 py-3 rounded-xl flex items-center gap-2 text-sm font-['Public_Sans'] ${msg.type === 'success' ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-rose-50 border border-rose-200 text-rose-700'}`}>
+        <div className={`px-4 py-3 rounded-xl flex items-center gap-2 text-sm font-sans ${msg.type === 'success' ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-rose-50 border border-rose-200 text-rose-700'}`}>
           <span className="material-icons-round text-[16px]">{msg.type === 'success' ? 'check_circle' : 'error_outline'}</span>
           {msg.text}
         </div>
@@ -145,8 +145,8 @@ export default function DetailRunPage({ params }: { params: Promise<{ id: string
           { label: 'Disiapkan Oleh', value: summary.nama_pembuat || 'Sistem' },
         ].map(({ label, value }) => (
           <div key={label} className="flex flex-col gap-1">
-            <span className="text-slate-500 text-[10px] font-bold uppercase tracking-wider font-['Public_Sans']">{label}</span>
-            <span className="text-slate-900 font-bold font-['Public_Sans'] text-sm truncate" title={value}>{value}</span>
+            <span className="text-slate-500 text-[10px] font-bold uppercase tracking-wider font-sans">{label}</span>
+            <span className="text-slate-900 font-bold font-sans text-sm truncate" title={value}>{value}</span>
           </div>
         ))}
       </div>
@@ -164,8 +164,8 @@ export default function DetailRunPage({ params }: { params: Promise<{ id: string
               <span className={`material-icons-round ${color.split(' ')[1]} text-2xl`}>{icon}</span>
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-slate-500 text-[10px] font-bold uppercase tracking-wider font-['Public_Sans']">{label}</span>
-              <span className="text-slate-900 font-bold font-['Liberation_Mono'] text-sm mt-0.5 truncate">{value}</span>
+              <span className="text-slate-500 text-[10px] font-bold uppercase tracking-wider font-sans">{label}</span>
+              <span className="text-slate-900 font-bold font-sans text-sm mt-0.5 truncate">{value}</span>
             </div>
           </div>
         ))}
@@ -178,11 +178,11 @@ export default function DetailRunPage({ params }: { params: Promise<{ id: string
             <span className={`material-icons-round ${(summary.sisa_plafon - summary.estimasi_penggunaan) < 0 ? 'text-rose-500' : 'text-emerald-500'}`}>account_balance_wallet</span>
             <div className="flex flex-col">
               <span className={`text-xs font-bold uppercase tracking-wider ${(summary.sisa_plafon - summary.estimasi_penggunaan) < 0 ? 'text-rose-700' : 'text-emerald-700'}`}>Status Plafon RA</span>
-              <span className={`text-sm font-['Public_Sans'] ${(summary.sisa_plafon - summary.estimasi_penggunaan) < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>Sisa plafon setelah payroll: <strong className="font-['Liberation_Mono']">{formatRupiah(summary.sisa_plafon - summary.estimasi_penggunaan)}</strong></span>
+              <span className={`text-sm font-sans ${(summary.sisa_plafon - summary.estimasi_penggunaan) < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>Sisa plafon setelah payroll: <strong className="font-sans">{formatRupiah(summary.sisa_plafon - summary.estimasi_penggunaan)}</strong></span>
             </div>
           </div>
           <div className="text-right shrink-0">
-            <p className={`text-xs font-['Public_Sans'] ${(summary.sisa_plafon - summary.estimasi_penggunaan) < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>Estimasi penggunaan: <strong className="font-['Liberation_Mono']">{formatRupiah(summary.estimasi_penggunaan)}</strong></p>
+            <p className={`text-xs font-sans ${(summary.sisa_plafon - summary.estimasi_penggunaan) < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>Estimasi penggunaan: <strong className="font-sans">{formatRupiah(summary.estimasi_penggunaan)}</strong></p>
           </div>
         </div>
       )}
@@ -190,30 +190,30 @@ export default function DetailRunPage({ params }: { params: Promise<{ id: string
       {/* Table Pegawai */}
       <div className="w-full bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-          <h2 className="text-slate-900 font-bold font-['Inter'] flex items-center gap-2">
+          <h2 className="text-slate-900 font-bold font-sans flex items-center gap-2">
             <span className="material-icons-round text-slate-500 text-[20px]">group</span>
             Detail Pegawai ({details.length} orang)
           </h2>
-          {isDraft && <span className="text-xs text-slate-400 font-['Public_Sans'] italic">Mode Draft — klik baris untuk melihat detail komponen</span>}
+          {isDraft && <span className="text-xs text-slate-400 font-sans italic">Mode Draft — klik baris untuk melihat detail komponen</span>}
         </div>
 
         <div className="w-full overflow-x-auto">
           <div className="min-w-[1000px] flex flex-col">
             <div className="w-full bg-slate-50 border-b border-slate-200 flex items-center px-6 py-4 gap-2">
               <div className="w-9 shrink-0"></div>
-              <div className="w-52 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Nama Pegawai</div>
-              <div className="w-36 shrink-0 text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Jabatan</div>
-              <div className="flex-1 min-w-[110px] text-right text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Gaji Pokok</div>
-              <div className="flex-1 min-w-[110px] text-right text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Tunjangan</div>
-              <div className="flex-1 min-w-[110px] text-right text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">Potongan</div>
-              <div className="flex-1 min-w-[110px] text-right text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider pr-4">Netto</div>
+              <div className="w-52 shrink-0 text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Nama Pegawai</div>
+              <div className="w-36 shrink-0 text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Jabatan</div>
+              <div className="flex-1 min-w-[110px] text-right text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Gaji Pokok</div>
+              <div className="flex-1 min-w-[110px] text-right text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Tunjangan</div>
+              <div className="flex-1 min-w-[110px] text-right text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Potongan</div>
+              <div className="flex-1 min-w-[110px] text-right text-slate-500 text-xs font-bold font-sans uppercase tracking-wider pr-4">Netto</div>
               <div className="w-8 shrink-0"></div>
             </div>
 
             {details.length === 0 ? (
               <div className="w-full py-16 flex flex-col items-center justify-center text-slate-400 gap-2">
                 <span className="material-icons-round text-5xl text-slate-200">group_off</span>
-                <span className="text-sm font-['Public_Sans']">Belum ada detail pegawai.</span>
+                <span className="text-sm font-sans">Belum ada detail pegawai.</span>
               </div>
             ) : details.map((item) => {
               const isExp = expandedId === item.id;
@@ -237,14 +237,14 @@ export default function DetailRunPage({ params }: { params: Promise<{ id: string
                   <div className={`w-full flex items-center px-6 py-4 border-b gap-2 transition-colors cursor-pointer ${isExp ? 'bg-blue-50 border-blue-200' : 'border-slate-100 hover:bg-slate-50'}`} onClick={() => setExpandedId(isExp ? null : item.id)}>
                     <div className="w-9 shrink-0"><div className={`w-8 h-8 rounded-full ${avatarColor(item.nama_lengkap||'')} flex items-center justify-center text-white text-xs font-bold`}>{getInitials(item.nama_lengkap||'')}</div></div>
                     <div className="w-52 shrink-0 flex flex-col pr-2">
-                      <span className="text-slate-900 text-sm font-bold font-['Public_Sans'] truncate">{item.nama_lengkap}</span>
+                      <span className="text-slate-900 text-sm font-bold font-sans truncate">{item.nama_lengkap}</span>
 
                     </div>
-                    <div className="w-36 shrink-0 pr-2"><span className="text-slate-600 text-sm font-medium font-['Public_Sans'] truncate block">{item.jabatan_snapshot || '—'}</span></div>
-                    <div className="flex-1 min-w-[110px] text-right text-slate-700 text-sm font-bold font-['Liberation_Mono'] pr-2">{formatRupiah(gpVal)}</div>
-                    <div className="flex-1 min-w-[110px] text-right text-slate-600 text-sm font-medium font-['Liberation_Mono'] pr-2">{formatRupiah(tunjanganVal)}</div>
-                    <div className="flex-1 min-w-[110px] text-right text-slate-700 text-sm font-bold font-['Liberation_Mono'] pr-2">{formatRupiah(Number(item.total_potongan))}</div>
-                    <div className="flex-1 min-w-[110px] text-right text-emerald-600 text-sm font-bold font-['Liberation_Mono'] pr-4">{formatRupiah(Number(item.total_netto))}</div>
+                    <div className="w-36 shrink-0 pr-2"><span className="text-slate-600 text-sm font-medium font-sans truncate block">{item.jabatan_snapshot || '—'}</span></div>
+                    <div className="flex-1 min-w-[110px] text-right text-slate-700 text-sm font-bold font-sans pr-2">{formatRupiah(gpVal)}</div>
+                    <div className="flex-1 min-w-[110px] text-right text-slate-600 text-sm font-medium font-sans pr-2">{formatRupiah(tunjanganVal)}</div>
+                    <div className="flex-1 min-w-[110px] text-right text-slate-700 text-sm font-bold font-sans pr-2">{formatRupiah(Number(item.total_potongan))}</div>
+                    <div className="flex-1 min-w-[110px] text-right text-emerald-600 text-sm font-bold font-sans pr-4">{formatRupiah(Number(item.total_netto))}</div>
                     <div className="w-8 shrink-0 text-slate-400"><span className="material-icons-round text-[18px] transition-transform duration-200" style={{ transform: isExp ? 'rotate(90deg)' : 'none' }}>chevron_right</span></div>
                   </div>
 
@@ -254,31 +254,31 @@ export default function DetailRunPage({ params }: { params: Promise<{ id: string
                         <div className="flex flex-col gap-2">
                           <h4 className="text-xs font-bold text-slate-600 uppercase flex items-center gap-2 border-b border-slate-200 pb-2"><span className="w-2 h-2 rounded-full bg-blue-500 inline-block"></span> Pendapatan</h4>
                           {penerimaan.map((k: any) => (
-                            <div key={k.id} className="flex justify-between text-sm font-['Public_Sans']">
+                            <div key={k.id} className="flex justify-between text-sm font-sans">
                               <span className="text-slate-600 truncate pr-4">{k.nama_komponen}</span>
-                              <span className="text-slate-800 font-bold font-['Liberation_Mono'] shrink-0">{formatRupiah(Number(k.nominal))}</span>
+                              <span className="text-slate-800 font-bold font-sans shrink-0">{formatRupiah(Number(k.nominal))}</span>
                             </div>
                           ))}
                           <div className="flex justify-between text-sm font-bold border-t border-slate-200 pt-2">
                             <span className="text-slate-700">Total</span>
-                            <span className="font-['Liberation_Mono']">{formatRupiah(Number(item.total_penerimaan))}</span>
+                            <span className="font-sans">{formatRupiah(Number(item.total_penerimaan))}</span>
                           </div>
                         </div>
                         <div className="flex flex-col gap-2">
                           <h4 className="text-xs font-bold text-slate-600 uppercase flex items-center gap-2 border-b border-slate-200 pb-2"><span className="w-2 h-2 rounded-full bg-amber-500 inline-block"></span> Potongan</h4>
                           {potongan.length === 0 ? <span className="text-xs text-slate-400 italic">Tidak ada potongan.</span> : potongan.map((k: any) => (
-                            <div key={k.id} className="flex justify-between text-sm font-['Public_Sans']">
+                            <div key={k.id} className="flex justify-between text-sm font-sans">
                               <span className="text-slate-600 truncate pr-4">{k.nama_komponen}</span>
-                              <span className="text-slate-700 font-bold font-['Liberation_Mono'] shrink-0">- {formatRupiah(Number(k.nominal))}</span>
+                              <span className="text-slate-700 font-bold font-sans shrink-0">- {formatRupiah(Number(k.nominal))}</span>
                             </div>
                           ))}
                           {bebanGereja.length > 0 && (
                             <div className="mt-2 pt-2 border-t border-dashed border-slate-200">
                               <p className="text-[10px] font-bold text-purple-600 uppercase tracking-wider mb-1">Beban Gereja (tidak dipotong)</p>
                               {bebanGereja.map((k: any) => (
-                                <div key={k.id} className="flex justify-between text-xs font-['Public_Sans']">
+                                <div key={k.id} className="flex justify-between text-xs font-sans">
                                   <span className="text-slate-500 truncate pr-2">{k.nama_komponen}</span>
-                                  <span className="text-purple-600 font-bold font-['Liberation_Mono']">{formatRupiah(Number(k.nominal))}</span>
+                                  <span className="text-purple-600 font-bold font-sans">{formatRupiah(Number(k.nominal))}</span>
                                 </div>
                               ))}
                             </div>
@@ -287,15 +287,15 @@ export default function DetailRunPage({ params }: { params: Promise<{ id: string
                         <div className="flex flex-col gap-2">
                           <h4 className="text-xs font-bold text-slate-600 uppercase flex items-center gap-2 border-b border-slate-200 pb-2"><span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span> Ringkasan</h4>
                           <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col gap-2">
-                            <div className="flex justify-between text-sm font-['Public_Sans']"><span className="text-slate-500">Bruto</span><span className="font-bold font-['Liberation_Mono'] text-slate-700">{formatRupiah(Number(item.total_penerimaan))}</span></div>
-                            <div className="flex justify-between text-sm font-['Public_Sans']"><span className="text-slate-500">Potongan</span><span className="font-bold font-['Liberation_Mono'] text-slate-700">- {formatRupiah(Number(item.total_potongan))}</span></div>
+                            <div className="flex justify-between text-sm font-sans"><span className="text-slate-500">Bruto</span><span className="font-bold font-sans text-slate-700">{formatRupiah(Number(item.total_penerimaan))}</span></div>
+                            <div className="flex justify-between text-sm font-sans"><span className="text-slate-500">Potongan</span><span className="font-bold font-sans text-slate-700">- {formatRupiah(Number(item.total_potongan))}</span></div>
                             <div className="w-full h-px bg-slate-100 my-1"></div>
-                            <div className="flex justify-between text-base font-bold"><span className="text-slate-900">Netto</span><span className="text-emerald-600 font-['Liberation_Mono']">{formatRupiah(Number(item.total_netto))}</span></div>
+                            <div className="flex justify-between text-base font-bold"><span className="text-slate-900">Netto</span><span className="text-emerald-600 font-sans">{formatRupiah(Number(item.total_netto))}</span></div>
                             {totalBG > 0 && (
                               <>
                                 <div className="w-full h-px border-t border-dashed border-slate-200 my-1"></div>
-                                <div className="flex justify-between text-xs text-slate-500 font-['Public_Sans']"><span>+ Beban Gereja (BPJS)</span><span className="text-purple-600 font-bold font-['Liberation_Mono']">{formatRupiah(totalBG)}</span></div>
-                                <div className="flex justify-between text-xs font-bold text-slate-700"><span>Total Cost Unit</span><span className="font-['Liberation_Mono']">{formatRupiah(Number(item.total_netto)+totalBG)}</span></div>
+                                <div className="flex justify-between text-xs text-slate-500 font-sans"><span>+ Beban Gereja (BPJS)</span><span className="text-purple-600 font-bold font-sans">{formatRupiah(totalBG)}</span></div>
+                                <div className="flex justify-between text-xs font-bold text-slate-700"><span>Total Cost Unit</span><span className="font-sans">{formatRupiah(Number(item.total_netto)+totalBG)}</span></div>
                               </>
                             )}
                             {/* PPh21 TER Info Box */}
@@ -307,25 +307,25 @@ export default function DetailRunPage({ params }: { params: Promise<{ id: string
                                     <span className="material-icons-round text-[12px]">receipt_long</span>
                                     Info Pajak PPh 21
                                   </p>
-                                  <div className="flex justify-between text-xs font-['Public_Sans']">
+                                  <div className="flex justify-between text-xs font-sans">
                                     <span className="text-indigo-500">Status PTKP</span>
                                     <span className="font-bold text-indigo-700">{pph21Snap.statusPtkp}</span>
                                   </div>
-                                  <div className="flex justify-between text-xs font-['Public_Sans']">
+                                  <div className="flex justify-between text-xs font-sans">
                                     <span className="text-indigo-500">Kategori TER</span>
                                     <span className="font-bold text-indigo-700">Kategori {pph21Snap.kategoriTER}</span>
                                   </div>
-                                  <div className="flex justify-between text-xs font-['Public_Sans']">
+                                  <div className="flex justify-between text-xs font-sans">
                                     <span className="text-indigo-500">Tarif Efektif</span>
                                     <span className="font-bold text-indigo-700">{((pph21Snap.tarif || 0) * 100).toFixed(2)}%</span>
                                   </div>
-                                  <div className="flex justify-between text-xs font-['Public_Sans']">
+                                  <div className="flex justify-between text-xs font-sans">
                                     <span className="text-indigo-500">Bruto Kena Pajak</span>
-                                    <span className="font-bold font-['Liberation_Mono'] text-indigo-700">{formatRupiah(pph21Snap.bruto || 0)}</span>
+                                    <span className="font-bold font-sans text-indigo-700">{formatRupiah(pph21Snap.bruto || 0)}</span>
                                   </div>
                                   <div className="flex justify-between text-xs font-bold border-t border-indigo-100 pt-1 mt-0.5">
                                     <span className="text-indigo-700">PPh 21 Dipotong</span>
-                                    <span className="font-['Liberation_Mono'] text-indigo-800">- {formatRupiah(Number(pph21Komponen.nominal))}</span>
+                                    <span className="font-sans text-indigo-800">- {formatRupiah(Number(pph21Komponen.nominal))}</span>
                                   </div>
                                 </div>
                               </>
@@ -334,7 +334,7 @@ export default function DetailRunPage({ params }: { params: Promise<{ id: string
                             {!pph21Snap && item.pph21_method_snapshot !== 'Ditanggung Gereja' && (
                               <>
                                 <div className="w-full h-px border-t border-dashed border-slate-100 my-1"></div>
-                                <p className="text-[10px] text-slate-400 italic font-['Public_Sans'] flex items-center gap-1">
+                                <p className="text-[10px] text-slate-400 italic font-sans flex items-center gap-1">
                                   <span className="material-icons-round text-[11px]">info</span>
                                   PPh 21: tidak aktif di template jabatan ini
                                 </p>
@@ -351,8 +351,8 @@ export default function DetailRunPage({ params }: { params: Promise<{ id: string
 
             {details.length > 0 && (
               <div className="px-6 py-3 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center">
-                <span className="text-slate-400 text-xs font-['Public_Sans']">{details.length} pegawai diproses</span>
-                <span className="text-slate-500 text-xs font-['Public_Sans']">Total Netto: <strong className="font-['Liberation_Mono'] text-emerald-600">{formatRupiah(Number(summary.total_netto))}</strong></span>
+                <span className="text-slate-400 text-xs font-sans">{details.length} pegawai diproses</span>
+                <span className="text-slate-500 text-xs font-sans">Total Netto: <strong className="font-sans text-emerald-600">{formatRupiah(Number(summary.total_netto))}</strong></span>
               </div>
             )}
           </div>
@@ -361,15 +361,15 @@ export default function DetailRunPage({ params }: { params: Promise<{ id: string
 
       {/* Footer Action Bar */}
       <div className="w-full flex justify-between items-center pt-4 border-t border-slate-100">
-        <Link href="/pegawai/penggajian" className="px-6 py-2.5 border border-slate-300 rounded-lg text-slate-600 font-bold hover:bg-slate-50 transition-colors flex items-center gap-2 font-['Public_Sans']">
+        <Link href="/pegawai/penggajian" className="px-6 py-2.5 border border-slate-300 rounded-lg text-slate-600 font-bold hover:bg-slate-50 transition-colors flex items-center gap-2 font-sans">
           <span className="material-icons-round text-[18px]">arrow_back</span> Kembali ke Daftar
         </Link>
         {isDraft && (
           <div className="flex gap-3">
-            <Link href={`/pegawai/penggajian/${runId}/edit`} className="px-5 py-2.5 border border-slate-300 rounded-lg text-slate-600 font-bold hover:bg-slate-50 transition-colors flex items-center gap-2 text-sm font-['Public_Sans']">
+            <Link href={`/pegawai/penggajian/${runId}/edit`} className="px-5 py-2.5 border border-slate-300 rounded-lg text-slate-600 font-bold hover:bg-slate-50 transition-colors flex items-center gap-2 text-sm font-sans">
               <span className="material-icons-round text-[16px]">edit</span> Edit Setup
             </Link>
-            <button onClick={handleAjukanApproval} disabled={actionLoading} className="px-6 py-2.5 bg-blue-600 rounded-lg text-white font-bold hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-sm shadow-blue-600/20 text-sm font-['Public_Sans'] disabled:opacity-60">
+            <button onClick={handleAjukanApproval} disabled={actionLoading} className="px-6 py-2.5 bg-blue-600 rounded-lg text-white font-bold hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-sm shadow-blue-600/20 text-sm font-sans disabled:opacity-60">
               {actionLoading ? <span className="material-icons-round text-[16px] animate-spin">sync</span> : <span className="material-icons-round text-[16px]">send</span>}
               Ajukan Approval
             </button>

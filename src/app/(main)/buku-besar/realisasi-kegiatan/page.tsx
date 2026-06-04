@@ -216,7 +216,7 @@ export default function RealisasiKegiatanPage() {
                       const p = pct(r.total_realisasi,base);
                       return (
                         <tr key={i} className="hover:bg-slate-50 transition">
-                          <td className="px-5 py-3"><span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded font-mono">{r.kode_akun}</span></td>
+                          <td className="px-5 py-3"><span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded font-sans">{r.kode_akun}</span></td>
                           <td className="px-5 py-3 font-semibold text-slate-800">{r.nama_akun}</td>
                           <td className="px-5 py-3"><span className={`text-xs font-bold px-2 py-0.5 rounded ${r.jenis_anggaran==='Penerimaan'?'bg-blue-100 text-blue-700':'bg-rose-100 text-rose-700'}`}>{r.jenis_anggaran}</span></td>
                           <td className="px-5 py-3 text-right font-black text-slate-800">{fmt(r.total_realisasi)}</td>
@@ -270,7 +270,7 @@ export default function RealisasiKegiatanPage() {
                           <div className="text-[10px] text-slate-400">{r.kode_kegiatan}</div>
                         </td>
                         <td className="px-4 py-3 text-xs"><div className="font-bold text-slate-700">{r.nama_satelit}</div><div className="text-slate-400">{r.nama_komisi}</div></td>
-                        <td className="px-4 py-3"><span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded font-mono">{r.kode_akun}</span><div className="text-[10px] text-slate-400 mt-0.5">{r.nama_akun}</div></td>
+                        <td className="px-4 py-3"><span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded font-sans">{r.kode_akun}</span><div className="text-[10px] text-slate-400 mt-0.5">{r.nama_akun}</div></td>
                         <td className="px-4 py-3 text-xs text-slate-600 max-w-[200px] truncate">{r.uraian}</td>
                         <td className="px-4 py-3"><span className={`text-[10px] font-bold px-2 py-0.5 rounded ${r.jenis_anggaran==='Penerimaan'?'bg-blue-100 text-blue-700':'bg-rose-100 text-rose-700'}`}>{r.jenis_anggaran}</span></td>
                         <td className="px-4 py-3 text-right font-black text-slate-800 text-xs">{fmt(r.total)}</td>

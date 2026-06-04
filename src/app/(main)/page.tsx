@@ -1704,8 +1704,8 @@ export default function DashboardHome() {
         {/* ── Header — sama seperti /kegiatan ──────────────────────── */}
         <div className="w-full flex flex-col lg:flex-row justify-between items-start gap-4">
           <div className="flex flex-col gap-1">
-            <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Balanced Scorecard</h1>
-            <div className="text-slate-500 text-base font-medium font-['Inter'] leading-6">Analisis Kinerja Strategis Organisasi — GSJA Eben Haezer</div>
+            <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Balanced Scorecard</h1>
+            <div className="text-slate-500 text-base font-medium font-sans leading-6">Analisis Kinerja Strategis Organisasi — GSJA Eben Haezer</div>
           </div>
         </div>
 
@@ -1718,9 +1718,9 @@ export default function DashboardHome() {
               <span className="material-icons-round text-indigo-600 text-3xl">analytics</span>
             </div>
             <div className="flex flex-col">
-              <span className="text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wide">SKOR BSC KESELURUHAN</span>
+              <span className="text-slate-500 text-xs font-bold font-sans uppercase tracking-wide">SKOR BSC KESELURUHAN</span>
               <div className="flex items-end gap-2 mt-1">
-                <span className="text-slate-900 text-3xl font-bold font-['Public_Sans'] leading-9">
+                <span className="text-slate-900 text-3xl font-bold font-sans leading-9">
                   {overallScore !== null ? overallScore : '—'}
                 </span>
                 {overallScore !== null && <span className="text-slate-400 text-sm font-bold mb-0.5">/ 100</span>}
@@ -1744,9 +1744,9 @@ export default function DashboardHome() {
               <span className="material-icons-round text-emerald-600 text-3xl">check_circle</span>
             </div>
             <div className="flex flex-col">
-              <span className="text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wide">KPI TERCAPAI</span>
+              <span className="text-slate-500 text-xs font-bold font-sans uppercase tracking-wide">KPI TERCAPAI</span>
               <div className="flex items-end gap-2 mt-1">
-                <span className="text-emerald-600 text-3xl font-bold font-['Public_Sans'] leading-9">{hijauCount}</span>
+                <span className="text-emerald-600 text-3xl font-bold font-sans leading-9">{hijauCount}</span>
                 <span className="text-slate-400 text-sm font-bold mb-0.5">/ 12</span>
               </div>
             </div>
@@ -1758,9 +1758,9 @@ export default function DashboardHome() {
               <span className="material-icons-round text-amber-600 text-3xl">warning</span>
             </div>
             <div className="flex flex-col">
-              <span className="text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wide">KPI WASPADA</span>
+              <span className="text-slate-500 text-xs font-bold font-sans uppercase tracking-wide">KPI WASPADA</span>
               <div className="flex items-end gap-2 mt-1">
-                <span className="text-amber-600 text-3xl font-bold font-['Public_Sans'] leading-9">{kuningCount}</span>
+                <span className="text-amber-600 text-3xl font-bold font-sans leading-9">{kuningCount}</span>
                 <span className="text-slate-400 text-sm font-bold mb-0.5">/ 12</span>
               </div>
             </div>
@@ -1772,9 +1772,9 @@ export default function DashboardHome() {
               <span className="material-icons-round text-rose-600 text-3xl">error</span>
             </div>
             <div className="flex flex-col">
-              <span className="text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wide">PERLU TINDAKAN</span>
+              <span className="text-slate-500 text-xs font-bold font-sans uppercase tracking-wide">PERLU TINDAKAN</span>
               <div className="flex items-end gap-2 mt-1">
-                <span className="text-rose-600 text-3xl font-bold font-['Public_Sans'] leading-9">{merahCount}</span>
+                <span className="text-rose-600 text-3xl font-bold font-sans leading-9">{merahCount}</span>
                 <span className="text-slate-400 text-sm font-bold mb-0.5">/ 12</span>
               </div>
             </div>
@@ -1785,24 +1785,24 @@ export default function DashboardHome() {
         {/* ── Filter Bar — pattern /kegiatan ──────────────────────── */}
         <div className="w-full px-4 py-4 bg-white rounded-xl border border-slate-200 flex flex-wrap items-end gap-4 shadow-sm">
           <div className="flex flex-col gap-1">
-            <label className="text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wide">Dari</label>
+            <label className="text-slate-500 text-xs font-bold font-sans uppercase tracking-wide">Dari</label>
             <input type="date" value={bscFilter.dari}
               onChange={e => setBscFilter(p => ({ ...p, dari: e.target.value }))}
-              className="h-10 px-3 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-700 font-['Public_Sans']" />
+              className="h-10 px-3 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-700 font-sans" />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wide">Sampai</label>
+            <label className="text-slate-500 text-xs font-bold font-sans uppercase tracking-wide">Sampai</label>
             <input type="date" value={bscFilter.sampai}
               onChange={e => setBscFilter(p => ({ ...p, sampai: e.target.value }))}
-              className="h-10 px-3 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-700 font-['Public_Sans']" />
+              className="h-10 px-3 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-700 font-sans" />
           </div>
           {userData?.is_super_admin && satelitList.length > 0 && (
             <div className="flex flex-col gap-1">
-              <label className="text-slate-500 text-xs font-bold font-['Public_Sans'] uppercase tracking-wide">Satelit</label>
+              <label className="text-slate-500 text-xs font-bold font-sans uppercase tracking-wide">Satelit</label>
               <div className="relative">
                 <select value={bscFilter.satelit_id}
                   onChange={e => setBscFilter(p => ({ ...p, satelit_id: e.target.value }))}
-                  className="appearance-none h-10 pl-3 pr-8 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-700 font-['Public_Sans'] cursor-pointer">
+                  className="appearance-none h-10 pl-3 pr-8 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-700 font-sans cursor-pointer">
                   <option value="">Semua Satelit</option>
                   {satelitList.map((s: any) => <option key={s.id} value={s.id}>{s.nama_satelit}</option>)}
                 </select>
@@ -1812,7 +1812,7 @@ export default function DashboardHome() {
           )}
           <button onClick={() => fetchBsc(bscFilter)}
             disabled={loadingBsc}
-            className="h-10 px-5 bg-slate-700 hover:bg-slate-800 disabled:opacity-50 text-white text-sm font-bold font-['Inter'] rounded-lg flex items-center gap-2 transition-all shadow-sm active:scale-95 cursor-pointer">
+            className="h-10 px-5 bg-slate-700 hover:bg-slate-800 disabled:opacity-50 text-white text-sm font-bold font-sans rounded-lg flex items-center gap-2 transition-all shadow-sm active:scale-95 cursor-pointer">
             {loadingBsc
               ? <><span className="material-icons-round text-[18px] animate-spin">autorenew</span> Memuat...</>
               : <><span className="material-icons-round text-[18px]">refresh</span> Muat Data</>
@@ -1829,7 +1829,7 @@ export default function DashboardHome() {
             <button
               key={tab.key}
               onClick={() => setBscTab(tab.key)}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold font-['Inter'] transition-all ${
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold font-sans transition-all ${
                 bscTab === tab.key
                   ? 'bg-slate-700 text-white shadow-sm'
                   : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
@@ -2007,7 +2007,7 @@ export default function DashboardHome() {
                   <button
                     key={pKey}
                     onClick={() => setSelectedPerspektif(pKey)}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold font-['Inter'] transition-all ${
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold font-sans transition-all ${
                       selectedPerspektif === pKey
                         ? 'bg-slate-700 text-white shadow-sm'
                         : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50 border border-slate-200'

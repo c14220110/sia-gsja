@@ -39,11 +39,46 @@ export async function POST(request: Request) {
       }, { status: 500 });
     }
 
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+    // ── Hapus foto lama jika ada (mencegah foto numpuk di bucket) ─────────────
+    // PENTING: harus `await` — di serverless (Vercel), unwaited promise bisa
+    // terbunuh sebelum selesai karena fungsi langsung exit setelah response dikirim.
+    const oldUrl = data.get('old_url') as string | null;
+    if (oldUrl) {
+      try {
+        // Ekstrak nama file dari URL: ambil bagian setelah /object/public/<bucket>/
+        const targetBucketForDelete = (data.get('bucket') as string) || 'jemaat-photos';
+        const publicPathPrefix = `/storage/v1/object/public/${targetBucketForDelete}/`;
+        const urlPath = new URL(oldUrl).pathname;
+        if (urlPath.includes(publicPathPrefix)) {
+          const oldFilename = urlPath.split(publicPathPrefix)[1];
+          if (oldFilename) {
+            const deleteUrl = `${supabaseUrl}/storage/v1/object/${targetBucketForDelete}/${oldFilename}`;
+            // await — pastikan delete selesai sebelum fungsi exit
+            const deleteRes = await fetch(deleteUrl, {
+              method: 'DELETE',
+              headers: {
+                'Authorization': `Bearer ${supabaseKey}`,
+                'apikey': supabaseKey,
+              },
+            });
+            if (!deleteRes.ok) {
+              console.warn(`[Upload] Foto lama gagal dihapus (${deleteRes.status}), tapi upload baru tetap jalan.`);
+            } else {
+              console.log(`[Upload] Foto lama berhasil dihapus: ${oldFilename}`);
+            }
+          }
+        }
+      } catch (err) {
+        // Jika parsing URL gagal, abaikan saja — jangan blok upload baru
+        console.warn('[Upload] Tidak bisa parse old_url (non-fatal):', err);
+      }
+    }
 
     const targetBucket = (data.get('bucket') as string) || 'jemaat-photos';
     const uploadUrl = `${supabaseUrl}/storage/v1/object/${targetBucket}/${filename}`;
+
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
 
     // Upload ke Supabase menggunakan REST API standar
     const response = await fetch(uploadUrl, {

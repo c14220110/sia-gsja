@@ -352,11 +352,11 @@ export default function COAPage() {
             <span className={`${isHeader && !isInactive ? 'font-bold text-slate-800' : isHeader && isInactive ? 'font-bold text-gray-400' : isInactive ? 'text-gray-400' : 'text-slate-700'} ${isInactive ? 'line-through' : ''}`}>
                {node.nama_akun}
             </span>
-            {isInactive && <span className="ml-2 text-[10px] font-semibold bg-red-100 text-red-500 border border-red-200 px-1.5 py-0.5 rounded">Non-Aktif</span>}
+            {isInactive && <span className="ml-3 px-3 py-1 rounded-full text-[10px] font-bold font-sans uppercase bg-red-100 text-red-700">Non-Aktif</span>}
           </td>
           <td className={`p-4 text-sm ${isInactive ? 'text-gray-400' : 'text-slate-600'}`}>{node.grup_laporan}</td>
           <td className="p-4 text-sm">
-            <span className={`px-2 py-1 rounded text-xs font-medium ${isInactive ? 'bg-gray-100 text-gray-400' : isHeader ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>
+            <span className={`px-3 py-1 rounded-full text-[10px] font-bold font-sans uppercase ${isInactive ? 'bg-slate-100 text-slate-400' : isHeader ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>
               {node.tipe_akun}
             </span>
           </td>
@@ -470,115 +470,100 @@ export default function COAPage() {
       {/* Header Section */}
       <div className="w-full flex justify-between items-start">
         <div className="flex flex-col gap-1">
-          <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Akun Perkiraan (COA)</h1>
-          <div className="text-slate-500 text-base font-medium font-['Inter'] leading-6">Kelola bagan akun untuk transaksi buku besar dan laporan keuangan</div>
+          <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Akun Perkiraan (COA)</h1>
+          <div className="text-slate-500 text-base font-medium font-sans leading-6">Kelola bagan akun untuk transaksi buku besar dan laporan keuangan</div>
         </div>
         <div className="flex items-center gap-3">
           {canManage && (
             <button onClick={() => handleOpenDrawer()} className="px-5 py-2.5 bg-slate-700 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none">
               <span className="material-icons-round text-white text-[20px]">add</span>
-              <span className="text-white text-sm font-bold font-['Inter'] leading-5">Tambah Akun Baru</span>
+              <span className="text-white text-sm font-bold font-sans leading-5">Tambah Akun Baru</span>
             </button>
           )}
         </div>
       </div>
 
       {/* ── Filter Toolbar ── */}
-      <div className="w-full bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="w-full px-4 py-4 bg-white rounded-xl border border-slate-200 flex flex-wrap items-center gap-4 shadow-sm mb-6">
+        
+        {/* Search Bar */}
+        <div className="flex-1 min-w-[300px] relative flex items-center">
+          <span className="material-icons-round absolute left-4 text-slate-400 text-[20px]">search</span>
+          <input
+            type="text"
+            placeholder="Cari kode atau nama akun..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-12 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm"
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery('')} className="absolute right-3 text-slate-400 hover:text-slate-600">
+              <span className="material-icons-round text-[16px]">close</span>
+            </button>
+          )}
+        </div>
 
-        {/* Row 1: Search + Dropdowns + Expand */}
-        <div className="px-4 py-3 flex flex-wrap items-center gap-3 border-b border-slate-100">
-          {/* Search */}
-          <div className="flex-1 min-w-[220px] relative flex items-center">
-            <span className="material-icons-round absolute left-3 text-slate-400 text-[18px]">search</span>
-            <input
-              type="text"
-              placeholder="Cari kode atau nama akun..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-9 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 text-slate-700 text-sm transition-all"
-            />
-            {searchQuery && (
-              <button onClick={() => setSearchQuery('')} className="absolute right-3 text-slate-400 hover:text-slate-600">
-                <span className="material-icons-round text-[16px]">close</span>
-              </button>
-            )}
-          </div>
-
-          {/* Filter Laporan */}
-          <div className="relative">
-            <select
-              value={filterLaporan}
-              onChange={(e) => setFilterLaporan(e.target.value)}
-              className="appearance-none pl-3 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 text-slate-700 text-sm cursor-pointer font-medium"
-            >
-              <option value="">Semua Laporan</option>
-              <option value="Neraca">Neraca</option>
-              <option value="Laba Rugi">Laba Rugi</option>
-            </select>
-            <span className="material-icons-round absolute right-2 top-2.5 text-slate-400 pointer-events-none text-[16px]">expand_more</span>
-          </div>
-
-          {/* Filter Tipe */}
-          <div className="relative">
-            <select
-              value={filterTipe}
-              onChange={(e) => setFilterTipe(e.target.value)}
-              className="appearance-none pl-3 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 text-slate-700 text-sm cursor-pointer font-medium"
-            >
-              <option value="">Semua Tipe</option>
-              <option value="Header">Header</option>
-              <option value="Detail">Detail</option>
-            </select>
-            <span className="material-icons-round absolute right-2 top-2.5 text-slate-400 pointer-events-none text-[16px]">expand_more</span>
-          </div>
-
-          {/* Separator */}
-          <div className="h-7 w-px bg-slate-200 hidden sm:block" />
-
-          {/* Expand / Collapse */}
-          <button
-            onClick={isAllExpanded ? collapseAll : expandAll}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors whitespace-nowrap"
-            title={isAllExpanded ? 'Tutup semua sub-akun' : 'Buka semua sub-akun'}
+        {/* Filter Laporan Dropdown */}
+        <div className="relative min-w-[200px]">
+          <select
+            value={filterLaporan}
+            onChange={(e) => setFilterLaporan(e.target.value)}
+            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
           >
-            <span className="material-icons-round text-[15px]">{isAllExpanded ? 'unfold_less' : 'unfold_more'}</span>
-            {isAllExpanded ? 'Collapse All' : 'Expand All'}
-          </button>
+            <option value="">Semua Laporan</option>
+            <option value="Neraca">Neraca</option>
+            <option value="Laba Rugi">Laba Rugi</option>
+          </select>
+          <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
         </div>
 
-        {/* Row 2: Status Tabs + Result Count */}
-        <div className="px-4 py-2.5 flex items-center justify-between">
-          {/* Status Tab Toggle */}
-          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
-            {(['Aktif', 'Nonaktif', 'Semua'] as const).map(status => (
-              <button
-                key={status}
-                onClick={() => setFilterStatus(status)}
-                className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
-                  filterStatus === status
-                    ? status === 'Aktif'
-                      ? 'bg-white text-emerald-700 shadow-sm border border-emerald-200'
-                      : status === 'Nonaktif'
-                      ? 'bg-white text-red-600 shadow-sm border border-red-200'
-                      : 'bg-white text-slate-700 shadow-sm border border-slate-200'
-                    : 'text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                {status === 'Aktif' && <span className="inline-block w-1.5 h-1.5 bg-emerald-500 rounded-full mr-1.5 mb-px" />}
-                {status === 'Nonaktif' && <span className="inline-block w-1.5 h-1.5 bg-red-400 rounded-full mr-1.5 mb-px" />}
-                {status}
-              </button>
-            ))}
-          </div>
-
-          {/* Result count */}
-          <span className="text-xs text-slate-400 font-medium hidden sm:block">
-            {treeData.length > 0
-              ? `${treeData.length} grup · ${coaList.filter(c => filterStatus === 'Aktif' ? c.is_active : filterStatus === 'Nonaktif' ? !c.is_active : true).length} akun`
-              : 'Tidak ada data'}
-          </span>
+        {/* Filter Tipe Dropdown */}
+        <div className="relative min-w-[200px]">
+          <select
+            value={filterTipe}
+            onChange={(e) => setFilterTipe(e.target.value)}
+            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
+          >
+            <option value="">Semua Tipe</option>
+            <option value="Header">Header</option>
+            <option value="Detail">Detail</option>
+          </select>
+          <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
         </div>
+
+        {/* Status Tab Toggle */}
+        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
+          {(['Aktif', 'Nonaktif', 'Semua'] as const).map(status => (
+            <button
+              key={status}
+              onClick={() => setFilterStatus(status)}
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold font-sans transition-all ${
+                filterStatus === status
+                  ? status === 'Aktif'
+                    ? 'bg-white text-emerald-700 shadow-sm border border-emerald-200'
+                    : status === 'Nonaktif'
+                    ? 'bg-white text-red-600 shadow-sm border border-red-200'
+                    : 'bg-white text-slate-700 shadow-sm border border-slate-200'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              {status === 'Aktif' && <span className="inline-block w-1.5 h-1.5 bg-emerald-500 rounded-full mr-1.5 mb-px" />}
+              {status === 'Nonaktif' && <span className="inline-block w-1.5 h-1.5 bg-red-400 rounded-full mr-1.5 mb-px" />}
+              {status}
+            </button>
+          ))}
+        </div>
+
+        {/* Expand / Collapse */}
+        <button
+          onClick={isAllExpanded ? collapseAll : expandAll}
+          className="px-4 py-2.5 border rounded-lg flex items-center gap-2 transition-colors group bg-white border-slate-200 hover:bg-slate-50 lg:ml-auto"
+          title={isAllExpanded ? 'Tutup semua sub-akun' : 'Buka semua sub-akun'}
+        >
+          <span className="material-icons-round text-[20px] text-slate-500 group-hover:text-slate-700">{isAllExpanded ? 'unfold_less' : 'unfold_more'}</span>
+          <span className="text-sm font-medium font-sans text-slate-600 group-hover:text-slate-800">{isAllExpanded ? 'Collapse All' : 'Expand All'}</span>
+        </button>
+
       </div>
 
 
@@ -587,12 +572,12 @@ export default function COAPage() {
           <table className="w-full text-left border-collapse min-w-[800px] relative">
             <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 shadow-sm">
               <tr>
-                <th className="p-4 font-bold text-slate-500 text-xs font-['Public_Sans'] uppercase tracking-wider whitespace-nowrap">Kode Akun</th>
-                <th className="p-4 font-bold text-slate-500 text-xs font-['Public_Sans'] uppercase tracking-wider whitespace-nowrap">Nama Akun</th>
-                <th className="p-4 font-bold text-slate-500 text-xs font-['Public_Sans'] uppercase tracking-wider whitespace-nowrap">Grup Laporan</th>
-                <th className="p-4 font-bold text-slate-500 text-xs font-['Public_Sans'] uppercase tracking-wider whitespace-nowrap">Tipe</th>
-                <th className="p-4 font-bold text-slate-500 text-xs font-['Public_Sans'] uppercase tracking-wider whitespace-nowrap">Saldo Normal</th>
-                <th className="p-4 font-bold text-slate-500 text-xs font-['Public_Sans'] uppercase tracking-wider text-center w-32 whitespace-nowrap">Aksi</th>
+                <th className="p-4 font-bold text-slate-500 text-xs font-sans uppercase tracking-wider whitespace-nowrap">Kode Akun</th>
+                <th className="p-4 font-bold text-slate-500 text-xs font-sans uppercase tracking-wider whitespace-nowrap">Nama Akun</th>
+                <th className="p-4 font-bold text-slate-500 text-xs font-sans uppercase tracking-wider whitespace-nowrap">Grup Laporan</th>
+                <th className="p-4 font-bold text-slate-500 text-xs font-sans uppercase tracking-wider whitespace-nowrap">Tipe</th>
+                <th className="p-4 font-bold text-slate-500 text-xs font-sans uppercase tracking-wider whitespace-nowrap">Saldo Normal</th>
+                <th className="p-4 font-bold text-slate-500 text-xs font-sans uppercase tracking-wider text-center w-32 whitespace-nowrap">Aksi</th>
               </tr>
             </thead>
             <tbody>
@@ -681,12 +666,12 @@ export default function COAPage() {
                       type="text" 
                       value={formData.kode_akun}
                       onChange={(e) => setFormData({...formData, kode_akun: e.target.value})}
-                      className="w-full h-11 px-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-mono shadow-sm"
+                      className="w-full h-11 px-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-sans shadow-sm"
                       placeholder="Misal: 110001"
                     />
                     {formData.induk_akun_id && (
                        <p className="text-xs text-slate-500">
-                         ⓘ Saran kode berawalan: <span className="font-mono font-semibold bg-slate-100 px-1 py-0.5 rounded">{coaList.find(a => a.id.toString() === formData.induk_akun_id)?.kode_akun}</span>
+                         ⓘ Saran kode berawalan: <span className="font-sans font-semibold bg-slate-100 px-1 py-0.5 rounded">{coaList.find(a => a.id.toString() === formData.induk_akun_id)?.kode_akun}</span>
                        </p>
                     )}
                   </div>

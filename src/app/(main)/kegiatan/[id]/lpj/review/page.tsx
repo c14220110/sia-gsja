@@ -110,7 +110,7 @@ export default function ReviewLPJPage() {
             <span className="material-icons-round text-amber-500 text-2xl">fact_check</span>
           </div>
           <div className="flex-1">
-            <h1 className="text-xl font-black text-slate-800 font-['Inter']">Review LPJ</h1>
+            <h1 className="text-xl font-black text-slate-800 font-sans">Review LPJ</h1>
             <p className="text-xs text-slate-400 mt-0.5">{kegiatan?.nama_kegiatan} · {kegiatan?.kode_kegiatan}</p>
           </div>
           <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
@@ -151,12 +151,12 @@ export default function ReviewLPJPage() {
                 {penItems.map((it, idx) => (
                   <tr key={it.id} className="border-b border-slate-100 hover:bg-emerald-50/30">
                     <td className="p-3 pl-5 text-slate-400 text-xs">{idx + 1}</td>
-                    <td className="p-3"><span className="text-[10px] text-slate-500 font-mono">{it.kode_akun}</span><br /><span className="text-xs text-slate-700">{it.nama_akun}</span></td>
+                    <td className="p-3"><span className="text-[10px] text-slate-500 font-sans">{it.kode_akun}</span><br /><span className="text-xs text-slate-700">{it.nama_akun}</span></td>
                     <td className="p-3 text-xs text-slate-700">{it.uraian}{it.deskripsi && <span className="block text-[10px] text-slate-400 mt-0.5">{it.deskripsi}</span>}</td>
                     <td className="p-3 text-center text-xs">{it.jumlah}</td>
                     <td className="p-3 text-xs text-slate-500">{it.satuan || '-'}</td>
-                    <td className="p-3 text-right font-mono text-xs">{fmt(parseFloat(it.harga_satuan))}</td>
-                    <td className="p-3 text-right font-mono text-xs font-bold text-emerald-700">{fmt(it.jumlah * parseFloat(it.harga_satuan))}</td>
+                    <td className="p-3 text-right font-sans text-xs">{fmt(parseFloat(it.harga_satuan))}</td>
+                    <td className="p-3 text-right font-sans text-xs font-bold text-emerald-700">{fmt(it.jumlah * parseFloat(it.harga_satuan))}</td>
                   </tr>
                 ))}
                 {kelItems.length > 0 && (
@@ -165,12 +165,12 @@ export default function ReviewLPJPage() {
                 {kelItems.map((it, idx) => (
                   <tr key={it.id} className="border-b border-slate-100 hover:bg-red-50/30">
                     <td className="p-3 pl-5 text-slate-400 text-xs">{idx + 1}</td>
-                    <td className="p-3"><span className="text-[10px] text-slate-500 font-mono">{it.kode_akun}</span><br /><span className="text-xs text-slate-700">{it.nama_akun}</span></td>
+                    <td className="p-3"><span className="text-[10px] text-slate-500 font-sans">{it.kode_akun}</span><br /><span className="text-xs text-slate-700">{it.nama_akun}</span></td>
                     <td className="p-3 text-xs text-slate-700">{it.uraian}{it.deskripsi && <span className="block text-[10px] text-slate-400 mt-0.5">{it.deskripsi}</span>}</td>
                     <td className="p-3 text-center text-xs">{it.jumlah}</td>
                     <td className="p-3 text-xs text-slate-500">{it.satuan || '-'}</td>
-                    <td className="p-3 text-right font-mono text-xs">{fmt(parseFloat(it.harga_satuan))}</td>
-                    <td className="p-3 text-right font-mono text-xs font-bold text-red-600">{fmt(it.jumlah * parseFloat(it.harga_satuan))}</td>
+                    <td className="p-3 text-right font-sans text-xs">{fmt(parseFloat(it.harga_satuan))}</td>
+                    <td className="p-3 text-right font-sans text-xs font-bold text-red-600">{fmt(it.jumlah * parseFloat(it.harga_satuan))}</td>
                   </tr>
                 ))}
                 {items.length === 0 && (
@@ -189,7 +189,7 @@ export default function ReviewLPJPage() {
             ].map(([label, value, cls]) => (
               <div key={String(label)} className="flex flex-col text-right">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{label}</span>
-                <span className={`text-sm font-bold font-mono ${cls}`}>{value}</span>
+                <span className={`text-sm font-bold font-sans ${cls}`}>{value}</span>
               </div>
             ))}
           </div>

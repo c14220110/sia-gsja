@@ -90,12 +90,12 @@ export function FormDetailKepengurusan({
       <div className="w-full flex-col gap-1 flex">
         <div className="flex items-center gap-1.5 mb-0.5">
           <span className="w-5 h-5 rounded-full bg-violet-600 text-white text-[10px] font-black flex items-center justify-center shrink-0">1</span>
-          <label className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Lingkup Kepengurusan</label>
+          <label className="text-slate-700 text-xs font-bold font-sans uppercase leading-4 tracking-wider">Lingkup Kepengurusan</label>
         </div>
         <select
           value={data.lingkup}
           onChange={e => handleChange('lingkup', e.target.value)}
-          className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-['Inter'] w-full transition-all cursor-pointer font-semibold"
+          className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-sans w-full transition-all cursor-pointer font-semibold"
         >
           <option value="Pusat">🏛️ Pusat (Umum / Majelis)</option>
           <option value="Satelit">⛪ Satelit (Umum)</option>
@@ -109,22 +109,22 @@ export function FormDetailKepengurusan({
         <div className="w-full py-3 px-4 text-emerald-600 bg-emerald-50 rounded-lg border border-emerald-200 flex items-center gap-3">
           <span className="material-icons-round text-[18px]">verified</span>
           {data.lingkup === 'Pusat' && (
-            <span className="text-sm font-['Inter'] font-medium">Jabatan ini berada di tingkat <strong>Pusat / Majelis</strong>.</span>
+            <span className="text-sm font-sans font-medium">Jabatan ini berada di tingkat <strong>Pusat / Majelis</strong>.</span>
           )}
           {data.lingkup === 'Departemen' && (
-            <span className="text-sm font-['Inter'] font-medium">Departemen bersifat <strong>lintas satelit</strong> — tidak terikat pada satu satelit tertentu.</span>
+            <span className="text-sm font-sans font-medium">Departemen bersifat <strong>lintas satelit</strong> — tidak terikat pada satu satelit tertentu.</span>
           )}
         </div>
       ) : (
         <div className="w-full flex-col gap-1 flex">
           <div className="flex items-center gap-1.5 mb-0.5">
             <span className="w-5 h-5 rounded-full bg-violet-600 text-white text-[10px] font-black flex items-center justify-center shrink-0">2</span>
-            <label className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Lokasi Satelit Penugasan</label>
+            <label className="text-slate-700 text-xs font-bold font-sans uppercase leading-4 tracking-wider">Lokasi Satelit Penugasan</label>
           </div>
           <select
             value={data.lokasi_satelit_id}
             onChange={e => handleChange('lokasi_satelit_id', e.target.value)}
-            className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 text-slate-900 text-sm font-['Inter'] w-full transition-all cursor-pointer"
+            className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 text-slate-900 text-sm font-sans w-full transition-all cursor-pointer"
           >
             <option value="">-- Pilih Satelit --</option>
             {satelitOptions.map(s => <option key={s.id} value={s.id}>{s.nama_satelit}</option>)}
@@ -137,7 +137,7 @@ export function FormDetailKepengurusan({
         <div className="w-full flex-col gap-1 flex animate-in fade-in slide-in-from-top-1">
           <div className="flex items-center gap-1.5 mb-0.5">
             <span className="w-5 h-5 rounded-full bg-violet-500 text-white text-[10px] font-black flex items-center justify-center shrink-0">3</span>
-            <label className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Pilih Komisi</label>
+            <label className="text-slate-700 text-xs font-bold font-sans uppercase leading-4 tracking-wider">Pilih Komisi</label>
           </div>
           {!data.lokasi_satelit_id ? (
             <div className="w-full py-2.5 px-3 text-amber-600 bg-amber-50 rounded-lg border border-amber-200 text-sm flex items-center gap-2">
@@ -149,7 +149,7 @@ export function FormDetailKepengurusan({
               value={data.komisi_id}
               onChange={e => handleChange('komisi_id', e.target.value)}
               disabled={!data.lokasi_satelit_id}
-              className="px-3 py-2 bg-violet-50 rounded-lg border border-violet-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 text-slate-900 text-sm font-['Inter'] w-full transition-all cursor-pointer"
+              className="px-3 py-2 bg-violet-50 rounded-lg border border-violet-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 text-slate-900 text-sm font-sans w-full transition-all cursor-pointer"
             >
               <option value="">-- Pilih Komisi --</option>
               {filteredKomisi.map(k => <option key={k.id} value={k.id}>{k.nama_komisi}</option>)}
@@ -166,12 +166,12 @@ export function FormDetailKepengurusan({
         <div className="w-full flex-col gap-1 flex animate-in fade-in slide-in-from-top-1">
           <div className="flex items-center gap-1.5 mb-0.5">
             <span className="w-5 h-5 rounded-full bg-sky-500 text-white text-[10px] font-black flex items-center justify-center shrink-0">3</span>
-            <label className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Pilih Departemen</label>
+            <label className="text-slate-700 text-xs font-bold font-sans uppercase leading-4 tracking-wider">Pilih Departemen</label>
           </div>
           <select
             value={data.departemen_id}
             onChange={e => handleChange('departemen_id', e.target.value)}
-            className="px-3 py-2 bg-sky-50 rounded-lg border border-sky-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 text-slate-900 text-sm font-['Inter'] w-full transition-all cursor-pointer"
+            className="px-3 py-2 bg-sky-50 rounded-lg border border-sky-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 text-slate-900 text-sm font-sans w-full transition-all cursor-pointer"
           >
             <option value="">-- Pilih Departemen --</option>
             {departemenOptions.map(d => <option key={d.id} value={d.id}>{d.nama_departemen}</option>)}
@@ -188,12 +188,12 @@ export function FormDetailKepengurusan({
           <span className="w-5 h-5 rounded-full bg-slate-700 text-white text-[10px] font-black flex items-center justify-center shrink-0">
             {data.lingkup === 'Pusat' ? 2 : data.lingkup === 'Satelit' ? 3 : 4}
           </span>
-          <label className="text-slate-700 text-xs font-bold font-['Inter'] uppercase leading-4 tracking-wider">Pilih Jabatan</label>
+          <label className="text-slate-700 text-xs font-bold font-sans uppercase leading-4 tracking-wider">Pilih Jabatan</label>
         </div>
         <select
           value={data.jabatan_id}
           onChange={e => handleChange('jabatan_id', e.target.value)}
-          className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-['Inter'] w-full transition-all cursor-pointer"
+          className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-sans w-full transition-all cursor-pointer"
         >
           <option value="">-- Pilih Jabatan --</option>
           {filteredJabatan.map(j => <option key={j.id} value={j.id}>{j.nama_jabatan}</option>)}
@@ -206,34 +206,34 @@ export function FormDetailKepengurusan({
       {/* Periode & Tanggal */}
       <div className="w-full flex gap-3 flex-col sm:flex-row">
         <div className="flex-1 flex-col gap-1 flex">
-          <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Periode Kepengurusan</label>
+          <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Periode Kepengurusan</label>
           <select
             value={data.periode_id}
             onChange={e => handleChange('periode_id', e.target.value)}
-            className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-['Inter'] w-full transition-all cursor-pointer"
+            className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-sans w-full transition-all cursor-pointer"
           >
             <option value="">-- Pilih Periode --</option>
             {periodeOptions.map(p => <option key={p.id} value={p.id}>{p.nama_periode} ({p.tahun_mulai}–{p.tahun_akhir})</option>)}
           </select>
         </div>
         <div className="flex-1 flex-col gap-1 flex">
-          <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Tanggal Mulai Menjabat</label>
+          <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Tanggal Mulai Menjabat</label>
           <input
             type="date"
             value={data.tanggal_mulai}
             onChange={e => handleChange('tanggal_mulai', e.target.value)}
-            className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-['Inter'] w-full transition-all"
+            className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-sans w-full transition-all"
           />
         </div>
       </div>
 
       {/* Jalur Pengangkatan */}
       <div className="w-full flex-col gap-1 flex">
-        <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Jalur Pengangkatan</label>
+        <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Jalur Pengangkatan</label>
         <select
           value={data.jalur_pengangkatan}
           onChange={e => handleChange('jalur_pengangkatan', e.target.value)}
-          className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-['Inter'] w-full transition-all cursor-pointer"
+          className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-sans w-full transition-all cursor-pointer"
         >
           <option value="Penunjukan">Penunjukan / Aklamasi</option>
           <option value="Pemilihan">Pemilihan</option>
@@ -242,12 +242,12 @@ export function FormDetailKepengurusan({
 
       {/* Catatan */}
       <div className="w-full flex-col gap-1 flex">
-        <label className="text-slate-400 text-xs font-bold font-['Inter'] uppercase leading-4">Catatan (Opsional)</label>
+        <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Catatan (Opsional)</label>
         <textarea
           value={data.catatan}
           onChange={e => handleChange('catatan', e.target.value)}
           placeholder="Catatan khusus untuk jabatan ini (misal: PAW menggantikan Bpk. X)..."
-          className="px-3 py-3 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-['Inter'] w-full min-h-[80px] resize-y transition-all"
+          className="px-3 py-3 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 text-slate-900 text-sm font-sans w-full min-h-[80px] resize-y transition-all"
         />
       </div>
     </div>

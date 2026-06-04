@@ -204,7 +204,7 @@ export default function AdminPastoralDetailPage() {
       <div className="w-full max-w-[1200px] flex flex-col gap-6">
         
         {/* Breadcrumb */}
-        <div className="w-full inline-flex justify-start items-center gap-2 text-xs font-medium font-['Inter'] leading-4">
+        <div className="w-full inline-flex justify-start items-center gap-2 text-xs font-medium font-sans leading-4">
           <span className="text-slate-500">Modul Kegiatan</span>
           <span className="text-slate-500 material-icons-round text-[14px]">chevron_right</span>
           <Link href="/kegiatan/pastoral" className="text-slate-500 hover:text-blue-600">Layanan Pastoral</Link>
@@ -229,7 +229,7 @@ export default function AdminPastoralDetailPage() {
                    </span>
                 )}
               </div>
-              <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mt-1">
+              <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mt-1">
                 Layanan {data.nama_jenis_kegiatan}
               </h1>
               <div className="flex items-center gap-2 text-slate-500 text-sm font-medium mt-1">
@@ -420,7 +420,7 @@ export default function AdminPastoralDetailPage() {
                         
                         <div className="flex flex-col gap-1 pl-4">
                           <span className="text-sm font-bold text-slate-900">{log.status_baru}</span>
-                          <span className="text-[11px] font-bold text-slate-400 font-mono tracking-wide">{formatDate(log.created_at)}</span>
+                          <span className="text-[11px] font-bold text-slate-400 font-sans tracking-wide">{formatDate(log.created_at)}</span>
                           <p className="text-xs text-slate-600 leading-relaxed mt-1">{log.catatan_perubahan}</p>
                           {log.nama_pengubah && <span className="text-[10px] text-slate-400 mt-0.5 italic">Aktor: {log.nama_pengubah}</span>}
                         </div>
@@ -545,7 +545,7 @@ export default function AdminPastoralDetailPage() {
                 <input 
                   type="text" 
                   placeholder="Cari nama pengurus (staf pastoral)..."
-                  className="w-full pl-14 pr-5 py-4 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-700 font-['Inter'] text-sm transition-all"
+                  className="w-full pl-14 pr-5 py-4 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-700 font-sans text-sm transition-all"
                   value={picSearch}
                   onChange={(e) => setPicSearch(e.target.value)}
                 />

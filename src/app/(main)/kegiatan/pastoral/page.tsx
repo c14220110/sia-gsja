@@ -212,8 +212,8 @@ export default function AdminPastoralPage() {
       {/* Header Section */}
       <div className="w-full flex justify-between items-start">
         <div className="flex flex-col gap-1">
-          <h1 className="text-slate-900 text-3xl font-black font-['Inter'] leading-9 mb-1">Permohonan Pastoral</h1>
-          <div className="text-slate-500 text-base font-medium font-['Inter'] leading-6">Manajemen Layanan Pastoral Jemaat</div>
+          <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Permohonan Pastoral</h1>
+          <div className="text-slate-500 text-base font-medium font-sans leading-6">Manajemen Layanan Pastoral Jemaat</div>
         </div>
       </div>
 
@@ -226,9 +226,9 @@ export default function AdminPastoralPage() {
              <span className="material-icons-round text-rose-600 text-3xl">priority_high</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-slate-600 text-xs font-bold font-['Public_Sans'] uppercase tracking-wide">MENUNGGU TINDAKAN</span>
+            <span className="text-slate-600 text-xs font-bold font-sans uppercase tracking-wide">MENUNGGU TINDAKAN</span>
             <div className="flex items-end gap-2 mt-1">
-              <span className="text-slate-900 text-3xl font-bold font-['Public_Sans'] leading-9">{menunggu}</span>
+              <span className="text-slate-900 text-3xl font-bold font-sans leading-9">{menunggu}</span>
             </div>
           </div>
         </div>
@@ -239,9 +239,9 @@ export default function AdminPastoralPage() {
             <span className="material-icons-round text-blue-600 text-3xl">autorenew</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-slate-600 text-xs font-bold font-['Public_Sans'] uppercase tracking-wide">SEDANG DIPROSES</span>
+            <span className="text-slate-600 text-xs font-bold font-sans uppercase tracking-wide">SEDANG DIPROSES</span>
             <div className="flex items-end gap-2 mt-1">
-              <span className="text-slate-900 text-3xl font-bold font-['Public_Sans'] leading-9">{diproses}</span>
+              <span className="text-slate-900 text-3xl font-bold font-sans leading-9">{diproses}</span>
             </div>
           </div>
         </div>
@@ -252,9 +252,9 @@ export default function AdminPastoralPage() {
             <span className="material-icons-round text-emerald-600 text-3xl">done_all</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-slate-600 text-xs font-bold font-['Public_Sans'] uppercase tracking-wide">SELESAI (BULAN INI)</span>
+            <span className="text-slate-600 text-xs font-bold font-sans uppercase tracking-wide">SELESAI (BULAN INI)</span>
             <div className="flex items-end gap-2 mt-1">
-              <span className="text-emerald-600 text-3xl font-bold font-['Public_Sans'] leading-9">{selesaiBulanIni}</span>
+              <span className="text-emerald-600 text-3xl font-bold font-sans leading-9">{selesaiBulanIni}</span>
             </div>
           </div>
         </div>
@@ -270,7 +270,7 @@ export default function AdminPastoralPage() {
           <input 
             type="text" 
             placeholder="Cari No. Tiket atau Nama..."
-            className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm"
+            className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -281,7 +281,7 @@ export default function AdminPastoralPage() {
           <select 
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
+            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
           >
             <option value="">Semua Status</option>
             <option value="Menunggu">Menunggu</option>
@@ -298,7 +298,7 @@ export default function AdminPastoralPage() {
           <select 
             value={filterJenis}
             onChange={(e) => setFilterJenis(e.target.value)}
-            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-['Public_Sans'] text-sm cursor-pointer"
+            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
           >
             <option value="">Semua Kategori</option>
             {jenisKegiatanOptions.map((jk) => (
@@ -316,12 +316,12 @@ export default function AdminPastoralPage() {
           <div className="min-w-[1200px] flex flex-col">
             {/* Table Header */}
             <div className="w-full bg-slate-50 border-b border-slate-200 flex items-center px-6 py-4">
-              <div className="w-[180px] shrink-0 text-left pr-4 text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">WAKTU PENGAJUAN</div>
-              <div className="w-[160px] shrink-0 text-left pr-4 text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">STATUS</div>
-              <div className="flex-1 min-w-[200px] text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">PEMOHON & TARGET</div>
-              <div className="w-48 shrink-0 text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">JENIS LAYANAN</div>
-              <div className="w-[180px] shrink-0 text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">PENANGGUNG JAWAB</div>
-              <div className="w-12 shrink-0 text-center text-slate-700 text-xs font-bold font-['Public_Sans'] uppercase tracking-wider">AKSI</div>
+              <div className="w-[180px] shrink-0 text-left pr-4 text-slate-700 text-xs font-bold font-sans uppercase tracking-wider">WAKTU PENGAJUAN</div>
+              <div className="w-[160px] shrink-0 text-left pr-4 text-slate-700 text-xs font-bold font-sans uppercase tracking-wider">STATUS</div>
+              <div className="flex-1 min-w-[200px] text-slate-700 text-xs font-bold font-sans uppercase tracking-wider">PEMOHON & TARGET</div>
+              <div className="w-48 shrink-0 text-slate-700 text-xs font-bold font-sans uppercase tracking-wider">JENIS LAYANAN</div>
+              <div className="w-[180px] shrink-0 text-slate-700 text-xs font-bold font-sans uppercase tracking-wider">PENANGGUNG JAWAB</div>
+              <div className="w-12 shrink-0 text-center text-slate-700 text-xs font-bold font-sans uppercase tracking-wider">AKSI</div>
             </div>
 
             {/* Table Body */}
@@ -329,7 +329,7 @@ export default function AdminPastoralPage() {
               {data.length === 0 ? (
                 <div className="w-full py-12 flex flex-col items-center justify-center text-slate-500">
                   <span className="material-icons-round text-5xl mb-2 text-slate-300">inbox</span>
-                  <span className="text-sm font-['Public_Sans']">Tidak ada permohonan pastoral yang ditemukan.</span>
+                  <span className="text-sm font-sans">Tidak ada permohonan pastoral yang ditemukan.</span>
                 </div>
               ) : (
                 data.map((ticket, idx) => {
@@ -341,7 +341,7 @@ export default function AdminPastoralPage() {
                   {/* Kolom 1: Waktu Pengajuan */}
                   <div className="w-[180px] shrink-0 flex flex-col items-start justify-center pr-4 gap-1">
                      <span className="text-slate-700 text-sm font-medium">{formatDate(ticket.waktu_diterima)}</span>
-                     <span className="text-slate-400 text-xs font-['Liberation_Mono'] tracking-wide">{ticket.nomor_tiket}</span>
+                     <span className="text-slate-400 text-xs font-sans tracking-wide">{ticket.nomor_tiket}</span>
                   </div>
                   
                   {/* Kolom 2: Status */}
@@ -423,7 +423,7 @@ export default function AdminPastoralPage() {
         {/* Pagination Footer */}
         {totalItems > 0 && (
           <div className="w-full px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center rounded-b-xl">
-            <div className="text-slate-500 text-sm font-['Public_Sans']">
+            <div className="text-slate-500 text-sm font-sans">
               Menampilkan {((currentPage - 1) * limit) + 1} - {Math.min(currentPage * limit, totalItems)} dari {totalItems} tiket
             </div>
             <div className="flex gap-2">
@@ -495,7 +495,7 @@ export default function AdminPastoralPage() {
                 <input 
                   type="text" 
                   placeholder="Cari nama pengurus..."
-                  className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-['Public_Sans'] text-sm"
+                  className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-sans text-sm"
                   value={picSearch}
                   onChange={(e) => setPicSearch(e.target.value)}
                 />

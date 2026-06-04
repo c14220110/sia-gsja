@@ -136,8 +136,8 @@ export default function AnggaranTimeline({ anggaranId, isOpen, onClose }: Anggar
               <span className="material-icons-round text-white text-[22px]">history</span>
             </div>
             <div>
-              <h2 className="text-lg font-black text-slate-900 font-['Inter']">Riwayat Dokumen</h2>
-              <p className="text-xs text-slate-500 font-['Public_Sans']">
+              <h2 className="text-lg font-black text-slate-900 font-sans">Riwayat Dokumen</h2>
+              <p className="text-xs text-slate-500 font-sans">
                 {timeline.length > 0 ? `${timeline.length} aktivitas tercatat` : 'Memuat...'}
               </p>
             </div>
@@ -158,7 +158,7 @@ export default function AnggaranTimeline({ anggaranId, isOpen, onClose }: Anggar
             </div>
             <div>
               <div className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Waktu Respons Review</div>
-              <div className="text-sm font-bold text-indigo-700 font-['Inter']">{responseTime}</div>
+              <div className="text-sm font-bold text-indigo-700 font-sans">{responseTime}</div>
             </div>
           </div>
         )}
@@ -168,12 +168,12 @@ export default function AnggaranTimeline({ anggaranId, isOpen, onClose }: Anggar
           {loading ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
               <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-700 rounded-full animate-spin" />
-              <p className="text-sm text-slate-400 font-['Public_Sans']">Memuat riwayat...</p>
+              <p className="text-sm text-slate-400 font-sans">Memuat riwayat...</p>
             </div>
           ) : error ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
               <span className="material-icons-round text-4xl text-red-300">error_outline</span>
-              <p className="text-sm text-red-500 font-['Public_Sans']">{error}</p>
+              <p className="text-sm text-red-500 font-sans">{error}</p>
               <button onClick={fetchTimeline} className="px-4 py-2 rounded-lg bg-slate-100 text-slate-600 text-sm font-semibold hover:bg-slate-200 transition-colors">
                 Coba Lagi
               </button>
@@ -181,7 +181,7 @@ export default function AnggaranTimeline({ anggaranId, isOpen, onClose }: Anggar
           ) : timeline.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
               <span className="material-icons-round text-5xl text-slate-200">timeline</span>
-              <p className="text-sm text-slate-400 font-['Public_Sans']">Belum ada riwayat aktivitas</p>
+              <p className="text-sm text-slate-400 font-sans">Belum ada riwayat aktivitas</p>
             </div>
           ) : (
             <div className="relative">
@@ -211,30 +211,30 @@ export default function AnggaranTimeline({ anggaranId, isOpen, onClose }: Anggar
                         <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm hover:shadow-md hover:border-slate-200 transition-all group-hover:translate-x-0.5">
                           {/* Aksi + Timestamp Row */}
                           <div className="flex items-center justify-between gap-3 mb-2">
-                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold font-['Public_Sans'] ${cfg.bg} ${cfg.color} border ${cfg.border}`}>
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold font-sans ${cfg.bg} ${cfg.color} border ${cfg.border}`}>
                               <span className="material-icons-round text-[12px]">{cfg.icon}</span>
                               {entry.aksi}
                             </span>
                             <div className="text-right shrink-0">
-                              <div className="text-[11px] text-slate-400 font-['Public_Sans'] font-medium">{formatTimestamp(entry.created_at)}</div>
-                              {relative && <div className="text-[10px] text-slate-300 font-['Public_Sans']">{relative}</div>}
+                              <div className="text-[11px] text-slate-400 font-sans font-medium">{formatTimestamp(entry.created_at)}</div>
+                              {relative && <div className="text-[10px] text-slate-300 font-sans">{relative}</div>}
                             </div>
                           </div>
 
                           {/* Status Transition */}
                           {entry.status_sebelum && (
                             <div className="flex items-center gap-2 mb-2">
-                              <span className="text-xs text-slate-400 font-['Public_Sans'] bg-slate-50 px-2 py-0.5 rounded">{entry.status_sebelum}</span>
+                              <span className="text-xs text-slate-400 font-sans bg-slate-50 px-2 py-0.5 rounded">{entry.status_sebelum}</span>
                               <span className="material-icons-round text-[14px] text-slate-300">east</span>
-                              <span className="text-xs text-slate-700 font-semibold font-['Public_Sans'] bg-slate-100 px-2 py-0.5 rounded">{entry.status_sesudah}</span>
+                              <span className="text-xs text-slate-700 font-semibold font-sans bg-slate-100 px-2 py-0.5 rounded">{entry.status_sesudah}</span>
                             </div>
                           )}
 
                           {/* Actor Info */}
                           <div className="flex items-center gap-2 mb-1">
                             <span className="material-icons-round text-[14px] text-slate-300">person</span>
-                            <span className="text-xs text-slate-600 font-semibold font-['Public_Sans']">{entry.nama_pelaksana}</span>
-                            <span className="text-[10px] text-slate-400 font-['Public_Sans']">• {entry.nama_role.replace(/_/g, ' ')}</span>
+                            <span className="text-xs text-slate-600 font-semibold font-sans">{entry.nama_pelaksana}</span>
+                            <span className="text-[10px] text-slate-400 font-sans">• {entry.nama_role.replace(/_/g, ' ')}</span>
                           </div>
 
                           {/* Keterangan */}
@@ -246,13 +246,13 @@ export default function AnggaranTimeline({ anggaranId, isOpen, onClose }: Anggar
                                   <span className="material-icons-round text-[12px] text-amber-500">person_pin</span>
                                   <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">Catatan Reviewer</span>
                                 </div>
-                                <p className="text-xs text-amber-900 font-['Public_Sans'] leading-relaxed">
+                                <p className="text-xs text-amber-900 font-sans leading-relaxed">
                                   &ldquo;{entry.keterangan}&rdquo;
                                 </p>
                               </div>
                             ) : (
                               <div className="mt-2 px-3 py-2 bg-slate-50 rounded-lg border border-slate-100">
-                                <p className="text-xs text-slate-500 font-['Public_Sans'] leading-relaxed italic">
+                                <p className="text-xs text-slate-500 font-sans leading-relaxed italic">
                                   <span className="material-icons-round text-[12px] text-slate-300 align-middle mr-1">notes</span>
                                   {entry.keterangan}
                                 </p>
@@ -273,7 +273,7 @@ export default function AnggaranTimeline({ anggaranId, isOpen, onClose }: Anggar
         <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 shrink-0">
           <button
             onClick={onClose}
-            className="w-full py-2.5 rounded-xl bg-slate-800 text-white text-sm font-bold font-['Inter'] hover:bg-slate-900 transition-colors flex items-center justify-center gap-2"
+            className="w-full py-2.5 rounded-xl bg-slate-800 text-white text-sm font-bold font-sans hover:bg-slate-900 transition-colors flex items-center justify-center gap-2"
           >
             <span className="material-icons-round text-[18px]">close</span>
             Tutup Riwayat
