@@ -682,14 +682,14 @@ export default function AkunAksesPage() {
                               <div key={i} className="flex flex-col border border-slate-200 rounded-lg p-2 bg-slate-50/50 w-fit">
                                 <span className="font-bold text-violet-700 text-xs flex items-center gap-1"><span className="material-icons-round text-[12px]">admin_panel_settings</span> {r.role_name}</span>
                                 <span className="text-[11px] text-slate-500 mt-0.5">@ {r.satelit_name}</span>
-                                {r.tanggal_mulai && <span className="text-[10px] bg-amber-100 text-amber-700 px-1 mt-1 rounded w-fit italic">Panitia: {new Date(r.tanggal_mulai).toLocaleDateString('id-ID')} s/d {new Date(r.tanggal_selesai).toLocaleDateString('id-ID')}</span>}
+                                {r.tanggal_mulai && <span className="text-[10px] bg-amber-100 text-amber-700 px-1 mt-1 rounded w-fit italic">Panitia: {new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(r.tanggal_mulai))} s/d {new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(r.tanggal_selesai))}</span>}
                               </div>
                             ))}
                             {(!user.roles || user.roles.length === 0) && <span className="text-slate-400 italic text-xs">Akses belum di-assign</span>}
                           </div>
                         </td>
                         <td className="px-6 py-4 align-top text-xs text-slate-500">
-                          {user.last_login_at ? new Date(user.last_login_at).toLocaleString('id-ID') : 'Belum pernah login'}
+                          {user.last_login_at ? new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(user.last_login_at)) : 'Belum pernah login'}
                         </td>
                         {/* Action Column - pola "..." persis seperti Data Jemaat */}
                         <td className="px-6 py-4 align-top">
@@ -771,7 +771,7 @@ export default function AkunAksesPage() {
                       <td className="px-6 py-4 align-top">
                         {user.roles.filter((r: any) => r.tanggal_selesai).map((r: any, i: number) => (
                           <div key={i} className="text-xs text-slate-700 mb-2">
-                            <span className="font-sans bg-slate-100 px-1.5 py-0.5 rounded">{new Date(r.tanggal_mulai).toLocaleDateString('id-ID')}</span> <span className="mx-1">s/d</span> <span className="font-sans bg-slate-100 px-1.5 py-0.5 rounded">{new Date(r.tanggal_selesai).toLocaleDateString('id-ID')}</span>
+                            <span className="font-sans bg-slate-100 px-1.5 py-0.5 rounded">{new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(r.tanggal_mulai))}</span> <span className="mx-1">s/d</span> <span className="font-sans bg-slate-100 px-1.5 py-0.5 rounded">{new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(r.tanggal_selesai))}</span>
                           </div>
                         ))}
                       </td>
@@ -855,7 +855,7 @@ export default function AkunAksesPage() {
                         <td className="px-4 py-3 font-bold text-slate-900">{j.nama_lengkap}</td>
                         <td className="px-4 py-3">
                           {j.tanggal_lahir ? 
-                            <span className="font-sans bg-slate-100 px-2 py-1 rounded text-slate-700 text-xs">{new Date(j.tanggal_lahir).toLocaleDateString('id-ID')}</span> : 
+                            <span className="font-sans bg-slate-100 px-2 py-1 rounded text-slate-700 text-xs">{new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(j.tanggal_lahir))}</span> : 
                             <span className="text-rose-500 text-[10px] font-bold italic border border-rose-200 bg-rose-50 px-2 py-0.5 rounded">TIDAK ADA TGL LAHIR</span>
                           }
                         </td>

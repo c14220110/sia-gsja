@@ -394,8 +394,8 @@ export default function ProfilJemaatPage() {
               </div>
             </SectionCard>
 
-            {/* Kontak & Domisili */}
-            <SectionCard title="Kontak & Domisili" icon="contact_mail">
+            {/* Kontak & Tempat Tinggal Sekarang */}
+            <SectionCard title="Kontak & Tempat Tinggal Sekarang" icon="contact_mail">
               {profile.no_hp && (
                 <div className="flex items-start gap-3 py-3 border-b border-slate-100">
                   <span className="material-icons-round text-emerald-500 text-[18px] mt-0.5">phone</span>
@@ -414,7 +414,7 @@ export default function ProfilJemaatPage() {
                   </div>
                 </div>
               )}
-              <InfoRow label="Alamat Domisili" value={profile.alamat} icon="home" />
+              <InfoRow label="Alamat Tempat Tinggal Sekarang" value={profile.alamat} icon="home" />
               {(profile.kecamatan || profile.kelurahan) && (
                 <InfoRow
                   label="Kecamatan / Kelurahan"

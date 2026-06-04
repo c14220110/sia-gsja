@@ -351,8 +351,8 @@ function FamilyBranchPath({ branch }: { branch: FamilyBranch }) {
 
   const color = '#94a3b8';
   const da    = dashed ? '5,4' : undefined;
-  const minCX = Math.min(...childXs);
-  const maxCX = Math.max(...childXs);
+  const minCX = Math.min(trunkX, ...childXs);
+  const maxCX = Math.max(trunkX, ...childXs);
   const ARROW = 8;
 
   return (
@@ -361,8 +361,8 @@ function FamilyBranchPath({ branch }: { branch: FamilyBranch }) {
       <line x1={trunkX} y1={topY} x2={trunkX} y2={branchY}
         stroke={color} strokeWidth={2} strokeDasharray={da} />
 
-      {/* Horizontal branch bar spanning all children */}
-      {childXs.length > 1 && (
+      {/* Horizontal branch bar spanning trunk and all children */}
+      {minCX !== maxCX && (
         <line x1={minCX} y1={branchY} x2={maxCX} y2={branchY}
           stroke={color} strokeWidth={2} strokeDasharray={da} />
       )}

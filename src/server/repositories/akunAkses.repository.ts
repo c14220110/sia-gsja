@@ -131,8 +131,8 @@ export class AkunAksesRepository {
         // Optionally update password if needed, but for now we throw error if completely duplicate
       } else {
         const insUser = await client.query(`
-          INSERT INTO pengguna (email, password_hash, jemaat_id)
-          VALUES ($1, $2, $3)
+          INSERT INTO pengguna (email, password_hash, jemaat_id, requires_password_change)
+          VALUES ($1, $2, $3, false)
           RETURNING id
         `, [data.email, data.password_hash, data.jemaat_id]);
         userId = insUser.rows[0].id;
@@ -179,8 +179,8 @@ export class AkunAksesRepository {
         userId = existUser.rows[0].id;
       } else {
         const insUser = await client.query(`
-          INSERT INTO pengguna (email, password_hash, jemaat_id)
-          VALUES ($1, $2, $3)
+          INSERT INTO pengguna (email, password_hash, jemaat_id, requires_password_change)
+          VALUES ($1, $2, $3, false)
           RETURNING id
         `, [data.email, data.password_hash, data.jemaat_id]);
         userId = insUser.rows[0].id;

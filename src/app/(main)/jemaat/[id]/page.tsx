@@ -203,6 +203,7 @@ export default function EditJemaatPage() {
   });
 
   const [inputPekerjaanManual, setInputPekerjaanManual] = useState(false);
+  const [hasKomisiDept, setHasKomisiDept] = useState(false);
 
   useEffect(() => {
     const fetchInitData = async () => {
@@ -465,6 +466,10 @@ export default function EditJemaatPage() {
     if (!isReadOnly) {
       if (!formData.tanggal_lahir) {
         setSubmitState({ status: 'error', message: 'Tanggal lahir wajib diisi.' });
+        return;
+      }
+      if (!formData.kota) {
+        setSubmitState({ status: 'error', message: 'Kota wajib diisi.' });
         return;
       }
       if (!formData.no_hp && !formData.email) {
@@ -949,13 +954,13 @@ export default function EditJemaatPage() {
                 <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-start items-start gap-6 h-fit">
                   <div className="w-full inline-flex justify-start items-center gap-2">
                     <span className="material-icons-round text-slate-700 text-xl">contact_mail</span>
-                    <span className="text-slate-700 text-xs font-bold font-sans uppercase leading-4 tracking-wider">Kontak & Domisili</span>
+                    <span className="text-slate-700 text-xs font-bold font-sans uppercase leading-4 tracking-wider">Kontak & Tempat Tinggal Sekarang</span>
                   </div>
                   
                   <div className="w-full flex-col gap-4 flex">
                     <div className="w-full flex-col gap-1 flex">
-                      <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Alamat Domisili</label>
-                      <input type="text" name="alamat" value={formData.alamat} onChange={handleInputChange} placeholder="Masukkan alamat lengkap" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" />
+                      <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Alamat Tempat Tinggal Sekarang</label>
+                      <input type="text" name="alamat" value={formData.alamat} onChange={handleInputChange} placeholder="" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" />
                     </div>
                     
                     <div className="w-full flex gap-4">
@@ -971,8 +976,8 @@ export default function EditJemaatPage() {
 
                     <div className="w-full flex gap-4">
                       <div className="flex-[2] flex-col gap-1 flex">
-                        <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Kota</label>
-                        <input type="text" name="kota" value={formData.kota} onChange={handleInputChange} placeholder="" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" />
+                        <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Kota {!isReadOnly && <span className="text-red-500">*</span>}</label>
+                        <input type="text" name="kota" value={formData.kota} onChange={handleInputChange} required placeholder="" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" />
                       </div>
                       <div className="flex-1 flex-col gap-1 flex">
                         <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Kode Pos</label>
@@ -1061,7 +1066,7 @@ export default function EditJemaatPage() {
                   
                   <div className="w-full flex-col gap-4 flex">
                     <div className="w-full flex-col gap-1 flex">
-                      <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Nama Satelit</label>
+                      <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Nama Satelit {!isReadOnly && <span className="text-red-500">*</span>}</label>
                       <select name="satelit_id" value={formData.satelit_id} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all">
                         <option value="">-- Pilih Satelit Utama --</option>
                         {satelitOptions.map((s) => (
@@ -1070,84 +1075,107 @@ export default function EditJemaatPage() {
                       </select>
                     </div>
                     
-                    <div className="w-full flex-col gap-1 flex">
-                      <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4 mb-2">Nama Komisi (Bisa Pilih Lebih dari 1)</label>
-                      <div className="flex flex-col gap-2 p-3 bg-white rounded-lg border border-slate-200">
-                        {isReadOnly ? (
-                          komisiOptions
-                            .filter((k) => formData.komisi_ids.includes(k.id.toString()))
-                            .map(k => (
-                              <div key={k.id} className="text-slate-900 text-sm font-semibold flex items-center gap-2">
-                                <span className="material-icons-round text-blue-500 text-[16px]">check_circle</span>
-                                {k.nama_komisi}
-                              </div>
-                            ))
-                        ) : (
-                          <>
-                            {!formData.satelit_id ? (
-                              <span className="text-sm text-slate-400 italic">Pilih satelit utama terlebih dahulu</span>
-                            ) : (
+                    {!isReadOnly && (
+                      <div className="w-full flex-col gap-2 flex border-t border-slate-100 pt-6 mt-2">
+                        <label className="text-slate-700 text-sm font-bold font-sans">Tergabung dalam komisi/departemen?</label>
+                        <div className="flex gap-6">
+                          <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-2 rounded-lg transition-colors border border-slate-100">
+                            <input type="radio" name="has_komisidept" checked={hasKomisiDept} onChange={() => setHasKomisiDept(true)} className="w-4 h-4 text-blue-600 focus:ring-blue-500" />
+                            <span className="text-sm font-medium text-slate-700">Ya, tergabung</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-2 rounded-lg transition-colors border border-slate-100">
+                            <input type="radio" name="has_komisidept" checked={!hasKomisiDept} onChange={() => {
+                              setHasKomisiDept(false);
+                              setFormData(prev => ({ ...prev, komisi_ids: [], departemen_ids: [] }));
+                            }} className="w-4 h-4 text-blue-600 focus:ring-blue-500" />
+                            <span className="text-sm font-medium text-slate-700">Tidak</span>
+                          </label>
+                        </div>
+                      </div>
+                    )}
+
+                    {(isReadOnly || hasKomisiDept) && (
+                      <>
+                        <div className="w-full flex-col gap-1 flex animate-in fade-in slide-in-from-top-1 mt-2">
+                          <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4 mb-2">Nama Komisi (Bisa Pilih Lebih dari 1)</label>
+                          <div className="flex flex-col gap-2 p-3 bg-white rounded-lg border border-slate-200 max-h-60 overflow-y-auto">
+                            {isReadOnly ? (
                               komisiOptions
-                                .filter((k) => k.satelit_id.toString() === formData.satelit_id)
-                                .map((k) => (
-                                  <label key={k.id} className="flex items-center gap-2 cursor-pointer pr-4 hover:bg-slate-50 p-1 rounded-md transition-colors">
+                                .filter((k) => formData.komisi_ids.includes(k.id.toString()))
+                                .map(k => (
+                                  <div key={k.id} className="text-slate-900 text-sm font-semibold flex items-center gap-2">
+                                    <span className="material-icons-round text-blue-500 text-[16px]">check_circle</span>
+                                    {k.nama_komisi}
+                                  </div>
+                                ))
+                            ) : (
+                              <>
+                                {!formData.satelit_id ? (
+                                  <span className="text-sm text-slate-400 italic">Pilih satelit utama terlebih dahulu</span>
+                                ) : (
+                                  komisiOptions
+                                    .filter((k) => k.satelit_id.toString() === formData.satelit_id)
+                                    .map((k) => (
+                                      <label key={k.id} className="flex items-center gap-2 cursor-pointer pr-4 hover:bg-slate-50 p-1 rounded-md transition-colors">
+                                        <input
+                                          type="checkbox"
+                                          value={k.id.toString()}
+                                          checked={formData.komisi_ids.includes(k.id.toString())}
+                                          onChange={handleCheckboxChange}
+                                          className="w-4 h-4 text-blue-600 bg-slate-100 border-slate-300 rounded focus:ring-blue-500"
+                                        />
+                                        <span className="text-slate-700 text-sm font-sans">{k.nama_komisi}</span>
+                                      </label>
+                                    ))
+                                )}
+                                {formData.satelit_id && komisiOptions.filter(k => k.satelit_id.toString() === formData.satelit_id).length === 0 && (
+                                  <span className="text-sm text-slate-400 italic">Gereja ini belum memiliki struktur komisi</span>
+                                )}
+                              </>
+                            )}
+                            {isReadOnly && formData.komisi_ids.length === 0 && (
+                               <span className="text-sm text-slate-400 italic">- Tidak Mengikuti Komisi -</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="w-full flex-col gap-1 flex animate-in fade-in slide-in-from-top-1 mt-2">
+                          <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4 mb-2">Nama Departemen (Bisa Pilih Lebih dari 1)</label>
+                          <div className="flex flex-col gap-2 p-3 bg-white rounded-lg border border-slate-200 max-h-60 overflow-y-auto">
+                            {isReadOnly ? (
+                              departemenOptions
+                                .filter((d) => formData.departemen_ids.includes(d.id.toString()))
+                                .map(d => (
+                                  <div key={d.id} className="text-slate-900 text-sm font-semibold flex items-center gap-2">
+                                    <span className="material-icons-round text-purple-500 text-[16px]">check_circle</span>
+                                    {d.nama_departemen}
+                                  </div>
+                                ))
+                            ) : (
+                              departemenOptions.length === 0 ? (
+                                <span className="text-sm text-slate-400 italic">Belum ada data departemen</span>
+                              ) : (
+                                departemenOptions.map((d) => (
+                                  <label key={d.id} className="flex items-center gap-2 cursor-pointer pr-4 hover:bg-slate-50 p-1 rounded-md transition-colors">
                                     <input
                                       type="checkbox"
-                                      value={k.id.toString()}
-                                      checked={formData.komisi_ids.includes(k.id.toString())}
-                                      onChange={handleCheckboxChange}
-                                      className="w-4 h-4 text-blue-600 bg-slate-100 border-slate-300 rounded focus:ring-blue-500"
+                                      value={d.id.toString()}
+                                      checked={formData.departemen_ids.includes(d.id.toString())}
+                                      onChange={handleDeptCheckboxChange}
+                                      className="w-4 h-4 text-purple-600 bg-slate-100 border-slate-300 rounded focus:ring-purple-500"
                                     />
-                                    <span className="text-slate-700 text-sm font-sans">{k.nama_komisi}</span>
+                                    <span className="text-slate-700 text-sm font-sans">{d.nama_departemen}</span>
                                   </label>
                                 ))
+                              )
                             )}
-                            {formData.satelit_id && komisiOptions.filter(k => k.satelit_id.toString() === formData.satelit_id).length === 0 && (
-                              <span className="text-sm text-slate-400 italic">Gereja ini belum memiliki struktur komisi</span>
+                            {isReadOnly && formData.departemen_ids.length === 0 && (
+                               <span className="text-sm text-slate-400 italic">- Tidak Mengikuti Departemen -</span>
                             )}
-                          </>
-                        )}
-                        {isReadOnly && formData.komisi_ids.length === 0 && (
-                           <span className="text-sm text-slate-400 italic">- Tidak Mengikuti Komisi -</span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="w-full flex-col gap-1 flex">
-                      <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4 mb-2">Nama Departemen (Bisa Pilih Lebih dari 1)</label>
-                      <div className="flex flex-col gap-2 p-3 bg-white rounded-lg border border-slate-200">
-                        {isReadOnly ? (
-                          departemenOptions
-                            .filter((d) => formData.departemen_ids.includes(d.id.toString()))
-                            .map(d => (
-                              <div key={d.id} className="text-slate-900 text-sm font-semibold flex items-center gap-2">
-                                <span className="material-icons-round text-purple-500 text-[16px]">check_circle</span>
-                                {d.nama_departemen}
-                              </div>
-                            ))
-                        ) : (
-                          departemenOptions.length === 0 ? (
-                            <span className="text-sm text-slate-400 italic">Belum ada data departemen</span>
-                          ) : (
-                            departemenOptions.map((d) => (
-                              <label key={d.id} className="flex items-center gap-2 cursor-pointer pr-4 hover:bg-slate-50 p-1 rounded-md transition-colors">
-                                <input
-                                  type="checkbox"
-                                  value={d.id.toString()}
-                                  checked={formData.departemen_ids.includes(d.id.toString())}
-                                  onChange={handleDeptCheckboxChange}
-                                  className="w-4 h-4 text-purple-600 bg-slate-100 border-slate-300 rounded focus:ring-purple-500"
-                                />
-                                <span className="text-slate-700 text-sm font-sans">{d.nama_departemen}</span>
-                              </label>
-                            ))
-                          )
-                        )}
-                        {isReadOnly && formData.departemen_ids.length === 0 && (
-                           <span className="text-sm text-slate-400 italic">- Tidak Mengikuti Departemen -</span>
-                        )}
-                      </div>
-                    </div>
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>

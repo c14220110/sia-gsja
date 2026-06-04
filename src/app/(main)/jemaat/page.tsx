@@ -379,7 +379,7 @@ export default function MembersPage() {
             {/* Table Header */}
             <div className="w-full bg-slate-50 border-b border-slate-200 flex items-center px-6 py-4">
               <div className="w-32 shrink-0 text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">ID Jemaat</div>
-              <div className="w-64 shrink-0 text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Nama Lengkap</div>
+              <div className="w-80 shrink-0 text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Nama Lengkap</div>
               <div className="flex-1 min-w-[200px] text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Satelit/Cabang</div>
               <div className="w-48 shrink-0 text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Komisi</div>
               <div className="w-32 shrink-0 text-center text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Status</div>
@@ -403,7 +403,7 @@ export default function MembersPage() {
               className={`w-full flex items-center px-6 py-4 border-b border-slate-100 hover:bg-slate-50 transition-colors relative cursor-pointer ${openMenuId === jemaat.id ? 'z-50' : 'z-10'}`}
             >
               <div className="w-32 shrink-0 text-slate-500 text-sm font-sans">{jemaat.jemaat_id}</div>
-              <div className="w-64 shrink-0 flex items-center gap-3">
+              <div className="w-80 shrink-0 flex items-center gap-3">
                 <div 
                   className="relative group cursor-pointer shrink-0"
                   title="Lihat foto"

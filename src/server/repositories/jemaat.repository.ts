@@ -383,6 +383,38 @@ export class JemaatRepository {
         }
       }
 
+      // ── Reverse parent sync (create) ─────────────────────────────────────
+      // If this new jemaat declares a registered parent (ayah_id / ibu_id),
+      // we insert a 'Anak' relasi_jemaat entry on the parent side so that
+      // the parent's family tree node immediately shows this person as a child.
+      {
+        const jrAnakRes2 = await client.query(`SELECT id FROM jenis_relasi WHERE nama_relasi = 'Anak' LIMIT 1`);
+        if (jrAnakRes2.rows.length > 0) {
+          const jrAnakId2 = jrAnakRes2.rows[0].id;
+
+          if (data.ayah_id) {
+            const ayahDbId = parseInt(data.ayah_id, 10);
+            // Only insert if not already present
+            await client.query(
+              `INSERT INTO relasi_jemaat (jemaat_id, jemaat_terkait_id, jenis_relasi_id, nama_terkait)
+               VALUES ($1, $2, $3, $4)
+               ON CONFLICT DO NOTHING`,
+              [ayahDbId, newJemaatId, jrAnakId2, data.nama_lengkap]
+            );
+          }
+
+          if (data.ibu_id) {
+            const ibuDbId = parseInt(data.ibu_id, 10);
+            await client.query(
+              `INSERT INTO relasi_jemaat (jemaat_id, jemaat_terkait_id, jenis_relasi_id, nama_terkait)
+               VALUES ($1, $2, $3, $4)
+               ON CONFLICT DO NOTHING`,
+              [ibuDbId, newJemaatId, jrAnakId2, data.nama_lengkap]
+            );
+          }
+        }
+      }
+
       if (data.saudara && Array.isArray(data.saudara) && data.saudara.length > 0) {
         // Get jenis_relasi_id for 'Saudara Kandung'
         const jrRes = await client.query(`SELECT id FROM jenis_relasi WHERE nama_relasi = 'Saudara Kandung' LIMIT 1`);
@@ -540,7 +572,7 @@ export class JemaatRepository {
 
       // ── Detect satellite change & regenerate jemaat_id if needed ──────────
       const currentRes = await client.query(
-        `SELECT satelit_id, tanggal_lahir, jemaat_id, pasangan_id, jenis_kelamin FROM jemaat WHERE id::text = $1 AND is_deleted = false LIMIT 1`,
+        `SELECT satelit_id, tanggal_lahir, jemaat_id, pasangan_id, jenis_kelamin, ayah_id, ibu_id FROM jemaat WHERE id::text = $1 AND is_deleted = false LIMIT 1`,
         [jemaatId]
       );
       if (currentRes.rows.length === 0) throw new Error('Jemaat not found');
@@ -633,6 +665,32 @@ export class JemaatRepository {
       }
       
       const primaryId = res.rows[0].id;
+
+      // ── Propagate nama_lengkap change to denormalized name fields ──────────
+      // Whenever a person's name changes, update all records that store their
+      // name as a cached/denormalized text field so UI is always consistent.
+      const oldNama = current.nama_lengkap; // not fetched yet — fetch separately if needed
+      // We always propagate unconditionally (cheap & safe — no-op if name unchanged)
+      await client.query(
+        `UPDATE jemaat SET ayah_nama = $1, updated_at = CURRENT_TIMESTAMP
+         WHERE ayah_id = $2 AND is_deleted = false`,
+        [data.nama_lengkap, primaryId]
+      );
+      await client.query(
+        `UPDATE jemaat SET ibu_nama = $1, updated_at = CURRENT_TIMESTAMP
+         WHERE ibu_id = $2 AND is_deleted = false`,
+        [data.nama_lengkap, primaryId]
+      );
+      await client.query(
+        `UPDATE jemaat SET pasangan_nama = $1, updated_at = CURRENT_TIMESTAMP
+         WHERE pasangan_id = $2 AND is_deleted = false`,
+        [data.nama_lengkap, primaryId]
+      );
+      await client.query(
+        `UPDATE relasi_jemaat SET nama_terkait = $1
+         WHERE jemaat_terkait_id = $2`,
+        [data.nama_lengkap, primaryId]
+      );
 
       // Wipe current komisi, departemen & anak bindings
       await client.query(`DELETE FROM jemaat_komisi WHERE jemaat_id = $1`, [primaryId]);
@@ -738,6 +796,55 @@ export class JemaatRepository {
              WHERE id = $3 AND is_deleted = false AND ibu_id IS NULL`,
             [primaryId, data.nama_lengkap, anakId]
           );
+        }
+      }
+
+      // ── Reverse parent sync (update) ──────────────────────────────────────
+      // When this person changes their ayah_id or ibu_id, we must:
+      //  (a) Remove the 'Anak' relasi from the OLD parent (if any)
+      //  (b) Add an 'Anak' relasi to the NEW parent (if any)
+      if (jenisAnakId) {
+        const newAyahId = data.ayah_id ? parseInt(data.ayah_id, 10) : null;
+        const newIbuId  = data.ibu_id  ? parseInt(data.ibu_id,  10) : null;
+        const oldAyahId = current.ayah_id ? parseInt(current.ayah_id, 10) : null;
+        const oldIbuId  = current.ibu_id  ? parseInt(current.ibu_id,  10) : null;
+
+        // ── Ayah changed ──
+        if (oldAyahId !== newAyahId) {
+          // Remove from old ayah's anak list
+          if (oldAyahId) {
+            await client.query(
+              `DELETE FROM relasi_jemaat WHERE jemaat_id = $1 AND jemaat_terkait_id = $2 AND jenis_relasi_id = $3`,
+              [oldAyahId, primaryId, jenisAnakId]
+            );
+          }
+          // Add to new ayah's anak list
+          if (newAyahId) {
+            await client.query(
+              `INSERT INTO relasi_jemaat (jemaat_id, jemaat_terkait_id, jenis_relasi_id, nama_terkait)
+               VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING`,
+              [newAyahId, primaryId, jenisAnakId, data.nama_lengkap]
+            );
+          }
+        }
+
+        // ── Ibu changed ──
+        if (oldIbuId !== newIbuId) {
+          // Remove from old ibu's anak list
+          if (oldIbuId) {
+            await client.query(
+              `DELETE FROM relasi_jemaat WHERE jemaat_id = $1 AND jemaat_terkait_id = $2 AND jenis_relasi_id = $3`,
+              [oldIbuId, primaryId, jenisAnakId]
+            );
+          }
+          // Add to new ibu's anak list
+          if (newIbuId) {
+            await client.query(
+              `INSERT INTO relasi_jemaat (jemaat_id, jemaat_terkait_id, jenis_relasi_id, nama_terkait)
+               VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING`,
+              [newIbuId, primaryId, jenisAnakId, data.nama_lengkap]
+            );
+          }
         }
       }
 
