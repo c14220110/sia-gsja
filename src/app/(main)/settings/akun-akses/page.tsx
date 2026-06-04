@@ -426,8 +426,7 @@ export default function AkunAksesPage() {
   };
 
   const handleCreateUser = async () => {
-    if (!newUserSelectedJemaat) { setSubmitState({ status: 'error', message: 'Pilih Jemaat yang akan diberikan akun!' }); return; }
-    if (!newUserForm.email || !newUserForm.password) { setSubmitState({ status: 'error', message: 'Email dan Password wajib diisi!' }); return; }
+    if (!newUserForm.email || !newUserForm.password) { setSubmitState({ status: 'error', message: 'Username/Email dan Password wajib diisi!' }); return; }
     const hasIncomplete = roleAssignments.some(r => (r.role_id && !r.satelit_id) || (!r.role_id && r.satelit_id));
     if (hasIncomplete) { setSubmitState({ status: 'error', message: 'Pilihan Role dan Satelit harus berpasangan (tidak boleh ada yang kosong)!' }); return; }
     const missingKomisi = roleAssignments.some(r => getRoleName(r.role_id) === 'KETUA_KOMISI' && !r.komisi_id);
@@ -439,7 +438,7 @@ export default function AkunAksesPage() {
     setIsAddUserModalOpen(false);
     setSubmitState({ status: 'loading', message: '' });
     try {
-      const res = await fetch('/api/settings/akun-akses/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: newUserForm.email, password: newUserForm.password, jemaat_id: newUserSelectedJemaat.id, roles: validRoles.map(r => ({ role_id: parseInt(r.role_id), satelit_id: parseInt(r.satelit_id), komisi_id: r.komisi_id ? parseInt(r.komisi_id) : null, departemen_id: r.departemen_id ? parseInt(r.departemen_id) : null })) }) });
+      const res = await fetch('/api/settings/akun-akses/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: newUserForm.email, password: newUserForm.password, jemaat_id: newUserSelectedJemaat?.id || null, roles: validRoles.map(r => ({ role_id: parseInt(r.role_id), satelit_id: parseInt(r.satelit_id), komisi_id: r.komisi_id ? parseInt(r.komisi_id) : null, departemen_id: r.departemen_id ? parseInt(r.departemen_id) : null })) }) });
       const json = await res.json();
       if (json.success) {
         setSubmitState({ status: 'success', message: 'Akun berhasil dibuat dan role berhasil di-assign!' });
@@ -959,7 +958,7 @@ export default function AkunAksesPage() {
             </div>
             <div className="p-6 flex flex-col gap-5 bg-slate-50/50 overflow-y-auto">
               <div className="relative">
-                <JemaatAutocomplete label="Beri Akses Kepada: (Cari Jemaat)" valueName={newUserSearchQuery} placeholder="Ketik nama jemaat terdaftar..."
+                <JemaatAutocomplete label="Beri Akses Kepada: (Cari Jemaat - Opsional)" valueName={newUserSearchQuery} placeholder="Ketik nama jemaat terdaftar..."
                   onSelect={(j, str) => {
                     setNewUserSelectedJemaat(j);
                     setNewUserSearchQuery(str);
@@ -988,8 +987,8 @@ export default function AkunAksesPage() {
                     <>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="flex flex-col gap-1">
-                          <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">Email Login</label>
-                          <input type="email" placeholder="contoh@gsja.id" className="px-3 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm" value={newUserForm.email} onChange={e => setNewUserForm(p => ({ ...p, email: e.target.value }))} />
+                          <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">Username / Email Login</label>
+                          <input type="text" placeholder="Contoh: jemaat123 / email@gsja.id" className="px-3 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm" value={newUserForm.email} onChange={e => setNewUserForm(p => ({ ...p, email: e.target.value }))} />
                         </div>
                         <div className="flex flex-col gap-1">
                           <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">Password</label>
@@ -1036,8 +1035,8 @@ export default function AkunAksesPage() {
             <div className="p-6 flex flex-col gap-5 bg-slate-50/50 overflow-y-auto">
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1">
-                  <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">Email Login</label>
-                  <input type="email" className="px-3 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 text-sm" value={editForm.email} onChange={e => setEditForm(p => ({ ...p, email: e.target.value }))} />
+                  <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">Username / Email Login</label>
+                  <input type="text" className="px-3 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 text-sm" value={editForm.email} onChange={e => setEditForm(p => ({ ...p, email: e.target.value }))} />
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">Password Baru <span className="text-slate-400 normal-case font-normal">(kosongkan jika tidak diubah)</span></label>
@@ -1100,8 +1099,8 @@ export default function AkunAksesPage() {
                   return (
                     <div className="grid grid-cols-2 gap-4">
                       <div className="flex flex-col gap-1">
-                        <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">Email Login</label>
-                        <input type="email" placeholder="contoh@gsja.id" className="px-3 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm" value={newUserForm.email} onChange={e => setNewUserForm(p => ({ ...p, email: e.target.value }))} />
+                        <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">Username / Email Login</label>
+                        <input type="text" placeholder="Contoh: jemaat123 / email@gsja.id" className="px-3 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm" value={newUserForm.email} onChange={e => setNewUserForm(p => ({ ...p, email: e.target.value }))} />
                       </div>
                       <div className="flex flex-col gap-1">
                         <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">Password</label>

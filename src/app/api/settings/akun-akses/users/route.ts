@@ -28,8 +28,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { email, password, jemaat_id, roles, komisi_id, departemen_id } = body;
 
-    if (!email || !password || !jemaat_id || !roles) {
-      return NextResponse.json({ success: false, message: 'Mohon lengkapi semua field yang diwajibkan (Email, Password, Jemaat)' }, { status: 400 });
+    if (!email || !password || !roles) {
+      return NextResponse.json({ success: false, message: 'Mohon lengkapi semua field yang diwajibkan (Email, Password)' }, { status: 400 });
     }
 
     const saltRounds = 10;
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     const result = await akunAksesRepository.createPenggunaMultiRole({
       email,
       password_hash,
-      jemaat_id,
+      jemaat_id: jemaat_id || null,
       roles,
     });
 

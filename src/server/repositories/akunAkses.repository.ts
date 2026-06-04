@@ -165,14 +165,19 @@ export class AkunAksesRepository {
   async createPenggunaMultiRole(data: {
     email: string;
     password_hash: string;
-    jemaat_id: number;
+    jemaat_id: number | null;
     roles: { role_id: number; satelit_id: number; komisi_id?: number | null; departemen_id?: number | null }[];
   }): Promise<{ success: boolean; message?: string }> {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
 
-      const existUser = await client.query(`SELECT id FROM pengguna WHERE jemaat_id = $1 OR email = $2`, [data.jemaat_id, data.email]);
+      let existUser;
+      if (data.jemaat_id) {
+        existUser = await client.query(`SELECT id FROM pengguna WHERE jemaat_id = $1 OR email = $2`, [data.jemaat_id, data.email]);
+      } else {
+        existUser = await client.query(`SELECT id FROM pengguna WHERE email = $1`, [data.email]);
+      }
       let userId;
 
       if (existUser.rowCount && existUser.rowCount > 0) {
