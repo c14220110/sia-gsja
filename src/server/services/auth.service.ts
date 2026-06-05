@@ -11,7 +11,7 @@ export class AuthService {
     const user = await userRepository.findByIdentifier(data.email); // data.email is now acting as the generic identifier
 
     if (!user) {
-      throw new Error('Email, No Handphone, atau Username tidak terdaftar. Password salah.');
+      throw new Error('Email, No Handphone, atau Username tidak terdaftar.');
     }
 
     if (!user.is_active) {
@@ -20,7 +20,7 @@ export class AuthService {
 
     const isPasswordValid = await bcrypt.compare(data.password, user.password_hash);
     if (!isPasswordValid) {
-      throw new Error('Email, No Handphone, atau Username tidak terdaftar. Password salah.');
+      throw new Error('Password salah.');
     }
 
     if (user.requires_password_change) {
