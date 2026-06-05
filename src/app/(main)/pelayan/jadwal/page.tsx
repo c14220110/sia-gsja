@@ -3,6 +3,7 @@ import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLoader } from '@/components/ui/GlobalLoader';
+import { createPortal } from 'react-dom';
 
 export default function PelayanJadwalPage() {
   const router = useRouter();
@@ -108,8 +109,8 @@ export default function PelayanJadwalPage() {
   return (
     <div className="w-full min-h-screen bg-slate-50 flex flex-col font-sans pb-24">
       {/* Reject Modal */}
-      {rejectModal.isOpen && (
-         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-5 animate-in fade-in duration-200">
+      {rejectModal.isOpen && typeof window !== 'undefined' && createPortal(
+         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-5 animate-in fade-in duration-200" style={{ height: '100dvh' }}>
             <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-xl animate-in zoom-in-95 duration-300">
                <div className="w-12 h-12 rounded-full bg-rose-100 flex items-center justify-center mb-4 mx-auto">
                  <span className="material-icons-round text-rose-600 text-2xl">cancel</span>
@@ -137,7 +138,8 @@ export default function PelayanJadwalPage() {
                  >{isSubmitting ? 'Memproses...' : 'Kirim Penolakan'}</button>
                </div>
             </div>
-         </div>
+         </div>,
+         document.body
       )}
 
       {/* Fixed Header */}
