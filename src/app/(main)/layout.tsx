@@ -935,8 +935,12 @@ export default function DashboardLayout({
                     </div>
                   </div>
                 </div>
-                <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center border-2 border-slate-400 overflow-hidden">
-                   <span className="material-icons-round text-slate-400 text-2xl">person</span>
+                <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center border-2 border-slate-400 overflow-hidden shrink-0">
+                   {userData?.foto_url ? (
+                     <img src={userData.foto_url} alt="profil" className="w-full h-full object-cover" />
+                   ) : (
+                     <span className="material-icons-round text-slate-400 text-2xl">person</span>
+                   )}
                 </div>
 
                 {/* Dropdown Menu for Switching Role */}
