@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useLoader } from '@/components/ui/GlobalLoader';
 import JemaatPwaLayout from '@/components/layouts/JemaatPwaLayout';
+import AkunSayaModal from '@/components/ui/AkunSayaModal';
 
 export default function DashboardLayout({
   children,
@@ -20,6 +21,7 @@ export default function DashboardLayout({
   const submenuTimeout = useRef<NodeJS.Timeout | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [mobileExpandedMenus, setMobileExpandedMenus] = useState<Record<string, boolean>>({});
+  const [isAkunSayaModalOpen, setIsAkunSayaModalOpen] = useState(false);
 
   const toggleMobileMenu = (menuId: string) => {
     setMobileExpandedMenus(prev => ({ ...prev, [menuId]: !prev[menuId] }));
@@ -377,7 +379,7 @@ export default function DashboardLayout({
               </div>
               )}
 
-              {hasPermission('buku_besar_manage') && (
+              {/* hasPermission('buku_besar_manage') && (
               <div className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer">
                 <div className="flex justify-start items-center gap-4">
                   <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
@@ -388,9 +390,9 @@ export default function DashboardLayout({
                   </div>
                 </div>
               </div>
-              )}
+              ) */}
 
-              {hasPermission('buku_besar_manage') && (
+              {/* hasPermission('buku_besar_manage') && (
               <div className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer">
                 <div className="flex justify-start items-center gap-4">
                   <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
@@ -401,9 +403,9 @@ export default function DashboardLayout({
                   </div>
                 </div>
               </div>
-              )}
+              ) */}
 
-              {hasPermission('buku_besar_manage') && (
+              {/* hasPermission('buku_besar_manage') && (
               <div className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer">
                 <div className="flex justify-start items-center gap-4">
                   <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
@@ -414,9 +416,9 @@ export default function DashboardLayout({
                   </div>
                 </div>
               </div>
-              )}
+              ) */}
 
-              {hasPermission('buku_besar_view') && (
+              {/* hasPermission('buku_besar_view') && (
               <div className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer">
                 <div className="flex justify-start items-center gap-4">
                   <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
@@ -427,7 +429,7 @@ export default function DashboardLayout({
                   </div>
                 </div>
               </div>
-              )}
+              ) */}
 
             </nav>
           )}
@@ -504,8 +506,24 @@ export default function DashboardLayout({
             </nav>
           )}
 
-          {/* Logout button at bottom */}
-          <div className="w-full p-4 border-t border-white/10 mt-auto flex-shrink-0">
+          {/* Bottom Actions */}
+          <div className="w-full p-4 border-t border-white/10 mt-auto flex-shrink-0 flex flex-col gap-1">
+            <button onClick={() => { setIsMobileMenuOpen(false); setIsAkunSayaModalOpen(true); }} className="w-full px-4 py-3 rounded-lg flex justify-start items-center gap-4 hover:bg-white/5 cursor-pointer outline-none text-inherit no-underline">
+              <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
+                <span className="material-icons-round text-white text-[20px]">manage_accounts</span>
+              </div>
+              <div className="flex flex-col justify-start items-start opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 w-auto md:w-0 md:group-hover:w-auto overflow-hidden whitespace-nowrap">
+                <div className="h-5 justify-center text-white text-sm font-normal font-sans leading-5 pr-4">Akun Saya</div>
+              </div>
+            </button>
+            <button onClick={() => { setIsMobileMenuOpen(false); handleSwitchRole(); }} className="w-full px-4 py-3 rounded-lg flex justify-start items-center gap-4 hover:bg-white/5 cursor-pointer outline-none">
+              <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
+                <span className="material-icons-round text-white text-[20px]">swap_horiz</span>
+              </div>
+              <div className="flex flex-col justify-start items-start opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 w-auto md:w-0 md:group-hover:w-auto overflow-hidden whitespace-nowrap">
+                <div className="h-5 justify-center text-white text-sm font-normal font-sans leading-5 pr-4">Ganti Peran (Role)</div>
+              </div>
+            </button>
             <button onClick={handleLogout} className="w-full px-4 py-3 rounded-lg flex justify-start items-center gap-4 hover:bg-white/5 cursor-pointer outline-none">
               <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
                 <span className="material-icons-round text-white text-[20px]">logout</span>
@@ -924,7 +942,11 @@ export default function DashboardLayout({
                 {/* Dropdown Menu for Switching Role */}
                 <div className="hidden group-hover:block absolute top-[100%] right-0 pt-2 z-50 animate-in fade-in slide-in-from-top-2">
                   <div className="w-48 bg-white border border-slate-200 rounded-lg shadow-lg py-2">
-                    <button onClick={handleSwitchRole} className="w-full text-left px-4 py-2 hover:bg-slate-50 transition-colors flex items-center gap-3 text-sm text-slate-700">
+                    <button onClick={() => setIsAkunSayaModalOpen(true)} className="w-full text-left px-4 py-2 hover:bg-slate-50 transition-colors flex items-center gap-3 text-sm text-slate-700">
+                        <span className="material-icons-round text-[18px] text-slate-400">manage_accounts</span>
+                        Akun Saya
+                    </button>
+                    <button onClick={handleSwitchRole} className="w-full text-left px-4 py-2 hover:bg-slate-50 transition-colors flex items-center gap-3 text-sm text-slate-700 border-t border-slate-100 mt-1 pt-2">
                         <span className="material-icons-round text-[18px] text-slate-400">swap_horiz</span>
                         Ganti Peran (Role)
                     </button>
@@ -944,6 +966,13 @@ export default function DashboardLayout({
           </div>
         </div>
       </div>
+      
+      <AkunSayaModal 
+        isOpen={isAkunSayaModalOpen} 
+        onClose={() => setIsAkunSayaModalOpen(false)} 
+        userData={userData} 
+        setUserData={setUserData} 
+      />
     </div>
   );
 }

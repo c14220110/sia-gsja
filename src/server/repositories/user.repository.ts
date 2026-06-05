@@ -2,7 +2,7 @@ import pool from '@/lib/db';
 
 export interface Pengguna {
   id: number;
-  email: string;
+  email: string | null;
   password_hash: string;
   is_active: boolean;
   last_login_at: Date | null;
@@ -12,6 +12,9 @@ export interface Pengguna {
   jemaat_nomor?: string | null;
   nama_lengkap?: string | null;
   foto_url?: string | null;
+  no_hp?: string | null;
+  pengguna_no_hp?: string | null;
+  username?: string | null;
   requires_password_change?: boolean;
 }
 
@@ -30,8 +33,8 @@ export class UserRepository {
   async findById(id: number): Promise<Pengguna | null> {
     const query = `
       SELECT 
-        p.id, p.email, p.password_hash, p.is_active, p.last_login_at, p.created_at, p.updated_at, p.jemaat_id, p.requires_password_change,
-        j.jemaat_id as jemaat_nomor, j.nama_lengkap, j.foto_url
+        p.id, p.email, p.no_hp as pengguna_no_hp, p.username, p.password_hash, p.is_active, p.last_login_at, p.created_at, p.updated_at, p.jemaat_id, p.requires_password_change,
+        j.jemaat_id as jemaat_nomor, j.nama_lengkap, j.foto_url, j.no_hp
       FROM pengguna p
       LEFT JOIN jemaat j ON p.jemaat_id = j.id
       WHERE p.id = $1;
@@ -41,13 +44,14 @@ export class UserRepository {
     return result.rows[0] as Pengguna;
   }
 
-  async findByEmail(email: string): Promise<Pengguna | null> {
+  async findByIdentifier(identifier: string): Promise<Pengguna | null> {
     const query = `
-      SELECT id, email, password_hash, is_active, last_login_at, created_at, updated_at, jemaat_id, requires_password_change
+      SELECT id, email, no_hp as pengguna_no_hp, username, password_hash, is_active, last_login_at, created_at, updated_at, jemaat_id, requires_password_change
       FROM pengguna
-      WHERE email = $1;
+      WHERE email = $1 OR no_hp = $1 OR username = $1
+      LIMIT 1;
     `;
-    const result = await pool.query(query, [email]);
+    const result = await pool.query(query, [identifier]);
     if (result.rows.length === 0) return null;
     return result.rows[0] as Pengguna;
   }
@@ -129,6 +133,21 @@ export class UserRepository {
     `;
     const result = await pool.query(query, [roleId]);
     return result.rows.map(row => row.nama_permission);
+  }
+  async checkUsernameTaken(username: string, excludeUserId: number): Promise<boolean> {
+    const query = `SELECT id FROM pengguna WHERE username = $1 AND id != $2`;
+    const result = await pool.query(query, [username, excludeUserId]);
+    return result.rowCount !== null && result.rowCount > 0;
+  }
+
+  async updateUsername(userId: number, username: string): Promise<void> {
+    const query = `UPDATE pengguna SET username = $1, updated_at = NOW() WHERE id = $2`;
+    await pool.query(query, [username, userId]);
+  }
+
+  async updatePassword(userId: number, passwordHash: string): Promise<void> {
+    const query = `UPDATE pengguna SET password_hash = $1, requires_password_change = false, updated_at = NOW() WHERE id = $2`;
+    await pool.query(query, [passwordHash, userId]);
   }
 }
 

@@ -162,7 +162,7 @@ export class PengurusRepository {
     komisi_id:          number | null;
     departemen_id:      number | null;
     periode_id:         number;
-    tanggal_mulai:      string;
+    tanggal_mulai_menjabat: string;
     jalur_pengangkatan: string;
     catatan?:           string;
     user_id:            number;
@@ -233,7 +233,7 @@ export class PengurusRepository {
         params.komisi_id,
         params.departemen_id,
         params.periode_id,
-        params.tanggal_mulai,
+        params.tanggal_mulai_menjabat,
         params.jalur_pengangkatan,
         params.catatan || null,
       ]);

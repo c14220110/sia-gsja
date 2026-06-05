@@ -170,7 +170,7 @@ export function buildGraph(data: any): { nodes: NodeItem[]; edges: EdgeItem[]; b
       branchY: (-VG + H + personY) / 2,
       childXs,
       bottomY: personY,
-      dashed: !data.ayah && !data.ibu, // dashed if both parents unregistered
+      dashed: false, // Solid line for consistency as requested
     });
   }
 
@@ -247,7 +247,7 @@ function initials(name: string) {
 
 // ─── Person Card ──────────────────────────────────────────────────────────────
 const ROLE_BADGE: Record<string, string> = {
-  person: 'Pusat', ayah: 'Ayah', ibu: 'Ibu', pasangan: 'Pasangan',
+  person: 'Saya', ayah: 'Ayah', ibu: 'Ibu', pasangan: 'Pasangan',
   anak: 'Anak', saudara: 'Saudara', kakek_ayah: 'Kakek (Ayah)',
   nenek_ayah: 'Nenek (Ayah)', kakek_ibu: 'Kakek (Ibu)', nenek_ibu: 'Nenek (Ibu)',
 };
@@ -335,10 +335,10 @@ function EdgePath({ edge }: { edge: EdgeItem }) {
         opacity={0.8}
       />
       {label && (
-        <>
-          <rect x={mx - 20} y={my - 9} width={40} height={16} rx={4} fill="white" fillOpacity={0.85} />
+        <g transform={`translate(0, -15)`}>
+          <rect x={mx - 25} y={my - 9} width={50} height={16} rx={4} fill="white" fillOpacity={0.85} />
           <text x={mx} y={my + 3.5} textAnchor="middle" fontSize={9} fill="#64748b" fontWeight={600}>{label}</text>
-        </>
+        </g>
       )}
     </g>
   );
@@ -435,8 +435,14 @@ export default function FlowCanvas({ nodes, edges, branches = [], onNodeClick }:
 
   const onMouseUp   = useCallback(() => { dragging.current = false; }, []);
   const onWheel     = useCallback((e: React.WheelEvent) => {
-    e.preventDefault();
-    setZoom(z => Math.max(0.2, Math.min(2.5, z * (e.deltaY > 0 ? 0.9 : 1.1))));
+    if (e.ctrlKey) {
+      // Pinch to zoom
+      e.preventDefault();
+      setZoom(z => Math.max(0.2, Math.min(2.5, z * (e.deltaY > 0 ? 0.9 : 1.1))));
+    } else {
+      // 2-finger trackpad scroll to pan
+      setPan(p => ({ x: p.x - e.deltaX, y: p.y - e.deltaY }));
+    }
   }, []);
 
   const uniqueColors = [...new Set(edges.filter(e => !e.noArrow).map(e => e.color.slice(1)))];

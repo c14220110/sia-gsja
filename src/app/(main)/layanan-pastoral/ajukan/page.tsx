@@ -51,6 +51,24 @@ export default function AjukanPermintaanPage() {
     fetchJenis();
   }, []);
 
+  // Autofill Nomor HP if exists
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await fetch('/api/auth/me');
+        if (res.ok) {
+          const json = await res.json();
+          if (json.no_hp) {
+            setNomorHp(json.no_hp);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch user', err);
+      }
+    };
+    fetchUser();
+  }, []);
+
   // Search Jemaat logic
   useEffect(() => {
     if (!jemaatSearchQuery || jemaatTargetId) {

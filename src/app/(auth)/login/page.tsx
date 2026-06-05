@@ -154,7 +154,7 @@ export default function LoginPage() {
                   className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 pl-1"
                   htmlFor="email"
                 >
-                  Email
+                  Email / No. HP / Username
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -166,7 +166,7 @@ export default function LoginPage() {
                     className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg leading-5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm transition-all shadow-sm"
                     id="email"
                     name="email"
-                    placeholder="Enter your email"
+                    placeholder="Email / No. HP / Username"
                     required
                     type="text"
                     value={email}

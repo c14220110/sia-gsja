@@ -21,6 +21,7 @@ export async function getJemaatController(request: Request) {
       status_baptis: searchParams.get('status_baptis') || undefined,
       jenis_kelamin: searchParams.get('jenis_kelamin') || undefined,
       rentang_umur: searchParams.get('rentang_umur') || undefined,
+      has_foto: searchParams.get('has_foto') || undefined,
       hide_dummy: searchParams.get('hide_dummy') === 'true',
       limit: searchParams.has('limit') ? parseInt(searchParams.get('limit')!) : 10,
       offset: searchParams.has('offset') ? parseInt(searchParams.get('offset')!) : 0,

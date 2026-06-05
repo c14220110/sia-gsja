@@ -200,7 +200,7 @@ export default function AdminPastoralPage() {
   const formatDate = (dateString: string) => {
     if (!dateString) return '-';
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(date) + ' WIB';
+    return new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(date).replace(/\./g, ':');
   };
 
   return (
@@ -470,7 +470,7 @@ export default function AdminPastoralPage() {
             <div className="p-6 border-b border-slate-100 bg-white flex flex-col gap-4 shrink-0">
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tanggal Fix (WIB) <span className="text-rose-500">*</span></label>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tanggal Fix <span className="text-rose-500">*</span></label>
                   <input
                     type="date"
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-700 font-medium transition-all"
@@ -479,7 +479,7 @@ export default function AdminPastoralPage() {
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Jam Fix (WIB) <span className="text-rose-500">*</span></label>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Jam Fix <span className="text-rose-500">*</span></label>
                   <input
                     type="time"
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-700 font-medium transition-all"

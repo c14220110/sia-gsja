@@ -26,6 +26,7 @@ export interface JemaatFilterParams {
   status_baptis?: string;
   jenis_kelamin?: string;
   rentang_umur?: string;
+  has_foto?: string;
   hide_dummy?: boolean;
   limit?: number;
   offset?: number;
@@ -126,6 +127,14 @@ export class JemaatRepository {
 
     if (params.hide_dummy) {
       whereClauses.push(`j.jemaat_id NOT ILIKE '%dum%'`);
+    }
+
+    if (params.has_foto) {
+      if (params.has_foto === 'true') {
+        whereClauses.push(`(j.foto_url IS NOT NULL AND j.foto_url != '')`);
+      } else if (params.has_foto === 'false') {
+        whereClauses.push(`(j.foto_url IS NULL OR j.foto_url = '')`);
+      }
     }
 
     if (whereClauses.length > 0) {

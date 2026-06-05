@@ -7,6 +7,11 @@ import { useRouter } from 'next/navigation';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
 import { AlertModal } from '@/components/ui/AlertModal';
 
+const toTitleCase = (str: string) => {
+  if (!str) return '';
+  return str.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+};
+
 export default function MembersPage() {
   const { showLoader, hideLoader } = useLoader();
 
@@ -46,9 +51,9 @@ export default function MembersPage() {
   
   // Advanced Filters
   const [filterStatusJemaat, setFilterStatusJemaat] = useState('Aktif');
-  const [filterStatusBaptis, setFilterStatusBaptis] = useState('');
   const [filterGender, setFilterGender] = useState('');
   const [filterUmur, setFilterUmur] = useState('');
+  const [filterFoto, setFilterFoto] = useState('');
 
   // Fetch Options and User Data on Mount
   useEffect(() => {
@@ -96,7 +101,7 @@ export default function MembersPage() {
   // Reset page to 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, filterSatelit, filterKomisi, filterStatusJemaat, filterStatusBaptis, filterGender, filterUmur]);
+  }, [debouncedSearch, filterSatelit, filterKomisi, filterStatusJemaat, filterGender, filterUmur, filterFoto]);
 
   // Fetch Data
   useEffect(() => {
@@ -108,9 +113,9 @@ export default function MembersPage() {
         if (filterSatelit) queryParams.append('satelit_id', filterSatelit);
         if (filterKomisi) queryParams.append('komisi_id', filterKomisi);
         if (filterStatusJemaat && filterStatusJemaat !== 'Semua') queryParams.append('status_jemaat', filterStatusJemaat);
-        if (filterStatusBaptis) queryParams.append('status_baptis', filterStatusBaptis);
         if (filterGender) queryParams.append('jenis_kelamin', filterGender);
         if (filterUmur) queryParams.append('rentang_umur', filterUmur);
+        if (filterFoto) queryParams.append('has_foto', filterFoto);
         
         queryParams.append('limit', limit.toString());
         queryParams.append('offset', ((currentPage - 1) * limit).toString());
@@ -131,7 +136,7 @@ export default function MembersPage() {
     };
 
     fetchData();
-  }, [debouncedSearch, filterSatelit, filterKomisi, filterStatusJemaat, filterStatusBaptis, filterGender, filterUmur, currentPage]);
+  }, [debouncedSearch, filterSatelit, filterKomisi, filterStatusJemaat, filterGender, filterUmur, filterFoto, currentPage]);
 
   const handleToggleStatus = (id: number, currentStatus: string) => {
     const newStatus = currentStatus === 'Aktif' ? 'Tidak Aktif' : 'Aktif';
@@ -315,24 +320,7 @@ export default function MembersPage() {
             </div>
           </div>
 
-          {/* 2. Status Baptis */}
-          <div className="flex flex-col gap-2">
-            <label className="text-slate-700 text-sm font-bold font-sans">Status Baptis</label>
-            <div className="relative">
-              <select 
-                value={filterStatusBaptis}
-                onChange={(e) => setFilterStatusBaptis(e.target.value)}
-                className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
-              >
-                <option value="">Semua</option>
-                <option value="true">Sudah Baptis</option>
-                <option value="false">Belum Baptis</option>
-              </select>
-              <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
-            </div>
-          </div>
-
-          {/* 3. Jenis Kelamin */}
+          {/* 2. Jenis Kelamin */}
           <div className="flex flex-col gap-2">
             <label className="text-slate-700 text-sm font-bold font-sans">Jenis Kelamin</label>
             <div className="relative">
@@ -349,7 +337,7 @@ export default function MembersPage() {
             </div>
           </div>
 
-          {/* 4. Rentang Umur */}
+          {/* 3. Rentang Umur */}
           <div className="flex flex-col gap-2">
             <label className="text-slate-700 text-sm font-bold font-sans">Rentang Umur</label>
             <div className="relative">
@@ -364,6 +352,23 @@ export default function MembersPage() {
                 <option value="pemuda">Pemuda (18-35)</option>
                 <option value="dewasa">Dewasa (36-55)</option>
                 <option value="lansia">Lansia (&gt;55)</option>
+              </select>
+              <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
+            </div>
+          </div>
+
+          {/* 4. Status Foto */}
+          <div className="flex flex-col gap-2">
+            <label className="text-slate-700 text-sm font-bold font-sans">Status Foto</label>
+            <div className="relative">
+              <select 
+                value={filterFoto}
+                onChange={(e) => setFilterFoto(e.target.value)}
+                className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
+              >
+                <option value="">Semua</option>
+                <option value="true">Sudah Ada Foto</option>
+                <option value="false">Belum Ada Foto</option>
               </select>
               <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
             </div>
@@ -417,7 +422,7 @@ export default function MembersPage() {
                     <span className="material-icons-round text-white text-[20px]">zoom_in</span>
                   </div>
                 </div>
-                <span className="text-slate-900 text-sm font-semibold font-sans w-full truncate pr-2">{jemaat.nama_lengkap}</span>
+                <span className="text-slate-900 text-sm font-semibold font-sans w-full truncate pr-2">{toTitleCase(jemaat.nama_lengkap)}</span>
               </div>
               <div className="flex-1 min-w-[200px] text-slate-600 text-sm font-sans truncate pr-2">{jemaat.nama_satelit || '-'}</div>
               <div className="w-48 shrink-0 flex flex-wrap gap-1 items-center py-1">

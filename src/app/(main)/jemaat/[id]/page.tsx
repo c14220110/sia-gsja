@@ -204,6 +204,7 @@ export default function EditJemaatPage() {
 
   const [inputPekerjaanManual, setInputPekerjaanManual] = useState(false);
   const [hasKomisiDept, setHasKomisiDept] = useState(false);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchInitData = async () => {
@@ -574,7 +575,12 @@ export default function EditJemaatPage() {
               <div className="relative inline-flex flex-col justify-start items-start group">
                 <div className="w-32 h-32 bg-slate-100 rounded-xl border-2 border-slate-200 inline-flex justify-center items-center overflow-hidden">
                   {imagePreview ? (
-                    <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                    <img 
+                      src={imagePreview} 
+                      alt="Preview" 
+                      className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity" 
+                      onClick={() => setIsPreviewModalOpen(true)}
+                    />
                   ) : (
                     <span className="material-icons-round text-slate-300 text-[64px]">person</span>
                   )}
@@ -1230,6 +1236,29 @@ export default function EditJemaatPage() {
           }
         }} 
       />
+
+      {/* Photo Preview Modal */}
+      {isPreviewModalOpen && imagePreview && (
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" 
+          onClick={() => setIsPreviewModalOpen(false)}
+        >
+          <div className="relative max-w-2xl w-full p-4 flex flex-col items-center">
+            <button 
+              className="absolute top-0 right-0 m-4 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex justify-center items-center text-white transition-colors"
+              onClick={(e) => { e.stopPropagation(); setIsPreviewModalOpen(false); }}
+            >
+              <span className="material-icons-round">close</span>
+            </button>
+            <img 
+              src={imagePreview} 
+              alt="Preview Jemaat" 
+              className="max-h-[85vh] w-auto object-contain rounded-xl shadow-2xl border border-white/20 bg-white" 
+              onClick={(e) => e.stopPropagation()} 
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

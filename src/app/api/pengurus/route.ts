@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
         komisi_id:          komisi_id ? parseInt(komisi_id, 10) : null,
         departemen_id:      departemen_id ? parseInt(departemen_id, 10) : null,
         periode_id:         parseInt(periode_id, 10),
-        tanggal_mulai,
+        tanggal_mulai_menjabat: tanggal_mulai,
         jalur_pengangkatan,
         catatan,
         user_id:            caller.user_id,

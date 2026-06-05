@@ -145,7 +145,7 @@ function FamilyTreeInner() {
       {/* Legend */}
       <div className="flex-shrink-0 flex flex-wrap gap-2 text-xs">
         {[
-          { color: 'bg-teal-500',   label: 'Pusat' },
+          { color: 'bg-teal-500',   label: 'Saya' },
           { color: 'bg-rose-400',   label: 'Pasangan' },
           { color: 'bg-blue-400',   label: 'Ayah / Kakek' },
           { color: 'bg-pink-400',   label: 'Ibu / Nenek' },

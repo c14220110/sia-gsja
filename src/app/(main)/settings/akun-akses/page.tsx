@@ -451,7 +451,7 @@ export default function AkunAksesPage() {
   const openEditModal = (user: any) => {
     setOpenMenuId(null);
     setEditingUser(user);
-    setEditForm({ email: user.email, password: '' });
+    setEditForm({ email: user.email || user.no_hp || user.username || '', password: '' });
     const existingRoles = (user.roles || [])
       .filter((r: any) => !r.tanggal_selesai && r.role_name !== 'JEMAAT')
       .map((r: any) => ({
@@ -672,7 +672,11 @@ export default function AkunAksesPage() {
                       <tr key={user.id} className={`hover:bg-slate-50 transition-colors relative ${openMenuId === user.id ? 'z-50' : 'z-10'}`}>
                         <td className="px-6 py-4 align-top">
                           <div className="font-bold text-slate-900">{user.nama_lengkap}</div>
-                          <div className="text-xs text-slate-500 font-sans mt-0.5">{user.email}</div>
+                          <div className="flex flex-col gap-0.5 mt-1">
+                            {user.email && <div className="text-xs text-slate-500 font-sans flex items-center gap-1"><span className="material-icons-round text-[12px] text-rose-400">email</span> {user.email}</div>}
+                            {user.no_hp && <div className="text-xs text-slate-500 font-sans flex items-center gap-1"><span className="material-icons-round text-[12px] text-emerald-400">phone_iphone</span> {user.no_hp}</div>}
+                            {user.username && <div className="text-xs text-slate-500 font-sans flex items-center gap-1"><span className="material-icons-round text-[12px] text-blue-400">badge</span> {user.username}</div>}
+                          </div>
                           {!user.is_active && <span className="mt-2 inline-block px-3 py-1 bg-rose-100 text-rose-700 text-xs font-bold font-sans uppercase rounded-full">SUSPENDED</span>}
                         </td>
                         <td className="px-6 py-4 align-top">
@@ -752,7 +756,14 @@ export default function AkunAksesPage() {
                 <tbody className="divide-y divide-slate-100">
                   {dataUsers.filter(u => u.roles?.some((r: any) => r.tanggal_selesai)).map((user) => (
                     <tr key={user.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-4 align-top"><div className="font-bold text-slate-900">{user.nama_lengkap}</div><div className="text-xs text-slate-500 font-sans mt-0.5">{user.email}</div></td>
+                      <td className="px-6 py-4 align-top">
+                        <div className="font-bold text-slate-900">{user.nama_lengkap}</div>
+                        <div className="flex flex-col gap-0.5 mt-1">
+                          {user.email && <div className="text-xs text-slate-500 font-sans flex items-center gap-1"><span className="material-icons-round text-[12px] text-rose-400">email</span> {user.email}</div>}
+                          {user.no_hp && <div className="text-xs text-slate-500 font-sans flex items-center gap-1"><span className="material-icons-round text-[12px] text-emerald-400">phone_iphone</span> {user.no_hp}</div>}
+                          {user.username && <div className="text-xs text-slate-500 font-sans flex items-center gap-1"><span className="material-icons-round text-[12px] text-blue-400">badge</span> {user.username}</div>}
+                        </div>
+                      </td>
                       <td className="px-6 py-4 align-top">
                         <div className="flex flex-col gap-2">
                           {user.roles.filter((r: any) => r.tanggal_selesai).map((r: any, i: number) => {
@@ -987,7 +998,7 @@ export default function AkunAksesPage() {
                     <>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="flex flex-col gap-1">
-                          <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">Username / Email Login</label>
+                          <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">Identifier Login (Email/No HP/Username)</label>
                           <input type="text" placeholder="Contoh: jemaat123 / email@gsja.id" className="px-3 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm" value={newUserForm.email} onChange={e => setNewUserForm(p => ({ ...p, email: e.target.value }))} />
                         </div>
                         <div className="flex flex-col gap-1">
@@ -1035,7 +1046,7 @@ export default function AkunAksesPage() {
             <div className="p-6 flex flex-col gap-5 bg-slate-50/50 overflow-y-auto">
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1">
-                  <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">Username / Email Login</label>
+                  <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">Identifier Login (Email/No HP/Username)</label>
                   <input type="text" className="px-3 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 text-sm" value={editForm.email} onChange={e => setEditForm(p => ({ ...p, email: e.target.value }))} />
                 </div>
                 <div className="flex flex-col gap-1">
@@ -1099,7 +1110,7 @@ export default function AkunAksesPage() {
                   return (
                     <div className="grid grid-cols-2 gap-4">
                       <div className="flex flex-col gap-1">
-                        <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">Username / Email Login</label>
+                        <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">Identifier Login (Email/No HP/Username)</label>
                         <input type="text" placeholder="Contoh: jemaat123 / email@gsja.id" className="px-3 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm" value={newUserForm.email} onChange={e => setNewUserForm(p => ({ ...p, email: e.target.value }))} />
                       </div>
                       <div className="flex flex-col gap-1">

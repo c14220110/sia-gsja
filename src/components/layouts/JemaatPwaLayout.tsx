@@ -351,6 +351,24 @@ export default function JemaatPwaLayout({
 
             <div className="w-full border-t border-slate-100 pt-4 flex flex-col gap-2">
                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Keamanan Sistem</h4>
+               
+               {/* Pengaturan Akun Link */}
+               <Link href="/pengaturan-akun" onClick={() => {
+                  setIsSettingsClosing(true);
+                  setTimeout(() => { setIsSettingsOpen(false); setIsSettingsClosing(false); }, 400);
+               }} className="w-full flex items-center justify-between p-3 hover:bg-slate-50 rounded-2xl transition-colors">
+                  <div className="flex items-center gap-4">
+                     <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center">
+                        <span className="material-icons-round text-[20px]">manage_accounts</span>
+                     </div>
+                     <div>
+                        <div className="font-bold text-slate-800 text-sm">Pengaturan Akun</div>
+                        <div className="text-xs text-slate-500">Ubah username & password login</div>
+                     </div>
+                  </div>
+                  <span className="material-icons-round text-slate-300">chevron_right</span>
+               </Link>
+
               {(userData?.available_roles?.length > 1) && (
                 <button 
                   onClick={handleSwitchRole}

@@ -61,18 +61,21 @@ export async function POST(req: NextRequest) {
 
     // Ambil data detail jemaat berdasarkan ID yang dikirim
     const jemaatQuery = `
-      SELECT id, email, tanggal_lahir, satelit_id
+      SELECT id, email, no_hp, tanggal_lahir, satelit_id
       FROM jemaat
       WHERE id = ANY($1::int[]) AND is_deleted = false
     `;
     const { rows: jemaatList } = await pool.query(jemaatQuery, [jemaat_ids]);
 
-    let noEmailCount = 0;
+    let noIdentifierCount = 0;
     const dataToInsert = [];
 
     for (const j of jemaatList) {
-      if (!j.email || j.email.trim() === '') {
-        noEmailCount++;
+      const hasEmail = j.email && j.email.trim() !== '';
+      const hasNoHp = j.no_hp && j.no_hp.trim() !== '';
+
+      if (!hasEmail && !hasNoHp) {
+        noIdentifierCount++;
         continue;
       }
 
@@ -92,7 +95,8 @@ export async function POST(req: NextRequest) {
       const password_hash = await bcrypt.hash(defaultPassword, 10);
 
       dataToInsert.push({
-        email: j.email.trim(),
+        email: hasEmail ? j.email.trim() : null,
+        no_hp: (!hasEmail && hasNoHp) ? j.no_hp.trim() : null,
         password_hash,
         jemaat_id: j.id,
         satelit_id: j.satelit_id
@@ -102,7 +106,7 @@ export async function POST(req: NextRequest) {
     if (dataToInsert.length === 0) {
       return NextResponse.json({ 
         success: false, 
-        message: `Gagal. Dari ${jemaat_ids.length} yang dipilih, tidak ada satupun yang memiliki alamat email.` 
+        message: `Gagal. Dari ${jemaat_ids.length} yang dipilih, tidak ada satupun yang memiliki alamat email atau nomor handphone.` 
       });
     }
 
@@ -111,9 +115,9 @@ export async function POST(req: NextRequest) {
     if (result.success) {
       return NextResponse.json({ 
         success: true, 
-        message: 'Berhasil membuat ' + result.createdCount + ' akun. ' + (noEmailCount > 0 ? noEmailCount + ' jemaat dilewati karena tidak memiliki alamat email.' : ''),
+        message: 'Berhasil membuat ' + result.createdCount + ' akun. ' + (noIdentifierCount > 0 ? noIdentifierCount + ' jemaat dilewati karena tidak memiliki email/no. handphone.' : ''),
         createdCount: result.createdCount,
-        noEmailCount
+        noIdentifierCount
       });
     } else {
       return NextResponse.json({ success: false, message: result.message }, { status: 500 });

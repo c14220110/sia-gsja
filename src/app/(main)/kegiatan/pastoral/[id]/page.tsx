@@ -180,6 +180,15 @@ export default function AdminPastoralDetailPage() {
     return new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(d) + ' WIB';
   };
 
+  const formatKegiatanDate = (tanggal: string, waktu: string) => {
+    if (!tanggal) return '-';
+    const d = new Date(tanggal);
+    const hari = new Intl.DateTimeFormat('id-ID', { weekday: 'long' }).format(d);
+    const tgl = new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }).format(d);
+    const jam = waktu ? waktu.substring(0, 5).replace(':', '.') + ' WIB' : '';
+    return `${hari}, ${tgl}${jam ? ' • ' + jam : ''}`;
+  };
+
   const renderStatusBadge = (status: string) => {
     let colorClass = "bg-slate-100 text-slate-600 border-slate-200"; 
     if (status === 'Menunggu') colorClass = "bg-orange-100 text-orange-700 border-orange-200";
@@ -358,6 +367,78 @@ export default function AdminPastoralDetailPage() {
                 )}
               </div>
             </div>
+
+            {/* Card Kegiatan Terkait - hanya tampil jika kegiatan sudah terbuat */}
+            {data.kegiatan_id && (
+              <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                <div className="bg-slate-50 border-b border-slate-200 px-8 py-5 flex justify-between items-center">
+                  <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <span className="material-icons-round text-blue-500">event</span> Kegiatan Terkait
+                  </h3>
+                  <Link
+                    href={`/kegiatan/${data.kegiatan_id}`}
+                    className="flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline transition-colors"
+                  >
+                    Lihat Detail Kegiatan
+                    <span className="material-icons-round text-[14px]">arrow_forward</span>
+                  </Link>
+                </div>
+                <div className="p-8">
+                  <div className="flex flex-col gap-4">
+                    {/* Nama Kegiatan */}
+                    <div className="flex flex-col gap-1">
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Nama Kegiatan</span>
+                      <span className="text-sm font-bold text-slate-800">{data.kegiatan_nama}</span>
+                    </div>
+
+                    {/* Jadwal & Lokasi */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="flex items-start gap-3 bg-slate-50 border border-slate-100 rounded-xl p-4">
+                        <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+                          <span className="material-icons-round text-[18px]">calendar_today</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Jadwal Fix</span>
+                          <span className="text-sm font-bold text-slate-800 leading-snug">
+                            {formatKegiatanDate(data.kegiatan_tanggal, data.kegiatan_waktu)}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-3 bg-slate-50 border border-slate-100 rounded-xl p-4">
+                        <div className="w-9 h-9 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center shrink-0">
+                          <span className="material-icons-round text-[18px]">place</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Lokasi</span>
+                          <span className="text-sm font-bold text-slate-800 leading-snug">
+                            {data.kegiatan_lokasi || 'Tidak Spesifik'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Status Kegiatan */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Status Kegiatan:</span>
+                      <span className={`px-3 py-1 rounded text-xs font-bold uppercase tracking-wide border ${
+                        data.kegiatan_status === 'Selesai'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : data.kegiatan_status === 'Akan Datang'
+                          ? 'bg-blue-50 text-blue-700 border-blue-200'
+                          : data.kegiatan_status === 'Berlangsung'
+                          ? 'bg-amber-50 text-amber-700 border-amber-200'
+                          : data.kegiatan_status === 'Dibatalkan'
+                          ? 'bg-slate-100 text-slate-600 border-slate-200'
+                          : 'bg-slate-100 text-slate-600 border-slate-200'
+                      }`}>
+                        {data.kegiatan_status}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Catatan Penyelesaian Jika Ada */}
             {(data.catatan_penyelesaian || data.alasan_pembatalan) && (

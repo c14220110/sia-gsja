@@ -8,10 +8,10 @@ const userRepository = new UserRepository();
 
 export class AuthService {
   async authenticateUser(data: LoginInput) {
-    const user = await userRepository.findByEmail(data.email);
+    const user = await userRepository.findByIdentifier(data.email); // data.email is now acting as the generic identifier
 
     if (!user) {
-      throw new Error('Email atau password salah');
+      throw new Error('Email, No Handphone, atau Username tidak terdaftar. Password salah.');
     }
 
     if (!user.is_active) {
@@ -20,7 +20,7 @@ export class AuthService {
 
     const isPasswordValid = await bcrypt.compare(data.password, user.password_hash);
     if (!isPasswordValid) {
-      throw new Error('Email atau password salah');
+      throw new Error('Email, No Handphone, atau Username tidak terdaftar. Password salah.');
     }
 
     if (user.requires_password_change) {

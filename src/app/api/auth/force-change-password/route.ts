@@ -7,7 +7,8 @@ const userRepository = new UserRepository();
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, old_password, new_password } = await request.json();
+    const body = await request.json();
+    const { email, old_password, new_password } = body;
 
     if (!email || !old_password || !new_password) {
       return NextResponse.json({ success: false, message: 'Data tidak lengkap.' }, { status: 400 });
@@ -17,9 +18,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Password baru minimal 6 karakter.' }, { status: 400 });
     }
 
-    const user = await userRepository.findByEmail(email);
+    const user = await userRepository.findByIdentifier(email);
     if (!user) {
-      return NextResponse.json({ success: false, message: 'User tidak ditemukan.' }, { status: 404 });
+      return NextResponse.json({ message: 'User tidak ditemukan' }, { status: 404 });
     }
 
     const isPasswordValid = await bcrypt.compare(old_password, user.password_hash);

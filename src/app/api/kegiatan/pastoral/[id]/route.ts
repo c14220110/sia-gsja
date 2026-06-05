@@ -22,13 +22,19 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         jt.nama_lengkap as nama_target_jemaat,
         jt.foto_url as foto_target_jemaat,
         pj_jemaat.nama_lengkap as nama_penanggung_jawab,
-        pj_jemaat.foto_url as foto_penanggung_jawab
+        pj_jemaat.foto_url as foto_penanggung_jawab,
+        kg.nama_kegiatan as kegiatan_nama,
+        kg.tanggal_mulai as kegiatan_tanggal,
+        kg.waktu_mulai as kegiatan_waktu,
+        kg.lokasi_kegiatan as kegiatan_lokasi,
+        kg.status_kegiatan as kegiatan_status
       FROM public.permohonan_layanan_pastoral p
       JOIN public.jenis_kegiatan jk ON p.jenis_kegiatan_id = jk.id
       JOIN public.jemaat pemohon ON p.jemaat_pemohon_id = pemohon.id
       LEFT JOIN public.jemaat jt ON p.jemaat_target_id = jt.id
       LEFT JOIN public.pengurus pj ON p.penanggung_jawab_id = pj.id
       LEFT JOIN public.jemaat pj_jemaat ON pj.jemaat_id = pj_jemaat.id
+      LEFT JOIN public.kegiatan kg ON p.kegiatan_id = kg.id
       WHERE p.id = $1
     `;
     const resMaster = await pool.query(queryMaster, [id]);

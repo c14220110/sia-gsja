@@ -116,7 +116,7 @@ export default function SelectRolePage() {
               </div>
             )}
 
-            <div className="w-full flex flex-col md:flex-row md:overflow-x-auto gap-6 mb-12 md:pb-4 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent md:justify-center">
+            <div className="w-full flex flex-col md:flex-row md:overflow-x-auto gap-6 mb-12 md:pb-4 md:justify-center [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               {roles.map((role, index) => {
                 const isSelected = selectedRoleIndex === index;
                 return (

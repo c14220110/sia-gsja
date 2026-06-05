@@ -76,7 +76,7 @@ export class AkunAksesRepository {
   async getPenggunaList(): Promise<any[]> {
     const res = await pool.query(`
       SELECT 
-        p.id, p.email, p.is_active, p.last_login_at, p.jemaat_id,
+        p.id, p.email, p.no_hp, p.username, p.is_active, p.last_login_at, p.jemaat_id,
         j.nama_lengkap,
         COALESCE(
           json_agg(
@@ -151,7 +151,7 @@ export class AkunAksesRepository {
       try { await client.query('ROLLBACK'); } catch (e) {}
       console.error('Error createPengguna:', error);
       if (error.code === '23505') {
-         return { success: false, message: 'Email atau Jemaat ini sudah memiliki akun di sistem' };
+         return { success: false, message: 'Identifier (Email/No HP/Username) atau Jemaat ini sudah memiliki akun di sistem' };
       }
       return { success: false, message: error.message };
     } finally {
@@ -173,10 +173,24 @@ export class AkunAksesRepository {
       await client.query('BEGIN');
 
       let existUser;
-      if (data.jemaat_id) {
-        existUser = await client.query(`SELECT id FROM pengguna WHERE jemaat_id = $1 OR email = $2`, [data.jemaat_id, data.email]);
+      
+      const input = data.email.trim();
+      let isEmail = false;
+      let isPhone = false;
+      let isUsername = false;
+      
+      if (input.includes('@')) {
+        isEmail = true;
+      } else if (/^\d+$/.test(input)) {
+        isPhone = true;
       } else {
-        existUser = await client.query(`SELECT id FROM pengguna WHERE email = $1`, [data.email]);
+        isUsername = true;
+      }
+
+      if (data.jemaat_id) {
+        existUser = await client.query(`SELECT id FROM pengguna WHERE jemaat_id = $1 OR email = $2 OR no_hp = $2 OR username = $2`, [data.jemaat_id, input]);
+      } else {
+        existUser = await client.query(`SELECT id FROM pengguna WHERE email = $1 OR no_hp = $1 OR username = $1`, [input]);
       }
       let userId;
 
@@ -184,10 +198,10 @@ export class AkunAksesRepository {
         userId = existUser.rows[0].id;
       } else {
         const insUser = await client.query(`
-          INSERT INTO pengguna (email, password_hash, jemaat_id, requires_password_change)
-          VALUES ($1, $2, $3, false)
+          INSERT INTO pengguna (email, no_hp, username, password_hash, jemaat_id, requires_password_change)
+          VALUES ($1, $2, $3, $4, $5, false)
           RETURNING id
-        `, [data.email, data.password_hash, data.jemaat_id]);
+        `, [isEmail ? input : null, isPhone ? input : null, isUsername ? input : null, data.password_hash, data.jemaat_id]);
         userId = insUser.rows[0].id;
       }
 
@@ -209,7 +223,7 @@ export class AkunAksesRepository {
       try { await client.query('ROLLBACK'); } catch (e) {}
       console.error('Error createPenggunaMultiRole:', error);
       if (error.code === '23505') {
-        return { success: false, message: 'Email atau Jemaat ini sudah memiliki akun di sistem' };
+        return { success: false, message: 'Identifier (Email/No HP/Username) atau Jemaat ini sudah memiliki akun di sistem' };
       }
       return { success: false, message: error.message };
     } finally {
@@ -247,7 +261,17 @@ export class AkunAksesRepository {
         const updates: string[] = [];
         const vals: any[] = [];
         let idx = 1;
-        if (data.email) { updates.push(`email = $${idx++}`); vals.push(data.email); }
+        if (data.email) {
+          const input = data.email.trim();
+          if (input.includes('@')) {
+            updates.push(`email = $${idx++}`);
+          } else if (/^\d+$/.test(input)) {
+            updates.push(`no_hp = $${idx++}`);
+          } else {
+            updates.push(`username = $${idx++}`);
+          }
+          vals.push(input);
+        }
         if (data.password_hash) { updates.push(`password_hash = $${idx++}`); vals.push(data.password_hash); }
         updates.push(`updated_at = NOW()`);
         vals.push(userId);
@@ -277,7 +301,7 @@ export class AkunAksesRepository {
       try { await client.query('ROLLBACK'); } catch (e) {}
       console.error('Error updatePengguna:', error);
       if (error.code === '23505') {
-        return { success: false, message: 'Email sudah digunakan oleh pengguna lain.' };
+        return { success: false, message: 'Identifier (Email/No HP/Username) sudah digunakan oleh pengguna lain.' };
       }
       return { success: false, message: error.message };
     } finally {
@@ -314,7 +338,8 @@ export class AkunAksesRepository {
    * Bulk Generate Akun Jemaat (Akun Massal)
    */
   async bulkCreatePengguna(dataList: {
-    email: string;
+    email?: string | null;
+    no_hp?: string | null;
     password_hash: string;
     jemaat_id: number;
     satelit_id: number;
@@ -329,18 +354,18 @@ export class AkunAksesRepository {
       const roleJemaatId = roleRow.rowCount && roleRow.rowCount > 0 ? roleRow.rows[0].id : null;
 
       for (const data of dataList) {
-        // Cek apakah email/jemaat sudah ada
-        const existUser = await client.query(`SELECT id FROM pengguna WHERE jemaat_id = $1 OR email = $2`, [data.jemaat_id, data.email]);
+        // Cek apakah jemaat sudah ada, atau identifier (email/no_hp) sudah terpakai
+        const existUser = await client.query(`SELECT id FROM pengguna WHERE jemaat_id = $1 OR (email IS NOT NULL AND email = $2) OR (no_hp IS NOT NULL AND no_hp = $3)`, [data.jemaat_id, data.email || null, data.no_hp || null]);
         if (existUser.rowCount && existUser.rowCount > 0) {
           continue; // Skip jika sudah ada
         }
 
         // Insert ke pengguna
         const insUser = await client.query(`
-          INSERT INTO pengguna (email, password_hash, jemaat_id, requires_password_change)
-          VALUES ($1, $2, $3, true)
+          INSERT INTO pengguna (email, no_hp, password_hash, jemaat_id, requires_password_change)
+          VALUES ($1, $2, $3, $4, true)
           RETURNING id
-        `, [data.email, data.password_hash, data.jemaat_id]);
+        `, [data.email || null, data.no_hp || null, data.password_hash, data.jemaat_id]);
         
         const userId = insUser.rows[0].id;
 
