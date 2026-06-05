@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
         satelit_name: activeRole?.nama_satelit || 'Unknown Satelit',
         komisi_name: activeRole?.nama_komisi ?? null,
         departemen_name: activeRole?.nama_departemen ?? null,
-        email: user?.nama_lengkap || user?.email || `User ${decoded.user_id}`,
+        email: user?.nama_lengkap || user?.username || user?.email || user?.pengguna_no_hp || `User ${decoded.user_id}`,
         real_email: user?.email || null,
         pengguna_no_hp: user?.pengguna_no_hp || null,
         username: user?.username || null,
