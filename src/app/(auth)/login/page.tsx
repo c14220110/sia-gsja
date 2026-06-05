@@ -49,7 +49,11 @@ export default function LoginPage() {
       }
 
       if (data.requires_role_selection) {
-        sessionStorage.setItem('temp_auth_data', JSON.stringify(data.data));
+        try {
+          sessionStorage.setItem('temp_auth_data', JSON.stringify(data.data));
+        } catch (e) {
+          (window as any).__TEMP_AUTH_DATA = JSON.stringify(data.data);
+        }
         hideLoader();
         router.push('/select-role');
       } else {

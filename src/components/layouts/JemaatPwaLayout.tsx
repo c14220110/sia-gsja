@@ -123,10 +123,15 @@ export default function JemaatPwaLayout({
 
   const handleSwitchRole = () => {
     if (userData) {
-      sessionStorage.setItem('temp_auth_data', JSON.stringify({
+      const payload = {
         user_id: userData.user_id,
         available_roles: userData.available_roles || []
-      }));
+      };
+      try {
+        sessionStorage.setItem('temp_auth_data', JSON.stringify(payload));
+      } catch (e) {
+        (window as any).__TEMP_AUTH_DATA = JSON.stringify(payload);
+      }
       router.push('/select-role');
     }
   };

@@ -16,7 +16,10 @@ export default function SelectRolePage() {
   useEffect(() => {
     // In a real app, you might pass this via URL params, React Context, or a secure temporary cookie.
     // For this flow, we assume it's stored in sessionStorage after the first login step.
-    const storedData = sessionStorage.getItem('temp_auth_data');
+    let storedData: string | null = null;
+    try { storedData = sessionStorage.getItem('temp_auth_data'); } catch(e) {}
+    if (!storedData) storedData = (window as any).__TEMP_AUTH_DATA;
+
     if (!storedData) {
       router.push('/login');
       return;
@@ -57,7 +60,8 @@ export default function SelectRolePage() {
       }
 
       // Bersihkan session storage
-      sessionStorage.removeItem('temp_auth_data');
+      try { sessionStorage.removeItem('temp_auth_data'); } catch(e) {}
+      delete (window as any).__TEMP_AUTH_DATA;
       hideLoader();
       router.push('/');
     } catch (err: any) {
