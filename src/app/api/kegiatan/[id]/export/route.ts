@@ -15,14 +15,21 @@ const formatTanggal = (date: Date) => {
 };
 
 // Format Smart Date Range (e.g., 19 - 21 April 2026 atau 28 Apr - 2 Mei 2026)
-const formatTanggalRange = (start: Date, end?: Date | null) => {
-  if (!start) return '';
+const formatTanggalRange = (startInput: Date | string, endInput?: Date | string | null) => {
+  if (!startInput) return '';
+  
+  const start = new Date(startInput);
   const d1 = start.getDate();
   const m1 = start.toLocaleDateString('id-ID', { month: 'long' });
   const m1Short = start.toLocaleDateString('id-ID', { month: 'short' });
   const y1 = start.getFullYear();
 
-  if (!end || start.getTime() === end.getTime()) {
+  if (!endInput) {
+    return `${d1.toString().padStart(2, '0')} ${m1} ${y1}`;
+  }
+
+  const end = new Date(endInput);
+  if (start.getTime() === end.getTime()) {
     return `${d1.toString().padStart(2, '0')} ${m1} ${y1}`;
   }
 
@@ -92,22 +99,22 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     `, [id]);
     const stats = statRes.rows[0] || {};
 
-    // 4. Fetch Pelayan List
+    // 4. Fetch Pelayan List (Grouped by Pelayan to handle multiple roles)
     const pRes = await pool.query(`
       SELECT 
-        kjp.id, 
         p.id_pelayanan as id_p,
         j.nama_lengkap as nama,
         s.nama_satelit as sat_p,
-        rp.nama_role as roles,
-        kjp.status_konfirmasi as status
+        STRING_AGG(rp.nama_role, ', ') as roles,
+        MAX(kjp.status_konfirmasi) as status
       FROM public.kegiatan_jadwal_pelayan kjp
       LEFT JOIN public.pelayan p ON kjp.pelayan_id = p.id
       LEFT JOIN public.jemaat j ON p.jemaat_id = j.id
       LEFT JOIN public.satelit s ON p.satelit_id = s.id
       LEFT JOIN public.role_pelayan rp ON kjp.role_id = rp.id
       WHERE kjp.kegiatan_id = $1 AND kjp.status_konfirmasi != 'Berhalangan'
-      ORDER BY rp.nama_role ASC
+      GROUP BY p.id_pelayanan, j.nama_lengkap, s.nama_satelit
+      ORDER BY j.nama_lengkap ASC
     `, [id]);
     const pelayanList = pRes.rows.map((r, i) => ({ ...r, no: i + 1 }));
 
@@ -121,7 +128,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       WHERE ka.kegiatan_id = $1 AND ka.status_kehadiran = 'Hadir' AND ka.role_kehadiran IN ('Jemaat', 'Tamu')
       ORDER BY ka.waktu_hadir ASC
     `, [id]);
-    const hadirList = hRes.rows.map((r, i) => ({ ...r, no: i + 1 }));
+    const hadirList = hRes.rows.map((r, i) => ({ ...r, no: i + 1, id_j: r.id_j || '-' }));
 
     // ===== DATA MAPPING KE DOCX =====
     const data = {

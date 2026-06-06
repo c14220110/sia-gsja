@@ -194,20 +194,21 @@ export async function getKpi4(dari: string, sampai: string, satelitId: number | 
   return { nilai, target: 90, unit: '%', data_tersedia: total > 0, numerator: onTime, denominator: total };
 }
 
-// KPI-5: Rasio Beban Operasional (target < 45%, lower is better)
-// Definisi: (Total beban penggajian ÷ Total pemasukan via SIA) × 100%
+// KPI-5: Rasio Pengeluaran Kegiatan terhadap Pemasukan (target < 70%, lower is better)
+// Definisi: (Total pengeluaran LPJ ÷ Total pemasukan via SIA) × 100%
 export async function getKpi5(dari: string, sampai: string, satelitId: number | null): Promise<RawKpi> {
-  // 1. Pembilang: Total netto payroll yang sudah Dibayar pada periode
-  const pPayroll: (string | number)[] = [dari, sampai];
-  const sfPayroll = satelitId ? ` AND pr.satelit_id = $${pPayroll.push(satelitId)}` : '';
-  const rPayroll = await pool.query(
-    `SELECT COALESCE(SUM(pr.total_netto), 0) AS total_beban
-     FROM public.payroll_run pr
-     WHERE pr.status = 'Dibayar'
-       AND MAKE_DATE(pr.tahun, pr.bulan, 1) BETWEEN $1::date AND $2::date${sfPayroll}`,
-    pPayroll,
+  // 1. Pembilang: Total pengeluaran dari kegiatan_lpj pada periode
+  const pLPJ: (string | number)[] = [dari, sampai];
+  const sfLPJ = satelitId ? ` AND k.satelit_id = $${pLPJ.push(satelitId)}` : '';
+  const rLPJ = await pool.query(
+    `SELECT COALESCE(SUM(lpj.total_pengeluaran), 0) AS total_beban
+     FROM public.kegiatan_lpj lpj
+     JOIN public.kegiatan k ON k.id = lpj.kegiatan_id
+     WHERE lpj.status_lpj = 'Disetujui'
+       AND k.tanggal_mulai BETWEEN $1 AND $2${sfLPJ}`,
+    pLPJ,
   );
-  const totalBeban = parseFloat(rPayroll.rows[0].total_beban);
+  const totalBeban = parseFloat(rLPJ.rows[0].total_beban);
 
   // 2. Penyebut: Total pemasukan dari SIA (jurnal Posted, COA grup_laporan = 'Pendapatan')
   //    Integrasi read-only dari Sistem Informasi Akuntansi
@@ -230,13 +231,13 @@ export async function getKpi5(dari: string, sampai: string, satelitId: number | 
   const nilai = dataTersedia ? parseFloat(((totalBeban / totalPemasukan) * 100).toFixed(1)) : null;
   return {
     nilai,
-    target: 45,
+    target: 70,
     unit: '%',
     data_tersedia: dataTersedia,
     numerator: totalBeban,
     denominator: totalPemasukan,
     pesan: dataTersedia
-      ? `Beban penggajian Rp ${totalBeban.toLocaleString('id-ID')} dari pemasukan Rp ${totalPemasukan.toLocaleString('id-ID')}`
+      ? `Pengeluaran kegiatan Rp ${totalBeban.toLocaleString('id-ID')} dari pemasukan Rp ${totalPemasukan.toLocaleString('id-ID')}`
       : 'Belum ada data pemasukan dari SIA pada periode ini.',
   };
 }

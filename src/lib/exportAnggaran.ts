@@ -7,7 +7,12 @@ const fmt = (n: number) => new Intl.NumberFormat('id-ID', { style: 'currency', c
 
 /** Only show pola for Kegiatan; others it's implicit */
 const formatKategori = (r: any) => {
-  if (r.kategori_ra === 'Kegiatan') return `${r.kategori_ra} / ${r.pola_penggunaan}`;
+  if (r.kategori_ra === 'Kegiatan') {
+    const pola = r.pola_penggunaan === 'Sekali Pakai' ? 'Single Event' : 
+                 r.pola_penggunaan === 'Bertahap' ? 'Multi-Event' : 
+                 r.pola_penggunaan;
+    return `${r.kategori_ra} / ${pola}`;
+  }
   return r.kategori_ra;
 };
 

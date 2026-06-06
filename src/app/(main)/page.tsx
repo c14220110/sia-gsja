@@ -447,7 +447,7 @@ function PerspektifSummaryCard({ pKey, d, score }: {
   const def = BSC_PERSPEKTIF_DEF[pKey];
   const kpiLabels: Record<string, string> = {
     kpi1: 'Presensi Jemaat', kpi2: 'Kepuasan (CSAT)', kpi3: 'Retensi Kehadiran',
-    kpi4: 'Respons Pastoral', kpi5: 'Beban Operasional', kpi6: 'Efisiensi Anggaran',
+    kpi4: 'Respons Pastoral', kpi5: 'Rasio Pengeluaran', kpi6: 'Efisiensi Anggaran',
     kpi7: 'Tindak Lanjut CSAT', kpi8: 'Presensi Digital', kpi9: 'Kehadiran Pelayan',
     kpi10: 'Konfirmasi Jadwal', kpi11: 'Disiplin Waktu', kpi12: 'Respons Pastoral (Jam)',
   };
@@ -1629,7 +1629,7 @@ export default function DashboardHome() {
       kpi2: { label: "Skor Kepuasan Rata-rata", rec: "Lakukan evaluasi berkala terhadap umpan balik jemaat mengenai ibadah dan fasilitas." },
       kpi3: { label: "Tingkat Retensi Kehadiran Jemaat", rec: "Evaluasi jemaat yang tidak hadir ≥ 1 bulan, aktifkan kunjungan pastoral proaktif, dan perkuat program kelompok kecil." },
       kpi4: { label: "Tingkat Ketepatan Respons Pastoral", rec: "Evaluasi beban kerja tim pastoral dan optimalkan alur penugasan kunjungan jemaat." },
-      kpi5: { label: "Rasio Beban Operasional", rec: "Tinjau kembali alokasi pengeluaran non-prioritas dan lakukan efisiensi biaya operasional bulanan." },
+      kpi5: { label: "Rasio Pengeluaran Kegiatan", rec: "Pantau proporsi total pengeluaran kegiatan (LPJ) agar minimal 30% pemasukan tersisa untuk kas gereja dan biaya tetap." },
       kpi6: { label: "Efisiensi Anggaran", rec: "Berikan bimbingan teknis penyusunan proposal kegiatan agar estimasi biaya lebih presisi." },
       kpi7: { label: "Rasio Penyelesaian Tindak Lanjut", rec: "Adakan koordinasi rutin untuk segera menyelesaikan dan menindaklanjuti keluhan dari jemaat." },
       kpi8: { label: "Kelengkapan Data Presensi Bernama", rec: "Tugaskan pelayan pintu (usher) ekstra untuk membantu jemaat melakukan QR scan saat masuk." },
@@ -1674,7 +1674,7 @@ export default function DashboardHome() {
       keuangan: {
         header: { warna: 'bg-emerald-100 text-emerald-600 border border-emerald-200', icon: 'account_balance', title: 'Pengelolaan Keuangan', subtitle: 'Financial Perspective' },
         cards: [
-          <KpiCard key="k5" kpi={d?.kpi5} label="Rasio Beban Operasional" icon="pie_chart" targetLabel="Target: < 45%" higherIsBetter={false} kpiKey="kpi5" satelitId={sid} />,
+          <KpiCard key="k5" kpi={d?.kpi5} label="Rasio Pengeluaran" icon="pie_chart" targetLabel="Target: < 70%" higherIsBetter={false} kpiKey="kpi5" satelitId={sid} />,
           <KpiCard key="k6" kpi={d?.kpi6} label="Efisiensi Anggaran" icon="request_quote" targetLabel="Target: 90%–100%" kpiKey="kpi6" satelitId={sid} />,
         ],
       },

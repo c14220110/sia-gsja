@@ -32,16 +32,11 @@ export async function GET(request: Request) {
         ) as role_display
       FROM public.pengurus p
       JOIN public.jemaat j ON p.jemaat_id = j.id
-      JOIN public.pelayan pel ON j.id = pel.jemaat_id
-      JOIN public.pelayan_role prole ON pel.id = prole.pelayan_id
       LEFT JOIN public.detail_kepengurusan dk ON dk.pengurus_id = p.id AND dk.status_jabatan = 'Aktif'
       LEFT JOIN public.jabatan jab ON dk.jabatan_id = jab.id
       LEFT JOIN public.departemen dep ON dk.departemen_id = dep.id
       LEFT JOIN public.komisi kom ON dk.komisi_id = kom.id
       WHERE p.is_active = true 
-        AND pel.status_pelayan = 'Aktif'
-        AND prole.role_id = (SELECT id FROM public.role_pelayan WHERE nama_role = 'Staf Pastoral')
-        AND prole.status_role = 'Aktif'
         ${whereSearch}
       GROUP BY p.id, j.nama_lengkap
       ORDER BY j.nama_lengkap ASC
@@ -53,7 +48,7 @@ export async function GET(request: Request) {
       return {
         pengurus_id: row.pengurus_id,
         nama: row.nama_lengkap,
-        role: row.role_display || 'Staf Pastoral',
+        role: row.role_display || 'Pengurus',
         jabatan_id: null
       };
     });

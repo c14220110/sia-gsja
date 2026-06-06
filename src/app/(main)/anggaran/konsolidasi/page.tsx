@@ -410,7 +410,7 @@ export default function KonsolidasiAnggaranPage() {
                                <td className="px-5 py-4">
                                  <p className="font-bold text-slate-700">{r.kategori_ra}</p>
                                  {r.kategori_ra === 'Kegiatan' && (
-                                   <p className="text-xs text-slate-500 mt-0.5">{r.pola_penggunaan === 'Sekali Pakai' ? 'Tunggal' : r.pola_penggunaan}</p>
+                                   <p className="text-xs text-slate-500 mt-0.5">{r.pola_penggunaan === 'Sekali Pakai' ? 'Single Event' : r.pola_penggunaan === 'Bertahap' ? 'Multi-Event' : r.pola_penggunaan}</p>
                                  )}
                                </td>
                                <td className="px-5 py-4 text-right">
@@ -491,7 +491,7 @@ export default function KonsolidasiAnggaranPage() {
                    <div className="grid grid-cols-3 gap-4 mb-6">
                      <div className="flex flex-col">
                        <span className="text-[10px] font-bold text-slate-400 uppercase">Kategori & Pola</span>
-                       <span className="text-sm font-bold text-slate-700">{selectedRA.kategori_ra} - {selectedRA.pola_penggunaan === 'Sekali Pakai' ? 'Tunggal' : selectedRA.pola_penggunaan}</span>
+                       <span className="text-sm font-bold text-slate-700">{selectedRA.kategori_ra} - {selectedRA.pola_penggunaan === 'Sekali Pakai' ? 'Single Event' : selectedRA.pola_penggunaan === 'Bertahap' ? 'Multi-Event' : selectedRA.pola_penggunaan}</span>
                      </div>
                      <div className="flex flex-col text-right">
                        <span className="text-[10px] font-bold text-blue-400 uppercase">Penerimaan</span>
