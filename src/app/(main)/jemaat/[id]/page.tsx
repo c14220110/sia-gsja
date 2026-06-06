@@ -1009,8 +1009,7 @@ export default function EditJemaatPage() {
                           <div className="flex-1 flex-col gap-1 flex">
                             <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">No Telepon / WA</label>
                             <div className="relative w-full">
-                              <span className="absolute left-3 top-2.5 text-slate-400 text-sm font-bold font-sans">+62</span>
-                              <input type="text" name="no_hp" value={formData.no_hp} onChange={handleInputChange} placeholder="" className="pl-12 pr-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" />
+                              <input type="text" name="no_hp" value={formData.no_hp} onChange={handleInputChange} placeholder="08..." className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" />
                             </div>
                           </div>
                           <div className="flex-1 flex-col gap-1 flex">
