@@ -8,6 +8,7 @@ export interface FamilyTreePerson {
   tanggal_lahir: Date | null;
   foto_url: string | null;
   status_jemaat: string;
+  status_pernikahan: string | null;
   ayah_id: number | null;
   ibu_id: number | null;
   pasangan_id: number | null;
@@ -19,7 +20,7 @@ export interface FamilyTreePerson {
 
 const SELECT_PERSON = `
   SELECT j.id, j.jemaat_id, j.nama_lengkap, j.jenis_kelamin, j.tanggal_lahir,
-         j.foto_url, j.status_jemaat, j.ayah_id, j.ibu_id, j.pasangan_id,
+         j.foto_url, j.status_jemaat, j.status_pernikahan, j.ayah_id, j.ibu_id, j.pasangan_id,
          j.ayah_nama, j.ibu_nama, j.pasangan_nama, s.nama_satelit
   FROM jemaat j
   LEFT JOIN satelit s ON j.satelit_id = s.id
@@ -74,7 +75,7 @@ export class FamilyTreeRepository {
     const res = await pool.query(
       `SELECT
          j.id, j.jemaat_id, j.nama_lengkap, j.jenis_kelamin, j.tanggal_lahir,
-         j.foto_url, j.status_jemaat, j.ayah_id, j.ibu_id, j.pasangan_id,
+         j.foto_url, j.status_jemaat, j.status_pernikahan, j.ayah_id, j.ibu_id, j.pasangan_id,
          j.ayah_nama, j.ibu_nama, j.pasangan_nama, s.nama_satelit
        FROM relasi_jemaat rj
        JOIN jenis_relasi  jr ON rj.jenis_relasi_id = jr.id AND jr.nama_relasi = 'Anak'
@@ -97,6 +98,11 @@ export class FamilyTreeRepository {
   async getFamilyTree(personId: number) {
     const person = await this.getPersonById(personId);
     if (!person) return null;
+
+    if (person.status_pernikahan === 'Lajang') {
+      person.pasangan_id = null;
+      person.pasangan_nama = null;
+    }
 
     let [ayah, ibu, pasangan, saudara, anak] = await Promise.all([
       person.ayah_id     ? this.getPersonById(person.ayah_id)     : Promise.resolve(null),

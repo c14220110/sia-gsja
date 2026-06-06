@@ -179,12 +179,18 @@ export default function MembersPage() {
             <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Database Jemaat</h1>
             <div className="text-slate-500 text-base font-medium font-sans leading-6">Sistem Informasi Manajemen Data Jemaat</div>
           </div>
-          {hasPermission('jemaat_create') && (
-            <Link href="/jemaat/new" className="px-5 py-2.5 bg-slate-700 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none">
-              <span className="material-icons-round text-white text-[20px]">add</span>
-              <span className="text-white text-sm font-bold font-sans leading-5">Tambah Jemaat Baru</span>
+          <div className="flex items-center gap-3">
+            <Link href="/jemaat/ulang-tahun" className="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-lg flex justify-center items-center gap-2 hover:bg-slate-50 transition-colors shadow-sm focus:ring-2 focus:ring-slate-400 focus:outline-none">
+              <span className="material-icons-round text-sky-600 text-[20px]">cake</span>
+              <span className="text-sm font-bold font-sans leading-5">Ulang Tahun Jemaat</span>
             </Link>
-          )}
+            {hasPermission('jemaat_create') && (
+              <Link href="/jemaat/new" className="px-5 py-2.5 bg-slate-700 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none">
+                <span className="material-icons-round text-white text-[20px]">add</span>
+                <span className="text-white text-sm font-bold font-sans leading-5">Tambah Jemaat Baru</span>
+              </Link>
+            )}
+          </div>
         </div>
 
       {/* Statistic Cards */}
