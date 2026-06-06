@@ -79,43 +79,71 @@ export function buildGraph(data: any): { nodes: NodeItem[]; edges: EdgeItem[]; b
   const anak    = data.anak    || [];
 
   // ── ROW 0: saudara ... PERSON ... pasangan ──────────────────────────────────
-  const personCol = saudara.length;
-  const personX   = personCol * HG;
-  const personY   = 0;
+  const siblingsGroup = [
+    ...saudara.map((s: any) => ({ ...s, _isPerson: false })),
+    { ...data.person, _isPerson: true }
+  ];
 
-  const saudaraIds: string[] = [];
-  saudara.forEach((s: any, i: number) => {
-    saudaraIds.push(addNode(s, 'saudara', i * HG, 0));
+  // Urutkan umur terkecil (tanggal lahir terbaru) di kiri hingga tertua di kanan
+  siblingsGroup.sort((a, b) => {
+    const timeA = a.tanggal_lahir ? new Date(a.tanggal_lahir).getTime() : 0;
+    const timeB = b.tanggal_lahir ? new Date(b.tanggal_lahir).getTime() : 0;
+    return timeB - timeA;
   });
 
-  const personId = addNode(data.person, 'person', personX, personY);
-
+  let currentX = 0;
+  let personX = 0;
+  const personY = 0;
+  let personId = '';
   let pasanganId: string | null = null;
-  if (data.pasangan) {
-    pasanganId = addNode(data.pasangan, 'pasangan', (personCol + 1) * HG, 0);
-    // Horizontal marriage arrow: person ↔ pasangan
-    addEdge(personId, pasanganId, '#f43f8e', 'Pasangan', false, true);
-  } else if (data.person?.pasangan_nama) {
-    const fakePasangan = { id: -3, nama_lengkap: data.person.pasangan_nama, jenis_kelamin: data.person?.jenis_kelamin === 'Laki-laki' ? 'Perempuan' : 'Laki-laki' };
-    pasanganId = addNode(fakePasangan, 'pasangan', (personCol + 1) * HG, 0, true);
-    addEdge(personId, pasanganId, '#f43f8e', 'Pasangan', false, true);
-  }
+  const saudaraIds: string[] = [];
+
+  siblingsGroup.forEach((item) => {
+    if (item._isPerson) {
+      personX = currentX;
+      personId = addNode(item, 'person', personX, personY);
+      currentX += HG;
+
+      if (data.pasangan || data.person?.pasangan_nama) {
+        if (data.pasangan) {
+          pasanganId = addNode(data.pasangan, 'pasangan', currentX, personY);
+        } else {
+          const fakePasangan = { id: -3, nama_lengkap: data.person.pasangan_nama, jenis_kelamin: data.person?.jenis_kelamin === 'Laki-laki' ? 'Perempuan' : 'Laki-laki' };
+          pasanganId = addNode(fakePasangan, 'pasangan', currentX, personY, true);
+        }
+        addEdge(personId, pasanganId, '#f43f8e', 'Pasangan', false, true);
+        currentX += HG;
+      }
+    } else {
+      saudaraIds.push(addNode(item, 'saudara', currentX, personY));
+      currentX += HG;
+    }
+  });
 
   // Saudara ↔ person: horizontal dashed "sibling" connector
   saudaraIds.forEach(sid => {
     const s = posMap[sid];
     const p = posMap[personId];
-    edges.push({
-      id: `e-${sid}-${personId}`,
-      x1: s.x + W, y1: s.y + H / 2,
-      x2: p.x,     y2: p.y + H / 2,
-      color: '#f59e0b', label: 'Saudara', horizontal: true, dashed: true,
-    });
+    if (s.x < p.x) {
+      edges.push({
+        id: `e-${sid}-${personId}`,
+        x1: s.x + W, y1: s.y + H / 2,
+        x2: p.x,     y2: p.y + H / 2,
+        color: '#f59e0b', label: 'Saudara', horizontal: true, dashed: true,
+      });
+    } else {
+      edges.push({
+        id: `e-${personId}-${sid}`,
+        x1: pasanganId ? posMap[pasanganId].x + W : p.x + W, y1: p.y + H / 2,
+        x2: s.x, y2: s.y + H / 2,
+        color: '#f59e0b', label: 'Saudara', horizontal: true, dashed: true,
+      });
+    }
   });
 
   // ── ROW -1: Ayah & Ibu ──────────────────────────────────────────────────────
-  const leftCenter  = saudara.length > 0 ? 0 : personX;
-  const rightCenter = personX;
+  const leftCenter  = 0;
+  const rightCenter = saudara.length > 0 ? (saudara.length) * HG : 0;
   const midCenter   = (leftCenter + rightCenter) / 2;
 
   let ayahId: string | null = null;

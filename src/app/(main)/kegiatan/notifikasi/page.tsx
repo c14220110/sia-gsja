@@ -42,8 +42,14 @@ export default function BroadcastNotifikasiPage() {
     target_audience: 'semua_jemaat',
     target_satelit_id: '',
     target_komisi_id: '',
+    target_jemaat_id: '',
     url_tujuan: '/',
   });
+  
+  const [jemaatSearchQuery, setJemaatSearchQuery] = useState('');
+  const [jemaatOptions, setJemaatOptions] = useState<any[]>([]);
+  const [isSearchingJemaat, setIsSearchingJemaat] = useState(false);
+  const [selectedJemaatName, setSelectedJemaatName] = useState('');
 
   // Options
   const [satelitOptions, setSatelitOptions] = useState<any[]>([]);
@@ -67,6 +73,31 @@ export default function BroadcastNotifikasiPage() {
     fetchOptions();
   }, []);
 
+  // Debounced search for individu jemaat
+  useEffect(() => {
+    if (formData.target_audience !== 'individu_jemaat') return;
+    
+    const timer = setTimeout(async () => {
+      if (jemaatSearchQuery.trim().length >= 3) {
+        setIsSearchingJemaat(true);
+        try {
+          const res = await fetch(`/api/members?search=${encodeURIComponent(jemaatSearchQuery)}&limit=10`);
+          if (res.ok) {
+            const data = await res.json();
+            setJemaatOptions(data.data || []);
+          }
+        } catch (error) {
+          console.error('Failed to search jemaat', error);
+        } finally {
+          setIsSearchingJemaat(false);
+        }
+      } else {
+        setJemaatOptions([]);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [jemaatSearchQuery, formData.target_audience]);
+
   const [submitState, setSubmitState] = useState<{ status: 'idle'|'loading'|'success'|'error', message: string }>({ status: 'idle', message: '' });
 
   const handleSend = async () => {
@@ -86,12 +117,18 @@ export default function BroadcastNotifikasiPage() {
       setSubmitState({ status: 'error', message: 'Pilih komisi tujuan' });
       return;
     }
+    if (formData.target_audience === 'individu_jemaat' && !formData.target_jemaat_id) {
+      setSubmitState({ status: 'error', message: 'Pilih individu jemaat tujuan' });
+      return;
+    }
 
     const targetLabel = formData.target_audience === 'semua_jemaat'
       ? 'SEMUA jemaat aktif'
       : formData.target_audience === 'per_satelit'
         ? `jemaat satelit "${satelitOptions.find(s => s.id.toString() === formData.target_satelit_id)?.nama_satelit || formData.target_satelit_id}"`
-        : `jemaat komisi "${komisiOptions.find(k => k.id.toString() === formData.target_komisi_id)?.nama_komisi || formData.target_komisi_id}"`;
+        : formData.target_audience === 'per_komisi'
+        ? `jemaat komisi "${komisiOptions.find(k => k.id.toString() === formData.target_komisi_id)?.nama_komisi || formData.target_komisi_id}"`
+        : `individu jemaat "${selectedJemaatName}"`;
 
     if (!confirm(`Anda yakin ingin mengirim notifikasi push ke ${targetLabel}?\n\nJudul: ${formData.judul}\nIsi: ${formData.isi_pesan}`)) return;
 
@@ -105,15 +142,17 @@ export default function BroadcastNotifikasiPage() {
       const result = await res.json();
       if (result.success) {
         setSubmitState({ status: 'success', message: result.message });
-        // Reset form
         setFormData({
           judul: '',
           isi_pesan: '',
           target_audience: 'semua_jemaat',
           target_satelit_id: '',
           target_komisi_id: '',
+          target_jemaat_id: '',
           url_tujuan: '/',
         });
+        setJemaatSearchQuery('');
+        setSelectedJemaatName('');
         setRefreshHistory(prev => prev + 1);
         setTimeout(() => setSubmitState({ status: 'idle', message: '' }), 3000);
       } else {
@@ -206,6 +245,12 @@ export default function BroadcastNotifikasiPage() {
         return (
           <span className="px-2 py-0.5 text-[10px] font-bold rounded-full border bg-purple-50 text-purple-700 border-purple-200 whitespace-nowrap flex items-center gap-1">
             <span className="material-icons-round text-[10px]">groups</span>Per Komisi
+          </span>
+        );
+      case 'individu_jemaat':
+        return (
+          <span className="px-2 py-0.5 text-[10px] font-bold rounded-full border bg-amber-50 text-amber-700 border-amber-200 whitespace-nowrap flex items-center gap-1">
+            <span className="material-icons-round text-[10px]">person</span>Individu
           </span>
         );
       default:
@@ -365,10 +410,10 @@ export default function BroadcastNotifikasiPage() {
 
               <div className="w-full flex flex-col gap-4">
                 {/* Audience selector */}
-                <div className="w-full grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="w-full grid grid-cols-2 lg:grid-cols-4 gap-3">
                   <button
-                    onClick={() => setFormData(prev => ({ ...prev, target_audience: 'semua_jemaat', target_satelit_id: '', target_komisi_id: '' }))}
-                    className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${
+                    onClick={() => setFormData(prev => ({ ...prev, target_audience: 'semua_jemaat', target_satelit_id: '', target_komisi_id: '', target_jemaat_id: '' }))}
+                    className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${
                       formData.target_audience === 'semua_jemaat'
                         ? 'border-emerald-500 bg-emerald-50 shadow-sm'
                         : 'border-slate-200 bg-white hover:border-slate-300'
@@ -380,8 +425,8 @@ export default function BroadcastNotifikasiPage() {
                   </button>
 
                   <button
-                    onClick={() => setFormData(prev => ({ ...prev, target_audience: 'per_satelit', target_satelit_id: '', target_komisi_id: '' }))}
-                    className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${
+                    onClick={() => setFormData(prev => ({ ...prev, target_audience: 'per_satelit', target_satelit_id: '', target_komisi_id: '', target_jemaat_id: '' }))}
+                    className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${
                       formData.target_audience === 'per_satelit'
                         ? 'border-blue-500 bg-blue-50 shadow-sm'
                         : 'border-slate-200 bg-white hover:border-slate-300'
@@ -393,8 +438,8 @@ export default function BroadcastNotifikasiPage() {
                   </button>
 
                   <button
-                    onClick={() => setFormData(prev => ({ ...prev, target_audience: 'per_komisi', target_satelit_id: '', target_komisi_id: '' }))}
-                    className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${
+                    onClick={() => setFormData(prev => ({ ...prev, target_audience: 'per_komisi', target_satelit_id: '', target_komisi_id: '', target_jemaat_id: '' }))}
+                    className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${
                       formData.target_audience === 'per_komisi'
                         ? 'border-purple-500 bg-purple-50 shadow-sm'
                         : 'border-slate-200 bg-white hover:border-slate-300'
@@ -403,6 +448,19 @@ export default function BroadcastNotifikasiPage() {
                     <span className={`material-icons-round text-2xl ${formData.target_audience === 'per_komisi' ? 'text-purple-600' : 'text-slate-400'}`}>groups</span>
                     <span className={`text-sm font-bold font-sans ${formData.target_audience === 'per_komisi' ? 'text-purple-700' : 'text-slate-700'}`}>Per Komisi</span>
                     <span className="text-[11px] text-slate-400 text-center">Kirim ke komisi tertentu</span>
+                  </button>
+
+                  <button
+                    onClick={() => setFormData(prev => ({ ...prev, target_audience: 'individu_jemaat', target_satelit_id: '', target_komisi_id: '', target_jemaat_id: '' }))}
+                    className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${
+                      formData.target_audience === 'individu_jemaat'
+                        ? 'border-amber-500 bg-amber-50 shadow-sm'
+                        : 'border-slate-200 bg-white hover:border-slate-300'
+                    }`}
+                  >
+                    <span className={`material-icons-round text-2xl ${formData.target_audience === 'individu_jemaat' ? 'text-amber-600' : 'text-slate-400'}`}>person</span>
+                    <span className={`text-sm font-bold font-sans text-center ${formData.target_audience === 'individu_jemaat' ? 'text-amber-700' : 'text-slate-700'}`}>Individu Jemaat</span>
+                    <span className="text-[11px] text-slate-400 text-center">Kirim ke 1 jemaat</span>
                   </button>
                 </div>
 
@@ -436,6 +494,67 @@ export default function BroadcastNotifikasiPage() {
                         <option key={k.id} value={k.id}>{k.nama_komisi}</option>
                       ))}
                     </select>
+                  </div>
+                )}
+
+                {formData.target_audience === 'individu_jemaat' && (
+                  <div className="w-full flex-col gap-1 flex animate-in fade-in slide-in-from-top-2">
+                    <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Cari Jemaat <span className="text-rose-500">*</span></label>
+                    
+                    {!formData.target_jemaat_id ? (
+                      <div className="relative w-full flex flex-col gap-2">
+                        <div className="relative">
+                          <span className="material-icons-round absolute left-3 top-2.5 text-slate-400 text-[18px]">search</span>
+                          <input 
+                            type="text"
+                            value={jemaatSearchQuery}
+                            onChange={(e) => setJemaatSearchQuery(e.target.value)}
+                            placeholder="Ketik nama jemaat (min. 3 huruf)..."
+                            className="pl-10 pr-4 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all"
+                          />
+                        </div>
+                        
+                        {isSearchingJemaat ? (
+                          <div className="text-xs text-slate-400 flex items-center gap-1"><span className="material-icons-round animate-spin text-[14px]">sync</span> Mencari...</div>
+                        ) : jemaatOptions.length > 0 && jemaatSearchQuery.trim().length >= 3 ? (
+                          <div className="w-full border border-slate-200 rounded-lg divide-y divide-slate-100 max-h-[200px] overflow-y-auto">
+                            {jemaatOptions.map(j => (
+                              <button 
+                                key={j.id} 
+                                onClick={() => {
+                                  setFormData(prev => ({ ...prev, target_jemaat_id: j.id.toString() }));
+                                  setSelectedJemaatName(j.nama_lengkap);
+                                }}
+                                className="w-full px-3 py-2 text-left hover:bg-slate-50 transition-colors flex items-center justify-between group"
+                              >
+                                <span className="text-sm font-medium text-slate-700 group-hover:text-blue-600">{j.nama_lengkap}</span>
+                                <span className="text-[10px] text-slate-400">ID: {j.jemaat_id}</span>
+                              </button>
+                            ))}
+                          </div>
+                        ) : jemaatSearchQuery.trim().length >= 3 && (
+                          <div className="text-xs text-rose-500">Jemaat tidak ditemukan</div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="w-full p-3 bg-amber-50 rounded-lg border border-amber-200 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="material-icons-round text-amber-600 text-[18px]">person</span>
+                          <span className="text-sm font-bold text-amber-800">{selectedJemaatName}</span>
+                        </div>
+                        <button 
+                          onClick={() => {
+                            setFormData(prev => ({ ...prev, target_jemaat_id: '' }));
+                            setSelectedJemaatName('');
+                            setJemaatSearchQuery('');
+                            setJemaatOptions([]);
+                          }}
+                          className="w-6 h-6 rounded flex items-center justify-center hover:bg-amber-200/50 text-amber-700 transition-colors"
+                        >
+                          <span className="material-icons-round text-[16px]">close</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -544,8 +663,11 @@ export default function BroadcastNotifikasiPage() {
                         {/* Kolom 2: Target */}
                         <div className="w-[140px] shrink-0 flex flex-col gap-1">
                           {renderAudienceBadge(item.target_audience)}
-                          {item.nama_satelit && (
+                          {item.target_audience === 'per_satelit' && item.nama_satelit && (
                             <span className="text-slate-400 text-[10px] font-medium">{item.nama_satelit}</span>
+                          )}
+                          {item.target_audience === 'individu_jemaat' && item.target_jemaat_nama && (
+                            <span className="text-slate-400 text-[10px] font-medium truncate" title={item.target_jemaat_nama}>{item.target_jemaat_nama}</span>
                           )}
                         </div>
 

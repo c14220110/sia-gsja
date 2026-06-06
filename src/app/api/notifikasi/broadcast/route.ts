@@ -67,11 +67,13 @@ export async function GET(request: Request) {
       SELECT 
         nb.*,
         s.nama_satelit,
-        p.nama_lengkap as pengirim_nama
+        p.nama_lengkap as pengirim_nama,
+        tj.nama_lengkap as target_jemaat_nama
       FROM public.notifikasi_broadcast nb
       LEFT JOIN satelit s ON nb.satelit_id = s.id
       LEFT JOIN pengguna pg ON nb.created_by = pg.id
       LEFT JOIN jemaat p ON pg.jemaat_id = p.id
+      LEFT JOIN jemaat tj ON nb.target_jemaat_id = tj.id
       WHERE 1=1 ${satelitFilter} ${searchFilter}
       ORDER BY nb.created_at DESC
       LIMIT $${paramIdx} OFFSET $${paramIdx + 1}
@@ -118,7 +120,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, message: 'Body request tidak valid' }, { status: 400 });
   }
 
-  const { judul, isi_pesan, target_audience, target_satelit_id, target_komisi_id, url_tujuan } = body;
+  const { judul, isi_pesan, target_audience, target_satelit_id, target_komisi_id, target_jemaat_id, url_tujuan } = body;
 
   if (!judul || !judul.trim()) {
     return NextResponse.json({ success: false, message: 'Judul notifikasi wajib diisi' }, { status: 400 });
@@ -126,7 +128,7 @@ export async function POST(request: Request) {
   if (!isi_pesan || !isi_pesan.trim()) {
     return NextResponse.json({ success: false, message: 'Isi pesan wajib diisi' }, { status: 400 });
   }
-  if (!target_audience || !['semua_jemaat', 'per_satelit', 'per_komisi'].includes(target_audience)) {
+  if (!target_audience || !['semua_jemaat', 'per_satelit', 'per_komisi', 'individu_jemaat'].includes(target_audience)) {
     return NextResponse.json({ success: false, message: 'Target audience tidak valid' }, { status: 400 });
   }
   if (target_audience === 'per_satelit' && !target_satelit_id) {
@@ -134,6 +136,9 @@ export async function POST(request: Request) {
   }
   if (target_audience === 'per_komisi' && !target_komisi_id) {
     return NextResponse.json({ success: false, message: 'Komisi target wajib dipilih' }, { status: 400 });
+  }
+  if (target_audience === 'individu_jemaat' && !target_jemaat_id) {
+    return NextResponse.json({ success: false, message: 'Jemaat target wajib dipilih' }, { status: 400 });
   }
 
   // 2. RBAC: non-super-admin can only send to their own satelit
@@ -186,6 +191,14 @@ export async function POST(request: Request) {
       }
       const jemaatResult = await client.query(komisiQuery, komisiParams);
       jemaatIds = jemaatResult.rows.map((r: any) => r.id);
+    } else if (target_audience === 'individu_jemaat') {
+      const jemaatResult = await client.query(
+        `SELECT j.id FROM public.jemaat j
+         INNER JOIN public.pengguna pg ON pg.jemaat_id = j.id
+         WHERE j.status_jemaat = 'Aktif' AND j.is_deleted = false AND j.id = $1`,
+        [target_jemaat_id]
+      );
+      jemaatIds = jemaatResult.rows.map((r: any) => r.id);
     }
 
     if (jemaatIds.length === 0) {
@@ -213,9 +226,9 @@ export async function POST(request: Request) {
     const insertQuery = `
       INSERT INTO public.notifikasi_broadcast (
         judul, isi_pesan, target_audience, 
-        satelit_id, komisi_id, url_tujuan,
+        satelit_id, komisi_id, target_jemaat_id, url_tujuan,
         total_target, total_terkirim, created_by
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING id
     `;
     const insertResult = await client.query(insertQuery, [
@@ -224,6 +237,7 @@ export async function POST(request: Request) {
       target_audience,
       target_audience === 'per_satelit' ? target_satelit_id : (effectiveSatelitId || null),
       target_audience === 'per_komisi' ? target_komisi_id : null,
+      target_audience === 'individu_jemaat' ? target_jemaat_id : null,
       finalUrl,
       jemaatIds.length,
       terkirim,
