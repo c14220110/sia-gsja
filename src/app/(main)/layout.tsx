@@ -22,6 +22,18 @@ export default function DashboardLayout({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [mobileExpandedMenus, setMobileExpandedMenus] = useState<Record<string, boolean>>({});
   const [isAkunSayaModalOpen, setIsAkunSayaModalOpen] = useState(false);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const profileDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target as Node)) {
+        setIsProfileDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const toggleMobileMenu = (menuId: string) => {
     setMobileExpandedMenus(prev => ({ ...prev, [menuId]: !prev[menuId] }));
@@ -178,7 +190,7 @@ export default function DashboardLayout({
             </div>
             <div className="flex flex-col justify-start items-start opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 w-auto md:w-0 md:group-hover:w-auto overflow-hidden">
                 <div className="self-stretch flex flex-col justify-start items-start">
-                <div className="h-4 flex items-center text-white text-sm font-bold font-sans leading-4 whitespace-nowrap truncate">SIA GSJA Eben Haezer</div>
+                <div className="h-4 flex items-center text-white text-sm font-bold font-sans leading-4 whitespace-nowrap truncate">SIM GSJA Eben Haezer</div>
               </div>
               <div className="self-stretch flex flex-col justify-start items-start overflow-hidden">
                 <div className="h-4 flex items-center mt-1 text-slate-400 text-xs font-medium font-sans leading-4 whitespace-nowrap">Accounting System</div>
@@ -909,7 +921,7 @@ export default function DashboardLayout({
         {/* Main Content Area */}
         <div className="flex-1 self-stretch relative overflow-hidden flex flex-col bg-neutral-100">
           {/* Topbar */}
-          <div className="w-full h-16 px-4 md:px-8 bg-white border-b border-slate-200 inline-flex justify-between items-center flex-shrink-0 z-10 box-border">
+          <div className="w-full h-16 px-4 md:px-8 bg-white border-b border-slate-200 inline-flex justify-between items-center flex-shrink-0 z-50 relative box-border">
             <div className="flex justify-start items-center gap-4 md:gap-6">
               <button 
                 className="md:hidden p-2 rounded-lg hover:bg-slate-100 text-slate-600 flex items-center justify-center outline-none -ml-2"
@@ -927,7 +939,7 @@ export default function DashboardLayout({
               </div>
             </div>
             <div className="flex justify-start items-center gap-4">
-              <div className="flex justify-start items-center gap-3 cursor-pointer p-1 rounded-lg hover:bg-gray-50 transition-colors group relative">
+              <div ref={profileDropdownRef} className="flex justify-start items-center gap-3 cursor-pointer p-1 rounded-lg hover:bg-gray-50 transition-colors relative" onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}>
                 <div className="inline-flex flex-col justify-start items-start">
                   <div className="self-stretch flex flex-col justify-start items-end">
                     <div className="hidden sm:block w-28 h-5 text-right justify-center text-slate-900 text-sm font-semibold font-sans leading-5 truncate">
@@ -949,22 +961,36 @@ export default function DashboardLayout({
                 </div>
 
                 {/* Dropdown Menu for Switching Role */}
-                <div className="hidden group-hover:block absolute top-[100%] right-0 pt-2 z-50 animate-in fade-in slide-in-from-top-2">
-                  <div className="w-48 bg-white border border-slate-200 rounded-lg shadow-lg py-2">
-                    <button onClick={() => setIsAkunSayaModalOpen(true)} className="w-full text-left px-4 py-2 hover:bg-slate-50 transition-colors flex items-center gap-3 text-sm text-slate-700">
-                        <span className="material-icons-round text-[18px] text-slate-400">manage_accounts</span>
-                        Akun Saya
-                    </button>
-                    <button onClick={handleSwitchRole} className="w-full text-left px-4 py-2 hover:bg-slate-50 transition-colors flex items-center gap-3 text-sm text-slate-700 border-t border-slate-100 mt-1 pt-2">
-                        <span className="material-icons-round text-[18px] text-slate-400">swap_horiz</span>
-                        Ganti Peran (Role)
-                    </button>
-                    <button onClick={handleLogout} className="w-full text-left px-4 py-2 hover:bg-red-50 hover:text-red-600 transition-colors flex items-center gap-3 text-sm text-red-500 border-t border-slate-100 mt-1 pt-2">
-                        <span className="material-icons-round text-[18px]">logout</span>
-                        Keluar Akun
-                    </button>
+                {isProfileDropdownOpen && (
+                  <div className="absolute top-full right-0 pt-2 z-[9999]">
+                    <div className="w-48 bg-white border border-slate-200 rounded-lg shadow-lg py-2 animate-in fade-in slide-in-from-top-2">
+                      <button 
+                        type="button"
+                        onClick={() => { setIsProfileDropdownOpen(false); setIsAkunSayaModalOpen(true); }} 
+                        className="w-full text-left px-4 py-2 hover:bg-slate-50 transition-colors flex items-center gap-3 text-sm text-slate-700 cursor-pointer"
+                      >
+                          <span className="material-icons-round text-[18px] text-slate-400">manage_accounts</span>
+                          Akun Saya
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={() => { setIsProfileDropdownOpen(false); handleSwitchRole(); }} 
+                        className="w-full text-left px-4 py-2 hover:bg-slate-50 transition-colors flex items-center gap-3 text-sm text-slate-700 border-t border-slate-100 mt-1 pt-2 cursor-pointer"
+                      >
+                          <span className="material-icons-round text-[18px] text-slate-400">swap_horiz</span>
+                          Ganti Peran (Role)
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={() => { setIsProfileDropdownOpen(false); handleLogout(); }} 
+                        className="w-full text-left px-4 py-2 hover:bg-red-50 hover:text-red-600 transition-colors flex items-center gap-3 text-sm text-red-500 border-t border-slate-100 mt-1 pt-2 cursor-pointer"
+                      >
+                          <span className="material-icons-round text-[18px]">logout</span>
+                          Keluar Akun
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           </div>

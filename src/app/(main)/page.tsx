@@ -17,6 +17,11 @@ import {
   YAxis,
   Tooltip,
   Legend,
+  RadarChart,
+  Radar,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
 } from 'recharts';
 
 // ── TOP-LEVEL BSC HELPER COMPONENTS ──────────────────────────────────────────
@@ -302,7 +307,7 @@ function SatelitComparisonChart({ data }: { data: any[] }) {
   }));
 
   return (
-    <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm mt-8">
+    <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm h-full flex flex-col">
       <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
         <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 shadow-sm">
           <span className="material-icons-round text-indigo-600 text-xl">bar_chart</span>
@@ -333,7 +338,7 @@ function SatelitComparisonChart({ data }: { data: any[] }) {
         </span>
       </div>
 
-      <div className="h-72 w-full">
+      <div className="flex-1 min-h-[280px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} margin={{ top: 10, right: 16, left: -20, bottom: 0 }}>
             {/* Single left axis: 0–100 — semua KPI sekarang persentase */}
@@ -403,7 +408,7 @@ const BSC_PERSPEKTIF_DEF = {
 type PerspektifKey = keyof typeof BSC_PERSPEKTIF_DEF;
 
 // KPIs where LOWER value = better performance
-const LOWER_IS_BETTER = new Set(['kpi5', 'kpi12']);
+const LOWER_IS_BETTER = new Set(['kpi12']);
 
 function kpiAchievement(kpi: any, key: string): number | null {
   if (!kpi || !kpi.data_tersedia || kpi.nilai === null || kpi.target === null) return null;
@@ -447,7 +452,7 @@ function PerspektifSummaryCard({ pKey, d, score }: {
   const def = BSC_PERSPEKTIF_DEF[pKey];
   const kpiLabels: Record<string, string> = {
     kpi1: 'Presensi Jemaat', kpi2: 'Kepuasan (CSAT)', kpi3: 'Retensi Kehadiran',
-    kpi4: 'Respons Pastoral', kpi5: 'Rasio Pengeluaran', kpi6: 'Efisiensi Anggaran',
+    kpi4: 'Respons Pastoral', kpi5: 'Kecukupan Dana', kpi6: 'Efisiensi Anggaran',
     kpi7: 'Tindak Lanjut CSAT', kpi8: 'Presensi Digital', kpi9: 'Kehadiran Pelayan',
     kpi10: 'Konfirmasi Jadwal', kpi11: 'Disiplin Waktu', kpi12: 'Respons Pastoral (Jam)',
   };
@@ -644,6 +649,120 @@ function HeroCarousel() {
   );
 }
 
+
+// ─── NEW BSC UI COMPONENTS ──────────────────────────────────────────────────
+
+function MiniBadge({ status }: { status: "hijau" | "kuning" | "merah" | "abu" }) {
+  const cfg = {
+    hijau:  { label: "TERCAPAI", cls: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+    kuning: { label: "WASPADA",  cls: "bg-amber-100 text-amber-700 border-amber-200" },
+    merah:  { label: "TINDAKAN", cls: "bg-rose-100 text-rose-700 border-rose-200" },
+    abu:    { label: "BELUM ADA",cls: "bg-slate-100 text-slate-500 border-slate-200" },
+  }[status] || { label: "BELUM ADA", cls: "bg-slate-100 text-slate-500 border-slate-200" };
+  return (
+    <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full border ${cfg.cls} tracking-wider`}>
+      {cfg.label}
+    </span>
+  );
+}
+
+function MiniKpiCard({ id, title, kpi, kpiKey, icon, causal, sid, higherIsBetter = true }: any) {
+  if (!kpi) return <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 h-32 animate-pulse" />;
+  const status = kpi.status as "hijau" | "kuning" | "merah" | "abu";
+  
+  const c = {
+    hijau: { bg: 'bg-emerald-50', text: 'text-emerald-600', val: 'text-emerald-700', bar: 'bg-emerald-500', spark: '#10b981' },
+    kuning: { bg: 'bg-amber-50', text: 'text-amber-500', val: 'text-amber-600', bar: 'bg-amber-400', spark: '#f59e0b' },
+    merah: { bg: 'bg-rose-50', text: 'text-rose-500', val: 'text-rose-600', bar: 'bg-rose-500', spark: '#f43f5e' },
+    abu: { bg: 'bg-slate-50', text: 'text-slate-400', val: 'text-slate-500', bar: 'bg-slate-300', spark: '#94a3b8' },
+  }[status] || { bg: 'bg-slate-50', text: 'text-slate-400', val: 'text-slate-500', bar: 'bg-slate-300', spark: '#94a3b8' };
+
+  const pct = kpi.nilai !== null
+    ? Math.min(100, higherIsBetter ? (kpi.nilai / kpi.target) * 100 : (kpi.target / Math.max(kpi.nilai, 0.1)) * 100)
+    : 0;
+
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-3.5 flex flex-col justify-between h-full hover:shadow-md transition-shadow group">
+      <div>
+        <div className="flex items-start justify-between mb-1.5">
+          <div className="flex items-center gap-2">
+            <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${c.bg}`}>
+              <span className={`material-icons-round text-[16px] ${c.text}`}>{icon}</span>
+            </div>
+            <div>
+              <div className="text-[9px] font-bold text-slate-400 tracking-wider">{id}</div>
+              <div className="text-xs font-bold text-slate-700 leading-tight">{title}</div>
+            </div>
+          </div>
+          <MiniBadge status={status} />
+        </div>
+        
+        <div className="flex items-end justify-between mt-2">
+          <div>
+            <span className={`text-xl font-black ${c.val}`}>
+              {kpi.nilai !== null ? kpi.nilai.toLocaleString('id-ID') : '—'}
+            </span>
+            <span className="text-[10px] font-bold text-slate-400 ml-0.5">{kpi.unit}</span>
+          </div>
+          <div className="w-16 h-6 opacity-70 group-hover:opacity-100 transition-opacity">
+            {kpi.nilai !== null && <KpiSparkline kpiKey={kpiKey} color={c.spark} satelitId={sid} />}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-3">
+        <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mb-1.5">
+          <div className={`h-full rounded-full ${c.bar} transition-all`} style={{ width: `${pct}%` }} />
+        </div>
+        <div className="flex items-center justify-between text-[9px] font-bold text-slate-400">
+          <span>Target: {kpi.target !== null ? (higherIsBetter ? '>' : '<') + kpi.target + (kpi.unit === '%'?'%':'') : '-'}</span>
+          <span className={c.val}>{Math.round(pct)}% tercapai</span>
+        </div>
+        {causal && (
+          <div className="flex items-center gap-1 mt-2 pt-2 border-t border-slate-50">
+            <span className="material-icons-round text-[10px] text-indigo-400">arrow_forward</span>
+            <span className="text-[9px] font-medium text-indigo-500 italic">{causal}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function LayerHeader({ color, icon, label, sub, score, achieved, total }: any) {
+  return (
+    <div className={`flex items-center justify-between px-4 py-2.5 rounded-t-xl border-b ${color}`}>
+      <div className="flex items-center gap-2">
+        <span className="material-icons-round text-lg">{icon}</span>
+        <div>
+          <div className="text-xs font-black text-slate-800">{label}</div>
+          <div className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{sub}</div>
+        </div>
+      </div>
+      <div className="flex items-center gap-3">
+        <div className="flex gap-1">
+          {Array.from({ length: total }).map((_, i) => (
+            <div key={i} className={`w-2 h-2 rounded-full ${i < achieved ? "bg-emerald-400" : "bg-slate-200"}`} />
+          ))}
+        </div>
+        <span className="text-sm font-black text-slate-800">{score}%</span>
+      </div>
+    </div>
+  );
+}
+
+function CausalConnector({ label }: { label: string }) {
+  return (
+    <div className="flex flex-col items-center py-1">
+      <div className="flex items-center gap-1.5 bg-indigo-50 border border-indigo-100 rounded-full px-4 py-1 shadow-sm">
+        <span className="material-icons-round text-[12px] text-indigo-400">arrow_upward</span>
+        <span className="text-[10px] text-indigo-600 font-bold">{label}</span>
+        <span className="material-icons-round text-[12px] text-indigo-400">arrow_upward</span>
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardHome() {
   const router = useRouter();
   const [userData, setUserData] = useState<any>(null);
@@ -656,6 +775,7 @@ export default function DashboardHome() {
   const [scanFeedback, setScanFeedback] = useState<{ isVisible: boolean, type: 'success' | 'error', message: string }>({ isVisible: false, type: 'success', message: '' });
   const [activeSurveys, setActiveSurveys] = useState<any[]>([]);
   const [surveyHistory, setSurveyHistory] = useState<any[]>([]);
+  const [showBscDashboard, setShowBscDashboard] = useState(false);
   const [hasEventToday, setHasEventToday] = useState(false);
 
   // Hydrate states synchronously before paint to prevent blink/flash during client-side navigation
@@ -730,9 +850,20 @@ export default function DashboardHome() {
   const [bscTab, setBscTab] = useState<'overview' | 'detail'>('overview');
   const [selectedPerspektif, setSelectedPerspektif] = useState<'jemaat' | 'keuangan' | 'proses' | 'pembelajaran'>('jemaat');
   const now = new Date();
+  const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const [bscMonthFilter, setBscMonthFilter] = useState(
+    `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}`
+  );
+  const expandMonth = (ym: string) => {
+    const [y, m] = ym.split('-').map(Number);
+    const lastDay = new Date(y, m, 0).getDate();
+    return {
+      dari: `${y}-${String(m).padStart(2, '0')}-01`,
+      sampai: `${y}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`,
+    };
+  };
   const [bscFilter, setBscFilter] = useState({
-    dari:       `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`,
-    sampai:     `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()).padStart(2, '0')}`,
+    ...expandMonth(`${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}`),
     satelit_id: '',
   });
 
@@ -1613,7 +1744,7 @@ export default function DashboardHome() {
 
 
 
-  if (isExecRole) {
+  if (isExecRole && showBscDashboard) {
     const d = bscData;
 
     // Hitung pencapaian KPI untuk Summary Bar
@@ -1629,7 +1760,7 @@ export default function DashboardHome() {
       kpi2: { label: "Skor Kepuasan Rata-rata", rec: "Lakukan evaluasi berkala terhadap umpan balik jemaat mengenai ibadah dan fasilitas." },
       kpi3: { label: "Tingkat Retensi Kehadiran Jemaat", rec: "Evaluasi jemaat yang tidak hadir ≥ 1 bulan, aktifkan kunjungan pastoral proaktif, dan perkuat program kelompok kecil." },
       kpi4: { label: "Tingkat Ketepatan Respons Pastoral", rec: "Evaluasi beban kerja tim pastoral dan optimalkan alur penugasan kunjungan jemaat." },
-      kpi5: { label: "Rasio Pengeluaran Kegiatan", rec: "Pantau proporsi total pengeluaran kegiatan (LPJ) agar minimal 30% pemasukan tersisa untuk kas gereja dan biaya tetap." },
+      kpi5: { label: "Tingkat Kecukupan Pendanaan", rec: "Pastikan proyeksi pendapatan (subsidi & kontribusi) disusun secara matang agar seluruh kegiatan terdanai penuh tanpa mengalami defisit (≥ 100%)." },
       kpi6: { label: "Efisiensi Anggaran", rec: "Berikan bimbingan teknis penyusunan proposal kegiatan agar estimasi biaya lebih presisi." },
       kpi7: { label: "Rasio Penyelesaian Tindak Lanjut", rec: "Adakan koordinasi rutin untuk segera menyelesaikan dan menindaklanjuti keluhan dari jemaat." },
       kpi8: { label: "Kelengkapan Data Presensi Bernama", rec: "Tugaskan pelayan pintu (usher) ekstra untuk membantu jemaat melakukan QR scan saat masuk." },
@@ -1674,7 +1805,7 @@ export default function DashboardHome() {
       keuangan: {
         header: { warna: 'bg-emerald-100 text-emerald-600 border border-emerald-200', icon: 'account_balance', title: 'Pengelolaan Keuangan', subtitle: 'Financial Perspective' },
         cards: [
-          <KpiCard key="k5" kpi={d?.kpi5} label="Rasio Pengeluaran" icon="pie_chart" targetLabel="Target: < 70%" higherIsBetter={false} kpiKey="kpi5" satelitId={sid} />,
+          <KpiCard key="k5" kpi={d?.kpi5} label="Tingkat Kecukupan Pendanaan" icon="account_balance_wallet" targetLabel="Target: ≥ 100%" higherIsBetter={true} kpiKey="kpi5" satelitId={sid} />,
           <KpiCard key="k6" kpi={d?.kpi6} label="Efisiensi Anggaran" icon="request_quote" targetLabel="Target: 90%–100%" kpiKey="kpi6" satelitId={sid} />,
         ],
       },
@@ -1699,159 +1830,138 @@ export default function DashboardHome() {
     const detailConf = d ? perspektifDetailConfig[selectedPerspektif] : null;
 
     return (
-      <div className="w-full flex flex-col gap-8 pb-10">
-
-        {/* ── Header — sama seperti /kegiatan ──────────────────────── */}
-        <div className="w-full flex flex-col lg:flex-row justify-between items-start gap-4">
+      <div className="w-full flex flex-col gap-5 pb-10 animate-in fade-in slide-in-from-bottom-2 duration-300">
+        
+        {/* Top header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-1">
           <div className="flex flex-col gap-1">
-            <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Balanced Scorecard</h1>
-            <div className="text-slate-500 text-base font-medium font-sans leading-6">Analisis Kinerja Strategis Organisasi — GSJA Eben Haezer</div>
+            <h1 className="text-slate-900 text-2xl font-black font-sans leading-tight">Balanced Scorecard</h1>
+            <p className="text-slate-400 text-sm font-medium">Analisis Kinerja Strategis Organisasi — GSJA Eben Haezer</p>
           </div>
+          <button 
+            onClick={() => setShowBscDashboard(false)}
+            className="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 px-4 py-2 rounded-xl text-sm font-bold shadow-sm transition-all outline-none"
+          >
+            <span className="material-icons-round text-[18px]">arrow_back</span>
+            Kembali ke Akses Cepat
+          </button>
         </div>
 
-        {/* ── Hero Stat Cards — pattern /kegiatan ─────────────────── */}
-        <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-
-          {/* Card 1: Skor BSC Keseluruhan */}
-          <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex items-center gap-4 hover:shadow-md transition-shadow">
-            <div className="w-14 h-14 bg-indigo-50 rounded-xl flex justify-center items-center">
-              <span className="material-icons-round text-indigo-600 text-3xl">analytics</span>
+        {/* 4 Summary Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">
+              <span className="material-icons-round text-indigo-600 text-xl">analytics</span>
             </div>
-            <div className="flex flex-col">
-              <span className="text-slate-500 text-xs font-bold font-sans uppercase tracking-wide">SKOR BSC KESELURUHAN</span>
-              <div className="flex items-end gap-2 mt-1">
-                <span className="text-slate-900 text-3xl font-bold font-sans leading-9">
-                  {overallScore !== null ? overallScore : '—'}
-                </span>
-                {overallScore !== null && <span className="text-slate-400 text-sm font-bold mb-0.5">/ 100</span>}
+            <div className="flex-1 min-w-0">
+              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Skor BSC</div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-black text-slate-800">{overallScore ?? '-'}</span>
+                <span className="text-xs text-slate-400 font-bold">/ 100</span>
               </div>
               {overallScore !== null && (
-                <div className="w-full h-1.5 bg-slate-100 rounded-full mt-2 overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all duration-700 ${
-                      overallScore >= 85 ? 'bg-emerald-500' : overallScore >= 70 ? 'bg-amber-400' : 'bg-rose-500'
-                    }`}
-                    style={{ width: `${Math.min(overallScore, 100)}%` }}
-                  />
+                <div className="mt-1.5 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div className={`h-full rounded-full transition-all ${overallScore >= 85 ? 'bg-emerald-500' : overallScore >= 70 ? 'bg-amber-400' : 'bg-rose-500'}`} style={{ width: `${Math.min(overallScore, 100)}%` }} />
                 </div>
               )}
             </div>
           </div>
-
-          {/* Card 2: KPI Tercapai */}
-          <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex items-center gap-4 hover:shadow-md transition-shadow">
-            <div className="w-14 h-14 bg-emerald-50 rounded-xl flex justify-center items-center">
-              <span className="material-icons-round text-emerald-600 text-3xl">check_circle</span>
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
+              <span className="material-icons-round text-emerald-600 text-xl">check_circle</span>
             </div>
-            <div className="flex flex-col">
-              <span className="text-slate-500 text-xs font-bold font-sans uppercase tracking-wide">KPI TERCAPAI</span>
-              <div className="flex items-end gap-2 mt-1">
-                <span className="text-emerald-600 text-3xl font-bold font-sans leading-9">{hijauCount}</span>
-                <span className="text-slate-400 text-sm font-bold mb-0.5">/ 12</span>
+            <div className="flex-1 min-w-0">
+              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Tercapai</div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-black text-emerald-600">{hijauCount}</span>
+                <span className="text-xs text-slate-400 font-bold">/ 12</span>
+              </div>
+              <div className="mt-1.5 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(hijauCount/12)*100}%` }} />
               </div>
             </div>
           </div>
-
-          {/* Card 3: KPI Waspada */}
-          <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex items-center gap-4 hover:shadow-md transition-shadow">
-            <div className="w-14 h-14 bg-amber-50 rounded-xl flex justify-center items-center">
-              <span className="material-icons-round text-amber-600 text-3xl">warning</span>
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0">
+              <span className="material-icons-round text-amber-600 text-xl">warning</span>
             </div>
-            <div className="flex flex-col">
-              <span className="text-slate-500 text-xs font-bold font-sans uppercase tracking-wide">KPI WASPADA</span>
-              <div className="flex items-end gap-2 mt-1">
-                <span className="text-amber-600 text-3xl font-bold font-sans leading-9">{kuningCount}</span>
-                <span className="text-slate-400 text-sm font-bold mb-0.5">/ 12</span>
+            <div className="flex-1 min-w-0">
+              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Waspada</div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-black text-amber-600">{kuningCount}</span>
+                <span className="text-xs text-slate-400 font-bold">/ 12</span>
+              </div>
+              <div className="mt-1.5 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-full bg-amber-400 rounded-full" style={{ width: `${(kuningCount/12)*100}%` }} />
               </div>
             </div>
           </div>
-
-          {/* Card 4: Perlu Tindakan */}
-          <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex items-center gap-4 hover:shadow-md transition-shadow">
-            <div className="w-14 h-14 bg-rose-50 rounded-xl flex justify-center items-center">
-              <span className="material-icons-round text-rose-600 text-3xl">error</span>
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center shrink-0">
+              <span className="material-icons-round text-rose-600 text-xl">error</span>
             </div>
-            <div className="flex flex-col">
-              <span className="text-slate-500 text-xs font-bold font-sans uppercase tracking-wide">PERLU TINDAKAN</span>
-              <div className="flex items-end gap-2 mt-1">
-                <span className="text-rose-600 text-3xl font-bold font-sans leading-9">{merahCount}</span>
-                <span className="text-slate-400 text-sm font-bold mb-0.5">/ 12</span>
+            <div className="flex-1 min-w-0">
+              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Tindakan</div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-black text-rose-600">{merahCount}</span>
+                <span className="text-xs text-slate-400 font-bold">/ 12</span>
+              </div>
+              <div className="mt-1.5 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-full bg-rose-500 rounded-full" style={{ width: `${(merahCount/12)*100}%` }} />
               </div>
             </div>
           </div>
-
         </div>
 
-        {/* ── Filter Bar — pattern /kegiatan ──────────────────────── */}
-        <div className="w-full px-4 py-4 bg-white rounded-xl border border-slate-200 flex flex-wrap items-end gap-4 shadow-sm">
-          <div className="flex flex-col gap-1">
-            <label className="text-slate-500 text-xs font-bold font-sans uppercase tracking-wide">Dari</label>
-            <input type="date" value={bscFilter.dari}
-              onChange={e => setBscFilter(p => ({ ...p, dari: e.target.value }))}
-              className="h-10 px-3 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-700 font-sans" />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-slate-500 text-xs font-bold font-sans uppercase tracking-wide">Sampai</label>
-            <input type="date" value={bscFilter.sampai}
-              onChange={e => setBscFilter(p => ({ ...p, sampai: e.target.value }))}
-              className="h-10 px-3 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-700 font-sans" />
+        {/* Filter Bar */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm px-5 py-3 flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Periode</label>
+            <input
+              type="month"
+              value={bscMonthFilter}
+              onChange={e => {
+                const ym = e.target.value;
+                setBscMonthFilter(ym);
+                const expanded = expandMonth(ym);
+                setBscFilter(prev => ({ ...prev, ...expanded }));
+              }}
+              className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 text-slate-600 focus:outline-none focus:border-indigo-400 font-medium"
+            />
           </div>
           {userData?.is_super_admin && satelitList.length > 0 && (
-            <div className="flex flex-col gap-1">
-              <label className="text-slate-500 text-xs font-bold font-sans uppercase tracking-wide">Satelit</label>
+            <div className="flex items-center gap-2">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Satelit</label>
               <div className="relative">
-                <select value={bscFilter.satelit_id}
-                  onChange={e => setBscFilter(p => ({ ...p, satelit_id: e.target.value }))}
-                  className="appearance-none h-10 pl-3 pr-8 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-700 font-sans cursor-pointer">
+                <select value={bscFilter.satelit_id} onChange={e => setBscFilter(p => ({ ...p, satelit_id: e.target.value }))} className="appearance-none text-xs border border-slate-200 rounded-lg pl-2 pr-6 py-1.5 text-slate-600 focus:outline-none focus:border-indigo-400 font-medium cursor-pointer">
                   <option value="">Semua Satelit</option>
                   {satelitList.map((s: any) => <option key={s.id} value={s.id}>{s.nama_satelit}</option>)}
                 </select>
-                <span className="material-icons-round absolute right-2 top-2.5 text-slate-400 pointer-events-none text-[18px]">expand_more</span>
+                <span className="material-icons-round absolute right-1.5 top-1.5 text-slate-400 pointer-events-none text-[16px]">expand_more</span>
               </div>
             </div>
           )}
-          <button onClick={() => fetchBsc(bscFilter)}
-            disabled={loadingBsc}
-            className="h-10 px-5 bg-slate-700 hover:bg-slate-800 disabled:opacity-50 text-white text-sm font-bold font-sans rounded-lg flex items-center gap-2 transition-all shadow-sm active:scale-95 cursor-pointer">
-            {loadingBsc
-              ? <><span className="material-icons-round text-[18px] animate-spin">autorenew</span> Memuat...</>
-              : <><span className="material-icons-round text-[18px]">refresh</span> Muat Data</>
-            }
+          <button onClick={() => fetchBsc(bscFilter)} disabled={loadingBsc} className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold px-4 py-1.5 rounded-lg transition-colors shadow-sm">
+            <span className={`material-icons-round text-[14px] ${loadingBsc ? 'animate-spin' : ''}`}>{loadingBsc ? 'autorenew' : 'refresh'}</span>
+            Muat Data
           </button>
         </div>
 
-        {/* ── Tab Bar ─────────────────────────────────────────────── */}
-        <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-slate-200 shadow-sm w-fit">
-          {[
-            { key: 'overview' as const, label: 'Overview', icon: 'dashboard' },
-            { key: 'detail' as const, label: 'Detail Perspektif', icon: 'view_list' },
-          ].map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setBscTab(tab.key)}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold font-sans transition-all ${
-                bscTab === tab.key
-                  ? 'bg-slate-700 text-white shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
-              }`}
-            >
-              <span className="material-icons-round text-[18px]">{tab.icon}</span>
-              {tab.label}
-            </button>
-          ))}
+        {/* Tab Bar */}
+        <div className="flex gap-2">
+          <button onClick={() => setBscTab('overview')} className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold transition-all ${bscTab === 'overview' ? 'bg-slate-800 text-white shadow-sm' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'}`}>
+            <span className="material-icons-round text-[16px]">dashboard</span> Overview
+          </button>
+          <button onClick={() => setBscTab('detail')} className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold transition-all ${bscTab === 'detail' ? 'bg-slate-800 text-white shadow-sm' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'}`}>
+            <span className="material-icons-round text-[16px]">view_list</span> Detail Perspektif
+          </button>
         </div>
 
-        {/* ── Skeleton saat loading ───────────────────────────────── */}
+        {/* Skeleton */}
         {loadingBsc && !d && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {[1,2,3,4].map(i => (
-              <div key={i} className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-                <div className="h-6 bg-slate-200 rounded-lg w-2/3 mb-4 animate-pulse" />
-                <div className="grid grid-cols-2 gap-3">
-                  {[1,2,3,4].map(j => <div key={j} className="h-28 bg-slate-100/50 rounded-xl animate-pulse" />)}
-                </div>
-              </div>
-            ))}
+          <div className="flex flex-col items-center justify-center py-20 text-center gap-3 bg-white rounded-xl border border-slate-200 shadow-sm">
+            <span className="material-icons-round text-5xl text-slate-200 animate-spin">autorenew</span>
+            <p className="font-bold text-slate-400">Memuat data BSC...</p>
           </div>
         )}
 
@@ -1859,138 +1969,109 @@ export default function DashboardHome() {
         {/* ── TAB 1: OVERVIEW ──────────────────────────────────────  */}
         {/* ══════════════════════════════════════════════════════════ */}
         {bscTab === 'overview' && d && (
-          <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-
-            {/* ── Hero KPI-3: Retensi Kehadiran (visi puncak BSC) ──── */}
-            <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 bg-indigo-100 rounded-xl flex justify-center items-center">
-                  <span className="material-icons-round text-indigo-600 text-2xl">loyalty</span>
-                </div>
-                <div className="flex-1">
-                  <p className="text-slate-800 text-base font-bold">Retensi Kehadiran Jemaat</p>
-                  <p className="text-slate-400 text-xs font-medium">KPI-3 — Visi Puncak BSC: Jemaat Terpelihara Aktif dan Terlayani Secara Terukur</p>
-                </div>
-                {d.kpi3?.data_tersedia && d.kpi3?.nilai !== null && (
-                  <div className="text-right">
-                    <span className={`text-4xl font-black ${
-                      d.kpi3.status === 'hijau' ? 'text-emerald-600' : d.kpi3.status === 'kuning' ? 'text-amber-600' : d.kpi3.status === 'merah' ? 'text-rose-600' : 'text-slate-400'
-                    }`}>
-                      {d.kpi3.nilai}%
-                    </span>
-                    <p className="text-slate-400 text-xs font-bold mt-0.5">Target: ≥ 85%</p>
-                  </div>
-                )}
+          <div className="flex flex-col gap-4 animate-in fade-in duration-300">
+            {/* Insight Banner */}
+            <div className="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-100 rounded-xl p-4 flex gap-3 shadow-sm">
+              <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+                <span className="material-icons-round text-white text-[16px]">insights</span>
               </div>
-
-              {/* Progress bar besar */}
-              {d.kpi3?.data_tersedia && d.kpi3?.nilai !== null && (
-                <>
-                  <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden mb-3">
-                    <div
-                      className={`h-full rounded-full transition-all duration-700 ${
-                        d.kpi3.status === 'hijau' ? 'bg-emerald-500' : d.kpi3.status === 'kuning' ? 'bg-amber-400' : 'bg-rose-500'
-                      }`}
-                      style={{ width: `${Math.min(d.kpi3.nilai, 100)}%` }}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    {d.kpi3.numerator !== undefined && d.kpi3.denominator !== undefined && (
-                      <span className="text-slate-500 text-sm font-medium">
-                        <strong className="text-slate-700">{d.kpi3.numerator}</strong> dari <strong className="text-slate-700">{d.kpi3.denominator}</strong> jemaat aktif hadir bulan ini
-                      </span>
-                    )}
-                    <KpiMomBadge kpiKey="kpi3" satelitId={sid} higherIsBetter={true} />
-                  </div>
-                </>
-              )}
-              {(!d.kpi3?.data_tersedia || d.kpi3?.nilai === null) && (
-                <p className="text-slate-400 text-sm">Belum ada data presensi untuk periode ini.</p>
-              )}
-
-              {/* Sparkline tren 6 bulan */}
-              <div className="mt-4 h-10">
-                <KpiSparkline kpiKey="kpi3" color={d.kpi3?.status === 'hijau' ? '#10b981' : d.kpi3?.status === 'kuning' ? '#f59e0b' : '#f43f5e'} satelitId={sid} />
+              <div>
+                <div className="text-sm font-black text-indigo-900 mb-1">Cerita Data Bulan Ini</div>
+                <p className="text-xs font-medium text-indigo-800 leading-relaxed">
+                  <strong>{hijauCount} dari 12 KPI tercapai.</strong> Skor keseluruhan mencapai <strong>{overallScore}%</strong>.
+                  {merahCount > 0 ? ` Perhatikan ${merahCount} KPI yang memerlukan tindakan segera.` : ` Performa bulan ini sangat baik tanpa KPI kritis.`}
+                </p>
               </div>
             </div>
 
-            {/* ── 4 Perspektif Summary Cards (2×2 grid) ────────────── */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {(Object.keys(BSC_PERSPEKTIF_DEF) as PerspektifKey[]).map(pKey => (
-                <PerspektifSummaryCard key={pKey} pKey={pKey} d={d} score={pScores[pKey]} />
-              ))}
+            {/* LAYER 1: PUNCAK BSC */}
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <LayerHeader color="bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-100" icon={<span className="text-emerald-600 material-icons-round">star</span>} label="Tujuan Akhir (Puncak BSC)" sub="Ultimate Goal" score={pScores.jemaat} achieved={1} total={1} />
+              <div className="p-5">
+                <div className="flex flex-col md:flex-row gap-6 items-center">
+                  <div className="flex-1 w-full">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
+                        <span className="material-icons-round text-emerald-600 text-xl">favorite</span>
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-bold text-slate-400 mb-0.5">KPI-3</div>
+                        <div className="text-sm font-black text-slate-800">Tingkat Retensi Kehadiran Jemaat</div>
+                        <div className="text-[10px] font-medium text-slate-400 italic mt-0.5">Muara dari seluruh performa operasional gereja</div>
+                      </div>
+                    </div>
+                    <div className="mt-4 flex items-center gap-4">
+                      <div>
+                        <span className={`text-5xl font-black ${d.kpi3?.status==='hijau'?'text-emerald-600':d.kpi3?.status==='kuning'?'text-amber-500':'text-rose-500'}`}>{d.kpi3?.nilai ?? '-'}</span>
+                        <span className="text-xl text-slate-400 font-bold ml-1">%</span>
+                      </div>
+                      <div className="flex flex-col gap-1.5 items-start">
+                        <MiniBadge status={d.kpi3?.status || 'abu'} />
+                        <div className="text-xs font-bold text-slate-400">Target: ≥ 85%</div>
+                        <KpiMomBadge kpiKey="kpi3" satelitId={sid} higherIsBetter={true} />
+                      </div>
+                    </div>
+                    <div className="mt-4 w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full transition-all ${d.kpi3?.status==='hijau'?'bg-emerald-500':d.kpi3?.status==='kuning'?'bg-amber-400':'bg-rose-500'}`} style={{ width: `${Math.min(d.kpi3?.nilai ?? 0, 100)}%` }} />
+                    </div>
+                    <div className="flex justify-between text-[10px] font-bold text-slate-400 mt-1.5">
+                      <span>0%</span><span className="text-emerald-600">{d.kpi3?.nilai ?? 0}% / Target 85%</span><span>100%</span>
+                    </div>
+                  </div>
+                  <div className="flex-1 w-full flex flex-col h-32 border-l border-slate-100 pl-6">
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Tren Terakhir</div>
+                    <div className="flex-1 w-full bg-slate-50/50 rounded-lg flex items-end">
+                       <KpiSparkline kpiKey="kpi3" color={d.kpi3?.status==='hijau'?'#10b981':d.kpi3?.status==='kuning'?'#f59e0b':'#f43f5e'} satelitId={sid} />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* ── KPI Perlu Perhatian (preserved from original) ────── */}
-            {troubledKpis.length > 0 && (
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col gap-4 hover:shadow-md transition-shadow">
-                <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
-                  <div className="w-10 h-10 bg-rose-50 rounded-xl flex justify-center items-center">
-                    <span className="material-icons-round text-rose-500 text-xl">gavel</span>
-                  </div>
-                  <div>
-                    <h2 className="text-slate-800 text-sm font-bold">KPI Perlu Perhatian</h2>
-                    <p className="text-rose-500 text-[10px] font-bold uppercase tracking-wider mt-0.5">Tindakan Cepat Diperlukan Untuk Indikator Di Bawah Target</p>
-                  </div>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse text-left min-w-[600px]">
-                    <thead>
-                      <tr className="border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                        <th className="pb-3 pr-4 font-black">Indikator Kinerja (KPI)</th>
-                        <th className="pb-3 px-4 font-black text-center w-28">Status</th>
-                        <th className="pb-3 px-4 font-black text-right w-28">Realisasi</th>
-                        <th className="pb-3 px-4 font-black text-right w-28">Target</th>
-                        <th className="pb-3 pl-4 font-black">Rekomendasi Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 text-xs">
-                      {troubledKpis.map(({ key, label, kpi, rec }) => {
-                        const colors = {
-                          merah: { text: 'text-rose-600', badge: 'bg-rose-50 text-rose-700 border-rose-200' },
-                          kuning: { text: 'text-amber-600', badge: 'bg-amber-50 text-amber-700 border-amber-200' },
-                        }[kpi.status as 'merah' | 'kuning'] || { text: 'text-slate-600', badge: 'bg-slate-50 text-slate-700 border-slate-200' };
-                        return (
-                          <tr key={key} className="hover:bg-slate-50/50 transition-colors">
-                            <td className="py-3.5 pr-4 font-extrabold text-slate-800 leading-snug">{label}</td>
-                            <td className="py-3.5 px-4 text-center">
-                              <span className={`inline-block text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider border ${colors.badge}`}>
-                                {kpi.status === 'merah' ? 'Kritis' : 'Waspada'}
-                              </span>
-                            </td>
-                            <td className={`py-3.5 px-4 text-right font-black ${colors.text}`}>
-                              {kpi.nilai !== null ? kpi.nilai.toLocaleString('id-ID') : '—'} {kpi.unit}
-                            </td>
-                            <td className="py-3.5 px-4 text-right font-bold text-slate-500">
-                              {kpi.target !== null ? kpi.target.toLocaleString('id-ID') : '—'} {kpi.unit}
-                            </td>
-                            <td className="py-3.5 pl-4 font-medium text-slate-600 leading-relaxed">{rec}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+            <CausalConnector label="Retensi didorong oleh → Kepuasan & Kehadiran Jemaat" />
+
+            {/* LAYER 2: JEMAAT */}
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <LayerHeader color="bg-indigo-50 border-indigo-100" icon={<span className="text-indigo-600 material-icons-round">groups</span>} label="Perspektif Jemaat" sub="Customer Perspective" score={pScores.jemaat} achieved={d.kpi1?.status==='hijau'?1:0 + (d.kpi2?.status==='hijau'?1:0) + (d.kpi4?.status==='hijau'?1:0)} total={3} />
+              <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <MiniKpiCard id="KPI-1" title="Rasio Presensi Jemaat" kpi={d.kpi1} kpiKey="kpi1" icon="how_to_reg" causal="Mendukung Retensi" sid={sid} />
+                <MiniKpiCard id="KPI-4" title="Ketepatan Respons Pastoral" kpi={d.kpi4} kpiKey="kpi4" icon="support_agent" causal="Menjaga Kepuasan & Retensi" sid={sid} />
+                <MiniKpiCard id="KPI-2" title="Skor Kepuasan (CSAT)" kpi={d.kpi2} kpiKey="kpi2" icon="star" causal="Mendukung Retensi" sid={sid} />
+              </div>
+            </div>
+
+            <CausalConnector label="Kepuasan didukung oleh → Proses Internal & Keuangan yang sehat" />
+
+            {/* LAYER 3: PROSES & KEUANGAN */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                <LayerHeader color="bg-amber-50 border-amber-100" icon={<span className="text-amber-600 material-icons-round">settings</span>} label="Proses Bisnis Internal" sub="Internal Process" score={pScores.proses} achieved={d.kpi7?.status==='hijau'?1:0 + (d.kpi8?.status==='hijau'?1:0)} total={2} />
+                <div className="p-4 grid grid-cols-1 gap-4 flex-1">
+                  <MiniKpiCard id="KPI-8" title="Akurasi Data Presensi" kpi={d.kpi8} kpiKey="kpi8" icon="storage" causal="Validasi Angka Presensi & Retensi" sid={sid} />
+                  <MiniKpiCard id="KPI-7" title="Penyelesaian Keluhan Jemaat" kpi={d.kpi7} kpiKey="kpi7" icon="task_alt" causal="Meningkatkan Kepuasan Jemaat" sid={sid} />
                 </div>
               </div>
-            )}
-
-            {/* ── Semua KPI Aman ───────────────────────────────────── */}
-            {troubledKpis.length === 0 && (
-              <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex items-center gap-4 hover:shadow-md transition-shadow">
-                <div className="w-14 h-14 bg-emerald-50 rounded-xl flex justify-center items-center">
-                  <span className="material-icons-round text-emerald-600 text-3xl">verified</span>
-                </div>
-                <div>
-                  <p className="text-slate-800 text-base font-bold">Semua KPI Berjalan Optimal</p>
-                  <p className="text-slate-500 text-sm font-medium mt-0.5">Pertahankan performa luar biasa! Seluruh indikator kinerja memenuhi atau melampaui target.</p>
+              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                <LayerHeader color="bg-emerald-50 border-emerald-100" icon={<span className="text-emerald-600 material-icons-round">account_balance</span>} label="Keuangan" sub="Financial Perspective" score={pScores.keuangan} achieved={d.kpi5?.status==='hijau'?1:0 + (d.kpi6?.status==='hijau'?1:0)} total={2} />
+                <div className="p-4 grid grid-cols-1 gap-4 flex-1">
+                  <MiniKpiCard id="KPI-5" title="Kecukupan Pendanaan" kpi={d.kpi5} kpiKey="kpi5" icon="account_balance_wallet" causal="Memungkinkan Efisiensi Anggaran" sid={sid} higherIsBetter={true} />
+                  <MiniKpiCard id="KPI-6" title="Efisiensi Anggaran Kegiatan" kpi={d.kpi6} kpiKey="kpi6" icon="request_quote" causal="Mendukung Kualitas Kegiatan" sid={sid} />
                 </div>
               </div>
-            )}
+            </div>
 
-            {/* ── Perbandingan Antar Satelit ────────────────────────── */}
-            {userData?.is_super_admin && bscFilter.satelit_id === '' && satelitComparisonData && (
-              <SatelitComparisonChart data={satelitComparisonData} />
-            )}
+            <CausalConnector label="Proses lancar didukung oleh → Kesiapan & Disiplin Tim Pelayan" />
+
+            {/* LAYER 4: PEMBELAJARAN */}
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <LayerHeader color="bg-violet-50 border-violet-100" icon={<span className="text-violet-600 material-icons-round">school</span>} label="Pembelajaran & Pertumbuhan" sub="Learning & Growth · Fondasi Operasional" score={pScores.pembelajaran} achieved={d.kpi9?.status==='hijau'?1:0 + (d.kpi10?.status==='hijau'?1:0) + (d.kpi11?.status==='hijau'?1:0) + (d.kpi12?.status==='hijau'?1:0)} total={4} />
+              <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <MiniKpiCard id="KPI-10" title="Konfirmasi Jadwal" kpi={d.kpi10} kpiKey="kpi10" icon="schedule_send" causal="Meningkatkan Kehadiran Pelayan" sid={sid} />
+                <MiniKpiCard id="KPI-9" title="Kehadiran Pelayan" kpi={d.kpi9} kpiKey="kpi9" icon="volunteer_activism" causal="Memastikan Operasional Lancar" sid={sid} />
+                <MiniKpiCard id="KPI-11" title="Disiplin Waktu Pelayan" kpi={d.kpi11} kpiKey="kpi11" icon="alarm_on" causal="Memastikan Operasional Lancar" sid={sid} />
+                <MiniKpiCard id="KPI-12" title="Respons Pastoral" kpi={d.kpi12} kpiKey="kpi12" icon="timer" causal="Mendorong Ketepatan SLA" sid={sid} higherIsBetter={false} />
+              </div>
+            </div>
           </div>
         )}
 
@@ -1998,73 +2079,111 @@ export default function DashboardHome() {
         {/* ── TAB 2: DETAIL PERSPEKTIF ─────────────────────────────  */}
         {/* ══════════════════════════════════════════════════════════ */}
         {bscTab === 'detail' && d && (
-          <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-
-            {/* ── Perspektif Selector Tabs ──────────────────────────── */}
-            <div className="w-full px-4 py-4 bg-white rounded-xl border border-slate-200 shadow-sm">
-              <div className="flex flex-wrap gap-2">
-                {(Object.entries(BSC_PERSPEKTIF_DEF) as [PerspektifKey, typeof BSC_PERSPEKTIF_DEF[PerspektifKey]][]).map(([pKey, pDef]) => (
-                  <button
-                    key={pKey}
-                    onClick={() => setSelectedPerspektif(pKey)}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold font-sans transition-all ${
-                      selectedPerspektif === pKey
-                        ? 'bg-slate-700 text-white shadow-sm'
-                        : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50 border border-slate-200'
-                    }`}
-                  >
+          <div className="flex flex-col gap-6 animate-in fade-in duration-300">
+            {/* Perspektif Selector Tabs */}
+            <div className="w-full bg-white rounded-xl border border-slate-200 shadow-sm flex overflow-hidden">
+              {(Object.entries(BSC_PERSPEKTIF_DEF) as [PerspektifKey, typeof BSC_PERSPEKTIF_DEF[PerspektifKey]][]).map(([pKey, pDef]) => (
+                <button
+                  key={pKey}
+                  onClick={() => setSelectedPerspektif(pKey)}
+                  className={`flex-1 flex flex-col items-center justify-center gap-1.5 py-4 px-2 transition-all border-b-2 ${
+                    selectedPerspektif === pKey
+                      ? 'bg-slate-50 border-indigo-600 text-indigo-700'
+                      : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50/50'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
                     <span className="material-icons-round text-[18px]">{pDef.icon}</span>
-                    {pDef.shortLabel}
-                    {pScores[pKey] !== null && (
-                      <span className={`text-xs font-black px-1.5 py-0.5 rounded-full ${
-                        selectedPerspektif === pKey ? 'bg-white/20' : 'bg-slate-100'
-                      }`}>
-                        {pScores[pKey]}%
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
+                    <span className="font-bold text-sm">{pDef.shortLabel}</span>
+                  </div>
+                  {pScores[pKey] !== null && (
+                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${selectedPerspektif === pKey ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>
+                      {pScores[pKey]}%
+                    </span>
+                  )}
+                </button>
+              ))}
             </div>
 
-            {/* ── Perspektif Header ────────────────────────────────── */}
+            {/* Perspektif Header & Content */}
             {detailConf && (
-              <>
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${detailConf.header.warna} shadow-sm shrink-0`}>
-                    <span className="material-icons-round text-lg">{detailConf.header.icon}</span>
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+                <div className="flex items-center gap-4 pb-5 mb-5 border-b border-slate-100">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-sm shrink-0 ${detailConf.header.warna}`}>
+                    <span className="material-icons-round text-2xl">{detailConf.header.icon}</span>
                   </div>
                   <div>
-                    <h3 className="font-bold text-slate-800 text-base leading-tight">{detailConf.header.title}</h3>
+                    <h3 className="font-black text-slate-800 text-xl leading-tight">{detailConf.header.title}</h3>
                     <p className="text-[10px] text-slate-400 font-bold tracking-widest uppercase mt-0.5">{detailConf.header.subtitle}</p>
                   </div>
                   {pScores[selectedPerspektif] !== null && (
-                    <span className="ml-auto text-2xl font-black text-slate-700">{pScores[selectedPerspektif]}%</span>
+                    <div className="ml-auto text-right">
+                      <span className="text-3xl font-black text-slate-800">{pScores[selectedPerspektif]}%</span>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Skor Perspektif</p>
+                    </div>
                   )}
                 </div>
 
-                {/* ── KPI Cards ────────────────────────────────────── */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* KPI Cards Grid for Detail Tab */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                   {detailConf.cards}
                 </div>
-              </>
+              </div>
             )}
 
-            {/* ── Perbandingan Antar Satelit (di Detail tab juga) ── */}
-            {userData?.is_super_admin && bscFilter.satelit_id === '' && satelitComparisonData && (
-              <SatelitComparisonChart data={satelitComparisonData} />
-            )}
+            {/* Perbandingan Antar Satelit & Radar Chart */}
+            <div className="grid grid-cols-1 xl:grid-cols-5 gap-6 mt-2 pb-8">
+              <div className="xl:col-span-3">
+                {userData?.is_super_admin && bscFilter.satelit_id === '' && satelitComparisonData && (
+                  <SatelitComparisonChart data={satelitComparisonData} />
+                )}
+              </div>
+              <div className="xl:col-span-2">
+                <div className="bg-white rounded-[24px] border border-slate-200/80 shadow-sm p-6 h-full flex flex-col">
+                  <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+                    <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 shadow-sm">
+                      <span className="material-icons-round text-indigo-600 text-xl">radar</span>
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-slate-800 text-base tracking-tight">Radar Kesehatan Organisasi</h3>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Pencapaian vs Target (%)</p>
+                    </div>
+                  </div>
+                  <div className="flex-1 min-h-[280px] w-full relative">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RadarChart data={[
+                        { subject: "Presensi", A: kpiAchievement(d?.kpi1, 'kpi1') ?? 0 },
+                        { subject: "Kepuasan", A: kpiAchievement(d?.kpi2, 'kpi2') ?? 0 },
+                        { subject: "Retensi",  A: kpiAchievement(d?.kpi3, 'kpi3') ?? 0 },
+                        { subject: "SLA Past.",A: kpiAchievement(d?.kpi4, 'kpi4') ?? 0 },
+                        { subject: "Dana",     A: kpiAchievement(d?.kpi5, 'kpi5') ?? 0 },
+                        { subject: "Efisiensi",A: kpiAchievement(d?.kpi6, 'kpi6') ?? 0 },
+                        { subject: "Keluhan",  A: kpiAchievement(d?.kpi7, 'kpi7') ?? 0 },
+                        { subject: "Akurasi",  A: kpiAchievement(d?.kpi8, 'kpi8') ?? 0 },
+                        { subject: "Pelayan",  A: kpiAchievement(d?.kpi9, 'kpi9') ?? 0 },
+                        { subject: "Jadwal",   A: kpiAchievement(d?.kpi10, 'kpi10') ?? 0 },
+                        { subject: "Disiplin", A: kpiAchievement(d?.kpi11, 'kpi11') ?? 0 },
+                        { subject: "Respons",  A: kpiAchievement(d?.kpi12, 'kpi12') ?? 0 },
+                      ]} margin={{ top: 10, right: 30, left: 30, bottom: 10 }}>
+                        <PolarGrid stroke="#e2e8f0" />
+                        <PolarAngleAxis dataKey="subject" tick={{ fontSize: 9, fill: "#64748b", fontWeight: "bold" }} />
+                        <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 8 }} tickCount={5} />
+                        <Radar name="Pencapaian" dataKey="A" stroke="#6366f1" fill="#6366f1" fillOpacity={0.15} strokeWidth={2} />
+                        <Tooltip 
+                          contentStyle={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                          labelStyle={{ color: '#1e293b', fontWeight: 'bold' }}
+                          itemStyle={{ fontSize: '11px', color: '#475569' }}
+                          formatter={(v: any) => [`${Math.round(Number(v) || 0)}%`, "Pencapaian"]} 
+                        />
+                      </RadarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
-        {/* ── State kosong — belum ada data ────────────────────────── */}
-        {!loadingBsc && !d && (
-          <div className="flex flex-col items-center justify-center py-20 text-center gap-3 bg-white rounded-xl border border-slate-200 shadow-sm">
-            <span className="material-icons-round text-5xl text-slate-300">analytics</span>
-            <p className="font-bold text-slate-400">Belum ada data BSC untuk periode ini.</p>
-            <p className="text-sm text-slate-500">Klik <strong>Muat Data</strong> untuk memulai.</p>
-          </div>
-        )}
       </div>
     );
   }
@@ -2081,7 +2200,7 @@ export default function DashboardHome() {
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 80% 50%, white 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
         <div className="relative z-10">
           <p className="text-indigo-200 text-sm font-medium mb-1">Selamat datang kembali,</p>
-          <h1 className="text-2xl font-black tracking-tight mb-1">{userData?.nama_lengkap || 'Pengguna'}</h1>
+          <h1 className="text-2xl font-black tracking-tight mb-1">{userData?.nama_lengkap || userData?.email || 'Pengguna'}</h1>
           <span className="inline-block text-xs font-bold bg-white/20 backdrop-blur border border-white/30 px-3 py-1 rounded-full">
             {userData?.role_name?.replace(/_/g, ' ')}
             {userData?.nama_satelit ? ` — ${userData.nama_satelit}` : ''}
@@ -2096,6 +2215,17 @@ export default function DashboardHome() {
           Akses Cepat
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          {isExecRole && (
+            <button 
+              onClick={() => setShowBscDashboard(true)}
+              className="group flex flex-col items-center gap-3 p-5 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all outline-none"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-sm">
+                <span className="material-icons-round text-white text-2xl">insert_chart</span>
+              </div>
+              <p className="text-sm font-bold text-slate-700 group-hover:text-indigo-600 transition-colors text-center">Dashboard BSC</p>
+            </button>
+          )}
           {[
             { perm: 'kegiatan_view',        href: '/kegiatan',         icon: 'event',          label: 'Kegiatan',       color: 'from-blue-500 to-indigo-600' },
             { perm: 'jemaat_view',           href: '/jemaat',           icon: 'groups',         label: 'Jemaat',         color: 'from-teal-500 to-emerald-600' },

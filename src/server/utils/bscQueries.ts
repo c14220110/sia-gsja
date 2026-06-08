@@ -11,17 +11,15 @@ export interface RawKpi {
   denominator?: number;
 }
 
-// KPI-1: Rasio Presensi Jemaat (target > 80%)
-// Definisi BSC: AVG(hadir_QR_unik per sesi / total_jemaat_aktif) × 100%
+// KPI1: Rasio Presensi Jemaat (target > 80%)
+// rumus BSC: AVG(hadir_QR_unik per sesi Ibadah Raya / total_jemaat_aktif_satelit_itu) × 100%
+// CUMA Ibadah Raya (jenis_kegiatan_id = 1) — ibadah rutin utama yang wajib dihadiri semua jemaat.
 export async function getKpi1(dari: string, sampai: string, satelitId: number | null): Promise<RawKpi> {
   const p: (string | number)[] = [dari, sampai];
   const sfK = satelitId ? ` AND k.satelit_id = $${p.push(satelitId)}` : '';
-  // Parameter index untuk query jemaat (bisa berbeda posisi)
-  const pJ: (string | number)[] = [];
-  const sfJ = satelitId ? ` AND satelit_id = $${pJ.push(satelitId)}` : '';
 
   const [rSesi, rAktif] = await Promise.all([
-    // Per-sesi: COUNT DISTINCT jemaat_id QR hadir per kegiatan
+    // Per-sesi: COUNT DISTINCT jemaat_id QR hadir per Ibadah Raya
     pool.query(
       `SELECT
          k.satelit_id,
@@ -34,21 +32,24 @@ export async function getKpi1(dari: string, sampai: string, satelitId: number | 
          ) AS hadir_bernama
        FROM public.kegiatan k
        LEFT JOIN public.kegiatan_absensi ka ON ka.kegiatan_id = k.id
-       WHERE k.jenis_kegiatan_id IN (
-           SELECT id FROM public.jenis_kegiatan WHERE butuh_permohonan = false
-         )
+       WHERE k.jenis_kegiatan_id = 1  -- Hanya Kebaktian Umum (Ibadah Raya)
          AND k.tanggal_mulai BETWEEN $1 AND $2${sfK}
        GROUP BY k.id, k.satelit_id`,
       p,
     ),
-    // Total jemaat aktif per satelit (atau global)
+    // Total jemaat aktif PER satelit yang punya sesi Ibadah Raya dalam periode ini
     pool.query(
-      `SELECT satelit_id, COUNT(id) AS aktif
-       FROM public.jemaat
-       WHERE status_jemaat = 'Aktif'
-         AND is_deleted = false${sfJ}
-       GROUP BY satelit_id`,
-      pJ,
+      `SELECT j.satelit_id, COUNT(j.id) AS aktif
+       FROM public.jemaat j
+       WHERE j.status_jemaat = 'Aktif'
+         AND j.is_deleted = false
+         AND j.satelit_id IN (
+           SELECT DISTINCT satelit_id FROM public.kegiatan
+           WHERE jenis_kegiatan_id = 1
+             AND tanggal_mulai BETWEEN $1 AND $2${sfK}
+         )
+       GROUP BY j.satelit_id`,
+      p,
     ),
   ]);
 
@@ -81,9 +82,11 @@ export async function getKpi1(dari: string, sampai: string, satelitId: number | 
     target: 80,
     unit: '%',
     data_tersedia: jumlahSesi > 0,
-    numerator: jumlahSesi > 0 ? Math.round(totalHadir / jumlahSesi) : 0, // avg hadir per sesi
+    numerator: jumlahSesi > 0 ? Math.round(totalHadir / jumlahSesi) : 0,
     denominator: totalAktif,
-    pesan: jumlahSesi > 0 ? `Rata-rata dari ${jumlahSesi} sesi kegiatan` : undefined,
+    pesan: jumlahSesi > 0
+      ? `Rata-rata ${Math.round(totalHadir / jumlahSesi)} dari ${totalAktif} jemaat per sesi Ibadah Raya (${jumlahSesi} sesi)`
+      : 'Belum ada sesi Ibadah Raya dalam periode ini.',
   };
 }
 
@@ -120,34 +123,41 @@ export async function getKpi2(dari: string, sampai: string, satelitId: number | 
 }
 
 // KPI-3: Tingkat Retensi Kehadiran Jemaat (target >= 85%)
-// Definisi BSC: (COUNT DISTINCT jemaat_id hadir ÷ COUNT jemaat aktif) × 100%
-// Mengukur persentase jemaat aktif yang hadir minimal 1× dalam periode
+// Definisi BSC: (COUNT DISTINCT jemaat hadir di Ibadah Rutin ÷ COUNT jemaat aktif di satelit yang punya kegiatan) × 100%
+// Hanya kegiatan 'Ibadah Rutin' (Ibadah Raya, SM, Kaum Muda, dll) — Event & Perayaan tidak dihitung.
+// Penyebut dibatasi hanya jemaat dari satelit yang memiliki sesi Ibadah Rutin dalam periode.
 export async function getKpi3(dari: string, sampai: string, satelitId: number | null): Promise<RawKpi> {
   const p: (string | number)[] = [dari, sampai];
   const sfK = satelitId ? ` AND k.satelit_id = $${p.push(satelitId)}` : '';
 
-  const pJ: (string | number)[] = [];
-  const sfJ = satelitId ? ` AND satelit_id = $${pJ.push(satelitId)}` : '';
-
   const [rHadir, rAktif] = await Promise.all([
-    // Pembilang: Jemaat aktif yang hadir ≥ 1× dalam periode (DISTINCT per jemaat)
+    // Pembilang: Jemaat aktif yang hadir ≥ 1× di kegiatan Ibadah Rutin dalam periode
     pool.query(
       `SELECT COUNT(DISTINCT ka.jemaat_id) AS hadir_unik
        FROM public.kegiatan_absensi ka
        JOIN public.kegiatan k ON k.id = ka.kegiatan_id
+       JOIN public.jenis_kegiatan jk ON jk.id = k.jenis_kegiatan_id
        WHERE ka.role_kehadiran = 'Jemaat'
          AND ka.status_kehadiran = 'Hadir'
          AND ka.jemaat_id IS NOT NULL
+         AND jk.kategori = 'Ibadah Rutin'
          AND k.tanggal_mulai BETWEEN $1 AND $2${sfK}`,
       p,
     ),
-    // Penyebut: Total jemaat aktif terdaftar
+    // Penyebut: Total jemaat aktif HANYA dari satelit yang punya sesi Ibadah Rutin di periode ini
     pool.query(
-      `SELECT COUNT(id) AS aktif
-       FROM public.jemaat
-       WHERE status_jemaat = 'Aktif'
-         AND is_deleted = false${sfJ}`,
-      pJ,
+      `SELECT COUNT(DISTINCT j.id) AS aktif
+       FROM public.jemaat j
+       WHERE j.status_jemaat = 'Aktif'
+         AND j.is_deleted = false
+         AND j.satelit_id IN (
+           SELECT DISTINCT k.satelit_id FROM public.kegiatan k
+           JOIN public.jenis_kegiatan jk ON jk.id = k.jenis_kegiatan_id
+           WHERE jk.kategori = 'Ibadah Rutin'
+             AND k.tanggal_mulai BETWEEN $1 AND $2${sfK}
+           AND k.satelit_id IS NOT NULL
+         )`,
+      p,
     ),
   ]);
 
@@ -164,8 +174,8 @@ export async function getKpi3(dari: string, sampai: string, satelitId: number | 
     numerator: hadirUnik,
     denominator: totalAktif,
     pesan: dataTersedia
-      ? `${hadirUnik} dari ${totalAktif} jemaat aktif hadir setidaknya sekali dalam periode ini`
-      : 'Belum ada data jemaat aktif.',
+      ? `${hadirUnik} dari ${totalAktif} jemaat aktif hadir minimal 1× di Ibadah Rutin pada periode ini`
+      : 'Belum ada sesi Ibadah Rutin dalam periode ini.',
   };
 }
 
@@ -194,99 +204,107 @@ export async function getKpi4(dari: string, sampai: string, satelitId: number | 
   return { nilai, target: 90, unit: '%', data_tersedia: total > 0, numerator: onTime, denominator: total };
 }
 
-// KPI-5: Rasio Pengeluaran Kegiatan terhadap Pemasukan (target < 70%, lower is better)
-// Definisi: (Total pengeluaran LPJ ÷ Total pemasukan via SIA) × 100%
+// KPI-5: Tingkat Kecukupan Pendanaan Kegiatan (target >= 100%, higher is better)
+// Definisi: ((Total Subsidi Gereja + Total Kontribusi Peserta) ÷ Total Pengeluaran LPJ) × 100%
 export async function getKpi5(dari: string, sampai: string, satelitId: number | null): Promise<RawKpi> {
-  // 1. Pembilang: Total pengeluaran dari kegiatan_lpj pada periode
   const pLPJ: (string | number)[] = [dari, sampai];
   const sfLPJ = satelitId ? ` AND k.satelit_id = $${pLPJ.push(satelitId)}` : '';
   const rLPJ = await pool.query(
-    `SELECT COALESCE(SUM(lpj.total_pengeluaran), 0) AS total_beban
+    `SELECT 
+       COALESCE(SUM(lpj.total_subsidi_gereja + lpj.total_kontribusi_peserta), 0) AS total_pendanaan,
+       COALESCE(SUM(lpj.total_pengeluaran), 0) AS total_pengeluaran
      FROM public.kegiatan_lpj lpj
      JOIN public.kegiatan k ON k.id = lpj.kegiatan_id
      WHERE lpj.status_lpj = 'Disetujui'
        AND k.tanggal_mulai BETWEEN $1 AND $2${sfLPJ}`,
     pLPJ,
   );
-  const totalBeban = parseFloat(rLPJ.rows[0].total_beban);
+  
+  const totalPendanaan = parseFloat(rLPJ.rows[0].total_pendanaan);
+  const totalPengeluaran = parseFloat(rLPJ.rows[0].total_pengeluaran);
 
-  // 2. Penyebut: Total pemasukan dari SIA (jurnal Posted, COA grup_laporan = 'Pendapatan')
-  //    Integrasi read-only dari Sistem Informasi Akuntansi
-  const pSIA: (string | number)[] = [dari, sampai];
-  const sfSIA = satelitId ? ` AND jd.satelit_id = $${pSIA.push(satelitId)}` : '';
-  const rSIA = await pool.query(
-    `SELECT COALESCE(SUM(jd.nominal), 0) AS total_pemasukan
-     FROM public.buku_besar_jurnal_detail jd
-     JOIN public.buku_besar_jurnal j ON j.id = jd.jurnal_id
-     JOIN public.buku_besar_coa c ON c.id = jd.coa_id
-     WHERE j.status = 'Posted'
-       AND c.grup_laporan = 'Pendapatan'
-       AND jd.posisi = 'Kredit'
-       AND j.tanggal_transaksi BETWEEN $1 AND $2${sfSIA}`,
-    pSIA,
-  );
-  const totalPemasukan = parseFloat(rSIA.rows[0].total_pemasukan);
-
-  const dataTersedia = totalPemasukan > 0;
-  const nilai = dataTersedia ? parseFloat(((totalBeban / totalPemasukan) * 100).toFixed(1)) : null;
-  return {
-    nilai,
-    target: 70,
-    unit: '%',
-    data_tersedia: dataTersedia,
-    numerator: totalBeban,
-    denominator: totalPemasukan,
-    pesan: dataTersedia
-      ? `Pengeluaran kegiatan Rp ${totalBeban.toLocaleString('id-ID')} dari pemasukan Rp ${totalPemasukan.toLocaleString('id-ID')}`
-      : 'Belum ada data pemasukan dari SIA pada periode ini.',
-  };
-}
-
-// KPI-6: Efisiensi Anggaran (target 90%–100%)
-// Definisi: (Realisasi pengeluaran ÷ RAB pengeluaran disetujui) × 100%
-export async function getKpi6(dari: string, sampai: string, satelitId: number | null): Promise<RawKpi> {
-  const tahun = new Date(sampai).getFullYear();
-
-  // 1. Denominator: Total PENGELUARAN disetujui dari item-level RA (bukan header total_disetujui yang campur penerimaan)
-  const pRA: (string | number)[] = [tahun];
-  const sfRA = satelitId ? ` AND at.satelit_id = $${pRA.push(satelitId)}` : '';
-  const rRA = await pool.query(
-    `SELECT COALESCE(SUM(ad.nominal_disetujui), 0) AS rab_pengeluaran
-     FROM public.anggaran_tahunan_detail ad
-     JOIN public.anggaran_tahunan at ON at.id = ad.anggaran_tahunan_id
-     WHERE at.tahun = $1
-       AND at.status IN ('Disetujui Penuh', 'Disetujui Sebagian', 'Selesai')
-       AND ad.jenis_anggaran = 'Pengeluaran'
-       AND ad.status_item IN ('ACC', 'ACC_DIPOTONG', 'Disetujui')${sfRA}`,
-    pRA,
-  );
-  const rabPengeluaran = parseFloat(rRA.rows[0].rab_pengeluaran);
-
-  // 2. Numerator: Total realisasi pengeluaran dari SEMUA LPJ kegiatan di tahun ini
-  const pLPJ: (string | number)[] = [dari, sampai];
-  const sfLPJ = satelitId ? ` AND k.satelit_id = $${pLPJ.push(satelitId)}` : '';
-  const rLPJ = await pool.query(
-    `SELECT COALESCE(SUM(lpj.total_pengeluaran), 0) AS realisasi
-     FROM public.kegiatan_lpj lpj
-     JOIN public.kegiatan k ON k.id = lpj.kegiatan_id
-     WHERE lpj.status_lpj = 'Disetujui'
-       AND k.tanggal_mulai BETWEEN $1 AND $2${sfLPJ}`,
-    pLPJ,
-  );
-  const realisasi = parseFloat(rLPJ.rows[0].realisasi);
-
-  const dataTersedia = rabPengeluaran > 0;
-  const nilai = dataTersedia ? parseFloat(((realisasi / rabPengeluaran) * 100).toFixed(1)) : null;
+  const dataTersedia = totalPengeluaran > 0;
+  const nilai = dataTersedia ? parseFloat(((totalPendanaan / totalPengeluaran) * 100).toFixed(1)) : null;
+  
   return {
     nilai,
     target: 100,
     unit: '%',
     data_tersedia: dataTersedia,
-    numerator: realisasi,
-    denominator: rabPengeluaran,
+    numerator: totalPendanaan,
+    denominator: totalPengeluaran,
     pesan: dataTersedia
-      ? `Realisasi Rp ${realisasi.toLocaleString('id-ID')} dari RAB Rp ${rabPengeluaran.toLocaleString('id-ID')}`
-      : 'Belum ada RA yang disetujui pada tahun ini.',
+      ? `Total pendanaan Rp ${totalPendanaan.toLocaleString('id-ID')} dari total pengeluaran Rp ${totalPengeluaran.toLocaleString('id-ID')}`
+      : 'Belum ada data pengeluaran kegiatan pada periode ini.',
+  };
+}
+
+// KPI-6: Efisiensi Anggaran (target 90%–100%)
+// Definisi (Opsi B): Untuk setiap kegiatan yang SUDAH LPJ dalam periode,
+// hitung RAB-per-sesinya = RA_pengeluaran_disetujui ÷ frekuensi_per_tahun.
+// Lalu bandingkan: Σ(realisasi LPJ) ÷ Σ(RAB_per_sesi × jumlah_kegiatan_LPJ) × 100%
+// Pendekatan ini adil karena tidak membandingkan realisasi 1 bulan vs anggaran 1 tahun.
+export async function getKpi6(dari: string, sampai: string, satelitId: number | null): Promise<RawKpi> {
+  const p: (string | number)[] = [dari, sampai];
+  const sfK = satelitId ? ` AND k.satelit_id = $${p.push(satelitId)}` : '';
+
+  // Ambil semua kegiatan dengan LPJ disetujui dalam periode beserta RAB-nya
+  const r = await pool.query(
+    `SELECT
+       lpj.total_pengeluaran AS realisasi,
+       k.frekuensi_kegiatan,
+       k.anggaran_tahunan_id,
+       COALESCE((
+         SELECT SUM(ad.nominal_disetujui)
+         FROM public.anggaran_tahunan_detail ad
+         WHERE ad.anggaran_tahunan_id = k.anggaran_tahunan_id
+           AND ad.jenis_anggaran = 'Pengeluaran'
+           AND ad.status_item IN ('ACC', 'ACC_DIPOTONG', 'Disetujui')
+       ), 0) AS rab_tahunan
+     FROM public.kegiatan_lpj lpj
+     JOIN public.kegiatan k ON k.id = lpj.kegiatan_id
+     WHERE lpj.status_lpj = 'Disetujui'
+       AND k.tanggal_mulai BETWEEN $1 AND $2
+       AND k.anggaran_tahunan_id IS NOT NULL${sfK}`,
+    p,
+  );
+
+  let totalRealisasi = 0;
+  let totalRabProporsional = 0;
+
+  for (const row of r.rows) {
+    const realisasi = parseFloat(row.realisasi) || 0;
+    const rabTahunan = parseFloat(row.rab_tahunan) || 0;
+    const frekuensi = row.frekuensi_kegiatan as string;
+
+    // Konversi frekuensi ke jumlah sesi per tahun
+    const sesPerTahun: Record<string, number> = {
+      'Mingguan': 52, 'Dua Mingguan': 26, 'Bulanan': 12,
+      'Dua Bulanan': 6, 'Triwulan': 4, 'Semester': 2,
+      'Tahunan': 1, 'Sekali Pakai': 1,
+    };
+    const jumlahSesi = sesPerTahun[frekuensi] ?? 1;
+    const rabPerSesi = rabTahunan / jumlahSesi;
+
+    totalRealisasi += realisasi;
+    totalRabProporsional += rabPerSesi;
+  }
+
+  const dataTersedia = totalRabProporsional > 0;
+  const nilai = dataTersedia
+    ? parseFloat(((totalRealisasi / totalRabProporsional) * 100).toFixed(1))
+    : null;
+
+  return {
+    nilai,
+    target: 100,
+    unit: '%',
+    data_tersedia: dataTersedia,
+    numerator: totalRealisasi,
+    denominator: totalRabProporsional,
+    pesan: dataTersedia
+      ? `Realisasi Rp ${Math.round(totalRealisasi).toLocaleString('id-ID')} dari RAB proporsional Rp ${Math.round(totalRabProporsional).toLocaleString('id-ID')} (${r.rows.length} kegiatan)`
+      : 'Belum ada kegiatan ber-LPJ dengan RA pada periode ini.',
   };
 }
 
@@ -320,7 +338,8 @@ export async function getKpi7(dari: string, sampai: string, satelitId: number | 
 }
 
 // KPI-8: Kelengkapan Data Presensi Bernama (target > 95%)
-// Definisi: (Total presensi tercatat di sistem ÷ Total kehadiran manual via hand tally) × 100%
+// Definisi: (Total presensi JEMAAT tercatat di sistem ÷ Total kehadiran fisik via hand tally counter) × 100%
+// Hanya menghitung role_kehadiran = 'Jemaat' — absensi pelayan tidak masuk hand tally jemaat.
 export async function getKpi8(dari: string, sampai: string, satelitId: number | null): Promise<RawKpi> {
   const p: (string | number)[] = [dari, sampai];
   const sf = satelitId ? ` AND k.satelit_id = $${p.push(satelitId)}` : '';
@@ -329,7 +348,10 @@ export async function getKpi8(dari: string, sampai: string, satelitId: number | 
        COALESCE(SUM(sub.digital_count), 0) AS total_digital,
        COALESCE(SUM(sub.jumlah_hadir_manual), 0) AS total_manual
      FROM (
-       SELECT k.id, k.jumlah_hadir_manual, COUNT(ka.id) AS digital_count
+       SELECT k.id, k.jumlah_hadir_manual,
+         COUNT(ka.id) FILTER (
+           WHERE ka.role_kehadiran = 'Jemaat'
+         ) AS digital_count
        FROM public.kegiatan k
        LEFT JOIN public.kegiatan_absensi ka ON ka.kegiatan_id = k.id
        WHERE k.jumlah_hadir_manual IS NOT NULL
@@ -351,7 +373,7 @@ export async function getKpi8(dari: string, sampai: string, satelitId: number | 
     numerator: digital,
     denominator: manual,
     pesan: dataTersedia
-      ? `${digital} tercatat digital dari ${manual} kehadiran manual`
+      ? `${digital} jemaat tercatat digital dari ${manual} total kehadiran fisik (hand tally)`
       : 'Belum ada kegiatan dengan input kehadiran manual (hand tally) pada periode ini.',
   };
 }

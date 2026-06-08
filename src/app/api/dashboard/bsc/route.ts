@@ -68,13 +68,16 @@ export async function GET(request: Request) {
   // ─── Parameter ────────────────────────────────────────────────────────────
   const { searchParams } = new URL(request.url);
 
+  // Default: 30 hari rolling ke belakang dari hari ini.
+  // Ini memastikan dashboard selalu punya data meski di awal bulan baru.
   const now     = new Date();
-  const y       = now.getFullYear();
-  const m       = String(now.getMonth() + 1).padStart(2, '0');
-  const lastDay = new Date(y, now.getMonth() + 1, 0).getDate();
+  const defaultSampai = now.toISOString().split('T')[0];
+  const thirtyDaysAgo = new Date(now);
+  thirtyDaysAgo.setDate(now.getDate() - 30);
+  const defaultDari = thirtyDaysAgo.toISOString().split('T')[0];
 
-  const dari   = searchParams.get('dari')   || `${y}-${m}-01`;
-  const sampai = searchParams.get('sampai') || `${y}-${m}-${String(lastDay).padStart(2, '0')}`;
+  const dari   = searchParams.get('dari')   || defaultDari;
+  const sampai = searchParams.get('sampai') || defaultSampai;
 
   // RBAC satelit — AGENTS.md §3: non-super-admin wajib dipaksa ke satelitnya sendiri
   let satelitId: number | null = null;

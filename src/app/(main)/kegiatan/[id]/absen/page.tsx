@@ -84,14 +84,14 @@ export default function KioskAbsensiPage({ params }: { params: Promise<{ id: str
     let rotationStartMs: number;
 
     if (sessionActive && sessionEndMs) {
-      // Function to generate new secure QR payload
+      // Function buat generate secure qr payload
       const generateNewQR = () => {
          const payload = JSON.stringify({
             k: id,
             ts: Date.now(),
             exp: Date.now() + (rotateSeconds * 1000)
          });
-         // In real prod, this payload is encrypted (e.g JWT or AES). Here encoded to base64.
+         // Ini encoded ke base64.
          setQrPayload(btoa(payload));
          rotationStartMs = Date.now();
       };
@@ -120,14 +120,14 @@ export default function KioskAbsensiPage({ params }: { params: Promise<{ id: str
         const rotateDurationMs = rotateSeconds * 1000;
         
         if (msSinceRotation >= rotateDurationMs) {
-           // Time to rotate
+           // Waktunya utk rotate
            generateNewQR();
            setRotateProgress(100);
         } else {
            const percent = Math.max(0, 100 - (msSinceRotation / rotateDurationMs) * 100);
            setRotateProgress(percent);
         }
-      }, 100); // 100ms interval for smooth progress bar
+      }, 100); // 100ms progress bar
     }
 
     return () => {

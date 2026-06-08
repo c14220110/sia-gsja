@@ -28,11 +28,9 @@ export default function proxy(request: NextRequest) {
   const token = request.cookies.get('access_token')?.value;
   const { pathname } = request.nextUrl;
 
-  // ═══════════════════════════════════════════════
   // 1. API SECURITY GUARD
-  // ═══════════════════════════════════════════════
   if (pathname.startsWith('/api/')) {
-    // Allow public API routes
+    // Izinin public API routes
     if (PUBLIC_API_ROUTES.some(route => pathname === route)) {
       return NextResponse.next();
     }
@@ -42,7 +40,7 @@ export default function proxy(request: NextRequest) {
       return NextResponse.next();
     }
 
-    // Block requests without access_token cookie
+    // Block requests tanpa access_token cookie
     if (!token) {
       return NextResponse.json(
         { success: false, message: 'Unauthorized: Authentication required' },
@@ -59,7 +57,7 @@ export default function proxy(request: NextRequest) {
       );
     }
 
-    // Token exists and has valid structure — let the route handler do full JWT verification
+    // Token ADA dan has valid structurenya — biar  route handler do full JWT verification
     return NextResponse.next();
   }
 
