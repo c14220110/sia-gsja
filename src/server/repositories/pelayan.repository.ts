@@ -7,6 +7,7 @@ export interface PelayanFilterParams {
   status?:       string;
   date_from?:    string;
   date_to?:      string;
+  target_month?: string;
   limit?:        number;
   offset?:       number;
   pending_only?: boolean | string;
@@ -44,6 +45,7 @@ export class PelayanRepository {
       status,
       date_from,
       date_to,
+      target_month,
       limit  = 10,
       offset = 0,
     } = params;
@@ -66,12 +68,18 @@ export class PelayanRepository {
       values.push(parseInt(role_id));
       
       if (date_from) {
+        const fromVal = date_from.length === 7 ? `${date_from}-01` : date_from;
         roleConditions += ` AND pr2.tanggal_mulai >= $${idx++}::date`;
-        values.push(date_from);
+        values.push(fromVal);
       }
       if (date_to) {
-        roleConditions += ` AND pr2.tanggal_mulai <= $${idx++}::date`;
-        values.push(date_to);
+        if (date_to.length === 7) {
+          roleConditions += ` AND pr2.tanggal_mulai < ($${idx++}::date + INTERVAL '1 month')`;
+          values.push(`${date_to}-01`);
+        } else {
+          roleConditions += ` AND pr2.tanggal_mulai <= $${idx++}::date`;
+          values.push(date_to);
+        }
       }
       
       conditions.push(`EXISTS (
@@ -79,12 +87,18 @@ export class PelayanRepository {
       )`);
     } else {
       if (date_from) {
+        const fromVal = date_from.length === 7 ? `${date_from}-01` : date_from;
         conditions.push(`p.tanggal_mulai >= $${idx++}::date`);
-        values.push(date_from);
+        values.push(fromVal);
       }
       if (date_to) {
-        conditions.push(`p.tanggal_mulai <= $${idx++}::date`);
-        values.push(date_to);
+        if (date_to.length === 7) {
+          conditions.push(`p.tanggal_mulai < ($${idx++}::date + INTERVAL '1 month')`);
+          values.push(`${date_to}-01`);
+        } else {
+          conditions.push(`p.tanggal_mulai <= $${idx++}::date`);
+          values.push(date_to);
+        }
       }
     }
 
@@ -93,14 +107,17 @@ export class PelayanRepository {
       values.push(status);
     }
 
+    const targetMonthVal = target_month ? (target_month.length === 7 ? `${target_month}-01` : target_month) : null;
+
     if (params.pending_only === 'true' || params.pending_only === true) {
       conditions.push(`EXISTS (
         SELECT 1 FROM kegiatan_jadwal_pelayan kjp2
         JOIN kegiatan k2 ON kjp2.kegiatan_id = k2.id
         WHERE kjp2.pelayan_id = p.id
           AND kjp2.status_konfirmasi = 'Menunggu Konfirmasi'
-          AND DATE_TRUNC('month', k2.tanggal_mulai) = DATE_TRUNC('month', CURRENT_DATE)
+          AND DATE_TRUNC('month', k2.tanggal_mulai) = DATE_TRUNC('month', COALESCE($${idx++}::date, CURRENT_DATE))
       )`);
+      values.push(targetMonthVal);
     }
 
     const where = conditions.join(' AND ');
@@ -138,7 +155,7 @@ export class PelayanRepository {
             FROM kegiatan_jadwal_pelayan kjp 
             JOIN kegiatan k ON kjp.kegiatan_id = k.id 
             WHERE kjp.pelayan_id = p.id 
-              AND DATE_TRUNC('month', k.tanggal_mulai) = DATE_TRUNC('month', CURRENT_DATE)
+              AND DATE_TRUNC('month', k.tanggal_mulai) = DATE_TRUNC('month', COALESCE($${idx + 2}::date, CURRENT_DATE))
           ) AS jadwal_bulan_ini
         ${fromJoin}
         LEFT JOIN pelayan_role pr ON pr.pelayan_id = p.id
@@ -147,7 +164,7 @@ export class PelayanRepository {
         GROUP BY p.id, j.jemaat_id, j.nama_lengkap, j.foto_url, s.nama_satelit
         ORDER BY p.created_at DESC
         LIMIT $${idx} OFFSET $${idx + 1}
-      `, [...values, limit, offset]),
+      `, [...values, limit, offset, targetMonthVal]),
       // Pelayan baru bulan ini
       pool.query(`
         SELECT COUNT(*) AS count FROM pelayan p

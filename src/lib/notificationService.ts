@@ -1,5 +1,5 @@
 /**
- * Notification Service — SIA GSJA Eben Haezer
+ * Notification Service — SIM GSJA Eben Haezer
  *
  * Abstraction layer untuk notifikasi.
  * Saat ini: SMTP (Gmail) via nodemailer.
@@ -39,7 +39,7 @@ const emailShell = (body: string) => `
           <tr>
             <td style="background:#2d3a4f;padding:28px 40px;text-align:center;">
               <div style="font-size:36px;margin-bottom:8px;">✝️</div>
-              <h1 style="color:#ffffff;margin:0;font-size:18px;font-weight:700;">SIA GSJA Eben Haezer</h1>
+              <h1 style="color:#ffffff;margin:0;font-size:18px;font-weight:700;">SIM GSJA Eben Haezer</h1>
               <p style="color:#94a3b8;margin:4px 0 0;font-size:12px;">Sistem Informasi Akuntansi</p>
             </td>
           </tr>
@@ -53,7 +53,7 @@ const emailShell = (body: string) => `
           <tr>
             <td style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:20px 40px;text-align:center;">
               <p style="color:#94a3b8;font-size:12px;margin:0;line-height:1.6;">
-                Email ini dikirim otomatis oleh sistem SIA GSJA Eben Haezer.<br/>
+                Email ini dikirim otomatis oleh sistem SIM GSJA Eben Haezer.<br/>
                 Mohon tidak membalas email ini.
               </p>
               <p style="color:#cbd5e1;font-size:11px;margin:8px 0 0;">
@@ -158,7 +158,7 @@ export async function notifyMajelisRaSubmitted(
     `)}
     ${ctaButton(`${baseUrl}/anggaran/rancangan/review/${ra.kode_dokumen}`, '🔍 Review Sekarang', '#2d3a4f')}
     <p style="color:#94a3b8;font-size:12px;margin:0;">
-      Anda menerima email ini karena memiliki akses Majelis/Reviewer di SIA GSJA.
+      Anda menerima email ini karena memiliki akses Majelis/Reviewer di SIM GSJA.
     </p>
   `);
 

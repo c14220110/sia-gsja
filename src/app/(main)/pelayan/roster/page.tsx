@@ -94,7 +94,7 @@ export default function RosterPelayanPage() {
         </div>
         <div className="flex flex-col gap-1">
           <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Kalender Roster</h1>
-          <div className="text-slate-500 text-base font-medium font-sans leading-6">Daftar Jadwal Penugasan Pelayan (Master Admin)</div>
+          <div className="text-slate-500 text-base font-medium font-sans leading-6">Daftar Jadwal Penugasan Pelayan</div>
         </div>
       </div>
 

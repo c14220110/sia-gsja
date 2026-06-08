@@ -20,7 +20,7 @@ const formatKategori = (r: any) => {
 export async function exportToExcel(data: any, tahun: string, satelitName: string) {
   const ExcelJS = (await import('exceljs')).default;
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'SIA GSJA Eben Haezer';
+  wb.creator = 'SIM GSJA Eben Haezer';
   wb.created = new Date();
 
   const ws = wb.addWorksheet('Rekapitulasi Anggaran', {
@@ -453,7 +453,7 @@ export async function exportToPDF(data: any, tahun: string, satelitName: string)
     doc.setFontSize(7);
     doc.setTextColor(148, 163, 184);
     doc.setFont('helvetica', 'normal');
-    doc.text(`SIA GSJA Eben Haezer — Dicetak: ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`, 14, ph - 8);
+    doc.text(`SIM GSJA Eben Haezer — Dicetak: ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`, 14, ph - 8);
     doc.text(`Halaman ${i} dari ${pc}`, pw - 14, ph - 8, { align: 'right' });
   }
 

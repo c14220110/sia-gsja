@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
       status:     searchParams.get('status')     || undefined,
       date_from:  searchParams.get('date_from')  || undefined,
       date_to:    searchParams.get('date_to')    || undefined,
+      target_month: searchParams.get('target_month') || undefined,
       limit:      parseInt(searchParams.get('limit')  ?? '10'),
       offset:     parseInt(searchParams.get('offset') ?? '0'),
       pending_only: searchParams.get('pending_only') || undefined,

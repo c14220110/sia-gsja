@@ -110,7 +110,7 @@ export default function SelectRolePage() {
                 Pilih Peran Anda
               </h2>
               <p className="text-gray-500 text-sm leading-relaxed">
-                Silakan pilih peran pengguna yang sesuai untuk mengakses dashboard dan fitur yang relevan dengan tanggung jawab Anda dalam sistem SIA GSJA.
+                Silakan pilih peran pengguna yang sesuai untuk mengakses dashboard dan fitur yang relevan dengan tanggung jawab Anda dalam sistem SIM GSJA.
               </p>
             </div>
 

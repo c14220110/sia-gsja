@@ -150,7 +150,7 @@ export default function PengaturanAkunPage() {
         
         {/* ── IDENTIFIER AKTIF ─────────────────────────────── */}
         <SectionCard title="Identifier Login Anda" icon="fingerprint">
-          <p className="text-xs text-slate-500 mt-2 mb-4">Anda dapat menggunakan salah satu dari informasi berikut untuk masuk (login) ke dalam sistem SIA.</p>
+          <p className="text-xs text-slate-500 mt-2 mb-4">Anda dapat menggunakan salah satu dari informasi berikut untuk masuk (login) ke dalam sistem SIM.</p>
           
           <div className="flex flex-col gap-3 pb-3">
             <div className="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100">

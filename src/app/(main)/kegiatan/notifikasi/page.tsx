@@ -578,7 +578,7 @@ export default function BroadcastNotifikasiPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-white text-xs font-bold truncate">{formData.judul || 'Judul Notifikasi'}</div>
-                    <div className="text-slate-400 text-[10px]">SIA GSJA Eben Haezer • Sekarang</div>
+                    <div className="text-slate-400 text-[10px]">SIM GSJA Eben Haezer • Sekarang</div>
                   </div>
                 </div>
                 <div className="text-slate-300 text-xs leading-relaxed">

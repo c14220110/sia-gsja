@@ -138,7 +138,7 @@ export default function LoginPage() {
                 {showForceChange ? 'Ubah Password Default' : 'Welcome Back'}
               </h1>
               <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                {showForceChange ? 'Demi keamanan, Anda diwajibkan mengganti password lahir default Anda sekarang.' : 'Please enter your credentials to access the SIA dashboard.'}
+                {showForceChange ? 'Demi keamanan, Anda diwajibkan mengganti password lahir default Anda sekarang.' : 'Please enter your credentials to access the SIM dashboard.'}
               </p>
             </div>
             {error && (
@@ -219,7 +219,7 @@ export default function LoginPage() {
                   type="submit"
                   disabled={loading}
                 >
-                  {loading ? 'Processing...' : 'Sign In to SIA'}
+                  {loading ? 'Processing...' : 'Sign In to SIM'}
                 </button>
               </div>
               <div className="mt-6 text-center">
@@ -270,7 +270,7 @@ export default function LoginPage() {
             <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-bold text-gray-900 dark:text-white">Reset Password</h2>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Masukkan email akun SIA Anda</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Masukkan email akun SIM Anda</p>
               </div>
               <button
                 onClick={() => setShowForgotPassword(false)}

@@ -14,7 +14,7 @@ export async function sendPasswordResetEmail(toEmail: string, toName: string, re
   await transporter.sendMail({
     from: process.env.SMTP_FROM,
     to: toEmail,
-    subject: '🔒 Reset Password - SIA GSJA Eben Haezer',
+    subject: '🔒 Reset Password - SIM GSJA Eben Haezer',
     html: `
       <!DOCTYPE html>
       <html lang="id">
@@ -32,7 +32,7 @@ export async function sendPasswordResetEmail(toEmail: string, toName: string, re
                 <tr>
                   <td style="background:#2d3a4f;padding:32px 40px;text-align:center;">
                     <div style="font-size: 40px; margin-bottom: 12px;">✝️</div>
-                    <h1 style="color:#ffffff;margin:0;font-size:20px;font-weight:700;letter-spacing:0.5px;">SIA GSJA Eben Haezer</h1>
+                    <h1 style="color:#ffffff;margin:0;font-size:20px;font-weight:700;letter-spacing:0.5px;">SIM GSJA Eben Haezer</h1>
                     <p style="color:#94a3b8;margin:4px 0 0;font-size:13px;">Sistem Informasi Akuntansi</p>
                   </td>
                 </tr>
@@ -44,7 +44,7 @@ export async function sendPasswordResetEmail(toEmail: string, toName: string, re
                       Halo <strong>${toName}</strong>,
                     </p>
                     <p style="color:#475569;font-size:15px;line-height:1.6;margin:0 0 24px;">
-                      Kami menerima permintaan untuk mereset password akun SIA GSJA Anda. 
+                      Kami menerima permintaan untuk mereset password akun SIM GSJA Anda. 
                       Klik tombol di bawah ini untuk membuat password baru:
                     </p>
                     <!-- CTA Button -->
@@ -80,7 +80,7 @@ export async function sendPasswordResetEmail(toEmail: string, toName: string, re
                 <tr>
                   <td style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:24px 40px;text-align:center;">
                     <p style="color:#94a3b8;font-size:12px;margin:0;line-height:1.6;">
-                      Email ini dikirim otomatis oleh sistem SIA GSJA Eben Haezer.<br/>
+                      Email ini dikirim otomatis oleh sistem SIM GSJA Eben Haezer.<br/>
                       Mohon tidak membalas email ini.
                     </p>
                     <p style="color:#cbd5e1;font-size:11px;margin:8px 0 0;">

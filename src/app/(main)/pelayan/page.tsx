@@ -50,11 +50,13 @@ export default function PelayanPage() {
   const [filterStatus,   setFilterStatus]   = useState('Aktif');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo,   setFilterDateTo]   = useState('');
+  const [filterBulanJadwal, setFilterBulanJadwal] = useState('');
 
   // Local temp states for Advanced Filters (apply button logic)
   const [tempStatus,     setTempStatus]     = useState('Aktif');
   const [tempDateFrom,   setTempDateFrom]   = useState('');
   const [tempDateTo,     setTempDateTo]     = useState('');
+  const [tempBulanJadwal, setTempBulanJadwal] = useState('');
 
   // Fetch Options and User Data on Mount
   useEffect(() => {
@@ -102,7 +104,7 @@ export default function PelayanPage() {
   // Reset page to 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, filterSatelit, filterRole, filterStatus, filterDateFrom, filterDateTo, filterPending]);
+  }, [debouncedSearch, filterSatelit, filterRole, filterStatus, filterDateFrom, filterDateTo, filterBulanJadwal, filterPending]);
 
   // Fetch Data
   useEffect(() => {
@@ -116,6 +118,7 @@ export default function PelayanPage() {
         if (filterStatus && filterStatus !== 'Semua') queryParams.append('status', filterStatus);
         if (filterDateFrom)  queryParams.append('date_from',  filterDateFrom);
         if (filterDateTo)    queryParams.append('date_to',    filterDateTo);
+        if (filterBulanJadwal) queryParams.append('target_month', filterBulanJadwal);
         if (filterPending)   queryParams.append('pending_only', 'true');
 
         queryParams.append('limit',  limit.toString());
@@ -138,7 +141,7 @@ export default function PelayanPage() {
     };
 
     fetchData();
-  }, [debouncedSearch, filterSatelit, filterRole, filterStatus, filterDateFrom, filterDateTo, filterPending, currentPage]);
+  }, [debouncedSearch, filterSatelit, filterRole, filterStatus, filterDateFrom, filterDateTo, filterBulanJadwal, filterPending, currentPage]);
 
   const handleToggleStatus = (id: number, currentStatus: string) => {
     const newStatus = currentStatus === 'Aktif' ? 'Tidak Aktif' : 'Aktif';
@@ -303,16 +306,17 @@ export default function PelayanPage() {
               setTempStatus(filterStatus);
               setTempDateFrom(filterDateFrom);
               setTempDateTo(filterDateTo);
+              setTempBulanJadwal(filterBulanJadwal);
             }
             setShowAdvancedFilters(!showAdvancedFilters);
           }}
-          className={`px-4 py-2.5 border rounded-lg flex items-center gap-2 transition-colors group ${showAdvancedFilters ? 'bg-slate-100 border-slate-300' : (filterStatus !== 'Aktif' || filterDateFrom || filterDateTo) ? 'bg-violet-50 border-violet-200 text-violet-700' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
+          className={`px-4 py-2.5 border rounded-lg flex items-center gap-2 transition-colors group ${showAdvancedFilters ? 'bg-slate-100 border-slate-300' : (filterStatus !== 'Aktif' || filterDateFrom || filterDateTo || filterBulanJadwal) ? 'bg-violet-50 border-violet-200 text-violet-700' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
         >
-          <span className={`material-icons-round text-[20px] transition-colors ${showAdvancedFilters ? 'text-slate-800' : (filterStatus !== 'Aktif' || filterDateFrom || filterDateTo) ? 'text-violet-700' : 'text-slate-500 group-hover:text-slate-700'}`}>tune</span>
-          <span className={`text-sm font-medium font-sans transition-colors ${showAdvancedFilters ? 'text-slate-900' : (filterStatus !== 'Aktif' || filterDateFrom || filterDateTo) ? 'text-violet-700 font-bold' : 'text-slate-600 group-hover:text-slate-800'}`}>More Filters</span>
-          {(filterStatus !== 'Aktif' || filterDateFrom || filterDateTo) && (
+          <span className={`material-icons-round text-[20px] transition-colors ${showAdvancedFilters ? 'text-slate-800' : (filterStatus !== 'Aktif' || filterDateFrom || filterDateTo || filterBulanJadwal) ? 'text-violet-700' : 'text-slate-500 group-hover:text-slate-700'}`}>tune</span>
+          <span className={`text-sm font-medium font-sans transition-colors ${showAdvancedFilters ? 'text-slate-900' : (filterStatus !== 'Aktif' || filterDateFrom || filterDateTo || filterBulanJadwal) ? 'text-violet-700 font-bold' : 'text-slate-600 group-hover:text-slate-800'}`}>More Filters</span>
+          {(filterStatus !== 'Aktif' || filterDateFrom || filterDateTo || filterBulanJadwal) && (
             <span className="flex items-center justify-center w-5 h-5 ml-1 bg-violet-600 text-white text-[10px] font-bold rounded-full">
-              {(filterStatus !== 'Aktif' ? 1 : 0) + (filterDateFrom ? 1 : 0) + (filterDateTo ? 1 : 0)}
+              {(filterStatus !== 'Aktif' ? 1 : 0) + (filterDateFrom ? 1 : 0) + (filterDateTo ? 1 : 0) + (filterBulanJadwal ? 1 : 0)}
             </span>
           )}
         </button>
@@ -321,7 +325,7 @@ export default function PelayanPage() {
       {/* Advanced Filter Collapse Layer */}
       {showAdvancedFilters && (
         <div className="w-full p-6 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in slide-in-from-top-2 duration-200 flex flex-col gap-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {/* 1. Status Pelayan */}
             <div className="flex flex-col gap-2">
               <label className="text-slate-700 text-sm font-bold font-sans">Status Pelayan</label>
@@ -339,24 +343,35 @@ export default function PelayanPage() {
               </div>
             </div>
 
-            {/* 2. Tanggal Mulai (dari) */}
+            {/* 2. Bulan Mulai Bergabung (dari) */}
             <div className="flex flex-col gap-2">
-              <label className="text-slate-700 text-sm font-bold font-sans">Tanggal Mulai (dari)</label>
+              <label className="text-slate-700 text-sm font-bold font-sans">Bergabung (Dari)</label>
               <input
-                type="date"
+                type="month"
                 value={tempDateFrom}
                 onChange={(e) => setTempDateFrom(e.target.value)}
                 className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm"
               />
             </div>
 
-            {/* 3. Tanggal Mulai (sampai) */}
+            {/* 3. Bulan Mulai Bergabung (sampai) */}
             <div className="flex flex-col gap-2">
-              <label className="text-slate-700 text-sm font-bold font-sans">Tanggal Mulai (sampai)</label>
+              <label className="text-slate-700 text-sm font-bold font-sans">Bergabung (Sampai)</label>
               <input
-                type="date"
+                type="month"
                 value={tempDateTo}
                 onChange={(e) => setTempDateTo(e.target.value)}
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm"
+              />
+            </div>
+
+            {/* 4. Target Bulan Jadwal */}
+            <div className="flex flex-col gap-2">
+              <label className="text-slate-700 text-sm font-bold font-sans">Filter Bulan Jadwal</label>
+              <input
+                type="month"
+                value={tempBulanJadwal}
+                onChange={(e) => setTempBulanJadwal(e.target.value)}
                 className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm"
               />
             </div>
@@ -368,9 +383,11 @@ export default function PelayanPage() {
                 setTempStatus('Aktif');
                 setTempDateFrom('');
                 setTempDateTo('');
+                setTempBulanJadwal('');
                 setFilterStatus('Aktif');
                 setFilterDateFrom('');
                 setFilterDateTo('');
+                setFilterBulanJadwal('');
                 setCurrentPage(1);
                 setShowAdvancedFilters(false);
               }}
@@ -383,6 +400,7 @@ export default function PelayanPage() {
                 setFilterStatus(tempStatus);
                 setFilterDateFrom(tempDateFrom);
                 setFilterDateTo(tempDateTo);
+                setFilterBulanJadwal(tempBulanJadwal);
                 setCurrentPage(1);
                 setShowAdvancedFilters(false);
               }}
@@ -404,8 +422,10 @@ export default function PelayanPage() {
               <div className="w-64 shrink-0 text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Nama Lengkap</div>
               <div className="w-36 shrink-0 text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Satelit</div>
               <div className="flex-1 min-w-[180px] text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Role Pelayanan</div>
-              <div className="w-28 shrink-0 text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Tgl. Mulai</div>
-              <div className="w-28 shrink-0 text-center text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Jadwal Bln Ini</div>
+              <div className="w-28 shrink-0 text-center text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Tgl. Mulai</div>
+              <div className="w-28 shrink-0 text-center text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">
+                {filterBulanJadwal ? `Jadwal (${filterBulanJadwal.split('-').reverse().join('/')})` : 'Jadwal Bln Ini'}
+              </div>
               <div className="w-28 shrink-0 text-center text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Status</div>
               <div className="w-20 shrink-0 text-right text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">Aksi</div>
             </div>
