@@ -151,6 +151,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       if (err.message === 'Tiket tidak ditemukan') {
          return NextResponse.json({ success: false, message: 'Tiket tidak ditemukan' }, { status: 404 });
       }
+      if (err.message === 'Penanggung jawab bukan seorang pelayan aktif') {
+         return NextResponse.json({ success: false, message: 'Pengurus ini belum terdaftar di Database Pelayan. Silakan daftarkan terlebih dahulu.' }, { status: 400 });
+      }
       throw err;
     } finally {
       client.release();

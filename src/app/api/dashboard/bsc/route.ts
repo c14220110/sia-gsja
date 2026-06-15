@@ -147,7 +147,7 @@ export async function GET(request: Request) {
         kpi2:  tag(r2,  'gte4_5'),
         kpi3:  tag(r3,  'gte85'),
         kpi4:  tag(r4,  'gte90'),
-        kpi5:  tag(r5,  'lt45'),
+        kpi5:  tag(r5,  'eq100'),
         kpi6:  tag(r6,  'eff'),
         kpi7:  tag(r7,  'eq100'),
         kpi8:  tag(r8,  'gte95'),

@@ -412,10 +412,20 @@ export default function AjukanPermintaanPage() {
         {/* SUBMIT BUTTON */}
         <button
           onClick={handleSubmit}
-          className="w-full mt-2 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-[17px] shadow-lg shadow-blue-600/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+          disabled={submitState.status === 'loading'}
+          className={`w-full mt-2 py-4 text-white rounded-2xl font-black text-[17px] shadow-lg transition-all flex items-center justify-center gap-2 ${submitState.status === 'loading' ? 'bg-blue-400 cursor-not-allowed shadow-none' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/30 active:scale-[0.98]'}`}
         >
-          <span className="material-icons-round">send</span>
-          Ajukan Permintaan
+          {submitState.status === 'loading' ? (
+            <>
+              <span className="material-icons-round animate-spin">refresh</span>
+              Memproses...
+            </>
+          ) : (
+            <>
+              <span className="material-icons-round">send</span>
+              Ajukan Permintaan
+            </>
+          )}
         </button>
 
       </div>

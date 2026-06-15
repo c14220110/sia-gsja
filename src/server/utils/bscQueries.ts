@@ -44,9 +44,9 @@ export async function getKpi1(dari: string, sampai: string, satelitId: number | 
        WHERE j.status_jemaat = 'Aktif'
          AND j.is_deleted = false
          AND j.satelit_id IN (
-           SELECT DISTINCT satelit_id FROM public.kegiatan
-           WHERE jenis_kegiatan_id = 1
-             AND tanggal_mulai BETWEEN $1 AND $2${sfK}
+           SELECT DISTINCT k.satelit_id FROM public.kegiatan k
+           WHERE k.jenis_kegiatan_id = 1
+             AND k.tanggal_mulai BETWEEN $1 AND $2${sfK}
          )
        GROUP BY j.satelit_id`,
       p,
