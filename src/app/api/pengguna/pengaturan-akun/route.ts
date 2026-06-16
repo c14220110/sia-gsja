@@ -70,6 +70,9 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error('Error in /api/pengguna/pengaturan-akun:', error);
+    if (error.code === '23505') {
+      return NextResponse.json({ success: false, message: 'Username sudah digunakan oleh orang lain.' }, { status: 400 });
+    }
     return NextResponse.json({ success: false, message: 'Internal Server Error' }, { status: 500 });
   }
 }

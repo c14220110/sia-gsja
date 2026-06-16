@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { JemaatRepository } from '@/server/repositories/jemaat.repository';
-import { updateJemaatSchema } from '@/server/validations/jemaat.validation';
+
 import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 import { auditLogRepository } from '@/server/repositories/auditLog.repository';
 
@@ -36,14 +36,12 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     const body = await request.json();
 
-    // Validate input with Zod
-    const parsed = updateJemaatSchema.safeParse(body);
-    if (!parsed.success) {
-      const errors = parsed.error.flatten().fieldErrors;
-      return NextResponse.json({ success: false, message: 'Data tidak valid', errors }, { status: 400 });
+    // Validate: nama_lengkap is required
+    if (!body.nama_lengkap || typeof body.nama_lengkap !== 'string' || body.nama_lengkap.trim() === '') {
+      return NextResponse.json({ success: false, message: 'Nama lengkap wajib diisi' }, { status: 400 });
     }
 
-    const updated = await jemaatRepository.updateJemaat(id, parsed.data);
+    const updated = await jemaatRepository.updateJemaat(id, body);
     
     if (!updated) {
       return NextResponse.json({ success: false, message: 'Jemaat tidak ditemukan atau gagal diupdate' }, { status: 404 });

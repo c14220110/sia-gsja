@@ -1,8 +1,130 @@
-import { NextRequest } from 'next/server';
-import { AuthController } from '../../../../server/controllers/auth.controller';
+import { NextRequest, NextResponse } from 'next/server';
+import { UserRepository } from '@/server/repositories/user.repository';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import { getJwtSecret } from '@/server/utils/jwt';
 
-const authController = new AuthController();
+const userRepository = new UserRepository();
 
 export async function POST(request: NextRequest) {
-  return authController.login(request);
+  try {
+    const body = await request.json();
+
+    // Inline validation (email and password must be non-empty strings)
+    if (!body.email || typeof body.email !== 'string' || body.email.trim().length === 0) {
+      return NextResponse.json(
+        { message: 'Email wajib diisi' },
+        { status: 400 }
+      );
+    }
+    if (!body.password || typeof body.password !== 'string' || body.password.trim().length === 0) {
+      return NextResponse.json(
+        { message: 'Password wajib diisi' },
+        { status: 400 }
+      );
+    }
+
+    const { email, password } = body;
+
+    // --- Inlined authenticateUser logic ---
+
+    // data.email is acting as the generic identifier (email/phone/username)
+    const user = await userRepository.findByIdentifier(email);
+
+    if (!user) {
+      throw new Error('Email, No Handphone, atau Username tidak terdaftar.');
+    }
+
+    if (!user.is_active) {
+      throw new Error('Akun Anda tidak aktif');
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+    if (!isPasswordValid) {
+      throw new Error('Password salah.');
+    }
+
+    // Case 1: requires password change
+    if (user.requires_password_change) {
+      return NextResponse.json(
+        { 
+          message: 'Anda menggunakan sandi default. Silakan ubah password Anda.', 
+          requires_password_change: true,
+          data: { email: user.email }
+        },
+        { status: 200 }
+      );
+    }
+
+    const roles = await userRepository.getUserRoles(user.id);
+
+    if (roles.length === 0) {
+      throw new Error('Akun Anda tidak memiliki hak akses (role) sama sekali.');
+    }
+
+    // Case 2: multiple roles — tell client to select a role
+    if (roles.length > 1) {
+      return NextResponse.json(
+        { 
+          message: 'Pilih role untuk melanjutkan', 
+          requires_role_selection: true,
+          data: {
+            user_id: user.id,
+            available_roles: roles
+          }
+        },
+        { status: 200 }
+      );
+    }
+
+    // Case 3: exactly 1 role — issue the final token immediately
+    const singleRole = roles[0];
+    const is_super_admin = singleRole.nama_role === 'SUPER_ADMIN';
+    const permissions = await userRepository.getRolePermissionNames(singleRole.role_id);
+
+    const isJemaat = singleRole.nama_role === 'JEMAAT';
+    const expiresInString = isJemaat ? '180d' : '1d';
+    const cookieMaxAge = isJemaat ? 60 * 60 * 24 * 180 : 60 * 60 * 24;
+
+    const tokenPayload = {
+      user_id: user.id,
+      role_id: singleRole.role_id,
+      role_name: singleRole.nama_role,
+      satelit_id: singleRole.satelit_id,
+      komisi_id: singleRole.komisi_id ?? null,
+      departemen_id: singleRole.departemen_id ?? null,
+      is_super_admin,
+      permissions,
+      jemaat_id: user.jemaat_id ?? null   // ← wajib untuk fitur pelayan di PWA
+    };
+
+    const token = jwt.sign(tokenPayload, getJwtSecret(), { expiresIn: expiresInString });
+
+    // Update login timestamp
+    await userRepository.updateLastLogin(user.id);
+
+    // Single role - issue token and set cookie
+    const response = NextResponse.json(
+      { message: 'Login berhasil', data: tokenPayload, requires_role_selection: false },
+      { status: 200 }
+    );
+
+    // Set httpOnly cookie
+    response.cookies.set({
+      name: 'access_token',
+      value: token,
+      httpOnly: true,
+      path: '/',
+      maxAge: cookieMaxAge,
+      sameSite: 'strict',
+      secure: process.env.NODE_ENV === 'production',
+    });
+
+    return response;
+  } catch (error: any) {
+    return NextResponse.json(
+      { message: error.message || 'Terjadi kesalahan pada server' },
+      { status: 401 }
+    );
+  }
 }
