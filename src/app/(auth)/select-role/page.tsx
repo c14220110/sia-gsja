@@ -8,7 +8,7 @@ export default function SelectRolePage() {
   const router = useRouter();
   const { showLoader, hideLoader } = useLoader();
   const [roles, setRoles] = useState<any[]>([]);
-  const [userId, setUserId] = useState<number | null>(null);
+  const [preAuthToken, setPreAuthToken] = useState<string | null>(null);
   const [selectedRoleIndex, setSelectedRoleIndex] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -27,7 +27,7 @@ export default function SelectRolePage() {
 
     try {
       const data = JSON.parse(storedData);
-      setUserId(data.user_id);
+      setPreAuthToken(data.pre_auth_token);
       setRoles(data.available_roles || []);
     } catch (e) {
       router.push('/login');
@@ -47,7 +47,7 @@ export default function SelectRolePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          user_id: userId,
+          pre_auth_token: preAuthToken,
           role_id: selectedRole.role_id,
           satelit_id: selectedRole.satelit_id,
         }),

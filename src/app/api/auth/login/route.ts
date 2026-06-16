@@ -4,6 +4,15 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { getJwtSecret } from '@/server/utils/jwt';
 
+// Pre-auth token: ditandatangani JWT, expire 5 menit, hanya untuk select-role
+function createPreAuthToken(userId: number): string {
+  return jwt.sign(
+    { pre_auth_user_id: userId, purpose: 'role_selection' },
+    getJwtSecret(),
+    { expiresIn: '5m' }
+  );
+}
+
 const userRepository = new UserRepository();
 
 export async function POST(request: NextRequest) {
@@ -62,14 +71,16 @@ export async function POST(request: NextRequest) {
       throw new Error('Akun Anda tidak memiliki hak akses (role) sama sekali.');
     }
 
-    // Case 2: multiple roles — tell client to select a role
+    // Case 2: multiple roles — kirim pre-auth token (bukan user_id mentah!)
+    // Pre-auth token ditandatangani JWT, expire 5 menit, bukti user sudah login dengan benar
     if (roles.length > 1) {
+      const preAuthToken = createPreAuthToken(user.id);
       return NextResponse.json(
         { 
           message: 'Pilih role untuk melanjutkan', 
           requires_role_selection: true,
           data: {
-            user_id: user.id,
+            pre_auth_token: preAuthToken,   // ← token sementara, bukan user_id
             available_roles: roles
           }
         },

@@ -5,6 +5,11 @@ import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 // GET — Ambil semua data untuk tabel master tertentu
 export async function GET(request: NextRequest) {
   try {
+    const caller = getCallerFromRequest(request);
+    if (!caller) {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const table = searchParams.get('table');
     const search = searchParams.get('search') || '';

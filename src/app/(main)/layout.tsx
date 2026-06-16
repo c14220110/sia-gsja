@@ -93,8 +93,9 @@ export default function DashboardLayout({
 
   const handleSwitchRole = () => {
     if (userData) {
+      // Tidak perlu simpan user_id — backend akan verifikasi identitas lewat access_token cookie.
+      // Cukup simpan daftar role untuk ditampilkan di halaman pilih role.
       const payload = {
-        user_id: userData.user_id,
         available_roles: userData.available_roles || []
       };
       try {
@@ -105,6 +106,7 @@ export default function DashboardLayout({
       router.push('/select-role');
     }
   };
+
 
   const hasPermission = (perm: string) => {
     if (!userData) return false;

@@ -8,28 +8,83 @@ const userRepository = new UserRepository();
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { user_id, role_id, satelit_id } = body;
+    const { pre_auth_token, role_id, satelit_id } = body;
 
-    if (!user_id || !role_id || !satelit_id) {
+    if (!role_id || !satelit_id) {
       return NextResponse.json(
         { message: 'Data tidak lengkap' },
         { status: 400 }
       );
     }
 
-    const userId = Number(user_id);
+    // ── Verifikasi identitas caller — dua mode yang valid ────────────────────
+    //
+    // MODE A: pre_auth_token (dikirim oleh /api/auth/login saat multi-role)
+    //   → User baru saja login dengan benar, belum punya access_token cookie.
+    //
+    // MODE B: access_token cookie (user sudah login, mau ganti role)
+    //   → User sudah terautentikasi, ganti role dari dalam dashboard.
+    //
+    // Tanpa salah satu dari dua ini, request ditolak 401.
+
+    let userId: number | null = null;
+
+    if (pre_auth_token) {
+      // --- MODE A: verifikasi pre-auth token dari login ---
+      try {
+        const payload = jwt.verify(pre_auth_token, getJwtSecret()) as any;
+        if (payload.purpose !== 'role_selection') {
+          return NextResponse.json(
+            { message: 'Token tidak valid untuk operasi ini.' },
+            { status: 401 }
+          );
+        }
+        userId = payload.pre_auth_user_id;
+      } catch {
+        return NextResponse.json(
+          { message: 'Sesi pemilihan role tidak valid atau sudah kedaluwarsa. Silakan login ulang.' },
+          { status: 401 }
+        );
+      }
+    } else {
+      // --- MODE B: verifikasi existing access_token cookie (ganti role) ---
+      const existingToken = request.cookies.get('access_token')?.value;
+      if (!existingToken) {
+        return NextResponse.json(
+          { message: 'Tidak terautentikasi. Silakan login terlebih dahulu.' },
+          { status: 401 }
+        );
+      }
+      try {
+        const payload = jwt.verify(existingToken, getJwtSecret()) as any;
+        userId = payload.user_id;
+      } catch {
+        return NextResponse.json(
+          { message: 'Sesi tidak valid atau sudah kedaluwarsa. Silakan login ulang.' },
+          { status: 401 }
+        );
+      }
+    }
+
+    if (!userId) {
+      return NextResponse.json({ message: 'Identitas tidak dapat diverifikasi.' }, { status: 401 });
+    }
+
+    // ── Verifikasi role yang dipilih benar-benar milik user ini ──────────────
     const roleId = Number(role_id);
     const satelitId = Number(satelit_id);
-
-    // --- Inlined generateFinalToken logic ---
 
     const roles = await userRepository.getUserRoles(userId);
     const selectedRole = roles.find(r => r.role_id === roleId && r.satelit_id === satelitId);
 
     if (!selectedRole) {
-      throw new Error('Role tidak valid atau Anda tidak memiliki akses ke role tersebut');
+      return NextResponse.json(
+        { message: 'Role tidak valid atau Anda tidak memiliki akses ke role tersebut.' },
+        { status: 403 }
+      );
     }
 
+    // ── Generate final JWT token ──────────────────────────────────────────────
     const is_super_admin = selectedRole.nama_role === 'SUPER_ADMIN';
     const permissions = await userRepository.getRolePermissionNames(selectedRole.role_id);
 
@@ -37,7 +92,6 @@ export async function POST(request: NextRequest) {
     const expiresInString = isJemaat ? '180d' : '1d';
     const cookieMaxAge = isJemaat ? 60 * 60 * 24 * 180 : 60 * 60 * 24;
 
-    // Ambil jemaat_id dari DB karena generateFinalToken hanya punya userId
     const userRecord = await userRepository.findById(userId);
 
     const tokenPayload = {
@@ -49,7 +103,7 @@ export async function POST(request: NextRequest) {
       departemen_id: selectedRole.departemen_id ?? null,
       is_super_admin,
       permissions,
-      jemaat_id: userRecord?.jemaat_id ?? null   // ← wajib untuk fitur pelayan di PWA
+      jemaat_id: userRecord?.jemaat_id ?? null,
     };
 
     const token = jwt.sign(tokenPayload, getJwtSecret(), { expiresIn: expiresInString });

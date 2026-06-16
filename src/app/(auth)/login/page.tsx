@@ -50,9 +50,16 @@ export default function LoginPage() {
 
       if (data.requires_role_selection) {
         try {
-          sessionStorage.setItem('temp_auth_data', JSON.stringify(data.data));
+          // Simpan pre_auth_token (bukan user_id mentah) + daftar role ke sessionStorage
+          sessionStorage.setItem('temp_auth_data', JSON.stringify({
+            pre_auth_token: data.data.pre_auth_token,
+            available_roles: data.data.available_roles,
+          }));
         } catch (e) {
-          (window as any).__TEMP_AUTH_DATA = JSON.stringify(data.data);
+          (window as any).__TEMP_AUTH_DATA = JSON.stringify({
+            pre_auth_token: data.data.pre_auth_token,
+            available_roles: data.data.available_roles,
+          });
         }
         hideLoader();
         router.push('/select-role');

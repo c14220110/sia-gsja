@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 
 export async function GET(request: Request) {
   try {
+    const caller = getCallerFromRequest(request);
+    if (!caller) {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const monthStr = searchParams.get('month'); // 1 to 12
     
