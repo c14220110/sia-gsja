@@ -211,10 +211,11 @@ export async function getKpi5(dari: string, sampai: string, satelitId: number | 
   const sfLPJ = satelitId ? ` AND k.satelit_id = $${pLPJ.push(satelitId)}` : '';
   const rLPJ = await pool.query(
     `SELECT 
-       COALESCE(SUM(lpj.total_subsidi_gereja + lpj.total_kontribusi_peserta), 0) AS total_pendanaan,
-       COALESCE(SUM(lpj.total_pengeluaran), 0) AS total_pengeluaran
+       COALESCE(SUM(CASE WHEN lpjd.jenis_anggaran = 'Penerimaan' THEN (lpjd.jumlah * lpjd.harga_satuan) ELSE 0 END), 0) AS total_pendanaan,
+       COALESCE(SUM(CASE WHEN lpjd.jenis_anggaran = 'Pengeluaran' THEN (lpjd.jumlah * lpjd.harga_satuan) ELSE 0 END), 0) AS total_pengeluaran
      FROM public.kegiatan_lpj lpj
      JOIN public.kegiatan k ON k.id = lpj.kegiatan_id
+     LEFT JOIN public.kegiatan_lpj_detail lpjd ON lpjd.kegiatan_id = lpj.kegiatan_id
      WHERE lpj.status_lpj = 'Disetujui'
        AND k.tanggal_mulai BETWEEN $1 AND $2${sfLPJ}`,
     pLPJ,
@@ -240,59 +241,58 @@ export async function getKpi5(dari: string, sampai: string, satelitId: number | 
 }
 
 // KPI-6: Efisiensi Anggaran (target 90%–100%)
-// Definisi (Opsi B): Untuk setiap kegiatan yang SUDAH LPJ dalam periode,
-// hitung RAB-per-sesinya = RA_pengeluaran_disetujui ÷ frekuensi_per_tahun.
-// Lalu bandingkan: Σ(realisasi LPJ) ÷ Σ(RAB_per_sesi × jumlah_kegiatan_LPJ) × 100%
-// Pendekatan ini adil karena tidak membandingkan realisasi 1 bulan vs anggaran 1 tahun.
+// Definisi FINAL: Khusus kegiatan non-rutin (Tahunan / Sekali Pakai) yang sudah LPJ.
+// Bandingkan langsung: Σ(Realisasi Pengeluaran LPJ) ÷ Σ(RAB Pengeluaran Disetujui) × 100%
+// Pendekatan ini valid karena 1 dokumen RA = 1 event = 1 LPJ (apple-to-apple).
+// Kegiatan rutin (Mingguan/Bulanan) dikecualikan karena RAB-nya ditulis sebagai total tahunan
+// sehingga tidak bisa dibandingkan lurus dengan realisasi per sesi.
 export async function getKpi6(dari: string, sampai: string, satelitId: number | null): Promise<RawKpi> {
   const p: (string | number)[] = [dari, sampai];
   const sfK = satelitId ? ` AND k.satelit_id = $${p.push(satelitId)}` : '';
 
-  // Ambil semua kegiatan dengan LPJ disetujui dalam periode beserta RAB-nya
+  // Hanya kegiatan non-rutin (single event) yang punya LPJ Disetujui dan RA yang di-ACC
   const r = await pool.query(
     `SELECT
-       lpj.total_pengeluaran AS realisasi,
-       k.frekuensi_kegiatan,
-       k.anggaran_tahunan_id,
+       k.nama_kegiatan,
+       COALESCE((
+         SELECT SUM(lpjd.jumlah * lpjd.harga_satuan)
+         FROM public.kegiatan_lpj_detail lpjd
+         WHERE lpjd.kegiatan_id = lpj.kegiatan_id
+           AND lpjd.jenis_anggaran = 'Pengeluaran'
+       ), 0) AS realisasi,
        COALESCE((
          SELECT SUM(ad.nominal_disetujui)
          FROM public.anggaran_tahunan_detail ad
          WHERE ad.anggaran_tahunan_id = k.anggaran_tahunan_id
            AND ad.jenis_anggaran = 'Pengeluaran'
            AND ad.status_item IN ('ACC', 'ACC_DIPOTONG', 'Disetujui')
-       ), 0) AS rab_tahunan
+       ), 0) AS rab_pengeluaran
      FROM public.kegiatan_lpj lpj
      JOIN public.kegiatan k ON k.id = lpj.kegiatan_id
      WHERE lpj.status_lpj = 'Disetujui'
        AND k.tanggal_mulai BETWEEN $1 AND $2
-       AND k.anggaran_tahunan_id IS NOT NULL${sfK}`,
+       AND k.anggaran_tahunan_id IS NOT NULL
+       AND k.frekuensi_kegiatan IN ('Tahunan', 'Sekali Pakai')${sfK}`,
     p,
   );
 
   let totalRealisasi = 0;
-  let totalRabProporsional = 0;
+  let totalRab = 0;
+  let jumlahKegiatan = 0;
 
   for (const row of r.rows) {
     const realisasi = parseFloat(row.realisasi) || 0;
-    const rabTahunan = parseFloat(row.rab_tahunan) || 0;
-    const frekuensi = row.frekuensi_kegiatan as string;
-
-    // Konversi frekuensi ke jumlah sesi per tahun
-    const sesPerTahun: Record<string, number> = {
-      'Mingguan': 52, 'Dua Mingguan': 26, 'Bulanan': 12,
-      'Dua Bulanan': 6, 'Triwulan': 4, 'Semester': 2,
-      'Tahunan': 1, 'Sekali Pakai': 1,
-    };
-    const jumlahSesi = sesPerTahun[frekuensi] ?? 1;
-    const rabPerSesi = rabTahunan / jumlahSesi;
-
-    totalRealisasi += realisasi;
-    totalRabProporsional += rabPerSesi;
+    const rab = parseFloat(row.rab_pengeluaran) || 0;
+    if (rab > 0) {
+      totalRealisasi += realisasi;
+      totalRab += rab;
+      jumlahKegiatan++;
+    }
   }
 
-  const dataTersedia = totalRabProporsional > 0;
+  const dataTersedia = totalRab > 0;
   const nilai = dataTersedia
-    ? parseFloat(((totalRealisasi / totalRabProporsional) * 100).toFixed(1))
+    ? parseFloat(((totalRealisasi / totalRab) * 100).toFixed(1))
     : null;
 
   return {
@@ -301,12 +301,13 @@ export async function getKpi6(dari: string, sampai: string, satelitId: number | 
     unit: '%',
     data_tersedia: dataTersedia,
     numerator: totalRealisasi,
-    denominator: totalRabProporsional,
+    denominator: totalRab,
     pesan: dataTersedia
-      ? `Realisasi Rp ${Math.round(totalRealisasi).toLocaleString('id-ID')} dari RAB proporsional Rp ${Math.round(totalRabProporsional).toLocaleString('id-ID')} (${r.rows.length} kegiatan)`
-      : 'Belum ada kegiatan ber-LPJ dengan RA pada periode ini.',
+      ? `Realisasi Rp ${Math.round(totalRealisasi).toLocaleString('id-ID')} dari RAB Rp ${Math.round(totalRab).toLocaleString('id-ID')} (${jumlahKegiatan} event)`
+      : 'Belum ada event non-rutin ber-LPJ dengan RA pada periode ini.',
   };
 }
+
 
 // KPI-7: Rasio Penyelesaian Tindak Lanjut Keluhan Survei (target 100%)
 export async function getKpi7(dari: string, sampai: string, satelitId: number | null): Promise<RawKpi> {

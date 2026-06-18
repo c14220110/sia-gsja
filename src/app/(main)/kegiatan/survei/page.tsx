@@ -53,7 +53,7 @@ export default function SurveiListPage() {
   const [tlCatatan, setTlCatatan] = useState('');
 
   // Keluhan Timeline
-  const [showKeluhanTimeline, setShowKeluhanTimeline] = useState(false);
+  const [selectedTimelineData, setSelectedTimelineData] = useState<any[] | null>(null);
 
   // Confirm Modal State
   const [confirmModal, setConfirmModal] = useState<{
@@ -878,15 +878,6 @@ export default function SurveiListPage() {
               </select>
               <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
             </div>
-            {keluhanData.length > 0 && (
-              <button
-                onClick={() => setShowKeluhanTimeline(true)}
-                className="flex items-center gap-1.5 px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold transition-colors"
-              >
-                <span className="material-icons-round text-[16px]">history</span>
-                Lihat Riwayat
-              </button>
-            )}
             <div className="ml-auto text-xs font-medium text-slate-400 whitespace-nowrap hidden lg:block">
               {keluhanTotal} keluhan
             </div>
@@ -972,8 +963,8 @@ export default function SurveiListPage() {
                         </div>
 
                         {/* Kolom 6: Aksi */}
-                        <div className="w-[100px] shrink-0 flex justify-center items-center">
-                          {hasPermission('survei_manage') && tl.status !== 'Selesai' ? (
+                        <div className="w-[100px] shrink-0 flex flex-col items-center gap-2">
+                          {hasPermission('survei_manage') && tl.status !== 'Selesai' && (
                             <button
                               onClick={() => {
                                 setSelectedTl(tl);
@@ -981,17 +972,22 @@ export default function SurveiListPage() {
                                 setTlCatatan(tl.catatan_tindakan || '');
                                 setTlModalOpen(true);
                               }}
-                              className="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-lg text-xs font-bold transition-colors"
+                              className="w-full py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-lg text-xs font-bold transition-colors"
                             >
                               Tindak Lanjut
                             </button>
-                          ) : tl.status === 'Selesai' ? (
+                          )}
+                          {tl.status === 'Selesai' && (
                             <span className="text-emerald-500 text-[11px] font-bold flex items-center gap-1">
                               <span className="material-icons-round text-[14px]">check</span>Tuntas
                             </span>
-                          ) : (
-                            <span className="text-slate-400 text-[11px]">—</span>
                           )}
+                          <button
+                            onClick={() => setSelectedTimelineData([tl])}
+                            className="w-full py-1.5 bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-800 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1"
+                          >
+                            <span className="material-icons-round text-[14px]">history</span>Riwayat
+                          </button>
                         </div>
                       </div>
                     ))
@@ -1099,9 +1095,9 @@ export default function SurveiListPage() {
       {/* Keluhan Timeline Slide-in Panel */}
       <KeluhanTimeline
         surveiId=""
-        isOpen={showKeluhanTimeline}
-        onClose={() => setShowKeluhanTimeline(false)}
-        tindakLanjutData={keluhanData}
+        isOpen={selectedTimelineData !== null}
+        onClose={() => setSelectedTimelineData(null)}
+        tindakLanjutData={selectedTimelineData || []}
         onUpdated={() => setRefreshTrigger(prev => prev + 1)}
       />
 

@@ -106,7 +106,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     await pool.query(
       `UPDATE public.survei_tindak_lanjut 
-       SET status = $1, catatan_tindakan = $2, updated_by = $3, updated_at = NOW()
+       SET status = $1, catatan_tindakan = $2, updated_by = $3, updated_at = NOW() AT TIME ZONE 'Asia/Jakarta'
        WHERE respons_id = $4`,
       values
     );

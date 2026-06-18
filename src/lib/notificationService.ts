@@ -381,3 +381,62 @@ export async function notifyMajelisPastoralDitugaskan(
   await sendEmail(majelisEmail, `📋 Tugas Pastoral: ${ticket.jenis_layanan} — ${ticket.nomor_tiket}`, html)
     .catch(err => console.error(`[Pastoral Notif] Gagal kirim ke majelis ${majelisEmail}:`, err));
 }
+
+// ─── CSAT / SURVEI NOTIFICATIONS ─────────────────────────────────────────────
+
+export interface CsatKeluhanData {
+  survei_judul: string;
+  nama_kegiatan: string;
+  skor: number;
+  threshold: number;
+  jawaban_teks?: string | null;
+  nama_jemaat: string; // 'Anonim' jika survei anonim
+  survei_id: number;
+}
+
+/**
+ * TRIGGER CSAT #1 — Blast email ke semua SEKRETARIS_PUSAT saat jemaat memberi skor di bawah threshold
+ * Dipanggil dari: POST /api/survei/saya/submit (fire-and-forget, tanpa await)
+ */
+export async function notifySekretarisCsatFlagged(
+  sekretarisEmails: string[],
+  data: CsatKeluhanData
+): Promise<void> {
+  if (sekretarisEmails.length === 0) return;
+
+  const subject = `⚠️ Keluhan Survei Baru — ${data.nama_kegiatan}`;
+
+  const bintang = '⭐'.repeat(Math.round(data.skor)) + '☆'.repeat(5 - Math.round(data.skor));
+
+  const html = emailShell(`
+    <div style="margin-bottom:12px;">${badge('#dc2626', '⚠️ Keluhan Survei Baru')}</div>
+    <h2 style="color:#1e293b;font-size:20px;margin:0 0 8px;">
+      Respons Survei Di Bawah Ambang Batas
+    </h2>
+    <p style="color:#475569;font-size:14px;line-height:1.6;margin:0 0 20px;">
+      Terdapat respons survei dengan skor di bawah ambang batas <strong>${data.threshold}</strong> yang memerlukan tindak lanjut dari Sekretaris.
+    </p>
+    ${infoBox('#fef2f2', '#fca5a5', `
+      <strong>Kegiatan:</strong> ${data.nama_kegiatan}<br/>
+      <strong>Survei:</strong> ${data.survei_judul}<br/>
+      <strong>Skor Diberikan:</strong> ${bintang} (${data.skor} dari 5)<br/>
+      <strong>Responden:</strong> ${data.nama_jemaat}<br/>
+      ${data.jawaban_teks ? `<strong>Komentar:</strong> <em>"${data.jawaban_teks}"</em>` : ''}
+    `)}
+    ${infoBox('#fffbeb', '#fde68a', `
+      <strong>📌 Tindakan yang Diperlukan:</strong><br/>
+      Hubungi responden (jika tidak anonim) atau evaluasi masalah bersama panitia, lalu catat penyelesaiannya di sistem untuk memenuhi KPI-7.
+    `)}
+    ${ctaButton(`${baseUrl}/kegiatan/survei/${data.survei_id}`, '📋 Lihat & Tindaklanjuti Keluhan', '#dc2626')}
+    <p style="color:#94a3b8;font-size:12px;margin:0;">
+      Anda menerima email ini karena memiliki jabatan Sekretaris di SIM GSJA.
+    </p>
+  `);
+
+  for (const email of sekretarisEmails) {
+    await sendEmail(email, subject, html).catch(err =>
+      console.error(`[CSAT Notif] Gagal kirim ke sekretaris ${email}:`, err)
+    );
+  }
+}
+

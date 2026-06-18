@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
+import { notifySekretarisCsatFlagged } from '@/lib/notificationService';
 
 export async function POST(request: Request) {
   const client = await pool.connect();
@@ -82,6 +83,38 @@ export async function POST(request: Request) {
           `INSERT INTO public.survei_tindak_lanjut (respons_id) VALUES ($1)`,
           [insertResult.rows[0].id]
         );
+
+        // Fire-and-forget: blast email ke semua SEKRETARIS_PUSAT (sama seperti pola notif pastoral)
+        pool.query(`
+          SELECT DISTINCT p.email, j.nama_lengkap as nama_jemaat,
+            sv.judul as survei_judul, sv.is_anonim,
+            COALESCE(kg.nama_kegiatan, sv.judul) as nama_kegiatan,
+            sv.id as survei_id
+          FROM public.survei sv
+          LEFT JOIN public.kegiatan kg ON kg.id = sv.kegiatan_id
+          LEFT JOIN public.jemaat j ON j.id = $1
+          CROSS JOIN (
+            SELECT p2.email FROM public.pengguna p2
+            JOIN public.user_role ur ON ur.user_id = p2.id AND ur.is_active = true
+            JOIN public.role r ON r.id = ur.role_id
+            WHERE r.nama_role = 'SEKRETARIS_PUSAT'
+            AND p2.is_active = true AND p2.email IS NOT NULL AND p2.email LIKE '%@%'
+          ) p
+          WHERE sv.id = $2
+        `, [jemaatId, survei_id]).then(notifRes => {
+          if (notifRes.rows.length === 0) return;
+          const row = notifRes.rows[0];
+          const emails = notifRes.rows.map((r: any) => r.email as string).filter(Boolean);
+          notifySekretarisCsatFlagged(emails, {
+            survei_judul: row.survei_judul,
+            nama_kegiatan: row.nama_kegiatan,
+            skor: skor,
+            threshold: thresholdFlag,
+            jawaban_teks: jawaban_teks || null,
+            nama_jemaat: row.is_anonim ? 'Anonim' : (row.nama_jemaat || 'Jemaat'),
+            survei_id: row.survei_id,
+          });
+        }).catch(e => console.error('[CSAT Notif] Gagal fetch data untuk notifikasi:', e));
       }
     }
 

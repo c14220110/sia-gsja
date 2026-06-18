@@ -20,7 +20,12 @@ const STATUS_CONFIG: Record<string, { icon: string; color: string; bg: string; b
 };
 
 function formatTimestamp(dateStr: string) {
-  const d = new Date(dateStr);
+  if (!dateStr) return '-';
+  let safeString = dateStr;
+  if (typeof safeString === 'string' && !safeString.endsWith('Z') && !safeString.includes('+')) {
+    safeString = safeString.replace(' ', 'T') + 'Z';
+  }
+  const d = new Date(safeString);
   return d.toLocaleString('id-ID', {
     timeZone: 'Asia/Jakarta',
     weekday: 'short', day: '2-digit', month: 'short', year: 'numeric',
@@ -147,7 +152,7 @@ export default function KeluhanTimeline({ surveiId, isOpen, onClose, tindakLanju
             <div>
               <h2 className="text-lg font-black text-slate-900 font-sans">Riwayat Keluhan</h2>
               <p className="text-xs text-slate-500 font-sans">
-                {totalKeluhan} keluhan tercatat
+                {totalKeluhan === 1 ? 'Detail aktivitas keluhan' : `${totalKeluhan} keluhan tercatat`}
               </p>
             </div>
           </div>
@@ -159,21 +164,23 @@ export default function KeluhanTimeline({ surveiId, isOpen, onClose, tindakLanju
           </button>
         </div>
 
-        {/* Summary Card */}
-        <div className="mx-6 mt-4 grid grid-cols-3 gap-3">
-          <div className="px-3 py-2.5 rounded-xl bg-rose-50 border border-rose-100 text-center">
-            <div className="text-lg font-black text-rose-600">{belumCount}</div>
-            <div className="text-[10px] font-bold text-rose-400 uppercase tracking-wider">Belum</div>
+        {/* Summary Card (only show if multiple keluhan) */}
+        {totalKeluhan > 1 && (
+          <div className="mx-6 mt-4 grid grid-cols-3 gap-3">
+            <div className="px-3 py-2.5 rounded-xl bg-rose-50 border border-rose-100 text-center">
+              <div className="text-lg font-black text-rose-600">{belumCount}</div>
+              <div className="text-[10px] font-bold text-rose-400 uppercase tracking-wider">Belum</div>
+            </div>
+            <div className="px-3 py-2.5 rounded-xl bg-amber-50 border border-amber-100 text-center">
+              <div className="text-lg font-black text-amber-600">{sedangCount}</div>
+              <div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Proses</div>
+            </div>
+            <div className="px-3 py-2.5 rounded-xl bg-emerald-50 border border-emerald-100 text-center">
+              <div className="text-lg font-black text-emerald-600">{selesaiCount}</div>
+              <div className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Selesai</div>
+            </div>
           </div>
-          <div className="px-3 py-2.5 rounded-xl bg-amber-50 border border-amber-100 text-center">
-            <div className="text-lg font-black text-amber-600">{sedangCount}</div>
-            <div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Proses</div>
-          </div>
-          <div className="px-3 py-2.5 rounded-xl bg-emerald-50 border border-emerald-100 text-center">
-            <div className="text-lg font-black text-emerald-600">{selesaiCount}</div>
-            <div className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Selesai</div>
-          </div>
-        </div>
+        )}
 
         {/* Timeline Body */}
         <div className="flex-1 overflow-y-auto px-6 py-5">
@@ -188,7 +195,9 @@ export default function KeluhanTimeline({ surveiId, isOpen, onClose, tindakLanju
                 <div key={tl.tindak_lanjut_id} className="relative">
                   {/* Keluhan Header */}
                   <div className="flex items-center gap-2 mb-3">
-                    <span className="w-6 h-6 rounded-full bg-slate-800 text-white flex items-center justify-center text-[11px] font-bold shrink-0">{tlIdx + 1}</span>
+                    {totalKeluhan > 1 && (
+                      <span className="w-6 h-6 rounded-full bg-slate-800 text-white flex items-center justify-center text-[11px] font-bold shrink-0">{tlIdx + 1}</span>
+                    )}
                     <span className="text-sm font-bold text-slate-800 truncate">{tl.teks_pertanyaan}</span>
                     <div className="flex items-center gap-1 ml-auto shrink-0">
                       {[1, 2, 3, 4, 5].map(star => (
