@@ -606,14 +606,15 @@ export default function KegiatanPage() {
       {/* Data Table */}
       <div className="w-full bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col relative z-0">
         <div className="w-full overflow-x-auto pb-32 min-h-[480px]">
-          <div className="min-w-[1200px] flex flex-col">
+          <div className="min-w-[1440px] flex flex-col">
             {/* Table Header */}
             <div className="w-full bg-slate-50 border-b border-slate-200 flex items-center px-6 py-4">
               <div className="w-[180px] shrink-0 text-left pr-4 text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">TANGGAL & WAKTU</div>
               <div className="w-[200px] shrink-0 text-left pr-4 text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">STATUS</div>
               <div className="flex-1 min-w-[200px] text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">INFORMASI KEGIATAN</div>
               <div className="w-56 shrink-0 text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">JENIS KEGIATAN</div>
-              <div className="w-[180px] shrink-0 text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">PELAKSANA</div>
+              <div className="w-[160px] shrink-0 text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">PELAKSANA</div>
+              <div className="w-[120px] shrink-0 text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">RATING</div>
               <div className="w-12 shrink-0 text-center text-slate-500 text-xs font-bold font-sans uppercase tracking-wider">AKSI</div>
             </div>
 
@@ -719,7 +720,7 @@ export default function KegiatanPage() {
                   </div>
 
                   {/* Kolom 4: Pelaksana */}
-                  <div className="w-[180px] shrink-0 flex flex-col justify-center pr-4">
+                  <div className="w-[160px] shrink-0 flex flex-col justify-center pr-4">
                      <span className="text-slate-700 text-sm font-bold truncate flex items-center gap-1.5" title={kegiatan.nama_komisi || kegiatan.nama_departemen || kegiatan.nama_satelit || 'Pusat (Pusat)'}>
                         <span className="material-icons-round text-[16px] text-indigo-400">
                            {kegiatan.nama_komisi || kegiatan.nama_departemen ? 'groups' : 'account_balance'}
@@ -733,7 +734,46 @@ export default function KegiatanPage() {
                      </span>
                   </div>
 
-                  {/* Kolom 5: Aksi */}
+                  {/* Kolom 5: Rating Survei */}
+                  <div className="w-[120px] shrink-0 flex flex-col justify-center pr-2">
+                    {(['Selesai', 'Menunggu LPJ'].includes(kegiatan.status_kegiatan)) ? (
+                      kegiatan.avg_skor ? (
+                        <div className="flex flex-col gap-0.5">
+                          {/* Bintang */}
+                          <div className="flex items-center gap-0.5">
+                            {[1,2,3,4,5].map(star => {
+                              const score = parseFloat(kegiatan.avg_skor);
+                              const filled = score >= star;
+                              const half = !filled && score >= star - 0.5;
+                              return (
+                                <span key={star} className={`text-[14px] ${
+                                  filled ? 'text-amber-400' : half ? 'text-amber-300' : 'text-slate-200'
+                                }`}>★</span>
+                              );
+                            })}
+                          </div>
+                          {/* Skor + responden */}
+                          <div className="flex items-center gap-1">
+                            <span className="text-slate-800 text-xs font-black">{parseFloat(kegiatan.avg_skor).toFixed(1)}</span>
+                            <span className="text-slate-400 text-[10px] font-medium">/ 5.0</span>
+                          </div>
+                          <span className="text-slate-400 text-[10px]">{kegiatan.total_responden} responden</span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-0.5">
+                          <div className="flex items-center gap-0.5">
+                            {[1,2,3,4,5].map(star => (
+                              <span key={star} className="text-[14px] text-slate-200">★</span>
+                            ))}
+                          </div>
+                          <span className="text-slate-400 text-[10px] italic">Belum ada respons</span>
+                        </div>
+                      )
+                    ) : (
+                      <span className="text-slate-300 text-xs">—</span>
+                    )}
+                  </div>
+
                   <div className="w-12 shrink-0 flex justify-center items-center">
                     <div className="relative">
                       <button 
@@ -761,9 +801,9 @@ export default function KegiatanPage() {
                             <>
                               <Link href={`/kegiatan/${kegiatan.id}/edit?mode=view`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Proposal Acara</Link>
                               {hasPermission('kegiatan_manage') && <Link href={`/kegiatan/${kegiatan.id}/edit`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">edit</span>Edit Kegiatan</Link>}
-                              {hasPermission('kegiatan_manage') && <div className="w-full h-px bg-slate-100 my-1"></div>}
-                              {hasPermission('kegiatan_manage') && <button onClick={() => handleUpdateStatus(kegiatan.id, 'Akan Datang')} className="w-full text-left px-4 py-2 hover:bg-emerald-50 text-emerald-700 text-sm flex items-center gap-2 font-bold"><span className="material-icons-round text-[18px] text-emerald-600">check_circle</span>Terima & Publish (ACC)</button>}
-                              {hasPermission('kegiatan_manage') && <button onClick={() => handleUpdateStatus(kegiatan.id, 'Ditolak')} className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 text-sm flex items-center gap-2 font-bold"><span className="material-icons-round text-[18px] text-red-600">cancel</span>Tolak Pengajuan</button>}
+                              {hasPermission('kegiatan_approval') && <div className="w-full h-px bg-slate-100 my-1"></div>}
+                              {hasPermission('kegiatan_approval') && <button onClick={() => handleUpdateStatus(kegiatan.id, 'Akan Datang')} className="w-full text-left px-4 py-2 hover:bg-emerald-50 text-emerald-700 text-sm flex items-center gap-2 font-bold"><span className="material-icons-round text-[18px] text-emerald-600">check_circle</span>Terima & Publish (ACC)</button>}
+                              {hasPermission('kegiatan_approval') && <button onClick={() => handleUpdateStatus(kegiatan.id, 'Ditolak')} className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 text-sm flex items-center gap-2 font-bold"><span className="material-icons-round text-[18px] text-red-600">cancel</span>Tolak Pengajuan</button>}
                             </>
                           )}
 
@@ -868,7 +908,7 @@ export default function KegiatanPage() {
                           {displayStatus === 'Selesai' && (
                             <>
                               <Link href={`/kegiatan/${kegiatan.id}`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">visibility</span>Lihat Detail</Link>
-                              <Link href={`/kegiatan/${kegiatan.id}/absensi-susulan`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">print</span>Cetak Daftar Hadir</Link>
+                              {hasPermission('kegiatan_absensi') && <Link href={`/kegiatan/${kegiatan.id}/absensi-susulan`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">how_to_reg</span>Absensi Susulan</Link>}
                               <Link href={`/kegiatan/${kegiatan.id}/lpj/view`} className="w-full text-left px-4 py-2 hover:bg-indigo-50 text-indigo-700 text-sm flex items-center gap-2 font-semibold"><span className="material-icons-round text-[18px] text-indigo-500">article</span>Lihat / Cetak LPJ</Link>
                               {hasPermission('kegiatan_manage') && <div className="w-full h-px bg-slate-100 my-1" />}
                               {hasPermission('kegiatan_manage') && (

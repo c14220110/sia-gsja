@@ -169,12 +169,15 @@ export default function RancanganAnggaranPage() {
   };
 
   // Role helpers for UI guards
-  const ALLOWED_STATUS_PEMBUAT  = ['Draft', 'Menunggu Review'];
-  const ALLOWED_STATUS_APPROVER = ['Draft', 'Menunggu Review', 'Disetujui', 'Disetujui Penuh', 'Disetujui Sebagian'];
+  // Draft → hanya bisa Hapus Permanen (hard delete), tidak perlu Batalkan
+  // Batalkan RA → untuk status SETELAH diajukan (Menunggu Review dst)
+  const ALLOWED_STATUS_PEMBUAT  = ['Menunggu Review']; // Draft dikecualikan — gunakan Hapus Permanen
+  const ALLOWED_STATUS_APPROVER = ['Menunggu Review', 'Disetujui Penuh', 'Disetujui Sebagian'];
   const isApprover = userData?.is_super_admin || userData?.permissions?.includes('anggaran_review');
   const isPembuat  = userData?.permissions?.includes('anggaran_create');
   const canBatalkanItem = (item: AnggaranItem) => {
     if (item.status === 'Dibatalkan') return false;
+    if (item.status === 'Draft') return false; // Draft → hapus permanen saja
     if (isApprover) return ALLOWED_STATUS_APPROVER.includes(item.status);
     return ALLOWED_STATUS_PEMBUAT.includes(item.status) && isPembuat;
   };

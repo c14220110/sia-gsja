@@ -4,8 +4,10 @@ import { useState, useEffect } from 'react';
 import { useLoader } from '@/components/ui/GlobalLoader';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { AlertModal } from '@/components/ui/AlertModal';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
 import KeluhanTimeline from '@/components/survei/KeluhanTimeline';
+
 
 export default function SurveiListPage() {
   const { showLoader, hideLoader } = useLoader();
@@ -52,6 +54,15 @@ export default function SurveiListPage() {
 
   // Keluhan Timeline
   const [showKeluhanTimeline, setShowKeluhanTimeline] = useState(false);
+
+  // Confirm Modal State
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText?: string;
+    onConfirm: () => void;
+  }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
 
   // User data for permission
   const [userData, setUserData] = useState<any>(null);
@@ -190,85 +201,118 @@ export default function SurveiListPage() {
     const confirmMsg = isTerjadwal 
       ? 'Yakin ingin menghapus survei terjadwal ini secara permanen?' 
       : 'Yakin ingin menonaktifkan survei ini?';
-    if (!confirm(confirmMsg)) return;
-    setSubmitState({ status: 'loading', message: isTerjadwal ? 'Menghapus survei...' : 'Menonaktifkan survei...' });
-    try {
-      const res = await fetch(`/api/survei/${id}`, { method: 'DELETE' });
-      const result = await res.json();
-      if (result.success) {
-        setSubmitState({ status: 'success', message: result.message });
-        setRefreshTrigger(prev => prev + 1);
-        setTimeout(() => setSubmitState({ status: 'idle', message: '' }), 2000);
-      } else {
-        setSubmitState({ status: 'error', message: result.message || 'Gagal menghapus survei' });
+      
+    setConfirmModal({
+      isOpen: true,
+      title: isTerjadwal ? 'Hapus Survei' : 'Nonaktifkan Survei',
+      message: confirmMsg,
+      confirmText: 'Ya, Lanjutkan',
+      onConfirm: async () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        setSubmitState({ status: 'loading', message: isTerjadwal ? 'Menghapus survei...' : 'Menonaktifkan survei...' });
+        try {
+          const res = await fetch(`/api/survei/${id}`, { method: 'DELETE' });
+          const result = await res.json();
+          if (result.success) {
+            setSubmitState({ status: 'success', message: result.message });
+            setRefreshTrigger(prev => prev + 1);
+            setTimeout(() => setSubmitState({ status: 'idle', message: '' }), 2000);
+          } else {
+            setSubmitState({ status: 'error', message: result.message || 'Gagal menghapus survei' });
+          }
+        } catch (error) {
+          setSubmitState({ status: 'error', message: 'Terjadi kesalahan sistem' });
+        }
+        setOpenMenuId(null);
       }
-    } catch (error) {
-      setSubmitState({ status: 'error', message: 'Terjadi kesalahan sistem' });
-    }
-    setOpenMenuId(null);
+    });
   };
 
   // Publish handler (terjadwal → aktif + send push)
   const handlePublish = async (id: number) => {
-    if (!confirm('Publish survei ini dan kirim notifikasi ke seluruh jemaat?')) return;
-    setSubmitState({ status: 'loading', message: 'Mempublish survei & mengirim notifikasi...' });
-    try {
-      const res = await fetch(`/api/survei/${id}/publish`, { method: 'POST' });
-      const result = await res.json();
-      if (result.success) {
-        setSubmitState({ status: 'success', message: result.message });
-        setRefreshTrigger(prev => prev + 1);
-        setTimeout(() => setSubmitState({ status: 'idle', message: '' }), 3000);
-      } else {
-        setSubmitState({ status: 'error', message: result.message || 'Gagal mempublish survei' });
+    setConfirmModal({
+      isOpen: true,
+      title: 'Publish Survei',
+      message: 'Publish survei ini dan kirim notifikasi ke seluruh jemaat?',
+      confirmText: 'Ya, Publish',
+      onConfirm: async () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        setSubmitState({ status: 'loading', message: 'Mempublish survei & mengirim notifikasi...' });
+        try {
+          const res = await fetch(`/api/survei/${id}/publish`, { method: 'POST' });
+          const result = await res.json();
+          if (result.success) {
+            setSubmitState({ status: 'success', message: result.message });
+            setRefreshTrigger(prev => prev + 1);
+            setTimeout(() => setSubmitState({ status: 'idle', message: '' }), 3000);
+          } else {
+            setSubmitState({ status: 'error', message: result.message || 'Gagal mempublish survei' });
+          }
+        } catch (error) {
+          setSubmitState({ status: 'error', message: 'Terjadi kesalahan sistem' });
+        }
+        setOpenMenuId(null);
       }
-    } catch (error) {
-      setSubmitState({ status: 'error', message: 'Terjadi kesalahan sistem' });
-    }
-    setOpenMenuId(null);
+    });
   };
 
   // Close handler (aktif → selesai)
   const handleClose = async (id: number) => {
-    if (!confirm('Selesaikan survei ini? Jemaat tidak akan bisa mengisi lagi.')) return;
-    setSubmitState({ status: 'loading', message: 'Menutup survei...' });
-    try {
-      const res = await fetch(`/api/survei/${id}`, { 
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'close' }),
-      });
-      const result = await res.json();
-      if (result.success) {
-        setSubmitState({ status: 'success', message: result.message });
-        setRefreshTrigger(prev => prev + 1);
-        setTimeout(() => setSubmitState({ status: 'idle', message: '' }), 2000);
-      } else {
-        setSubmitState({ status: 'error', message: result.message || 'Gagal menutup survei' });
+    setConfirmModal({
+      isOpen: true,
+      title: 'Selesaikan Survei',
+      message: 'Selesaikan survei ini? Jemaat tidak akan bisa mengisi lagi.',
+      confirmText: 'Ya, Selesaikan',
+      onConfirm: async () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        setSubmitState({ status: 'loading', message: 'Menutup survei...' });
+        try {
+          const res = await fetch(`/api/survei/${id}`, { 
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'close' }),
+          });
+          const result = await res.json();
+          if (result.success) {
+            setSubmitState({ status: 'success', message: result.message });
+            setRefreshTrigger(prev => prev + 1);
+            setTimeout(() => setSubmitState({ status: 'idle', message: '' }), 2000);
+          } else {
+            setSubmitState({ status: 'error', message: result.message || 'Gagal menutup survei' });
+          }
+        } catch (error) {
+          setSubmitState({ status: 'error', message: 'Terjadi kesalahan sistem' });
+        }
+        setOpenMenuId(null);
       }
-    } catch (error) {
-      setSubmitState({ status: 'error', message: 'Terjadi kesalahan sistem' });
-    }
-    setOpenMenuId(null);
+    });
   };
 
   // Push notification handler
   const handlePush = async (id: number) => {
-    if (!confirm('Kirim notifikasi push ke jemaat yang belum mengisi survei ini?')) return;
-    setSubmitState({ status: 'loading', message: 'Mengirim notifikasi...' });
-    try {
-      const res = await fetch(`/api/survei/${id}/push`, { method: 'POST' });
-      const result = await res.json();
-      if (result.success) {
-        setSubmitState({ status: 'success', message: result.message });
-        setTimeout(() => setSubmitState({ status: 'idle', message: '' }), 3000);
-      } else {
-        setSubmitState({ status: 'error', message: result.message || 'Gagal mengirim notifikasi' });
+    setConfirmModal({
+      isOpen: true,
+      title: 'Kirim Notifikasi',
+      message: 'Kirim notifikasi push ke jemaat yang belum mengisi survei ini?',
+      confirmText: 'Kirim Notifikasi',
+      onConfirm: async () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        setSubmitState({ status: 'loading', message: 'Mengirim notifikasi...' });
+        try {
+          const res = await fetch(`/api/survei/${id}/push`, { method: 'POST' });
+          const result = await res.json();
+          if (result.success) {
+            setSubmitState({ status: 'success', message: result.message });
+            setTimeout(() => setSubmitState({ status: 'idle', message: '' }), 3000);
+          } else {
+            setSubmitState({ status: 'error', message: result.message || 'Gagal mengirim notifikasi' });
+          }
+        } catch (error) {
+          setSubmitState({ status: 'error', message: 'Terjadi kesalahan sistem' });
+        }
+        setOpenMenuId(null);
       }
-    } catch (error) {
-      setSubmitState({ status: 'error', message: 'Terjadi kesalahan sistem' });
-    }
-    setOpenMenuId(null);
+    });
   };
 
   // Handle tindak lanjut update (from keluhan tab)
@@ -386,13 +430,21 @@ export default function SurveiListPage() {
 
   const formatDate = (dateString: string) => {
     if (!dateString) return '-';
-    const date = new Date(dateString);
+    let safeString = dateString;
+    if (typeof safeString === 'string' && !safeString.endsWith('Z') && !safeString.includes('+')) {
+      safeString = safeString.replace(' ', 'T') + 'Z';
+    }
+    const date = new Date(safeString);
     return new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric' }).format(date);
   };
 
   const formatDateTime = (dateString: string) => {
     if (!dateString) return '-';
-    const date = new Date(dateString);
+    let safeString = dateString;
+    if (typeof safeString === 'string' && !safeString.endsWith('Z') && !safeString.includes('+')) {
+      safeString = safeString.replace(' ', 'T') + 'Z';
+    }
+    const date = new Date(safeString);
     return new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(date) + ' WIB';
   };
 
@@ -420,7 +472,17 @@ export default function SurveiListPage() {
   if (userData?.role_name?.toLowerCase() === 'jemaat') return null;
 
   return (
-    <div className="w-full flex flex-col gap-8 pb-10 relative">
+    <div className="w-full flex flex-col gap-8 pb-10 relative min-h-screen bg-[#F8FAFC]">
+      
+      {/* Modals & Overlays */}
+      <AlertModal 
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmText={confirmModal.confirmText}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+      />
       
       {/* Submit Overlay */}
       {(submitState.status !== 'idle') && <SubmitOverlay status={submitState.status} message={submitState.message} onClose={() => setSubmitState({ status: 'idle', message: '' })} />}

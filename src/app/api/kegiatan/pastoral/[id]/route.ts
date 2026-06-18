@@ -32,8 +32,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       JOIN public.jenis_kegiatan jk ON p.jenis_kegiatan_id = jk.id
       JOIN public.jemaat pemohon ON p.jemaat_pemohon_id = pemohon.id
       LEFT JOIN public.jemaat jt ON p.jemaat_target_id = jt.id
-      LEFT JOIN public.pengurus pj ON p.penanggung_jawab_id = pj.id
-      LEFT JOIN public.jemaat pj_jemaat ON pj.jemaat_id = pj_jemaat.id
+      LEFT JOIN public.pengguna pj_pn ON p.penanggung_jawab_id = pj_pn.id
+      LEFT JOIN public.jemaat pj_jemaat ON pj_jemaat.id = pj_pn.jemaat_id
       LEFT JOIN public.kegiatan kg ON p.kegiatan_id = kg.id
       WHERE p.id = $1
     `;
@@ -68,11 +68,17 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     `;
     const resLogs = await pool.query(logQuery, [id]);
 
+    // penanggung_jawab_id sekarang = pengguna.id → cukup compare langsung
+    const isCurrentPJ = ticket.penanggung_jawab_id != null
+      && parseInt(ticket.penanggung_jawab_id) === caller.user_id;
+
     return NextResponse.json({
       success: true,
       data: {
         ticket,
-        logs: resLogs.rows
+        logs: resLogs.rows,
+        caller_role: caller.role_name || '',  // e.g. 'SEKRETARIS_PUSAT', 'MAJELIS'
+        is_current_pj: isCurrentPJ,
       }
     });
 

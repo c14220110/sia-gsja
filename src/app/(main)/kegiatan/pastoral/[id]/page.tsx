@@ -15,6 +15,8 @@ export default function AdminPastoralDetailPage() {
   const [ticketId, setTicketId] = useState<string | null>(null);
   const [data, setData] = useState<any>(null);
   const [logs, setLogs] = useState<any[]>([]);
+  const [callerRole, setCallerRole] = useState<string>('');
+  const [isCurrentPJ, setIsCurrentPJ] = useState<boolean>(false);
 
   const [submitState, setSubmitState] = useState<{ status: 'idle'|'loading'|'success'|'error', message: string }>({ status: 'idle', message: '' });
 
@@ -51,6 +53,8 @@ export default function AdminPastoralDetailPage() {
         if (json.success) {
           setData(json.data.ticket);
           setLogs(json.data.logs);
+          setCallerRole((json.data.caller_role || '').toUpperCase());
+          setIsCurrentPJ(!!json.data.is_current_pj);
         } else {
           setSubmitState({ status: 'error', message: json.message || 'Tiket tidak ditemukan' });
         }
@@ -111,7 +115,7 @@ export default function AdminPastoralDetailPage() {
       const res = await fetch(`/api/kegiatan/pastoral/${ticketId}/assign`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pengurus_id: pengurusId, tanggal_fix: tanggalFix, waktu_fix: waktuFix })
+        body: JSON.stringify({ pengguna_id: pengurusId, tanggal_fix: tanggalFix, waktu_fix: waktuFix })
       });
       const result = await res.json();
       if (result.success) {
@@ -205,6 +209,9 @@ export default function AdminPastoralDetailPage() {
   };
 
   const isFinalStatus = data.status_permohonan === 'Selesai' || data.status_permohonan === 'Dibatalkan';
+  const isSekretaris = ['SEKRETARIS_PUSAT', 'SUPER_ADMIN'].includes(callerRole);
+  const isMajelisOrGembala = ['MAJELIS', 'GEMBALA_SIDANG', 'GEMBALA_SATELIT'].includes(callerRole);
+  // isCurrentPJ: di-set dari server (is_current_pj), bukan dihitung di client
 
   return (
     <div className="w-full flex justify-center items-start pb-20 relative animate-in fade-in slide-in-from-bottom-2">
@@ -248,7 +255,7 @@ export default function AdminPastoralDetailPage() {
             </div>
             
             <div className="flex gap-3">
-               {!isFinalStatus && (
+               {!isFinalStatus && (isSekretaris || (isCurrentPJ && isMajelisOrGembala)) && (
                  <button onClick={() => setIsBatalModalOpen(true)} className="px-5 py-2.5 rounded-lg border border-slate-300 bg-white text-rose-600 font-bold hover:bg-rose-50 hover:border-rose-200 transition flex items-center gap-2 text-sm shadow-sm">
                    <span className="material-icons-round text-[18px]">cancel</span> Batalkan Tiket
                  </button>
@@ -271,28 +278,36 @@ export default function AdminPastoralDetailPage() {
              <div className="w-px h-12 bg-slate-200/80 hidden md:block"></div>
 
              <div className="flex items-center gap-4">
-               <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
-                 <span className="material-icons-round text-[22px]">schedule</span>
-               </div>
-               <div className="flex flex-col">
-                 <span className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-0.5">Jadwal Harapan</span>
-                 <span className="text-[15px] font-bold text-slate-900">
-                    {data.jadwal_harapan ? formatDate(data.jadwal_harapan) : 'Menyesuaikan Pelayan'}
-                 </span>
-               </div>
-             </div>
+                <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                  <span className="material-icons-round text-[22px]">event_available</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-0.5">Jadwal Pelayanan</span>
+                  <span className="text-[15px] font-bold text-slate-900">
+                    {data.jadwal_tanggal
+                      ? `${new Date(data.jadwal_tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}${
+                          data.jadwal_waktu ? ' pukul ' + data.jadwal_waktu.substring(0, 5) + ' WIB' : ''
+                        }`
+                      : <span className="text-slate-400 font-medium text-sm">Belum ditetapkan</span>}
+                  </span>
+                </div>
+              </div>
 
-             <div className="w-px h-12 bg-slate-200/80 hidden md:block"></div>
+              <div className="w-px h-12 bg-slate-200/80 hidden md:block"></div>
 
-             <div className="flex items-center gap-4">
-               <div className="w-12 h-12 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center shrink-0">
-                 <span className="material-icons-round text-[22px]">place</span>
-               </div>
-               <div className="flex flex-col">
-                 <span className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-0.5">Lokasi Pelayanan</span>
-                 <span className="text-[15px] font-bold text-slate-900 line-clamp-1 max-w-[200px] hover:max-w-none hover:whitespace-normal transition-all">{data.lokasi_pelayanan || 'Tidak Spesifik'}</span>
-               </div>
-             </div>
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center shrink-0">
+                  <span className="material-icons-round text-[22px]">manage_accounts</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-0.5">Penanggung Jawab</span>
+                  <span className="text-[15px] font-bold text-slate-900 line-clamp-1">
+                    {data.nama_penanggung_jawab
+                      ? data.nama_penanggung_jawab
+                      : <span className="text-slate-400 font-medium text-sm">Belum ditugaskan</span>}
+                  </span>
+                </div>
+              </div>
           </div>
         </div>
 
@@ -319,7 +334,19 @@ export default function AdminPastoralDetailPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="flex flex-col gap-2">
                   <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Kontak Pemohon / Nomor HP</span>
-                  <span className="text-sm font-bold text-blue-600 bg-blue-50 w-fit px-4 py-1.5 rounded-lg border border-blue-100">{data.no_hp_kontak}</span>
+                  {data.no_hp_kontak ? (
+                    <a
+                      href={`https://wa.me/${data.no_hp_kontak.replace(/\s+|-/g, '').replace(/^0/, '62').replace(/^(?!62)/, '62')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm font-bold text-green-600 bg-green-50 w-fit px-4 py-1.5 rounded-lg border border-green-100 flex items-center gap-2 hover:bg-green-100 transition-colors"
+                    >
+                      <span className="material-icons-round text-[16px]">chat</span>
+                      {data.no_hp_kontak}
+                    </a>
+                  ) : (
+                    <span className="text-sm text-slate-400">-</span>
+                  )}
                 </div>
                 <div className="flex flex-col gap-2 md:col-span-2">
                   <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Keterangan Tambahan</span>
@@ -336,7 +363,7 @@ export default function AdminPastoralDetailPage() {
                  <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
                    <span className="material-icons-round text-violet-500">badge</span> Penanggung Jawab (PIC)
                  </h3>
-                 {!data.nama_penanggung_jawab && !isFinalStatus && (
+                 {!data.nama_penanggung_jawab && !isFinalStatus && isSekretaris && (
                    <button onClick={() => setAssignModalOpen(true)} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-colors">
                      Tugaskan Sekarang
                    </button>
@@ -352,7 +379,7 @@ export default function AdminPastoralDetailPage() {
                       <span className="text-lg font-bold text-slate-900">{data.nama_penanggung_jawab}</span>
                       <span className="text-sm font-medium text-slate-500">Ditugaskan pada {formatDate(data.waktu_ditugaskan)}</span>
                     </div>
-                    {!isFinalStatus && (
+                    {!isFinalStatus && isSekretaris && (
                       <button onClick={() => setAssignModalOpen(true)} className="ml-auto px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-colors border border-slate-200 shadow-sm">
                         Ubah PIC
                       </button>
@@ -459,26 +486,27 @@ export default function AdminPastoralDetailPage() {
           <div className="flex flex-col gap-6">
             
             {/* Panel Aksi Cepat */}
-            {!isFinalStatus && (
+             {!isFinalStatus && (isSekretaris || isCurrentPJ) && (
               <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden sticky top-6">
                 <div className="bg-slate-50 border-b border-slate-200 px-6 py-5">
                    <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2"><span className="material-icons-round text-blue-500">touch_app</span> Panel Aksi Pelayanan</h3>
                 </div>
                 <div className="p-6 flex flex-col gap-4">
-                  {data.status_permohonan === 'Menunggu' && (
+                  {isSekretaris && data.status_permohonan === 'Menunggu' && (
                     <div className="bg-orange-50 border border-orange-200 p-4 rounded-xl flex items-start gap-3">
                       <span className="material-icons-round text-orange-500 text-[20px]">info</span>
                       <p className="text-xs text-orange-800 leading-relaxed font-medium">Tugaskan PIC terlebih dahulu di Card Penanggung Jawab untuk dapat memproses status selanjutnya.</p>
                     </div>
                   )}
                   
-                  {data.status_permohonan === 'Ditugaskan' && (
+                  {/* Hanya PJ Majelis/Gembala yang bisa tandai Ditindaklanjuti - Sekretaris tidak boleh */}
+                  {isCurrentPJ && isMajelisOrGembala && data.status_permohonan === 'Ditugaskan' && (
                     <button onClick={() => handleStatusChange('Ditindaklanjuti')} className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition-all shadow-sm flex items-center justify-center gap-2">
                       <span className="material-icons-round text-[18px]">play_arrow</span> Tandai Ditindaklanjuti
                     </button>
                   )}
 
-                  {data.status_permohonan === 'Ditindaklanjuti' && (
+                  {isCurrentPJ && data.status_permohonan === 'Ditindaklanjuti' && (
                     <button onClick={() => setIsSelesaiModalOpen(true)} className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold transition-all shadow-sm flex items-center justify-center gap-2">
                       <span className="material-icons-round text-[18px]">done_all</span> Selesaikan Pelayanan
                     </button>
@@ -591,7 +619,7 @@ export default function AdminPastoralDetailPage() {
                 </div>
                 <div>
                   <h3 className="text-xl font-black text-slate-900">{data.nama_penanggung_jawab ? 'Ubah Penanggung Jawab' : 'Tugaskan Penanggung Jawab'}</h3>
-                  <p className="text-sm text-slate-500 font-medium mt-1">Pilih gembala atau pelayan untuk tiket ini</p>
+                  <p className="text-xs text-slate-500 font-medium">Pilih Majelis atau Gembala untuk tiket ini</p>
                 </div>
               </div>
               <button onClick={() => setAssignModalOpen(false)} className="w-10 h-10 flex justify-center items-center rounded-full bg-slate-200 text-slate-600 hover:bg-slate-300 transition-colors">
@@ -625,7 +653,7 @@ export default function AdminPastoralDetailPage() {
                 <span className="material-icons-round absolute left-5 top-4 text-slate-400 text-[20px]">search</span>
                 <input 
                   type="text" 
-                  placeholder="Cari nama pengurus (staf pastoral)..."
+                  placeholder="Cari nama Majelis atau Gembala..."
                   className="w-full pl-14 pr-5 py-4 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-700 font-sans text-sm transition-all"
                   value={picSearch}
                   onChange={(e) => setPicSearch(e.target.value)}
@@ -637,12 +665,12 @@ export default function AdminPastoralDetailPage() {
               {picOptions.length === 0 ? (
                 <div className="w-full py-16 flex flex-col items-center justify-center text-slate-400">
                   <span className="material-icons-round text-5xl mb-3 opacity-50">group_off</span>
-                  <span className="text-base font-bold text-slate-500">Tidak ada pengurus yang ditemukan</span>
+                  <span className="text-base font-bold text-slate-500">Tidak ada Majelis/Gembala ditemukan</span>
                 </div>
               ) : (
                 <div className="flex flex-col gap-2">
                   {picOptions.map(pic => (
-                    <div key={pic.pengurus_id} className="w-full bg-white border border-slate-200 rounded-xl p-4 flex justify-between items-center hover:shadow-md hover:border-blue-200 transition-all">
+                    <div key={pic.pengguna_id} className="w-full bg-white border border-slate-200 rounded-xl p-4 flex justify-between items-center hover:shadow-md hover:border-blue-200 transition-all">
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-full bg-slate-100 flex justify-center items-center text-slate-600 font-bold uppercase text-lg">
                           {pic.nama.charAt(0)}
@@ -653,7 +681,7 @@ export default function AdminPastoralDetailPage() {
                         </div>
                       </div>
                       <button 
-                        onClick={() => handleAssign(pic.pengurus_id)}
+                        onClick={() => handleAssign(pic.pengguna_id)}
                         disabled={assignLoading}
                         className="px-5 py-2.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
                       >

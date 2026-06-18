@@ -2,6 +2,12 @@ import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 
+const ROLE_LABEL: Record<string, string> = {
+  MAJELIS: 'Majelis',
+  GEMBALA_SIDANG: 'Gembala Sidang',
+  GEMBALA_SATELIT: 'Gembala Satelit',
+};
+
 export async function GET(request: Request) {
   try {
     const caller = getCallerFromRequest(request);
@@ -14,42 +20,45 @@ export async function GET(request: Request) {
 
     let queryParams: any[] = [];
     let whereSearch = '';
-    
+
     if (search) {
       whereSearch = `AND j.nama_lengkap ILIKE $1`;
       queryParams.push(`%${search}%`);
     }
 
+    // Sumber: user_role dengan role MAJELIS / GEMBALA_SIDANG / GEMBALA_SATELIT
+    // Menggunakan GROUP BY agar jika satu orang merangkap 2 role (misal Majelis & Gembala),
+    // dia hanya muncul 1x di list (mencegah error Duplicate Key di React)
     const query = `
       SELECT 
-        p.id as pengurus_id,
+        pn.id as pengguna_id,
         j.nama_lengkap,
-        STRING_AGG(
-          jab.nama_jabatan || 
-          COALESCE(' - ' || dep.nama_departemen, '') || 
-          COALESCE(' - ' || kom.nama_komisi, ''), 
-          ', '
-        ) as role_display
-      FROM public.pengurus p
-      JOIN public.jemaat j ON p.jemaat_id = j.id
-      LEFT JOIN public.detail_kepengurusan dk ON dk.pengurus_id = p.id AND dk.status_jabatan = 'Aktif'
-      LEFT JOIN public.jabatan jab ON dk.jabatan_id = jab.id
-      LEFT JOIN public.departemen dep ON dk.departemen_id = dep.id
-      LEFT JOIN public.komisi kom ON dk.komisi_id = kom.id
-      WHERE p.is_active = true 
+        string_agg(r.nama_role, ', ') as roles
+      FROM public.user_role ur
+      JOIN public.role r ON r.id = ur.role_id
+      JOIN public.pengguna pn ON pn.id = ur.user_id AND pn.is_active = true
+      JOIN public.jemaat j ON j.id = pn.jemaat_id
+      WHERE r.nama_role IN ('MAJELIS', 'GEMBALA_SIDANG', 'GEMBALA_SATELIT')
+        AND ur.is_active = true
+        AND (ur.tanggal_selesai IS NULL OR ur.tanggal_selesai >= CURRENT_DATE)
         ${whereSearch}
-      GROUP BY p.id, j.nama_lengkap
+      GROUP BY pn.id, j.nama_lengkap
       ORDER BY j.nama_lengkap ASC
     `;
 
     const result = await pool.query(query, queryParams);
 
     const data = result.rows.map(row => {
+      // Format role misal dari "MAJELIS, GEMBALA_SATELIT" menjadi "Majelis, Gembala Satelit"
+      const formattedRoles = row.roles
+        .split(', ')
+        .map((r: string) => ROLE_LABEL[r] || r)
+        .join(', ');
+
       return {
-        pengurus_id: row.pengurus_id,
+        pengguna_id: row.pengguna_id,
         nama: row.nama_lengkap,
-        role: row.role_display || 'Pengurus',
-        jabatan_id: null
+        role: formattedRoles,
       };
     });
 

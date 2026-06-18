@@ -19,7 +19,8 @@ export async function GET(req: NextRequest) {
         j.id, 
         j.jemaat_id, 
         j.nama_lengkap, 
-        j.email, 
+        j.email,
+        j.no_hp,
         s.nama_satelit,
         j.tanggal_lahir,
         CASE WHEN p.id IS NOT NULL THEN true ELSE false END as has_account
@@ -94,9 +95,11 @@ export async function POST(req: NextRequest) {
 
       const password_hash = await bcrypt.hash(defaultPassword, 10);
 
+      // Simpan KEDUANYA email + no_hp agar jemaat bisa login dengan salah satu.
+      // Login API (findByIdentifier) sudah mendukung: WHERE email = $1 OR no_hp = $1
       dataToInsert.push({
         email: hasEmail ? j.email.trim() : null,
-        no_hp: (!hasEmail && hasNoHp) ? j.no_hp.trim() : null,
+        no_hp: hasNoHp ? j.no_hp.trim() : null,   // ← simpan keduanya, bukan hanya fallback
         password_hash,
         jemaat_id: j.id,
         satelit_id: j.satelit_id

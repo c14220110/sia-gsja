@@ -94,8 +94,13 @@ export default function InputLPJPage() {
     setForm(p => ({ ...p, uraian: '', deskripsi: '', jumlah: 1, satuan: '', harga: 0 }));
   }, [form]);
 
+  // Helper: untuk RA Bertahap, salin sebagai "per 1 kali pelaksanaan" (jumlah=1)
+  // Untuk RA Sekali Pakai, salin verbatim dari rencana
+  const isBertahap = raInfo?.pola_penggunaan === 'Bertahap';
+
   // Salin satu baris RA ke LPJ items
   const handleSalinSatuItem = useCallback((r: any) => {
+    const jumlah = isBertahap ? 1 : r.jumlah;
     const newItem: Item = {
       id: Date.now().toString() + Math.random(),
       jenis: r.jenis_anggaran as 'Penerimaan' | 'Pengeluaran',
@@ -104,38 +109,41 @@ export default function InputLPJPage() {
       sumber_dana: r.sumber_dana || 'Kas Mandiri',
       uraian: r.uraian,
       deskripsi: r.deskripsi || '',
-      jumlah: r.jumlah,
-      satuan: r.satuan || '',
+      jumlah,
+      satuan: isBertahap ? 'Kali' : (r.satuan || ''),
       harga: parseFloat(r.harga_satuan),
-      total: r.jumlah * parseFloat(r.harga_satuan),
+      total: jumlah * parseFloat(r.harga_satuan),
     };
     setItems(p => [...p, newItem]);
-  }, []);
+  }, [isBertahap]);
 
   // Salin semua baris RA ke LPJ items (bulk copy)
   const [salinDone, setSalinDone] = useState(false);
   const handleSalinSemua = useCallback(() => {
     if (raItemsReference.length === 0) return;
-    const newItems: Item[] = raItemsReference.map((r: any) => ({
-      id: Date.now().toString() + Math.random(),
-      jenis: r.jenis_anggaran as 'Penerimaan' | 'Pengeluaran',
-      coaId: r.coa_id,
-      coaLabel: `${r.kode_akun} — ${r.nama_akun}`,
-      sumber_dana: r.sumber_dana || 'Kas Mandiri',
-      uraian: r.uraian,
-      deskripsi: r.deskripsi || '',
-      jumlah: r.jumlah,
-      satuan: r.satuan || '',
-      harga: parseFloat(r.harga_satuan),
-      total: r.jumlah * parseFloat(r.harga_satuan),
-    }));
+    const newItems: Item[] = raItemsReference.map((r: any) => {
+      const jumlah = isBertahap ? 1 : r.jumlah;
+      return {
+        id: Date.now().toString() + Math.random(),
+        jenis: r.jenis_anggaran as 'Penerimaan' | 'Pengeluaran',
+        coaId: r.coa_id,
+        coaLabel: `${r.kode_akun} — ${r.nama_akun}`,
+        sumber_dana: r.sumber_dana || 'Kas Mandiri',
+        uraian: r.uraian,
+        deskripsi: r.deskripsi || '',
+        jumlah,
+        satuan: isBertahap ? 'Kali' : (r.satuan || ''),
+        harga: parseFloat(r.harga_satuan),
+        total: jumlah * parseFloat(r.harga_satuan),
+      };
+    });
     if (items.length > 0) {
       if (!confirm(`Tabel rincian sudah ada ${items.length} item. Ganti semua dengan data dari Anggaran?`)) return;
     }
     setItems(newItems);
     setSalinDone(true);
     setTimeout(() => setSalinDone(false), 2500);
-  }, [raItemsReference, items]);
+  }, [raItemsReference, items, isBertahap]);
 
   // Inline edit state
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -263,41 +271,64 @@ export default function InputLPJPage() {
 
   const isDraft = existingStatus === '' || existingStatus === 'Draft';
   const isRevisi = existingStatus === 'Revisi';
+  const isLocked = existingStatus === 'Disetujui'; // Sudah disetujui → tidak boleh diedit
 
 
   return (
     <div className="w-full flex flex-col gap-6 pb-32">
       <SubmitOverlay status={submitState.status} message={submitState.message} onClose={() => setSubmitState({ status: 'idle', message: '' })} />
 
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-slate-500">
-        <Link href="/kegiatan" className="hover:text-indigo-600">Daftar Kegiatan</Link>
-        <span className="material-icons-round text-[16px]">chevron_right</span>
-        <span className="font-semibold text-slate-700">Input LPJ</span>
+      {/* ── Breadcrumb ── */}
+      <div className="w-full flex flex-col justify-start items-start gap-4">
+        <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-sans leading-4">
+          <Link href="/kegiatan" className="text-slate-500 hover:text-indigo-600">Daftar Kegiatan</Link>
+          <span className="text-slate-400 material-icons-round text-[14px]">chevron_right</span>
+          <Link href={`/kegiatan/${id}`} className="text-slate-500 hover:text-indigo-600 truncate max-w-[200px]">{kegiatan?.nama_kegiatan || 'Detail Kegiatan'}</Link>
+          <span className="text-slate-400 material-icons-round text-[14px]">chevron_right</span>
+          <span className="text-slate-700 font-bold">Input LPJ</span>
+        </div>
+
+        {/* ── Page Title Row ── */}
+        <div className="self-stretch inline-flex justify-between items-end gap-4 flex-wrap">
+          <div className="flex flex-col gap-2">
+            <div className="inline-flex gap-3 items-center flex-wrap">
+              <h1 className="text-slate-900 text-3xl font-black font-sans leading-9">Input LPJ</h1>
+              {existingStatus && (
+                <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border flex items-center gap-1.5 w-max ${
+                  existingStatus === 'Menunggu Review' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                  existingStatus === 'Disetujui' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                  existingStatus === 'Revisi' ? 'bg-red-50 text-red-700 border-red-200' :
+                  'bg-slate-100 text-slate-600 border-slate-200'
+                }`}>
+                  <span className={`w-2 h-2 rounded-full ${
+                    existingStatus === 'Menunggu Review' ? 'bg-amber-500 animate-pulse' :
+                    existingStatus === 'Disetujui' ? 'bg-emerald-500' :
+                    existingStatus === 'Revisi' ? 'bg-red-500' :
+                    'bg-slate-400'
+                  }`}></span>
+                  Status LPJ: {existingStatus}
+                </span>
+              )}
+            </div>
+            {kegiatan && (
+              <p className="text-slate-500 text-base font-medium">{kegiatan.nama_kegiatan}</p>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="text-slate-500 text-sm font-medium font-sans flex gap-1 items-center">
+              <span className="material-icons-round text-lg text-slate-400">qr_code</span>
+              Kode: <span className="text-slate-700 font-bold">{kegiatan?.kode_kegiatan}</span>
+            </div>
+            <button onClick={handleOpenRiwayat} className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-200 bg-white text-slate-600 text-sm font-semibold font-sans hover:bg-slate-50 hover:border-slate-300 hover:text-slate-800 transition-all shadow-sm" title="Lihat Riwayat">
+              <span className="material-icons-round text-[18px]">history</span>
+              Lihat Riwayat
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* Header Info Card */}
-      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-        <div className="flex items-center gap-3 border-b border-slate-100 pb-4 mb-4">
-          <span className="material-icons-round text-amber-500 text-3xl">assignment</span>
-          <div>
-            <h1 className="text-xl font-black text-slate-800 font-sans">Input LPJ — Laporan Pertanggungjawaban</h1>
-            <p className="text-xs text-slate-400 font-sans mt-0.5">{kegiatan ? `${kegiatan.nama_kegiatan} · ${kegiatan.kode_kegiatan}` : 'Memuat data kegiatan...'}</p>
-          </div>
-          {existingStatus && (
-            <span className={`ml-auto px-3 py-1 rounded-full text-xs font-bold border ${
-              existingStatus === 'Menunggu Review' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-              existingStatus === 'Disetujui' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-              existingStatus === 'Revisi' ? 'bg-red-50 text-red-700 border-red-200' :
-              'bg-slate-100 text-slate-600 border-slate-200'
-            }`}>
-              Status LPJ: {existingStatus}
-            </span>
-          )}
-          <button onClick={handleOpenRiwayat} className="ml-2 w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-100 hover:text-indigo-600 transition-colors" title="Lihat Riwayat">
-            <span className="material-icons-round text-[18px]">history</span>
-          </button>
-        </div>
+      {/* Main Info Card */}
+      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm mt-2">
 
         {/* RA Info Tracking (If Available) */}
         {raInfo && (
@@ -332,6 +363,26 @@ export default function InputLPJPage() {
           </div>
         )}
 
+        {/* ── Banner Terkunci (Disetujui) ── */}
+        {isLocked && (
+          <div className="mb-5 bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+              <span className="material-icons-round text-emerald-600 text-[22px]">lock</span>
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-bold text-emerald-800">LPJ Telah Disetujui — Tidak Dapat Diedit</p>
+              <p className="text-xs text-emerald-700 mt-0.5">
+                LPJ ini sudah mendapatkan persetujuan dari Majelis. Dokumen dikunci untuk menjaga integritas laporan keuangan.
+                Untuk mengubah, hubungi Majelis untuk membatalkan persetujuan terlebih dahulu.
+              </p>
+            </div>
+            <a href={`/kegiatan/${id}/lpj/view`} className="shrink-0 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700 transition-colors flex items-center gap-1.5">
+              <span className="material-icons-round text-[16px]">visibility</span>
+              Lihat LPJ
+            </a>
+          </div>
+        )}
+
         {/* Catatan Revisi dari Majelis */}
         {isRevisi && catatanReviewer && (
           <div className="mb-5 bg-red-50 border border-red-200 rounded-xl p-4 flex gap-3">
@@ -359,7 +410,14 @@ export default function InputLPJPage() {
                 <span className="material-icons-round text-blue-500 text-[18px]">menu_book</span>
                 <p className="text-xs font-bold text-blue-800 uppercase tracking-wide">Referensi Rencana Anggaran (RA) — Hanya untuk Panduan</p>
               </div>
-              {isDraft && (
+            {isDraft && (
+              <div className="flex items-center gap-2">
+                {isBertahap && (
+                  <span className="flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-1 rounded-full border border-amber-200">
+                    <span className="material-icons-round text-[11px]">repeat</span>
+                    Bertahap: disalin sebagai 1× realisasi
+                  </span>
+                )}
                 <button
                   onClick={handleSalinSemua}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm ${
@@ -371,7 +429,8 @@ export default function InputLPJPage() {
                   <span className="material-icons-round text-[14px]">{salinDone ? 'check_circle' : 'auto_awesome'}</span>
                   {salinDone ? 'Tersalin!' : 'Salin Semua ke LPJ'}
                 </button>
-              )}
+              </div>
+            )}
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs min-w-[600px]">
@@ -413,7 +472,10 @@ export default function InputLPJPage() {
             </div>
             <div className="bg-blue-50/50 px-4 py-2 text-[10px] text-blue-600 italic border-t border-blue-100 flex items-center gap-2">
               <span className="material-icons-round text-[12px]">info</span>
-              Data di atas adalah rencana dari RA. Gunakan tombol “Salin” atau “Salin Semua”, lalu sesuaikan jumlah/harga sesuai realisasi aktual.
+              {isBertahap
+                ? <>Data di atas adalah rencana <strong>tahunan</strong> dari RA Bertahap. Tombol "Salin" akan mengisi jumlah=<strong>1 kali</strong> dengan harga/satuan sebagai referensi — sesuaikan dengan realisasi aktual event ini.</>
+                : <>Data di atas adalah rencana dari RA. Gunakan tombol "Salin" atau "Salin Semua", lalu sesuaikan jumlah/harga sesuai realisasi aktual.</>
+              }
             </div>
           </div>
         )}
@@ -532,9 +594,9 @@ export default function InputLPJPage() {
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
           <h2 className="text-base font-bold text-slate-800">Rincian Keuangan Kegiatan</h2>
-          <span className="text-xs text-slate-400">{items.length} item</span>
+          <span className="text-xs text-slate-400 font-medium">{items.length} item</span>
         </div>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto w-full">
           <table className="w-full text-left border-collapse min-w-[900px]">
             <thead>
               <tr className="bg-white border-b border-slate-200 text-xs font-bold text-slate-500 tracking-wider">
@@ -561,7 +623,7 @@ export default function InputLPJPage() {
                   {/* Penerimaan Group */}
                   {items.some(i => i.jenis === 'Penerimaan') && (
                     <>
-                      <tr><td colSpan={isDraft ? 8 : 7} className="px-4 py-2 bg-emerald-700 text-white text-[10px] font-bold tracking-widest uppercase">↑ PENERIMAAN</td></tr>
+                      <tr className="bg-emerald-50 text-emerald-700 text-[10px] font-bold tracking-widest uppercase border-b border-slate-100"><td colSpan={isDraft ? 8 : 7} className="px-4 py-1.5">↑ PENERIMAAN</td></tr>
                       {items.filter(i => i.jenis === 'Penerimaan').map((item, idx) => (
                         editingId === item.id ? (
                           <tr key={item.id} className="border-b border-emerald-200 bg-emerald-50/40">
@@ -614,7 +676,7 @@ export default function InputLPJPage() {
                   {/* Pengeluaran Group */}
                   {items.some(i => i.jenis === 'Pengeluaran') && (
                     <>
-                      <tr><td colSpan={isDraft ? 8 : 7} className="px-4 py-2 bg-slate-800 text-white text-[10px] font-bold tracking-widest uppercase">↓ PENGELUARAN</td></tr>
+                      <tr className="bg-red-50 text-red-700 text-[10px] font-bold tracking-widest uppercase border-b border-slate-100"><td colSpan={isDraft ? 8 : 7} className="px-4 py-1.5">↓ PENGELUARAN</td></tr>
                       {items.filter(i => i.jenis === 'Pengeluaran').map((item, idx) => (
                         editingId === item.id ? (
                           <tr key={item.id} className="border-b border-indigo-200 bg-indigo-50/30">

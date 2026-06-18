@@ -68,7 +68,7 @@ const JemaatAutocomplete = ({
   );
 };
 
-type TabKey = 'role_permission' | 'akun_pengguna' | 'akses_sementara' | 'bulk_generate';
+type TabKey = 'role_permission' | 'akun_pengguna' | 'bulk_generate';
 interface RoleAssignment { role_id: string; satelit_id: string; komisi_id?: string; departemen_id?: string; }
 
 export default function AkunAksesPage() {
@@ -80,7 +80,6 @@ export default function AkunAksesPage() {
   // Auth & Permissions State
   const [userData, setUserData] = useState<any>(null);
   const [canManageUserAccess, setCanManageUserAccess] = useState(false);
-  const [canManageTempAccess, setCanManageTempAccess] = useState(false);
 
   // Submit & Alert State
   const [submitState, setSubmitState] = useState<{ status: 'idle'|'loading'|'success'|'error', message: string }>({ status: 'idle', message: '' });
@@ -109,6 +108,7 @@ export default function AkunAksesPage() {
   const [newUserSelectedJemaat, setNewUserSelectedJemaat] = useState<any>(null);
   const [newUserSearchQuery, setNewUserSearchQuery] = useState('');
   const [newUserForm, setNewUserForm] = useState({ email: '', password: '' });
+  const [newUserLoginType, setNewUserLoginType] = useState<'email' | 'nohp' | 'username'>('email');
   const [roleAssignments, setRoleAssignments] = useState<RoleAssignment[]>([{ role_id: '', satelit_id: '' }]);
 
   // Edit User modal
@@ -117,9 +117,6 @@ export default function AkunAksesPage() {
   const [editForm, setEditForm] = useState({ email: '', password: '' });
   const [editRoleAssignments, setEditRoleAssignments] = useState<RoleAssignment[]>([{ role_id: '', satelit_id: '' }]);
 
-  // Temporary Access State
-  const [isAddTempModalOpen, setIsAddTempModalOpen] = useState(false);
-  const [tempUserForm, setTempUserForm] = useState({ user_id: '', role_id: '', satelit_id: '', tanggal_mulai: '', tanggal_selesai: '' });
 
   // Bulk Generate State
   const [dataBulk, setDataBulk] = useState<any[]>([]);
@@ -166,13 +163,7 @@ export default function AkunAksesPage() {
           const u = await res.json();
           setUserData(u);
           const hasUserAcc = u.is_super_admin || u.permissions?.includes('user_access_manage');
-          const hasTempAcc = u.is_super_admin || u.permissions?.includes('akses_sementara_manage');
           setCanManageUserAccess(hasUserAcc);
-          setCanManageTempAccess(hasTempAcc);
-          
-          if (!hasUserAcc && hasTempAcc) {
-            setActiveTab('akses_sementara');
-          }
         }
       } catch (err) {
         console.error('Failed fetching auth data', err);
@@ -184,9 +175,8 @@ export default function AkunAksesPage() {
   useEffect(() => {
     if (activeTab === 'role_permission' && canManageUserAccess) fetchRolesData();
     else if (activeTab === 'akun_pengguna' && canManageUserAccess) { fetchUsersData(); fetchRolesData(true); }
-    else if (activeTab === 'akses_sementara' && canManageTempAccess) { fetchUsersData(); fetchRolesData(true); }
     else if (activeTab === 'bulk_generate' && canManageUserAccess) { fetchBulkData(filterBulkStatus); }
-  }, [activeTab, canManageUserAccess, canManageTempAccess]);
+  }, [activeTab, canManageUserAccess]);
 
   useEffect(() => {
     if (activeTab === 'bulk_generate') {
@@ -250,7 +240,7 @@ export default function AkunAksesPage() {
     {
       title: 'Data Jemaat', icon: 'people', color: 'text-sky-600', bg: 'bg-sky-50', border: 'border-sky-100', ring: 'focus:ring-sky-500', 
       checkedBg: 'checked:bg-sky-500', checkBorder: 'peer-checked:border-sky-500', activeBg: 'bg-sky-100',
-      keys: ['jemaat_view', 'jemaat_create', 'jemaat_edit', 'jemaat_delete']
+      keys: ['jemaat_view', 'jemaat_create', 'jemaat_edit', 'jemaat_delete', 'jemaat_analisis_view']
     },
     {
       title: 'Data Pelayan & Pengurus', icon: 'badge', color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-100', ring: 'focus:ring-indigo-500', 
@@ -387,15 +377,16 @@ export default function AkunAksesPage() {
   const bulkTotalPages = Math.ceil(filteredBulk.length / bulkItemsPerPage);
   const currentBulkItems = filteredBulk.slice((bulkPage - 1) * bulkItemsPerPage, bulkPage * bulkItemsPerPage);
 
+  // Jemaat bisa di-generate jika: belum punya akun DAN punya email atau no_hp
+  const isBulkSelectable = (j: any) => !j.has_account && (j.email || j.no_hp);
+
   const handleSelectAllBulk = () => {
-    const selectable = currentBulkItems.filter(j => !j.has_account);
+    const selectable = currentBulkItems.filter(isBulkSelectable);
     const allSelectedInPage = selectable.every(j => selectedBulkIds.includes(j.id));
     if (allSelectedInPage) {
-      // Remove all elements of current selectable from selectedBulkIds
       const selectableIds = selectable.map(j => j.id);
       setSelectedBulkIds(prev => prev.filter(id => !selectableIds.includes(id)));
     } else {
-      // Add all elements of current selectable to selectedBulkIds
       const selectableIds = selectable.map(j => j.id);
       setSelectedBulkIds(prev => Array.from(new Set([...prev, ...selectableIds])));
     }
@@ -426,7 +417,7 @@ export default function AkunAksesPage() {
   };
 
   const handleCreateUser = async () => {
-    if (!newUserForm.email || !newUserForm.password) { setSubmitState({ status: 'error', message: 'Username/Email dan Password wajib diisi!' }); return; }
+    if (!newUserForm.email || !newUserForm.password) { setSubmitState({ status: 'error', message: 'Identifier Login dan Password wajib diisi!' }); return; }
     const hasIncomplete = roleAssignments.some(r => (r.role_id && !r.satelit_id) || (!r.role_id && r.satelit_id));
     if (hasIncomplete) { setSubmitState({ status: 'error', message: 'Pilihan Role dan Satelit harus berpasangan (tidak boleh ada yang kosong)!' }); return; }
     const missingKomisi = roleAssignments.some(r => getRoleName(r.role_id) === 'KETUA_KOMISI' && !r.komisi_id);
@@ -442,7 +433,7 @@ export default function AkunAksesPage() {
       const json = await res.json();
       if (json.success) {
         setSubmitState({ status: 'success', message: 'Akun berhasil dibuat dan role berhasil di-assign!' });
-        setNewUserForm({ email: '', password: '' }); setNewUserSelectedJemaat(null); setNewUserSearchQuery(''); setRoleAssignments([{ role_id: '', satelit_id: '' }]);
+        setNewUserForm({ email: '', password: '' }); setNewUserSelectedJemaat(null); setNewUserSearchQuery(''); setNewUserLoginType('email'); setRoleAssignments([{ role_id: '', satelit_id: '' }]);
         fetchUsersData();
       } else setSubmitState({ status: 'error', message: json.message || 'Gagal membuat akun.' });
     } catch(e) { setSubmitState({ status: 'error', message: 'Terjadi kesalahan server.' }); }
@@ -503,37 +494,7 @@ export default function AkunAksesPage() {
     } catch(e) { setSubmitState({ status: 'error', message: 'Terjadi kesalahan koneksi.' }); }
   };
 
-  const handleCreateTempAccess = async () => {
-    if (!tempUserForm.user_id && !newUserSelectedJemaat) { setSubmitState({ status: 'error', message: 'Silakan pilih Jemaat yang akan diberikan akses kepanitiaan!' }); return; }
-    if (!tempUserForm.role_id || !tempUserForm.satelit_id) { setSubmitState({ status: 'error', message: 'Role Panitia dan Satelit wajib dipilih!' }); return; }
-    if (!tempUserForm.tanggal_mulai || !tempUserForm.tanggal_selesai) { setSubmitState({ status: 'error', message: 'Durasi awal dan akhir kepanitiaan wajib diisi!' }); return; }
-    if (new Date(tempUserForm.tanggal_selesai) < new Date(tempUserForm.tanggal_mulai)) { setSubmitState({ status: 'error', message: 'Tanggal selesai tidak boleh mendahului tanggal mulai!' }); return; }
-    
-    setIsAddTempModalOpen(false);
-    setSubmitState({ status: 'loading', message: '' });
-    try {
-      const payload = {
-        jemaat_id: newUserSelectedJemaat?.id || parseInt(tempUserForm.user_id),
-        email: newUserForm.email,
-        password: newUserForm.password,
-        role_id: parseInt(tempUserForm.role_id),
-        satelit_id: parseInt(tempUserForm.satelit_id),
-        tanggal_mulai: tempUserForm.tanggal_mulai,
-        tanggal_selesai: tempUserForm.tanggal_selesai
-      };
-      
-      const res = await fetch('/api/settings/akun-akses/users/temp-access', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      const json = await res.json();
-      if (json.success) {
-        setSubmitState({ status: 'success', message: 'Akses Panitia Sementara berhasil dibuat!' });
-        setTempUserForm({ user_id: '', role_id: '', satelit_id: '', tanggal_mulai: '', tanggal_selesai: '' });
-        setNewUserSelectedJemaat(null);
-        setNewUserSearchQuery('');
-        setNewUserForm({ email: '', password: '' });
-        fetchUsersData();
-      } else setSubmitState({ status: 'error', message: json.message || 'Gagal memberikan akses sementara.' });
-    } catch(e) { setSubmitState({ status: 'error', message: 'Terjadi kesalahan server saat menyimpan akses panitia.' }); }
-  };
+
 
   return (
     <div className="w-full flex justify-start items-start gap-8 flex-col sm:flex-row pb-12">
@@ -564,7 +525,6 @@ export default function AkunAksesPage() {
           {[
             { key: 'role_permission', label: 'Manajemen Role & Permission', icon: 'admin_panel_settings', show: canManageUserAccess },
             { key: 'akun_pengguna', label: 'Daftar Akun Pengguna', icon: 'vpn_key', show: canManageUserAccess },
-            { key: 'akses_sementara', label: 'Akses Sementara', icon: 'timelapse', show: canManageTempAccess },
             { key: 'bulk_generate', label: 'Generate Akun Massal', icon: 'group_add', show: canManageUserAccess },
           ]
           .filter(tab => tab.show)
@@ -732,67 +692,6 @@ export default function AkunAksesPage() {
           </div>
         )}
 
-        {/* Tab 3: Akses Sementara */}
-        {activeTab === 'akses_sementara' && canManageTempAccess && (
-          <div className="w-full mt-4 flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2"><span className="material-icons-round text-amber-500">timelapse</span> Akses Panitia Sementara</h2>
-                <p className="text-sm text-slate-500 mt-1">Delegasi hak akses yang akan hangus otomatis melewati batas tanggal selesai.</p>
-              </div>
-              <button onClick={() => setIsAddTempModalOpen(true)} className="bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-all shadow-md">
-                <span className="material-icons-round text-[18px]">add_task</span> Assign Akses Sementara
-              </button>
-            </div>
-            <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
-              <table className="w-full text-left text-sm text-slate-600">
-                <thead className="bg-slate-50 font-semibold text-slate-800 text-xs uppercase tracking-wider">
-                  <tr>
-                    <th className="px-6 py-4 border-b border-slate-200">Kredensial Login</th>
-                    <th className="px-6 py-4 border-b border-slate-200">Akses Kepanitiaan &amp; Lokasi</th>
-                    <th className="px-6 py-4 border-b border-slate-200">Masa Berlaku</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {dataUsers.filter(u => u.roles?.some((r: any) => r.tanggal_selesai)).map((user) => (
-                    <tr key={user.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-4 align-top">
-                        <div className="font-bold text-slate-900">{user.nama_lengkap}</div>
-                        <div className="flex flex-col gap-0.5 mt-1">
-                          {user.email && <div className="text-xs text-slate-500 font-sans flex items-center gap-1"><span className="material-icons-round text-[12px] text-rose-400">email</span> {user.email}</div>}
-                          {user.no_hp && <div className="text-xs text-slate-500 font-sans flex items-center gap-1"><span className="material-icons-round text-[12px] text-emerald-400">phone_iphone</span> {user.no_hp}</div>}
-                          {user.username && <div className="text-xs text-slate-500 font-sans flex items-center gap-1"><span className="material-icons-round text-[12px] text-blue-400">badge</span> {user.username}</div>}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 align-top">
-                        <div className="flex flex-col gap-2">
-                          {user.roles.filter((r: any) => r.tanggal_selesai).map((r: any, i: number) => {
-                            const sisaHari = Math.ceil((new Date(r.tanggal_selesai).getTime() - new Date().getTime()) / (1000 * 3600 * 24));
-                            return (
-                              <div key={i} className="flex flex-col border border-slate-200 rounded-lg p-2 bg-slate-50/50 w-fit">
-                                <span className="font-bold text-violet-700 text-xs flex items-center gap-1"><span className="material-icons-round text-[12px]">admin_panel_settings</span> {r.role_name}</span>
-                                <span className="text-[11px] text-slate-500 mt-0.5">@ {r.satelit_name}</span>
-                                {sisaHari > 0 ? <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1 mt-1 rounded w-fit font-bold">Aktif sisa {sisaHari} hr</span> : <span className="text-[10px] bg-rose-100 text-rose-700 px-1 mt-1 rounded w-fit font-bold">KADALUARSA</span>}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 align-top">
-                        {user.roles.filter((r: any) => r.tanggal_selesai).map((r: any, i: number) => (
-                          <div key={i} className="text-xs text-slate-700 mb-2">
-                            <span className="font-sans bg-slate-100 px-1.5 py-0.5 rounded">{new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(r.tanggal_mulai))}</span> <span className="mx-1">s/d</span> <span className="font-sans bg-slate-100 px-1.5 py-0.5 rounded">{new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(r.tanggal_selesai))}</span>
-                          </div>
-                        ))}
-                      </td>
-                    </tr>
-                  ))}
-                  {dataUsers.filter(u => u.roles?.some((r: any) => r.tanggal_selesai)).length === 0 && <tr><td colSpan={3} className="p-8 text-center text-slate-400">Belum ada daftar kepanitiaan yang menggunakan akses sementara.</td></tr>}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
 
         {/* Tab 4: Generate Akun Massal */}
         {activeTab === 'bulk_generate' && canManageUserAccess && (
@@ -800,7 +699,7 @@ export default function AkunAksesPage() {
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
                 <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2"><span className="material-icons-round text-emerald-500">group_add</span> Pembuatan Akun Massal</h2>
-                <p className="text-sm text-slate-500 mt-1">Sistem otomatis membuatkan akun serta mengunci sandi dengan <strong>tanggal lahir (DD/MM/YYYY)</strong>. <br/>Jemaat <strong>wajib ganti password</strong> pada login perdana.</p>
+                <p className="text-sm text-slate-500 mt-1">Sistem otomatis membuatkan akun serta mengunci sandi dengan <strong>tanggal lahir (DD/MM/YYYY)</strong>. <br/>Jemaat <strong>wajib ganti password</strong> pada login perdana. Email <strong>DAN</strong> No HP disimpan sekaligus — jemaat bisa login dengan keduanya.</p>
               </div>
               <button 
                 onClick={handleBulkGenerate} 
@@ -839,26 +738,31 @@ export default function AkunAksesPage() {
                     <tr>
                       <th className="px-4 py-4 border-b border-slate-200 w-10 text-center">
                         <input type="checkbox" className="w-4 h-4 accent-emerald-500 cursor-pointer rounded"
-                          checked={currentBulkItems.filter(j => !j.has_account).length > 0 && selectedBulkIds.length > 0 && currentBulkItems.filter(j => !j.has_account).every(j => selectedBulkIds.includes(j.id))}
+                          checked={currentBulkItems.filter(isBulkSelectable).length > 0 && selectedBulkIds.length > 0 && currentBulkItems.filter(isBulkSelectable).every(j => selectedBulkIds.includes(j.id))}
                           onChange={handleSelectAllBulk}
                         />
                       </th>
                       <th className="px-4 py-4 border-b border-slate-200">ID Jemaat</th>
                       <th className="px-4 py-4 border-b border-slate-200 min-w-[200px]">Data Jemaat</th>
-                      <th className="px-4 py-4 border-b border-slate-200">Tanggal Lahir</th>
-                      <th className="px-4 py-4 border-b border-slate-200">Kontak (Email)</th>
-                      <th className="px-4 py-4 border-b border-slate-200">Asal Satelit</th>
-                      <th className="px-4 py-4 border-b border-slate-200">Status Akun</th>
+                      <th className="px-4 py-4 border-b border-slate-200">Tgl Lahir (Pass Default)</th>
+                      <th className="px-4 py-4 border-b border-slate-200">Email</th>
+                      <th className="px-4 py-4 border-b border-slate-200">No HP</th>
+                      <th className="px-4 py-4 border-b border-slate-200">Login Via</th>
+                      <th className="px-4 py-4 border-b border-slate-200">Satelit</th>
+                      <th className="px-4 py-4 border-b border-slate-200">Status</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {currentBulkItems.map((j) => (
-                      <tr key={j.id} className="hover:bg-slate-50 transition-colors">
+                    {currentBulkItems.map((j) => {
+                      const canSelect = isBulkSelectable(j);
+                      const loginVia = j.email && j.no_hp ? 'both' : j.email ? 'email' : j.no_hp ? 'nohp' : 'none';
+                      return (
+                      <tr key={j.id} className={`transition-colors ${canSelect || j.has_account ? 'hover:bg-slate-50' : 'bg-rose-50/30 opacity-60'}`}>
                         <td className="px-4 py-3 text-center">
                           <input type="checkbox" className="w-4 h-4 accent-emerald-500 cursor-pointer rounded"
                             checked={selectedBulkIds.includes(j.id)}
                             onChange={() => handleToggleBulkItem(j.id)}
-                            disabled={j.has_account}
+                            disabled={!canSelect}
                           />
                         </td>
                         <td className="px-4 py-3 font-sans text-slate-500 text-xs">{j.jemaat_id}</td>
@@ -866,22 +770,41 @@ export default function AkunAksesPage() {
                         <td className="px-4 py-3">
                           {j.tanggal_lahir ? 
                             <span className="font-sans bg-slate-100 px-2 py-1 rounded text-slate-700 text-xs">{new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(j.tanggal_lahir))}</span> : 
-                            <span className="text-rose-500 text-[10px] font-bold italic border border-rose-200 bg-rose-50 px-2 py-0.5 rounded">TIDAK ADA TGL LAHIR</span>
+                            <span className="text-rose-500 text-[10px] font-bold italic border border-rose-200 bg-rose-50 px-2 py-0.5 rounded">TIDAK ADA</span>
                           }
                         </td>
                         <td className="px-4 py-3">
-                          {j.email ? <span className="text-slate-600 text-sm">{j.email}</span> : <span className="text-rose-500 text-[10px] font-bold italic border border-rose-200 bg-rose-50 px-2 py-0.5 rounded">TIDAK ADA EMAIL</span>}
+                          {j.email ? <span className="text-slate-600 text-xs">{j.email}</span> : <span className="text-slate-300 text-xs italic">—</span>}
                         </td>
-                        <td className="px-4 py-3 text-slate-600">{j.nama_satelit || '-'}</td>
+                        <td className="px-4 py-3">
+                          {j.no_hp ? <span className="text-slate-600 text-xs">{j.no_hp}</span> : <span className="text-slate-300 text-xs italic">—</span>}
+                        </td>
+                        <td className="px-4 py-3">
+                          {loginVia === 'both' && (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-[11px] font-bold whitespace-nowrap">
+                              <span className="material-icons-round text-violet-500 text-[12px]">email</span>
+                              <span className="text-slate-300">+</span>
+                              <span className="material-icons-round text-emerald-500 text-[12px]">phone_iphone</span>
+                              Keduanya
+                            </span>
+                          )}
+                          {loginVia === 'email' && <span className="inline-flex items-center gap-1 px-2 py-1 bg-violet-50 text-violet-700 border border-violet-200 rounded-lg text-[11px] font-bold"><span className="material-icons-round text-[12px]">email</span>Email</span>}
+                          {loginVia === 'nohp' && <span className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-[11px] font-bold"><span className="material-icons-round text-[12px]">phone_iphone</span>No HP</span>}
+                          {loginVia === 'none' && <span className="inline-flex items-center gap-1 px-2 py-1 bg-rose-50 text-rose-700 border border-rose-200 rounded-lg text-[11px] font-bold"><span className="material-icons-round text-[12px]">block</span>Tidak Bisa</span>}
+                        </td>
+                        <td className="px-4 py-3 text-slate-600 text-xs">{j.nama_satelit || '-'}</td>
                         <td className="px-4 py-3">
                           {j.has_account ? 
                             <span className="px-2 py-1 bg-violet-100 text-violet-700 rounded text-[10px] font-bold uppercase tracking-wider">SUDAH PUNYA</span> : 
-                            <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded text-[10px] font-bold uppercase tracking-wider">BELUM PUNYA</span>
+                            canSelect
+                              ? <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded text-[10px] font-bold uppercase tracking-wider">BELUM PUNYA</span>
+                              : <span className="px-2 py-1 bg-rose-100 text-rose-600 rounded text-[10px] font-bold uppercase tracking-wider">NO KONTAK</span>
                           }
                         </td>
                       </tr>
-                    ))}
-                    {currentBulkItems.length === 0 && !isBulkLoading && <tr><td colSpan={6} className="p-8 text-center text-slate-400">Tidak ada data jemaat yang sesuai pencarian.</td></tr>}
+                      );
+                    })}
+                    {currentBulkItems.length === 0 && !isBulkLoading && <tr><td colSpan={9} className="p-8 text-center text-slate-400">Tidak ada data jemaat yang sesuai pencarian.</td></tr>}
                   </tbody>
                 </table>
               </div>
@@ -968,44 +891,167 @@ export default function AkunAksesPage() {
               <button onClick={() => setIsAddUserModalOpen(false)} className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex justify-center items-center"><span className="material-icons-round text-[20px] text-slate-500">close</span></button>
             </div>
             <div className="p-6 flex flex-col gap-5 bg-slate-50/50 overflow-y-auto">
+              {/* Step 1: Pilih Jemaat (Opsional) */}
               <div className="relative">
-                <JemaatAutocomplete label="Beri Akses Kepada: (Cari Jemaat - Opsional)" valueName={newUserSearchQuery} placeholder="Ketik nama jemaat terdaftar..."
+                <JemaatAutocomplete label="Tautkan ke Jemaat: (Opsional)" valueName={newUserSearchQuery} placeholder="Ketik nama jemaat terdaftar..."
                   onSelect={(j, str) => {
                     setNewUserSelectedJemaat(j);
                     setNewUserSearchQuery(str);
-                    // Auto-fill email dari data jemaat
-                    if (j?.email) setNewUserForm(p => ({ ...p, email: j.email }));
-                    // Reset role assignment (JEMAAT tidak perlu di-assign manual)
+                    // Auto-detect & set identifier dari data jemaat
+                    if (j?.email) {
+                      setNewUserForm(p => ({ ...p, email: j.email }));
+                    } else if (j?.no_hp) {
+                      setNewUserForm(p => ({ ...p, email: j.no_hp }));
+                    } else {
+                      setNewUserForm(p => ({ ...p, email: '' }));
+                    }
+                    setNewUserLoginType('email');
                     setRoleAssignments([{ role_id: '', satelit_id: '' }]);
                   }} />
                 {newUserSelectedJemaat && <div className="mt-2 p-2 bg-emerald-50 text-emerald-700 text-xs font-bold font-sans border border-emerald-100 rounded flex gap-2 w-fit"><span className="material-icons-round text-[16px]">check_circle</span> {newUserSelectedJemaat.jemaat_id} - Terverifikasi</div>}
               </div>
+
               {(() => {
                 const existingUserForNew = newUserSelectedJemaat ? dataUsers.find(u => u.jemaat_id === newUserSelectedJemaat.id) : null;
                 if (existingUserForNew) {
-                  const maskedEmail = existingUserForNew.email ? existingUserForNew.email.replace(/^(..)(.*)(@.+)$/, (match: string, start: string, middle: string, end: string) => start + '*'.repeat(middle.length) + end) : '***';
+                  const maskedIdentifier = existingUserForNew.email
+                    ? existingUserForNew.email.replace(/^(..)(.*)(@.+)$/, (_m: string, s: string, mid: string, e: string) => s + '*'.repeat(mid.length) + e)
+                    : existingUserForNew.no_hp ? existingUserForNew.no_hp.replace(/^(\d{3})(\d+)(\d{3})$/, (_m: string, a: string, b: string, c: string) => a + '*'.repeat(b.length) + c)
+                    : '***';
                   return (
-                    <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-3 shadow-inner mt-2">
+                    <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-3 shadow-inner">
                       <span className="material-icons-round text-rose-600 mt-0.5">error</span>
                       <div className="flex flex-col gap-1.5">
-                        <p className="text-sm text-rose-800 font-bold leading-relaxed">Jemaat ini sudah memiliki akun sistem (<span className="underline">{maskedEmail}</span>)!</p>
-                        <p className="text-sm text-rose-700 leading-relaxed">Untuk menambah atau memodifikasi jabatannya, mohon tutup kotak ini, cari nama jemaat tersebut di dalam tabel Daftar Akun Pengguna, lalu pilih opsi <span className="font-bold underline text-rose-900 bg-rose-100 px-1 rounded">Edit Akun &amp; Role</span>.</p>
+                        <p className="text-sm text-rose-800 font-bold leading-relaxed">Jemaat ini sudah memiliki akun sistem (<span className="underline">{maskedIdentifier}</span>)!</p>
+                        <p className="text-sm text-rose-700 leading-relaxed">Untuk mengubah jabatan, cari di tabel <span className="font-bold">Daftar Akun Pengguna</span> lalu pilih <span className="font-bold underline text-rose-900 bg-rose-100 px-1 rounded">Edit Akun &amp; Role</span>.</p>
                       </div>
                     </div>
                   );
                 } else {
+                  const jemaat = newUserSelectedJemaat;
+                  const hasEmail = !!jemaat?.email;
+                  const hasNoHp = !!jemaat?.no_hp;
+                  const hasJemaat = !!jemaat;
                   return (
                     <>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="flex flex-col gap-1">
-                          <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">Identifier Login (Email/No HP/Username)</label>
-                          <input type="text" placeholder="Contoh: jemaat123 / email@gsja.id" className="px-3 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm" value={newUserForm.email} onChange={e => setNewUserForm(p => ({ ...p, email: e.target.value }))} />
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">Password</label>
-                          <input type="text" placeholder="Default Password" className="px-3 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm" value={newUserForm.password} onChange={e => setNewUserForm(p => ({ ...p, password: e.target.value }))} />
-                        </div>
+                      {/* Step 2: Pilih / input identifier */}
+                      <div className="flex flex-col gap-3">
+                        <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">Identifier Login (Kredensial untuk Login)</label>
+
+                        {hasJemaat && (hasEmail || hasNoHp) ? (
+                          /* Jemaat dipilih & punya kontak — tampilkan card picker */
+                          <div className="flex flex-col gap-2">
+                            <p className="text-xs text-slate-500">Pilih kontak dari data jemaat yang akan digunakan sebagai username login:</p>
+                            <div className="flex gap-2 flex-wrap">
+                              {hasEmail && (
+                                <button type="button"
+                                  onClick={() => setNewUserForm(p => ({ ...p, email: jemaat.email }))}
+                                  className={`flex-1 min-w-[180px] border rounded-xl p-3 text-left flex items-center gap-3 transition-all ${
+                                    newUserForm.email === jemaat.email
+                                      ? 'border-violet-500 bg-violet-50 shadow-sm'
+                                      : 'border-slate-200 bg-white hover:border-violet-300 hover:bg-violet-50/30'
+                                  }`}>
+                                  <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
+                                    newUserForm.email === jemaat.email ? 'bg-violet-100' : 'bg-slate-100'
+                                  }`}>
+                                    <span className={`material-icons-round text-[18px] ${
+                                      newUserForm.email === jemaat.email ? 'text-violet-600' : 'text-slate-400'
+                                    }`}>email</span>
+                                  </div>
+                                  <div className="flex flex-col min-w-0">
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Email</span>
+                                    <span className="text-sm font-semibold text-slate-800 truncate">{jemaat.email}</span>
+                                  </div>
+                                  {newUserForm.email === jemaat.email && <span className="material-icons-round text-violet-500 text-[18px] ml-auto">check_circle</span>}
+                                </button>
+                              )}
+                              {hasNoHp && (
+                                <button type="button"
+                                  onClick={() => setNewUserForm(p => ({ ...p, email: jemaat.no_hp }))}
+                                  className={`flex-1 min-w-[180px] border rounded-xl p-3 text-left flex items-center gap-3 transition-all ${
+                                    newUserForm.email === jemaat.no_hp
+                                      ? 'border-emerald-500 bg-emerald-50 shadow-sm'
+                                      : 'border-slate-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/30'
+                                  }`}>
+                                  <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
+                                    newUserForm.email === jemaat.no_hp ? 'bg-emerald-100' : 'bg-slate-100'
+                                  }`}>
+                                    <span className={`material-icons-round text-[18px] ${
+                                      newUserForm.email === jemaat.no_hp ? 'text-emerald-600' : 'text-slate-400'
+                                    }`}>phone_iphone</span>
+                                  </div>
+                                  <div className="flex flex-col min-w-0">
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">No HP</span>
+                                    <span className="text-sm font-semibold text-slate-800">{jemaat.no_hp}</span>
+                                  </div>
+                                  {newUserForm.email === jemaat.no_hp && <span className="material-icons-round text-emerald-500 text-[18px] ml-auto">check_circle</span>}
+                                </button>
+                              )}
+                            </div>
+                            {!newUserForm.email && <p className="text-xs text-amber-600 flex items-center gap-1"><span className="material-icons-round text-[14px]">info</span> Pilih salah satu kontak di atas sebagai identifier login.</p>}
+                          </div>
+                        ) : hasJemaat && !hasEmail && !hasNoHp ? (
+                          /* Jemaat tidak punya kontak sama sekali — input manual */
+                          <div className="flex flex-col gap-2">
+                            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
+                              <span className="material-icons-round text-amber-500 text-[16px] mt-0.5">warning</span>
+                              <p className="text-xs text-amber-800">Jemaat ini tidak memiliki email maupun nomor HP di data jemaat. Masukkan identifier secara manual di bawah.</p>
+                            </div>
+                            <input type="text" placeholder="Masukkan email / no HP / username secara manual"
+                              className="px-3 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm"
+                              value={newUserForm.email} onChange={e => setNewUserForm(p => ({ ...p, email: e.target.value }))} />
+                          </div>
+                        ) : (
+                          /* Tidak ada jemaat dipilih (akun non-jemaat / staf) — pilih tipe lalu input */
+                          <div className="flex flex-col gap-3">
+                            <div className="flex gap-2">
+                              {(['email', 'nohp', 'username'] as const).map(type => {
+                                const cfg: Record<string, { icon: string; label: string; activeBtn: string; activeIcon: string; activeLabel: string }> = {
+                                  email: { icon: 'email', label: 'Email', activeBtn: 'border-violet-500 bg-violet-50', activeIcon: 'text-violet-600', activeLabel: 'text-violet-700' },
+                                  nohp: { icon: 'phone_iphone', label: 'No HP', activeBtn: 'border-emerald-500 bg-emerald-50', activeIcon: 'text-emerald-600', activeLabel: 'text-emerald-700' },
+                                  username: { icon: 'badge', label: 'Username', activeBtn: 'border-sky-500 bg-sky-50', activeIcon: 'text-sky-600', activeLabel: 'text-sky-700' },
+                                };
+                                const c = cfg[type];
+                                const isActive = newUserLoginType === type;
+                                return (
+                                  <button key={type} type="button"
+                                    onClick={() => { setNewUserLoginType(type); setNewUserForm(p => ({ ...p, email: '' })); }}
+                                    className={`flex-1 border rounded-xl py-2.5 px-3 flex flex-col items-center gap-1 transition-all ${
+                                      isActive ? c.activeBtn : 'border-slate-200 bg-white hover:border-slate-300'
+                                    }`}>
+                                    <span className={`material-icons-round text-[20px] ${isActive ? c.activeIcon : 'text-slate-400'}`}>{c.icon}</span>
+                                    <span className={`text-xs font-bold ${isActive ? c.activeLabel : 'text-slate-500'}`}>{c.label}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            <input
+                              type={newUserLoginType === 'nohp' ? 'tel' : newUserLoginType === 'email' ? 'email' : 'text'}
+                              placeholder={{
+                                email: 'Masukkan alamat email (cth: nama@gsja.id)',
+                                nohp: 'Masukkan nomor HP (cth: 081234567890)',
+                                username: 'Masukkan username (cth: adminpusat)',
+                              }[newUserLoginType]}
+                              className="px-3 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm"
+                              value={newUserForm.email} onChange={e => setNewUserForm(p => ({ ...p, email: e.target.value }))} />
+                            <p className="text-[11px] text-slate-500 italic -mt-1">
+                              {newUserLoginType === 'email' && '💡 Sistem mendeteksi email dari karakter @'}
+                              {newUserLoginType === 'nohp' && '💡 Sistem mendeteksi No HP dari format angka saja'}
+                              {newUserLoginType === 'username' && '💡 Sistem mendeteksi username dari format non-email dan non-angka'}
+                            </p>
+                          </div>
+                        )}
                       </div>
+
+                      {/* Step 3: Password */}
+                      <div className="flex flex-col gap-1">
+                        <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">Password</label>
+                        <input type="text" placeholder="Masukkan password default akun ini"
+                          className="px-3 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm"
+                          value={newUserForm.password} onChange={e => setNewUserForm(p => ({ ...p, password: e.target.value }))} />
+                      </div>
+
+                      {/* Step 4: Role (opsional) */}
                       <div className="flex flex-col gap-3 p-4 bg-violet-50 border border-violet-100 rounded-xl">
                         <div className="flex items-center justify-between">
                           <div className="text-violet-800 font-bold text-sm flex items-center gap-1"><span className="material-icons-round text-[16px]">how_to_reg</span> Assign Role Inti <span className="text-[11px] font-normal text-slate-500 ml-2 italic">💡 Opsional. Kosongkan jika hanya untuk Jemaat biasa.</span></div>
@@ -1046,8 +1092,13 @@ export default function AkunAksesPage() {
             <div className="p-6 flex flex-col gap-5 bg-slate-50/50 overflow-y-auto">
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1">
-                  <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">Identifier Login (Email/No HP/Username)</label>
+                  <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">Identifier Login
+                    <span className="text-slate-400 ml-1 normal-case font-normal">
+                      {editingUser?.email ? '(email)' : editingUser?.no_hp ? '(no HP)' : editingUser?.username ? '(username)' : ''}
+                    </span>
+                  </label>
                   <input type="text" className="px-3 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 text-sm" value={editForm.email} onChange={e => setEditForm(p => ({ ...p, email: e.target.value }))} />
+                  <p className="text-[11px] text-slate-400 mt-0.5">Sistem mendeteksi tipe otomatis: @ → email, angka → no HP, lainnya → username.</p>
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">Password Baru <span className="text-slate-400 normal-case font-normal">(kosongkan jika tidak diubah)</span></label>
@@ -1062,7 +1113,7 @@ export default function AkunAksesPage() {
                 <div className="flex flex-col gap-2">
                   {renderRoleRow(editRoleAssignments, setEditRoleAssignments, 'edit', 'focus:ring-amber-400')}
                 </div>
-                <p className="text-[11px] text-amber-600 italic">⚠️ Perubahan ini hanya mengubah role PERMANEN. Role panitia sementara tidak terpengaruh. Komisi/Departemen muncul otomatis jika role memerlukannya.</p>
+                <p className="text-[11px] text-amber-600 italic">⚠️ Perubahan ini hanya mengubah role permanen. Komisi/Departemen muncul otomatis jika role memerlukannya.</p>
               </div>
             </div>
             <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-white rounded-b-2xl flex-shrink-0">
@@ -1073,87 +1124,7 @@ export default function AkunAksesPage() {
         </div>
       )}
 
-      {/* Modal Tambah Akses Sementara */}
-      {isAddTempModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-xl bg-white rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
-            <div className="h-2 w-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-t-2xl flex-shrink-0"></div>
-            <div className="p-6 border-b border-slate-100 flex justify-between items-center flex-shrink-0">
-              <h3 className="text-xl font-bold flex items-center gap-2 text-slate-800"><span className="material-icons-round text-amber-500">add_task</span> Assign Akses Sementara (Panitia)</h3>
-              <button onClick={() => setIsAddTempModalOpen(false)} className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex justify-center items-center"><span className="material-icons-round text-[20px] text-slate-500">close</span></button>
-            </div>
-            <div className="p-6 flex flex-col gap-5 bg-slate-50/50 overflow-y-auto">
-              <div className="relative">
-                <JemaatAutocomplete label="Cari Jemaat / Panitia:" valueName={newUserSearchQuery} placeholder="Ketik nama jemaat terdaftar..."
-                  onSelect={(j, str) => {
-                    setNewUserSelectedJemaat(j);
-                    setNewUserSearchQuery(str);
-                    // Auto-fill email dan satelit dari data jemaat
-                    if (j?.email) setNewUserForm(p => ({ ...p, email: j.email }));
-                    if (j?.satelit_id) {
-                      setTempUserForm(p => ({ ...p, satelit_id: String(j.satelit_id) }));
-                    }
-                  }} />
-                {newUserSelectedJemaat && <div className="mt-2 p-2 bg-emerald-50 text-emerald-700 text-xs font-bold font-sans border border-emerald-100 rounded flex gap-2 w-fit"><span className="material-icons-round text-[16px]">check_circle</span> {newUserSelectedJemaat.jemaat_id} - Terverifikasi</div>}
-              </div>
-              {(() => {
-                const existingUserForTemp = newUserSelectedJemaat ? dataUsers.find(u => u.jemaat_id === newUserSelectedJemaat.id) : null;
-                if (existingUserForTemp) {
-                  const maskedEmail = existingUserForTemp.email ? existingUserForTemp.email.replace(/^(..)(.*)(@.+)$/, (match: string, start: string, middle: string, end: string) => start + '*'.repeat(middle.length) + end) : '***';
-                  return (
-                    <div className="p-4 bg-sky-50 border border-sky-200 rounded-xl flex items-start gap-3 shadow-inner">
-                      <span className="material-icons-round text-sky-600 mt-0.5">info</span>
-                      <p className="text-sm text-sky-800 leading-relaxed">Jemaat ini sudah memiliki akun sistem (<span className="font-bold underline text-sky-900">{maskedEmail}</span>). Hak akses Panitia akan otomatis ditambahkan ke akun tersebut saat ia login.</p>
-                    </div>
-                  );
-                } else {
-                  return (
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="flex flex-col gap-1">
-                        <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">Identifier Login (Email/No HP/Username)</label>
-                        <input type="text" placeholder="Contoh: jemaat123 / email@gsja.id" className="px-3 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm" value={newUserForm.email} onChange={e => setNewUserForm(p => ({ ...p, email: e.target.value }))} />
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">Password</label>
-                        <input type="text" placeholder="Default Password" className="px-3 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm" value={newUserForm.password} onChange={e => setNewUserForm(p => ({ ...p, password: e.target.value }))} />
-                      </div>
-                      <div className="col-span-2 text-[11px] text-amber-700 italic font-medium -mt-1 bg-amber-50 p-2 rounded-lg border border-amber-100 flex gap-2">
-                        <span className="material-icons-round text-[16px] text-amber-500">lightbulb</span> 
-                        Jika jemaat ini belum memiliki akun sama sekali, kredensial di atas akan digunakan untuk memberinya askes login.
-                      </div>
-                    </div>
-                  );
-                }
-              })()}
 
-              <div className="flex flex-col gap-3 p-4 bg-amber-50 border border-amber-100 rounded-xl">
-                <div className="text-amber-800 font-bold text-sm flex items-center gap-1"><span className="material-icons-round text-[16px]">how_to_reg</span> Role &amp; Lingkup</div>
-                <div className="flex items-center gap-2">
-                  <select className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm font-semibold text-slate-800" value={tempUserForm.role_id} onChange={e => setTempUserForm(p => ({ ...p, role_id: e.target.value }))}>
-                    <option value="">-- Role Panitia --</option>
-                    {dataRoles.filter(r => r.is_active && r.nama_role.includes('PANITIA')).map(r => <option key={r.id} value={r.id}>{r.nama_role}</option>)}
-                  </select>
-                  <select className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm font-semibold text-slate-800" value={tempUserForm.satelit_id} onChange={e => setTempUserForm(p => ({ ...p, satelit_id: e.target.value }))}>
-                    <option value="">-- Lokasi Satelit --</option>
-                    {satelitOptions.map(s => <option key={s.id} value={s.id}>{s.nama_satelit}</option>)}
-                  </select>
-                </div>
-
-                <div className="text-amber-800 font-bold text-sm flex items-center gap-1 mt-2"><span className="material-icons-round text-[16px]">event</span> Masa Berlaku Kepanitiaan</div>
-                <div className="flex items-center gap-2">
-                  <input type="date" className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm font-semibold text-slate-800" value={tempUserForm.tanggal_mulai} onChange={e => setTempUserForm(p => ({ ...p, tanggal_mulai: e.target.value }))} />
-                  <span className="text-slate-400 font-bold text-sm mx-1">s/d</span>
-                  <input type="date" className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm font-semibold text-slate-800" value={tempUserForm.tanggal_selesai} onChange={e => setTempUserForm(p => ({ ...p, tanggal_selesai: e.target.value }))} />
-                </div>
-              </div>
-            </div>
-            <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-white rounded-b-2xl flex-shrink-0">
-              <button onClick={() => setIsAddTempModalOpen(false)} className="px-6 py-2 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-100">Batal</button>
-              <button onClick={handleCreateTempAccess} className="px-8 py-2 rounded-lg text-sm font-bold text-white bg-amber-600 hover:bg-amber-700 shadow flex items-center gap-2"><span className="material-icons-round text-[18px]">bolt</span> Berikan Akses Sementara</button>
-            </div>
-          </div>
-        </div>
-      )}
 
     </div>
   );

@@ -31,6 +31,8 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
   const [namaRancangan, setNamaRancangan] = useState('');
   const [kategoriRa, setKategoriRa] = useState('Kegiatan');
   const [polaPenggunaan, setPolaPenggunaan] = useState('Sekali Pakai');
+  const [jenisKegiatanList, setJenisKegiatanList] = useState<{id:number,label:string,kategori:string}[]>([]);
+  const [jenisKegiatanId, setJenisKegiatanId] = useState('');
   const [estimasiWaktu, setEstimasiWaktu] = useState('');
   const [form, setForm] = useState({ id: '', jenis:'Pengeluaran', coaId:'', coaLabel:'', sumber_dana:'Kas Mandiri', uraian:'', deskripsi:'', jumlah:1, satuan:'', harga:0 });
   const [items, setItems] = useState<RincianItem[]>([]);
@@ -48,13 +50,17 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
     Promise.all([
       fetch('/api/buku-besar/coa').then(r=>r.json()).catch(() => ({})),
       fetch('/api/master-data?table=satelit').then(r=>r.json()).catch(() => ({})),
-      fetch('/api/auth/me').then(r=>r.json()).catch(() => ({}))
-    ]).then(([resCoa, resSatelit, resUser]) => {
+      fetch('/api/auth/me').then(r=>r.json()).catch(() => ({})),
+      fetch('/api/master-data?table=jenis_kegiatan').then(r=>r.json()).catch(() => ({}))
+    ]).then(([resCoa, resSatelit, resUser, resJenis]) => {
       if (resCoa.success) {
         setCoaList(resCoa.data.filter((c:any)=>c.tipe_akun==='Detail'&&c.is_active).map((c:any)=>({id:c.id,label:`${c.kode_akun} — ${c.nama_akun}`,saldo_normal:c.saldo_normal,grup_laporan:c.grup_laporan})));
       }
       if (resSatelit.success) {
         setSatelitList(resSatelit.data.filter((s:any)=>s.is_active).map((s:any)=>({id:s.id,label:s.nama_satelit})));
+      }
+      if (resJenis?.success) {
+        setJenisKegiatanList(resJenis.data.map((j:any)=>({id:j.id,label:j.nama_jenis_kegiatan,kategori:j.kategori})));
       }
       if (resUser && (resUser.role_id || resUser.permissions)) {
         setUserData(resUser);
@@ -132,6 +138,7 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
           setNamaRancangan(data.nama_rancangan || '');
           setKategoriRa(data.kategori_ra || 'Kegiatan');
           setPolaPenggunaan(data.pola_penggunaan || 'Sekali Pakai');
+          if (data.jenis_kegiatan_id) setJenisKegiatanId(String(data.jenis_kegiatan_id));
           setEstimasiWaktu(data.estimasi_waktu || '');
           
           setItems(data.items.map((i: any) => ({
@@ -197,6 +204,7 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
         tahun: parseInt(tahun),
         kategori_ra: kategoriRa,
         pola_penggunaan: polaPenggunaan,
+        jenis_kegiatan_id: jenisKegiatanId ? parseInt(jenisKegiatanId) : null,
         nama_rancangan: namaRancangan,
         estimasi_waktu: estimasiWaktu,
         action,
@@ -329,6 +337,14 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
               <option value="Bertahap">Bertahap (Multi-Event / Rutin)</option>
             </select>
             <p className="text-[10px] text-slate-400 mt-1">{polaPenggunaan==='Sekali Pakai'?'Misal: Natal, Paskah, Retreat':'Misal: Ibadah Raya 52x, Sekolah Minggu 52x'}</p>
+          </div>}
+          {kategoriRa==='Kegiatan' && <div>
+            <label className={labelCls}>Jenis Kegiatan <span className="text-slate-400 font-normal">(Opsional)</span></label>
+            <select value={jenisKegiatanId} onChange={e=>setJenisKegiatanId(e.target.value)} disabled={isHeaderLocked} className={selectCls}>
+              <option value="">-- Bebas (Bisa untuk kegiatan apapun) --</option>
+              {jenisKegiatanList.map(j=><option key={j.id} value={j.id}>{j.label}</option>)}
+            </select>
+            <p className="text-[10px] text-slate-400 mt-1">Jika diisi, RA ini HANYA bisa dipakai untuk spesifikasi kegiatan tersebut.</p>
           </div>}
         </div>
 

@@ -173,6 +173,19 @@ export class MasterRepository {
         id, nama_jenis_kegiatan, kategori, 
         default_is_published, default_butuh_registrasi, butuh_permohonan
       FROM jenis_kegiatan
+      WHERE butuh_permohonan = false
+      ORDER BY id ASC;
+    `;
+    const result = await pool.query(query);
+    return result.rows;
+  }
+
+  async getAllJenisKegiatanPastoral(): Promise<any[]> {
+    const query = `
+      SELECT 
+        id, nama_jenis_kegiatan, kategori, butuh_permohonan
+      FROM jenis_kegiatan
+      WHERE butuh_permohonan = true
       ORDER BY id ASC;
     `;
     const result = await pool.query(query);

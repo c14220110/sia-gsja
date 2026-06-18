@@ -136,13 +136,23 @@ export default function SurveiDetailPage({ params }: { params: Promise<{ id: str
 
   const formatDate = (dateString: string) => {
     if (!dateString) return '-';
-    const date = new Date(dateString);
+    // Normalize postgres timestamp to UTC for proper parsing
+    let safeString = dateString;
+    if (typeof safeString === 'string' && !safeString.endsWith('Z') && !safeString.includes('+')) {
+      safeString = safeString.replace(' ', 'T') + 'Z';
+    }
+    const date = new Date(safeString);
     return new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric' }).format(date);
   };
 
   const formatDateTime = (dateString: string) => {
     if (!dateString) return '-';
-    const date = new Date(dateString);
+    // Normalize postgres timestamp to UTC for proper parsing
+    let safeString = dateString;
+    if (typeof safeString === 'string' && !safeString.endsWith('Z') && !safeString.includes('+')) {
+      safeString = safeString.replace(' ', 'T') + 'Z';
+    }
+    const date = new Date(safeString);
     return new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(date) + ' WIB';
   };
 

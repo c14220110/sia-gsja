@@ -150,12 +150,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       );
     }
 
-    // 3. If final, recalculate total_disetujui from actual nominal_disetujui values
+    // 3. Recalculate total_disetujui from PENGELUARAN items only.
+    //    Semantics: "anggaran disetujui" = plafon belanja yang diizinkan,
+    //    bukan gabungan dengan proyeksi penerimaan.
+    //    Penerimaan sudah ter-track terpisah via konsolidasi/laporan.
     if (['Disetujui Penuh', 'Disetujui Sebagian'].includes(newStatus)) {
       const approvedTotal = await client.query(
         `SELECT COALESCE(SUM(nominal_disetujui), 0) as total_approved
          FROM public.anggaran_tahunan_detail 
-         WHERE anggaran_tahunan_id = $1 AND status_item IN ('ACC', 'ACC_DIPOTONG')`,
+         WHERE anggaran_tahunan_id = $1
+           AND status_item IN ('ACC', 'ACC_DIPOTONG')
+           AND jenis_anggaran = 'Pengeluaran'`,
         [id]
       );
       await client.query(
@@ -163,6 +168,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         [approvedTotal.rows[0].total_approved, id]
       );
     }
+
 
     await client.query('COMMIT');
 

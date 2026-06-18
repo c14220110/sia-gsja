@@ -17,6 +17,42 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ success: false, message: 'Status wajib diisi!' }, { status: 400 });
     }
 
+    // Permission: cek role caller dari JWT (tidak perlu query tambahan)
+    const callerRole = (caller.role_name || '').toUpperCase();
+    const isSekretaris = ['SEKRETARIS_PUSAT', 'SUPER_ADMIN'].includes(callerRole);
+    const isMajelisOrGembala = ['MAJELIS', 'GEMBALA_SIDANG', 'GEMBALA_SATELIT'].includes(callerRole);
+
+    // Sekretaris boleh batalkan siapapun
+    // Majelis/Gembala hanya boleh batalkan tiket yang ia adalah PJ-nya
+    if (status === 'Dibatalkan') {
+      if (!isSekretaris && !isMajelisOrGembala) {
+        return NextResponse.json({ success: false, message: 'Anda tidak memiliki hak untuk membatalkan tiket.' }, { status: 403 });
+      }
+      if (!isSekretaris && isMajelisOrGembala) {
+        const pjCheck = await pool.query(`
+          SELECT 1 FROM public.permohonan_layanan_pastoral
+          WHERE id = $1 AND penanggung_jawab_id = $2
+        `, [id, caller.user_id]);
+        if (pjCheck.rows.length === 0) {
+          return NextResponse.json({ success: false, message: 'Anda hanya dapat membatalkan tiket yang Anda tangani.' }, { status: 403 });
+        }
+      }
+    }
+    // Majelis/Gembala hanya boleh Ditindaklanjuti & Selesai
+    if ((status === 'Ditindaklanjuti' || status === 'Selesai') && !isMajelisOrGembala) {
+      return NextResponse.json({ success: false, message: 'Hanya Majelis/Gembala penanggung jawab yang dapat memperbarui status ini.' }, { status: 403 });
+    }
+    // Untuk Ditindaklanjuti & Selesai: hanya penanggung jawab tiket ini yang boleh
+    if ((status === 'Ditindaklanjuti' || status === 'Selesai') && isMajelisOrGembala) {
+      const pjRes = await pool.query(`
+        SELECT 1 FROM public.permohonan_layanan_pastoral
+        WHERE id = $1 AND penanggung_jawab_id = $2
+      `, [id, caller.user_id]);
+      if (pjRes.rows.length === 0) {
+        return NextResponse.json({ success: false, message: 'Anda bukan penanggung jawab tiket ini.' }, { status: 403 });
+      }
+    }
+
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
@@ -46,7 +82,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         paramIdx++;
       } else if (status === 'Dibatalkan') {
         if (!alasan_pembatalan) throw new Error('Alasan pembatalan wajib diisi!');
-        updateQuery += `, alasan_pembatalan = $${paramIdx}`;
+        updateQuery += `, alasan_pembatalan = $${paramIdx}, waktu_dibatalkan = CURRENT_TIMESTAMP`;
         queryParams.splice(2, 0, alasan_pembatalan);
         paramIdx++;
       }
@@ -55,8 +91,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       await client.query(updateQuery, queryParams);
 
       // 3. Insert Audit Log
-      let catatanLog = `Status diubah menjadi ${status} oleh Admin/Sekretaris`;
-      if (status === 'Selesai') catatanLog = `Diselesaikan: ${catatan_penyelesaian}`;
+      // Catatan: suffix aktor tidak ditulis hardcode karena nama_pengubah sudah muncul
+      // otomatis di frontend dari JOIN jemaat.nama_lengkap pada GET route.
+      let catatanLog = `Status diubah menjadi ${status}`;
+      if (status === 'Ditindaklanjuti') catatanLog = `Pelayanan telah ditindaklanjuti oleh PIC`;
+      else if (status === 'Selesai') catatanLog = `Diselesaikan: ${catatan_penyelesaian}`;
       else if (status === 'Dibatalkan') catatanLog = `Dibatalkan: ${alasan_pembatalan}`;
 
       const insertLog = `

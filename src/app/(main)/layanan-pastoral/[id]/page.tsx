@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
 import { useLoader } from '@/components/ui/GlobalLoader';
+import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
 import dynamic from 'next/dynamic';
 
 const DotLottieReact = dynamic(
@@ -37,6 +38,7 @@ export default function DetailPermintaanPage() {
 
   const [data, setData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [submitState, setSubmitState] = useState<{ status: 'idle'|'loading'|'success'|'error', message: string }>({ status: 'idle', message: '' });
 
   useEffect(() => {
     if (!id) return;
@@ -56,16 +58,8 @@ export default function DetailPermintaanPage() {
     fetchData();
   }, [id]);
 
-  const handleBatal = async () => {
-    if (confirm('Apakah Anda yakin ingin membatalkan permintaan ini?')) {
-      showLoader();
-      try {
-        // Implementasi pembatalan nanti
-        alert('Fitur pembatalan akan diproses oleh admin.');
-      } finally {
-        hideLoader();
-      }
-    }
+  const handleBatal = () => {
+    setSubmitState({ status: 'error', message: 'Fitur pembatalan permintaan akan segera tersedia. Hubungi admin/pengurus untuk membatalkan.' });
   };
 
   if (isLoading) {
@@ -94,12 +88,16 @@ export default function DetailPermintaanPage() {
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return '';
-    const d = new Date(dateString);
-    d.setHours(d.getHours() + 7);
+    // Normalize postgres timestamp (no timezone) to UTC for correct WIB display
+    let safeString = dateString;
+    if (typeof safeString === 'string' && !safeString.endsWith('Z') && !safeString.includes('+')) {
+      safeString = safeString.replace(' ', 'T') + 'Z';
+    }
     return new Intl.DateTimeFormat('id-ID', { 
+      timeZone: 'Asia/Jakarta',
       day: '2-digit', month: 'short', year: 'numeric', 
       hour: '2-digit', minute: '2-digit' 
-    }).format(d) + ' WIB';
+    }).format(new Date(safeString)) + ' WIB';
   };
 
   // Helper untuk mendapatkan waktu log untuk step tertentu
@@ -110,6 +108,11 @@ export default function DetailPermintaanPage() {
 
   return (
     <div className="w-full min-h-screen flex flex-col bg-[#F9FAFB] overflow-y-auto font-sans pb-24 relative">
+      <SubmitOverlay
+        status={submitState.status}
+        message={submitState.message}
+        onClose={() => setSubmitState({ status: 'idle', message: '' })}
+      />
       
       {/* Sticky Header */}
       <div className="sticky top-0 z-40 bg-[#F9FAFB]/90 backdrop-blur-xl pt-6 pb-4 px-5">
@@ -183,6 +186,19 @@ export default function DetailPermintaanPage() {
            </div>
         </div>
 
+        {/* URGENT BANNER */}
+        {data.is_urgent && (
+          <div className="flex items-center gap-3 bg-rose-50 border border-rose-200 rounded-[18px] px-5 py-3.5">
+            <div className="w-9 h-9 rounded-full bg-rose-500 flex items-center justify-center shrink-0 animate-pulse">
+              <span className="material-icons-round text-white text-[18px]">priority_high</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[13px] font-black text-rose-700 uppercase tracking-wide">Ditandai Darurat</span>
+              <span className="text-[11px] text-rose-500 mt-0.5">Permintaan ini akan diprioritaskan oleh pengurus.</span>
+            </div>
+          </div>
+        )}
+
         {/* SECTION 2: INFORMASI PELAYANAN */}
         <div className="flex flex-col gap-2.5">
            <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest pl-1">Informasi Pelayanan</span>
@@ -204,8 +220,11 @@ export default function DetailPermintaanPage() {
                     <span className="material-icons-round text-[20px]">person</span>
                  </div>
                  <div className="flex flex-col pt-1">
-                    <span className="text-[11px] text-slate-400 font-medium">Nama Pemohon / Target</span>
-                    <span className="text-[14px] font-medium text-slate-800 leading-snug">{data.target_pelayanan}</span>
+                    <span className="text-[11px] text-slate-400 font-medium">Yang Dilayani</span>
+                    <span className="text-[14px] font-semibold text-slate-800 leading-snug">{data.target_pelayanan}</span>
+                    {data.nama_pemohon && data.target_pelayanan !== data.nama_pemohon && (
+                      <span className="text-[11px] text-slate-400 mt-0.5">Diajukan oleh: {data.nama_pemohon}</span>
+                    )}
                  </div>
               </div>
               <div className="h-px w-full bg-slate-100 ml-14"></div>

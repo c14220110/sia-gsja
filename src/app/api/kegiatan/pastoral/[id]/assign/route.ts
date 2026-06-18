@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
+import { notifyMajelisPastoralDitugaskan } from '@/lib/notificationService';
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -9,11 +10,17 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
     }
 
+    // Permission: hanya SEKRETARIS_PUSAT (dan SUPER_ADMIN) yang boleh assign
+    const callerRole = (caller.role_name || '').toUpperCase();
+    if (!['SEKRETARIS_PUSAT', 'SUPER_ADMIN'].includes(callerRole)) {
+      return NextResponse.json({ success: false, message: 'Hanya Sekretaris Pusat yang dapat menugaskan penanggung jawab.' }, { status: 403 });
+    }
+
     const { id } = await params;
     const body = await request.json();
-    const { pengurus_id, tanggal_fix, waktu_fix } = body;
+    const { pengguna_id, tanggal_fix, waktu_fix } = body;
 
-    if (!pengurus_id) {
+    if (!pengguna_id) {
       return NextResponse.json({ success: false, message: 'ID Penanggung Jawab wajib diisi!' }, { status: 400 });
     }
     if (!tanggal_fix || !waktu_fix) {
@@ -27,132 +34,117 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       // 1. Get current ticket info
       const checkRes = await client.query(`
         SELECT 
-          p.status_permohonan, 
-          p.jenis_kegiatan_id, 
-          p.lokasi_pelayanan,
+          p.status_permohonan,
           p.jemaat_pemohon_id,
           p.nomor_tiket,
+          p.no_hp_kontak,
+          p.keterangan,
+          p.is_urgent,
+          p.untuk_siapa,
+          p.nama_target_luar,
+          p.waktu_diterima,
           pemohon.nama_lengkap as nama_pemohon,
-          jk.nama_jenis_kegiatan
+          jk.nama_jenis_kegiatan,
+          CASE 
+            WHEN p.untuk_siapa = 'Saya Sendiri' THEN pemohon.nama_lengkap
+            WHEN jt.nama_lengkap IS NOT NULL THEN jt.nama_lengkap
+            ELSE p.nama_target_luar
+          END as target_pelayanan
         FROM public.permohonan_layanan_pastoral p
         JOIN public.jemaat pemohon ON p.jemaat_pemohon_id = pemohon.id
         LEFT JOIN public.jenis_kegiatan jk ON p.jenis_kegiatan_id = jk.id
+        LEFT JOIN public.jemaat jt ON jt.id = p.jemaat_target_id
         WHERE p.id = $1
       `, [id]);
-      if (checkRes.rows.length === 0) {
-        throw new Error('Tiket tidak ditemukan');
-      }
+
+      if (checkRes.rows.length === 0) throw new Error('Tiket tidak ditemukan');
       const ticket = checkRes.rows[0];
       const statusSebelumnya = ticket.status_permohonan;
-      const statusBaru = 'Ditugaskan';
 
-      // 2. Resolve Pelayan ID for the PIC
-      // pic-options only returns those who are already Staf Pastoral, they MUST have a pelayan record.
-      const pelayanRes = await client.query(`
-        SELECT pel.id 
-        FROM public.pengurus p
-        JOIN public.pelayan pel ON p.jemaat_id = pel.jemaat_id
-        WHERE p.id = $1 LIMIT 1
-      `, [pengurus_id]);
-      
-      if (pelayanRes.rows.length === 0) {
-        throw new Error('Penanggung jawab bukan seorang pelayan aktif');
+      // 2. Validasi pengguna memiliki role MAJELIS / GEMBALA_SIDANG / GEMBALA_SATELIT
+      const pjRes = await client.query(`
+        SELECT pn.id, j.nama_lengkap, pn.email
+        FROM public.pengguna pn
+        JOIN public.jemaat j ON j.id = pn.jemaat_id
+        JOIN public.user_role ur ON ur.user_id = pn.id
+        JOIN public.role r ON r.id = ur.role_id
+        WHERE pn.id = $1
+          AND pn.is_active = true
+          AND r.nama_role IN ('MAJELIS', 'GEMBALA_SIDANG', 'GEMBALA_SATELIT')
+          AND ur.is_active = true
+          AND (ur.tanggal_selesai IS NULL OR ur.tanggal_selesai >= CURRENT_DATE)
+        LIMIT 1
+      `, [pengguna_id]);
+
+      if (pjRes.rows.length === 0) {
+        throw new Error('Penanggung jawab tidak valid atau tidak memiliki role Majelis/Gembala yang aktif');
       }
-      const pelayanId = pelayanRes.rows[0].id;
+      const pj = pjRes.rows[0];
 
-      // 4. Create Kegiatan
-      const { generateKodeKegiatan } = await import('@/server/utils/kegiatanUtils');
-      const kodeKegiatan = await generateKodeKegiatan(client, ticket.jenis_kegiatan_id, tanggal_fix);
-      const isSensitive = ticket.nama_jenis_kegiatan?.toLowerCase().includes('konseling') || 
-                          ticket.nama_jenis_kegiatan?.toLowerCase().includes('pranikah');
-      const namaKegiatan = isSensitive 
-                           ? `Layanan Internal Pastoral - ${ticket.nomor_tiket}` 
-                           : `Layanan Pastoral - ${ticket.nama_pemohon}`;
-      const kegiatanRes = await client.query(
-        `INSERT INTO public.kegiatan (
-          kode_kegiatan, nama_kegiatan, jenis_kegiatan_id, 
-          tanggal_mulai, waktu_mulai, frekuensi_kegiatan, lokasi_kegiatan, status_kegiatan, 
-          is_published, butuh_registrasi, pic_pengurus_id
-        ) VALUES ($1, $2, $3, $4, $5, 'Sekali', $6, 'Akan Datang', false, false, $7) RETURNING id`,
-        [kodeKegiatan, namaKegiatan, ticket.jenis_kegiatan_id, tanggal_fix, waktu_fix, ticket.lokasi_pelayanan, pengurus_id]
-      );
-      const kegiatanId = kegiatanRes.rows[0].id;
-
-      // 5. Link Kegiatan & Pelayan
-      await client.query(
-        `INSERT INTO public.kegiatan_jadwal_pelayan (kegiatan_id, pelayan_id, role_id, status_konfirmasi) 
-         VALUES ($1, $2, (SELECT id FROM public.role_pelayan WHERE nama_role = 'Staf Pastoral'), 'Menunggu Konfirmasi')`,
-        [kegiatanId, pelayanId]
-      );
-
-      // 6. Update ticket
-      // Try to save kegiatan_id to permohonan table (if the column exists). 
-      // Using a dynamic approach in case migration hasn't run yet.
-      const updateQuery = `
+      // 3. Update tiket pastoral
+      await client.query(`
         UPDATE public.permohonan_layanan_pastoral
         SET 
           penanggung_jawab_id = $1,
-          status_permohonan = $2,
+          status_permohonan = 'Ditugaskan',
           waktu_ditugaskan = CURRENT_TIMESTAMP,
+          jadwal_tanggal = $2,
+          jadwal_waktu = $3,
           updated_at = CURRENT_TIMESTAMP
-          ${(() => {
-            // We blindly try to update kegiatan_id. If column doesn't exist, it might throw, so we handle it below.
-            return '';
-          })()}
-        WHERE id = $3
-      `;
-      await client.query(updateQuery, [pengurus_id, statusBaru, id]);
+        WHERE id = $4
+      `, [pengguna_id, tanggal_fix, waktu_fix, id]);
 
-      try {
-        await client.query(`UPDATE public.permohonan_layanan_pastoral SET kegiatan_id = $1 WHERE id = $2`, [kegiatanId, id]);
-      } catch (e: any) {
-        if (e.message.includes('kegiatan_id" does not exist')) {
-           // Auto-migrate the column if missing
-           await client.query(`ALTER TABLE public.permohonan_layanan_pastoral ADD COLUMN kegiatan_id integer;`);
-           await client.query(`UPDATE public.permohonan_layanan_pastoral SET kegiatan_id = $1 WHERE id = $2`, [kegiatanId, id]);
-        } else {
-           throw e;
-        }
-      }
-
-      // 7. Insert Audit Log
-      const insertLog = `
+      // 4. Audit Log
+      await client.query(`
         INSERT INTO public.permohonan_layanan_audit_log 
         (permohonan_id, status_sebelumnya, status_baru, diubah_oleh_id, catatan_perubahan)
-        VALUES ($1, $2, $3, $4, 'Penanggung Jawab telah ditugaskan dan jadwal ditetapkan oleh Admin/Sekretaris')
-      `;
-      await client.query(insertLog, [id, statusSebelumnya, statusBaru, caller.user_id]);
+        VALUES ($1, $2, 'Ditugaskan', $3, $4)
+      `, [id, statusSebelumnya, caller.user_id,
+          `Ditugaskan kepada ${pj.nama_lengkap}, jadwal: ${tanggal_fix} pukul ${waktu_fix.substring(0, 5)} WIB`]);
 
       await client.query('COMMIT');
 
-      // 8. Trigger Web Push Notification to Jemaat
+      // 5. Push Notification ke Jemaat pemohon (fire-and-forget)
       try {
         const { sendPushNotificationToJemaat } = await import('@/server/utils/pushNotification');
         const formattedDate = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(tanggal_fix));
         const formattedTime = waktu_fix.substring(0, 5);
-        
-        // Dapatkan nama gembala (pic_nama) untuk di notifikasi
-        const picRes = await pool.query(`SELECT nama_lengkap FROM public.pengurus JOIN public.jemaat ON pengurus.jemaat_id = jemaat.id WHERE pengurus.id = $1`, [pengurus_id]);
-        const picName = picRes.rows.length > 0 ? picRes.rows[0].nama_lengkap : 'Staf Pastoral';
-        
         await sendPushNotificationToJemaat(
-          ticket.jemaat_pemohon_id, 
+          ticket.jemaat_pemohon_id,
           'Layanan Pastoral Dijadwalkan',
-          `Permohonan Anda telah dijadwalkan pada ${formattedDate} pukul ${formattedTime} WIB. Gembala: ${picName}.`,
+          `Permohonan Anda telah dijadwalkan pada ${formattedDate} pukul ${formattedTime} WIB. PJ: ${pj.nama_lengkap}.`,
           `/layanan-pastoral/${id}`
         );
       } catch (e) {
-        console.error('Failed to trigger push notification:', e);
+        console.error('[Pastoral Assign] Gagal push notification:', e);
+      }
+
+      // 6. Email ke PJ yang ditugaskan (fire-and-forget)
+      if (pj.email && pj.email.includes('@')) {
+        notifyMajelisPastoralDitugaskan(pj.email, pj.nama_lengkap, {
+          id: Number(id),
+          nomor_tiket: ticket.nomor_tiket,
+          jenis_layanan: ticket.nama_jenis_kegiatan,
+          target_pelayanan: ticket.target_pelayanan,
+          nama_pemohon: ticket.nama_pemohon,
+          no_hp_kontak: ticket.no_hp_kontak,
+          keterangan: ticket.keterangan || undefined,
+          is_urgent: !!ticket.is_urgent,
+          waktu_diterima: ticket.waktu_diterima?.toISOString?.() || String(ticket.waktu_diterima),
+          tanggal_fix,
+          waktu_fix,
+        });
       }
 
       return NextResponse.json({ success: true, message: 'Penanggung Jawab berhasil ditugaskan' });
+
     } catch (err: any) {
       await client.query('ROLLBACK');
       if (err.message === 'Tiket tidak ditemukan') {
-         return NextResponse.json({ success: false, message: 'Tiket tidak ditemukan' }, { status: 404 });
+        return NextResponse.json({ success: false, message: 'Tiket tidak ditemukan' }, { status: 404 });
       }
-      if (err.message === 'Penanggung jawab bukan seorang pelayan aktif') {
-         return NextResponse.json({ success: false, message: 'Pengurus ini belum terdaftar di Database Pelayan. Silakan daftarkan terlebih dahulu.' }, { status: 400 });
+      if (err.message.includes('tidak valid') || err.message.includes('tidak memiliki role')) {
+        return NextResponse.json({ success: false, message: err.message }, { status: 400 });
       }
       throw err;
     } finally {

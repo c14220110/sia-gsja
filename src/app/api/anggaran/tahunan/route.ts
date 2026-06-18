@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
   const client = await pool.connect();
   try {
     const body = await request.json();
-    const { satelit_id, komisi_id, tahun, kategori_ra, pola_penggunaan, nama_rancangan, estimasi_waktu, action, items } = body;
+    const { satelit_id, komisi_id, tahun, kategori_ra, pola_penggunaan, jenis_kegiatan_id, nama_rancangan, estimasi_waktu, action, items } = body;
 
     // Validation
     if (!satelit_id || !tahun) {
@@ -103,7 +103,9 @@ export async function POST(request: NextRequest) {
     const seq = String(parseInt(countRes.rows[0].count) + 1).padStart(3, '0');
     const kode_dokumen = `RA-${yearCode}-${seq}`;
 
-    // Calculate total (sum of all pengeluaran items only, as the "anggaran" amount)
+    // total_anggaran = volume keuangan total (Penerimaan + Pengeluaran).
+    // Ini adalah angka referensi pengajuan. Plafon belanja sesungguhnya ada di
+    // total_disetujui, yang hanya dihitung dari item Pengeluaran ACC saat review.
     const total_anggaran = items.reduce((sum: number, i: any) => sum + (i.jumlah * i.harga_satuan), 0);
 
     await client.query('BEGIN');
@@ -111,10 +113,10 @@ export async function POST(request: NextRequest) {
     // Insert header
     const headerRes = await client.query(
       `INSERT INTO public.anggaran_tahunan 
-         (kode_dokumen, tahun, satelit_id, komisi_id, total_anggaran, status, kategori_ra, pola_penggunaan, nama_rancangan, estimasi_waktu)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+         (kode_dokumen, tahun, satelit_id, komisi_id, total_anggaran, status, kategori_ra, pola_penggunaan, jenis_kegiatan_id, nama_rancangan, estimasi_waktu)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING id`,
-      [kode_dokumen, tahun, satelit_id, komisi_id || null, total_anggaran, status, kategori_ra || 'Kegiatan', pola_penggunaan || 'Sekali Pakai', nama_rancangan, estimasi_waktu || null]
+      [kode_dokumen, tahun, satelit_id, komisi_id || null, total_anggaran, status, kategori_ra || 'Kegiatan', pola_penggunaan || 'Sekali Pakai', jenis_kegiatan_id || null, nama_rancangan, estimasi_waktu || null]
     );
     const anggaranId = headerRes.rows[0].id;
 

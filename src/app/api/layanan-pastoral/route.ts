@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
+import { notifySekretarisPastoralBaru } from '@/lib/notificationService';
 
 // Helper to generate Ticket Number
 async function generateNomorTiket() {
@@ -22,13 +23,13 @@ async function generateNomorTiket() {
 export async function POST(request: Request) {
   try {
     const caller = getCallerFromRequest(request);
-    if (!caller || caller.role_name?.toLowerCase() !== 'jemaat') {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    if (!caller) {
+      return NextResponse.json({ success: false, message: 'Tidak terautentikasi' }, { status: 401 });
     }
 
     const jemaatPemohonId = caller.jemaat_id;
     if (!jemaatPemohonId) {
-      return NextResponse.json({ success: false, message: 'Jemaat ID tidak ditemukan' }, { status: 400 });
+      return NextResponse.json({ success: false, message: 'Akun Anda tidak terhubung ke data jemaat. Hubungi admin.' }, { status: 403 });
     }
 
     const body = await request.json();
@@ -84,11 +85,58 @@ export async function POST(request: Request) {
       const insertLog = `
         INSERT INTO public.permohonan_layanan_audit_log 
         (permohonan_id, status_sebelumnya, status_baru, diubah_oleh_id, catatan_perubahan)
-        VALUES ($1, NULL, 'Menunggu', $2, 'Permohonan baru diajukan oleh jemaat via PWA')
+        VALUES ($1, NULL, 'Menunggu', $2, 'Permohonan baru diajukan oleh jemaat via Aplikasi Mobile')
       `;
       await client.query(insertLog, [permohonanId, caller.user_id]);
 
       await client.query('COMMIT');
+
+      // Fire-and-forget: blast email ke semua SEKRETARIS_PUSAT aktif (tidak block response)
+      pool.query(`
+        SELECT DISTINCT p.email
+        FROM public.pengguna p
+        JOIN public.user_role ur ON ur.user_id = p.id AND ur.is_active = true
+        JOIN public.role r ON r.id = ur.role_id
+        WHERE r.nama_role = 'SEKRETARIS_PUSAT'
+        AND p.is_active = true
+        AND p.email IS NOT NULL AND p.email != ''
+      `).then(sekRes => {
+        // Filter email valid (harus ada @) sebagai safety net data tidak valid di DB
+        const emails = sekRes.rows
+          .map((r: any) => r.email as string)
+          .filter(e => e && e.includes('@'));
+        // Fetch target name for notification
+        pool.query(`
+          SELECT 
+            j.nama_lengkap as nama_pemohon,
+            jk.nama_jenis_kegiatan,
+            CASE 
+              WHEN $1 = 'Saya Sendiri' THEN j.nama_lengkap
+              WHEN jt.nama_lengkap IS NOT NULL THEN jt.nama_lengkap
+              ELSE $2
+            END as target_pelayanan
+          FROM public.jemaat j
+          LEFT JOIN public.jemaat jt ON jt.id = $3
+          JOIN public.jenis_kegiatan jk ON jk.id = $4
+          WHERE j.id = $5
+        `, [untuk_siapa, nama_target_luar || '', jemaat_target_id || null, jenis_kegiatan_id, jemaatPemohonId])
+        .then(infoRes => {
+          if (infoRes.rows.length > 0) {
+            const info = infoRes.rows[0];
+            notifySekretarisPastoralBaru(emails, {
+              id: permohonanId,
+              nomor_tiket: nomorTiket,
+              jenis_layanan: info.nama_jenis_kegiatan,
+              target_pelayanan: info.target_pelayanan,
+              nama_pemohon: info.nama_pemohon,
+              no_hp_kontak: no_hp_kontak,
+              keterangan: keterangan || undefined,
+              is_urgent: !!is_urgent,
+              waktu_diterima: new Date().toISOString(),
+            });
+          }
+        }).catch(e => console.error('[Pastoral Notif] Gagal fetch ticket info:', e));
+      }).catch(e => console.error('[Pastoral Notif] Gagal fetch sekretaris emails:', e));
 
       return NextResponse.json({
         success: true,

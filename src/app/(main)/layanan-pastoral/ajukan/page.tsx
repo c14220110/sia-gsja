@@ -34,14 +34,14 @@ export default function AjukanPermintaanPage() {
   });
 
   useEffect(() => {
-    // Fetch Jenis Kegiatan yang butuh_permohonan = true
+    // Fetch Jenis Kegiatan yang butuh_permohonan = true (pastoral types only)
     const fetchJenis = async () => {
       try {
-        const res = await fetch('/api/options?type=jenis_kegiatan');
+        const res = await fetch('/api/options?type=jenis_kegiatan_pastoral');
         if (res.ok) {
           const json = await res.json();
           if (json.success) {
-            setJenisOptions(json.data.filter((jk: any) => jk.butuh_permohonan === true));
+            setJenisOptions(json.data); // sudah pastoral-only dari API
           }
         }
       } catch (err) {
@@ -119,11 +119,15 @@ export default function AjukanPermintaanPage() {
       return;
     }
 
+    if (untukSiapa === 'Anggota Keluarga' && isJemaatGsja === null) {
+      setSubmitState({ status: 'error', message: 'Tentukan apakah anggota keluarga Anda terdaftar sebagai jemaat GSJA.' });
+      return;
+    }
     if (untukSiapa === 'Anggota Keluarga' && isJemaatGsja === true && !jemaatTargetId) {
       setSubmitState({ status: 'error', message: 'Pilih data jemaat keluarga Anda dari pencarian.' });
       return;
     }
-    if (untukSiapa === 'Anggota Keluarga' && isJemaatGsja === false && !namaTargetLuar) {
+    if (untukSiapa === 'Anggota Keluarga' && isJemaatGsja === false && !namaTargetLuar.trim()) {
       setSubmitState({ status: 'error', message: 'Masukkan nama anggota keluarga Anda.' });
       return;
     }

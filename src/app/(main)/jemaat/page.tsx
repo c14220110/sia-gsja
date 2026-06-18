@@ -227,16 +227,22 @@ export default function MembersPage() {
         </div>
 
         {/* Kehadiran Card */}
-        <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 flex items-center gap-4 hover:shadow-md transition-shadow">
-          <div className="w-14 h-14 bg-emerald-500/10 rounded-xl flex justify-center items-center">
-            <span className="material-icons-round text-emerald-600 text-3xl">how_to_reg</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-slate-500 text-sm font-medium font-sans uppercase tracking-wide">Keaktifan Kehadiran</span>
-            <div className="flex items-end gap-2 mt-1">
-              <span className="text-slate-900 text-3xl font-bold font-sans leading-9">-</span>
+        <div 
+          onClick={() => router.push('/jemaat/analisis-kehadiran')}
+          className="p-6 bg-white rounded-xl shadow-sm border border-emerald-200 flex items-center justify-between gap-4 hover:shadow-md hover:bg-emerald-50/30 transition-all cursor-pointer group"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bg-emerald-500/10 rounded-xl flex justify-center items-center group-hover:bg-emerald-500/20 transition-colors">
+              <span className="material-icons-round text-emerald-600 text-3xl">radar</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-slate-500 text-sm font-medium font-sans uppercase tracking-wide">Keaktifan Kehadiran</span>
+              <div className="flex items-end gap-2 mt-1">
+                <span className="text-slate-900 text-lg font-bold font-sans leading-tight">Radar Kehadiran</span>
+              </div>
             </div>
           </div>
+          <span className="material-icons-round text-slate-300 group-hover:text-emerald-500 transition-colors">arrow_forward</span>
         </div>
 
       </div>

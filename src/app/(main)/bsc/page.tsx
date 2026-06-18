@@ -231,14 +231,14 @@ function KpiCard({ kpi, label, icon, targetLabel, higherIsBetter = true, kpiKey,
   return (
     <div className={`relative rounded-2xl border-l-4 ${statusColors.border} bg-white p-4 flex flex-col justify-between min-h-[168px] shadow-sm border border-slate-200 hover:shadow-md transition-all duration-300`}>
       {/* Row 1: Icon and Title */}
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <div className="flex items-start gap-2">
+      <div className="flex items-start justify-between gap-2 mb-2 w-full">
+        <div className="flex items-start gap-2 flex-1 min-w-0">
           <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${statusColors.badge}`}>
             <span className="material-icons-round text-[18px] leading-none">{icon}</span>
           </div>
-          <p className="text-slate-800 font-extrabold text-[12px] leading-tight tracking-wide">{label}</p>
+          <p className="text-slate-800 font-extrabold text-[12px] leading-tight tracking-wide break-words mt-1">{label}</p>
         </div>
-        <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider ${statusColors.badge}`}>
+        <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider shrink-0 mt-1 ${statusColors.badge}`}>
           {statusLabelText}
         </span>
       </div>
@@ -904,7 +904,7 @@ export default function BscDashboardPage() {
         header: { warna: 'bg-violet-100 text-violet-600 border border-violet-200', icon: 'settings_suggest', title: 'Proses Bisnis Internal', subtitle: 'Internal Process Perspective' },
         cards: [
           <KpiCard key="k7" kpi={d?.kpi7} label="Rasio Penyelesaian Tindak Lanjut" icon="task_alt" targetLabel="Target: 100%" kpiKey="kpi7" satelitId={sid} />,
-          <KpiCard key="k8" kpi={d?.kpi8} label="Kelengkapan Data Presensi Bernama" icon="database" targetLabel="Target: > 95%" kpiKey="kpi8" satelitId={sid} />,
+          <KpiCard key="k8" kpi={d?.kpi8} label="Kelengkapan Data Presensi Bernama" icon="fact_check" targetLabel="Target: > 95%" kpiKey="kpi8" satelitId={sid} />,
         ],
       },
       pembelajaran: {
@@ -1108,6 +1108,13 @@ export default function BscDashboardPage() {
                     <div className="flex justify-between text-[10px] font-bold text-slate-400 mt-1.5">
                       <span>0%</span><span className="text-emerald-600">{d.kpi3?.nilai ?? 0}% / Target 85%</span><span>100%</span>
                     </div>
+                    <button 
+                      onClick={() => router.push('/jemaat/analisis-kehadiran')}
+                      className="mt-4 w-full py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-[10px] font-bold text-slate-600 uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors"
+                    >
+                      <span className="material-icons-round text-[14px]">radar</span>
+                      Lihat Analisis Retensi Jemaat
+                    </button>
                   </div>
                   <div className="flex-1 w-full flex flex-col h-32 border-l border-slate-100 pl-6">
                     <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Tren Terakhir</div>

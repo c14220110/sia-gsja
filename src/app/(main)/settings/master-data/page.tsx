@@ -11,7 +11,7 @@ import { MasterTemplateSurvei } from './MasterTemplateSurvei';
 type TabKey =
   | 'wilayah' | 'satelit' | 'departemen' | 'komisi'
   | 'periode_kepengurusan' | 'jabatan' | 'role_pelayan'
-  | 'pekerjaan_master' | 'jenis_relasi' | 'jenis_kegiatan'
+  | 'pekerjaan_master' | 'jenis_kegiatan'
   | 'komponen_gaji' | 'template_survei';
 
 interface TabConfig {
@@ -108,12 +108,6 @@ const TABS: Record<TabKey, TabConfig> = {
     formFields: [{ key: 'nama_pekerjaan', label: 'Nama Pekerjaan' }],
     hasToggle: true,
   },
-  jenis_relasi: {
-    label: 'Jenis Relasi', icon: 'family_restroom', group: 'Atribut Jemaat', groupColor: 'amber',
-    columns: [{ key: 'nama_relasi', label: 'Nama Relasi' }, { key: 'is_active', label: 'Status', width: 'w-28' }],
-    formFields: [{ key: 'nama_relasi', label: 'Nama Relasi (mis: Suami, Istri, Anak)' }],
-    hasToggle: true,
-  },
   jenis_kegiatan: {
     label: 'Jenis Kegiatan', icon: 'event', group: 'Parameter Kegiatan', groupColor: 'rose',
     columns: [{ key: 'nama_jenis_kegiatan', label: 'Nama Jenis Kegiatan' }],
@@ -148,7 +142,7 @@ function rowLabel(row: any) {
   return (
     row.nama_wilayah  ?? row.nama_satelit   ?? row.nama_departemen ??
     row.nama_komisi   ?? row.nama_periode   ?? row.nama_jabatan    ??
-    row.nama_role     ?? row.nama_pekerjaan ?? row.nama_relasi     ??
+    row.nama_role     ?? row.nama_pekerjaan ??
     row.nama_jenis_kegiatan ?? `ID ${row.id}`
   );
 }
@@ -164,7 +158,6 @@ function primaryKey(tabKey: TabKey): string {
     jabatan:              'nama_jabatan',
     role_pelayan:         'nama_role',
     pekerjaan_master:     'nama_pekerjaan',
-    jenis_relasi:         'nama_relasi',
     jenis_kegiatan:       'nama_jenis_kegiatan',
     komponen_gaji:        '', // Not used for custom page
     template_survei:      '', // Not used for custom page
@@ -374,6 +367,7 @@ export default function MasterDataPage() {
   const [data, setData]           = useState<any[]>([]);
   const [loadingTable, setLoadingTable] = useState(true);
   const [search, setSearch]       = useState('');
+  const [filterSatelitId, setFilterSatelitId] = useState('');
   const [selectOptions, setSelectOptions] = useState<Record<string, { id: number; label: string }[]>>({});
 
   // Modals
@@ -406,12 +400,14 @@ export default function MasterDataPage() {
     try {
       const params = new URLSearchParams({ table: activeTab });
       if (search) params.set('search', search);
+      if (activeTab === 'komisi' && filterSatelitId) params.set('satelit_id', filterSatelitId);
+      
       const res  = await fetch(`/api/master-data?${params}`);
       const json = await res.json();
       setData(json.success ? json.data : []);
     } catch { setData([]); }
     finally { setLoadingTable(false); }
-  }, [activeTab, search]);
+  }, [activeTab, search, filterSatelitId]);
 
   /* ── One-time init: fetch select options with lottie loader ── */
   useEffect(() => {
@@ -435,7 +431,10 @@ export default function MasterDataPage() {
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
-  useEffect(() => { setSearch(''); }, [activeTab]);
+  useEffect(() => { 
+    setSearch(''); 
+    setFilterSatelitId('');
+  }, [activeTab]);
 
   /* ── Toggle ── */
   const handleToggleRequest = (id: number, cur: boolean) => {
@@ -599,21 +598,39 @@ export default function MasterDataPage() {
           </div>
           )}
 
-          {/* Search */}
+          {/* Filters Area */}
           {activeTab !== 'komponen_gaji' && activeTab !== 'template_survei' && (
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 material-icons-round text-slate-400 text-[20px]">search</span>
-            <input
-              type="text"
-              placeholder={`Cari ${tab.label}...`}
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 bg-white font-sans"
-            />
-            {search && (
-              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                <span className="material-icons-round text-[18px]">close</span>
-              </button>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 material-icons-round text-slate-400 text-[20px]">search</span>
+              <input
+                type="text"
+                placeholder={`Cari ${tab.label}...`}
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 bg-white font-sans"
+              />
+              {search && (
+                <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                  <span className="material-icons-round text-[18px]">close</span>
+                </button>
+              )}
+            </div>
+            
+            {activeTab === 'komisi' && (
+              <div className="relative min-w-[200px]">
+                <select
+                  value={filterSatelitId}
+                  onChange={(e) => setFilterSatelitId(e.target.value)}
+                  className="w-full pl-3 pr-10 py-2.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-300 font-sans appearance-none"
+                >
+                  <option value="">Semua Satelit</option>
+                  {selectOptions.satelit?.map(s => (
+                    <option key={s.id} value={s.id}>{s.label}</option>
+                  ))}
+                </select>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 material-icons-round text-slate-400 pointer-events-none">expand_more</span>
+              </div>
             )}
           </div>
           )}

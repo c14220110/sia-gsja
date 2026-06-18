@@ -48,7 +48,9 @@ export async function GET(request: Request) {
     } else if (type === 'periode_kepengurusan') {
       data = await masterRepository.getAllPeriodeKepengurusan();
     } else if (type === 'jenis_kegiatan') {
-      data = await masterRepository.getAllJenisKegiatan();
+      data = await masterRepository.getAllJenisKegiatan(); // returns butuh_permohonan = false only
+    } else if (type === 'jenis_kegiatan_pastoral') {
+      data = await masterRepository.getAllJenisKegiatanPastoral(); // returns butuh_permohonan = true only
     } else if (type === 'pengurus') {
       data = await masterRepository.getAllPengurus();
     } else if (type === 'jabatan_pegawai') {

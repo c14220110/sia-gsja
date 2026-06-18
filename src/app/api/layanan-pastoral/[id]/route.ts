@@ -5,8 +5,11 @@ import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const caller = getCallerFromRequest(request);
-    if (!caller || caller.role_name?.toLowerCase() !== 'jemaat') {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    if (!caller) {
+      return NextResponse.json({ success: false, message: 'Tidak terautentikasi' }, { status: 401 });
+    }
+    if (!caller.jemaat_id) {
+      return NextResponse.json({ success: false, message: 'Akun Anda tidak terhubung ke data jemaat.' }, { status: 403 });
     }
 
     const { id } = await params;
@@ -24,7 +27,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const queryMaster = `
       SELECT 
         p.id, p.nomor_tiket, p.untuk_siapa, p.nama_target_luar, 
-        p.status_permohonan, p.waktu_diterima, p.keterangan, p.catatan_penyelesaian,
+        p.status_permohonan, p.waktu_diterima, p.keterangan, p.catatan_penyelesaian, p.is_urgent,
         jk.nama_jenis_kegiatan,
         jt.nama_lengkap as nama_target_jemaat,
         pemohon.nama_lengkap as nama_pemohon,
@@ -85,6 +88,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         target_pelayanan: displayTarget,
         keterangan: master.keterangan,
         catatan_penyelesaian: master.catatan_penyelesaian,
+        is_urgent: master.is_urgent ?? false,
         jadwal_tanggal: master.jadwal_tanggal || null,
         jadwal_waktu: master.jadwal_waktu || null,
         penanggung_jawab: master.nama_penanggung_jawab ? {

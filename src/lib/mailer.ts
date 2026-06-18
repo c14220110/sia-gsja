@@ -33,7 +33,7 @@ export async function sendPasswordResetEmail(toEmail: string, toName: string, re
                   <td style="background:#2d3a4f;padding:32px 40px;text-align:center;">
                     <div style="font-size: 40px; margin-bottom: 12px;">✝️</div>
                     <h1 style="color:#ffffff;margin:0;font-size:20px;font-weight:700;letter-spacing:0.5px;">SIM GSJA Eben Haezer</h1>
-                    <p style="color:#94a3b8;margin:4px 0 0;font-size:13px;">Sistem Informasi Akuntansi</p>
+                    <p style="color:#94a3b8;margin:4px 0 0;font-size:13px;">Sistem Informasi Manajemen</p>
                   </td>
                 </tr>
                 <!-- Body -->

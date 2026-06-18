@@ -80,7 +80,11 @@ export default function LayananPastoralPage() {
 
   const formatDate = (dateString: string) => {
     if (!dateString) return '-';
-    return new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }).format(new Date(dateString));
+    let safeString = dateString;
+    if (typeof safeString === 'string' && !safeString.endsWith('Z') && !safeString.includes('+')) {
+      safeString = safeString.replace(' ', 'T') + 'Z';
+    }
+    return new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'long', year: 'numeric' }).format(new Date(safeString));
   };
 
   const filteredTickets = filter === 'Semua' 

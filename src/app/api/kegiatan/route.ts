@@ -125,7 +125,22 @@ export async function GET(request: Request) {
     );
     const totalCount = parseInt(countResult.rows[0].count, 10);
 
-    // Fetch data with JOINs
+    // Subquery survei rating — computed per kegiatan (skala 1-5, hanya jawaban bertipe 'skala')
+    const surveiSubquery = `
+      LEFT JOIN (
+        SELECT
+          sv.kegiatan_id,
+          ROUND(AVG(sr.skor)::numeric, 1) AS avg_skor,
+          COUNT(DISTINCT sr.id) AS total_respons_skala,
+          COUNT(DISTINCT sr.survei_id || '-' || COALESCE(sr.jemaat_id::text, 'anon')) AS total_responden
+        FROM public.survei sv
+        JOIN public.survei_pertanyaan sp ON sp.survei_id = sv.id AND sp.tipe_jawaban = 'skala'
+        JOIN public.survei_respons sr ON sr.survei_id = sv.id AND sr.pertanyaan_id = sp.id AND sr.skor IS NOT NULL
+        WHERE sv.kegiatan_id IS NOT NULL AND sv.tipe_survei = 'otomatis'
+        GROUP BY sv.kegiatan_id
+      ) survei_agg ON survei_agg.kegiatan_id = k.id
+    `;
+
     const query = `
       SELECT 
         k.id,
@@ -153,9 +168,12 @@ export async function GET(request: Request) {
         lpj.kegiatan_id AS is_lpj_submitted,
         lpj.status_lpj,
         ra.kode_dokumen AS ra_kode,
-        ra.status AS ra_status
+        ra.status AS ra_status,
+        survei_agg.avg_skor,
+        survei_agg.total_responden
       FROM public.kegiatan k
       ${joinClauses}
+      ${surveiSubquery}
       ${whereString}
       ORDER BY k.tanggal_mulai ASC, k.waktu_mulai ASC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}

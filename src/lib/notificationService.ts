@@ -40,7 +40,7 @@ const emailShell = (body: string) => `
             <td style="background:#2d3a4f;padding:28px 40px;text-align:center;">
               <div style="font-size:36px;margin-bottom:8px;">✝️</div>
               <h1 style="color:#ffffff;margin:0;font-size:18px;font-weight:700;">SIM GSJA Eben Haezer</h1>
-              <p style="color:#94a3b8;margin:4px 0 0;font-size:12px;">Sistem Informasi Akuntansi</p>
+              <p style="color:#94a3b8;margin:4px 0 0;font-size:12px;">Sistem Informasi Manajemen</p>
             </td>
           </tr>
           <!-- Body -->
@@ -259,4 +259,125 @@ export async function notifyPengajuRaRevision(
   `);
 
   await sendEmail(pengajuEmail, `🔄 RA Perlu Direvisi — ${ra.kode_dokumen}`, html);
+}
+
+// ─── PASTORAL NOTIFICATIONS ──────────────────────────────────────────────────
+
+export interface PastoralTicketData {
+  id: number;
+  nomor_tiket: string;
+  jenis_layanan: string;
+  target_pelayanan: string;
+  nama_pemohon: string;
+  no_hp_kontak: string;
+  keterangan?: string;
+  is_urgent: boolean;
+  waktu_diterima: string;
+}
+
+/**
+ * TRIGGER PASTORAL #1 — Blast email ke semua Sekretaris Pusat saat tiket baru masuk
+ * Dipanggil dari: POST /api/layanan-pastoral
+ */
+export async function notifySekretarisPastoralBaru(
+  sekretarisEmails: string[],
+  ticket: PastoralTicketData
+): Promise<void> {
+  if (sekretarisEmails.length === 0) return;
+
+  const urgentBadge = ticket.is_urgent
+    ? `<div style="margin-bottom:12px;">${badge('#dc2626', '🚨 DARURAT / URGENT')}</div>`
+    : `<div style="margin-bottom:12px;">${badge('#2563eb', '🔔 Permintaan Baru')}</div>`;
+
+  const subject = ticket.is_urgent
+    ? `🚨 [URGENT] Permintaan Pastoral Baru — ${ticket.nomor_tiket}`
+    : `🔔 Permintaan Pastoral Baru — ${ticket.nomor_tiket}`;
+
+  const html = emailShell(`
+    ${urgentBadge}
+    <h2 style="color:#1e293b;font-size:20px;margin:0 0 8px;">
+      Permintaan Layanan Pastoral Baru
+    </h2>
+    <p style="color:#475569;font-size:14px;line-height:1.6;margin:0 0 20px;">
+      Terdapat permintaan layanan pastoral baru yang menunggu review dan penugasan Anda.
+      ${ticket.is_urgent ? '<br/><strong style="color:#dc2626;">⚠ Permintaan ini ditandai DARURAT dan membutuhkan penanganan segera!</strong>' : ''}
+    </p>
+    ${infoBox('#f8fafc', '#e2e8f0', `
+      <strong>No. Tiket:</strong> ${ticket.nomor_tiket}<br/>
+      <strong>Jenis Layanan:</strong> ${ticket.jenis_layanan}<br/>
+      <strong>Yang Dilayani:</strong> ${ticket.target_pelayanan}<br/>
+      <strong>Pemohon:</strong> ${ticket.nama_pemohon}<br/>
+      <strong>No. HP Kontak:</strong> ${ticket.no_hp_kontak}<br/>
+      ${ticket.keterangan ? `<strong>Keterangan:</strong> ${ticket.keterangan}<br/>` : ''}
+      <strong>Waktu Masuk:</strong> ${new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(ticket.waktu_diterima + (ticket.waktu_diterima.includes('Z') || ticket.waktu_diterima.includes('+') ? '' : 'Z')))} WIB
+    `)}
+    ${ctaButton(`${baseUrl}/kegiatan/pastoral/${ticket.id}`, '📋 Review & Tugaskan Sekarang', ticket.is_urgent ? '#dc2626' : '#2d3a4f')}
+    <p style="color:#94a3b8;font-size:12px;margin:0;">
+      Anda menerima email ini karena memiliki jabatan Sekretaris di SIM GSJA.
+    </p>
+  `);
+
+  for (const email of sekretarisEmails) {
+    await sendEmail(email, subject, html).catch(err =>
+      console.error(`[Pastoral Notif] Gagal kirim ke sekretaris ${email}:`, err)
+    );
+  }
+}
+
+/**
+ * TRIGGER PASTORAL #2 — Email ke Majelis/Gembala yang baru ditugaskan
+ * Dipanggil dari: PATCH /api/kegiatan/pastoral/[id]/assign
+ */
+export async function notifyMajelisPastoralDitugaskan(
+  majelisEmail: string,
+  majelisName: string,
+  ticket: PastoralTicketData & { tanggal_fix: string; waktu_fix: string }
+): Promise<void> {
+  if (!majelisEmail) return;
+
+  const noHpBersih = ticket.no_hp_kontak.replace(/\D/g, '').replace(/^0/, '62');
+  const waLink = `https://wa.me/${noHpBersih}?text=${encodeURIComponent(`Halo, saya ${majelisName} dari GSJA Eben Haezer. Saya akan membantu Anda terkait permintaan layanan pastoral (${ticket.nomor_tiket}). Apakah Anda masih bisa dihubungi?`)}`;
+
+  const tanggalFormatted = new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }).format(new Date(ticket.tanggal_fix));
+  const jamFormatted = ticket.waktu_fix.substring(0, 5) + ' WIB';
+
+  const html = emailShell(`
+    <div style="margin-bottom:12px;">${badge('#059669', '📋 Tugas Pelayanan Baru')}</div>
+    <h2 style="color:#1e293b;font-size:20px;margin:0 0 8px;">
+      Anda Ditugaskan untuk Layanan Pastoral
+    </h2>
+    <p style="color:#475569;font-size:14px;line-height:1.6;margin:0 0 20px;">
+      Halo <strong>${majelisName}</strong>, Sekretaris telah menugaskan Anda untuk menangani permintaan layanan pastoral berikut.
+      ${ticket.is_urgent ? '<br/><strong style="color:#dc2626;">⚠ Permintaan ini bersifat DARURAT — mohon segera hubungi pemohon.</strong>' : ''}
+    </p>
+    ${infoBox('#f8fafc', '#e2e8f0', `
+      <strong>No. Tiket:</strong> ${ticket.nomor_tiket}<br/>
+      <strong>Jenis Layanan:</strong> ${ticket.jenis_layanan}<br/>
+      <strong>Yang Dilayani:</strong> ${ticket.target_pelayanan}<br/>
+      <strong>Pemohon:</strong> ${ticket.nama_pemohon}<br/>
+      <strong>Jadwal Fix:</strong> ${tanggalFormatted} • ${jamFormatted}<br/>
+      ${ticket.keterangan ? `<strong>Keterangan:</strong> ${ticket.keterangan}` : ''}
+    `)}
+    ${infoBox('#f0fdf4', '#86efac', `
+      <strong>📱 No. HP yang Dapat Dihubungi:</strong> <span style="font-size:16px;font-weight:700;">${ticket.no_hp_kontak}</span>
+    `)}
+    <table cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:24px;">
+      <tr>
+        <td align="center" style="padding:8px 4px 0;">
+          <a href="${waLink}" style="background:#25D366;color:#fff;text-decoration:none;padding:13px 24px;border-radius:8px;font-size:14px;font-weight:600;display:inline-block;">
+            💬 Hubungi via WhatsApp
+          </a>
+        </td>
+        <td align="center" style="padding:8px 4px 0;">
+          ${ctaButton(`${baseUrl}/kegiatan/pastoral/${ticket.id}`, '📋 Lihat Detail Tiket', '#2d3a4f').replace('<table cellpadding="0" cellspacing="0" width="100%">', '').replace('</table>', '').replace('<tr><td align="center" style="padding:8px 0 24px;">', '').replace('</td></tr>', '')}
+        </td>
+      </tr>
+    </table>
+    <p style="color:#94a3b8;font-size:12px;margin:0;">
+      Setelah pelayanan selesai, mohon input catatan penyelesaian di sistem.
+    </p>
+  `);
+
+  await sendEmail(majelisEmail, `📋 Tugas Pastoral: ${ticket.jenis_layanan} — ${ticket.nomor_tiket}`, html)
+    .catch(err => console.error(`[Pastoral Notif] Gagal kirim ke majelis ${majelisEmail}:`, err));
 }

@@ -27,12 +27,12 @@ export async function POST(request: NextRequest) {
 
       const cleanUsername = username.trim().toLowerCase();
       
-      // Validation: Min 6 chars, alphanumeric only (no spaces, no special chars except underscore maybe)
-      const usernameRegex = /^[a-z0-9_]{6,50}$/;
+      // Validation: Min 6 chars, alphanumeric only (no spaces, no special chars except underscore), CANNOT BE ALL DIGITS
+      const usernameRegex = /^(?!\d+$)[a-z0-9_]{6,50}$/;
       if (!usernameRegex.test(cleanUsername)) {
         return NextResponse.json({ 
           success: false, 
-          message: 'Username minimal 6 karakter, hanya boleh huruf, angka, dan underscore (_), tanpa spasi.' 
+          message: 'Username minimal 6 karakter, hanya boleh huruf, angka, dan underscore (_), dan tidak boleh HANYA berisi angka.' 
         }, { status: 400 });
       }
 

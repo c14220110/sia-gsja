@@ -78,7 +78,7 @@ function ResetPasswordForm() {
               className="h-12 w-12 object-contain mx-auto mb-3"
             />
             <h1 className="text-white font-bold text-lg">SIM GSJA Eben Haezer</h1>
-            <p className="text-slate-400 text-xs mt-1">Sistem Informasi Akuntansi</p>
+            <p className="text-slate-400 text-xs mt-1">Sistem Informasi Manajemen</p>
           </div>
 
           <div className="px-8 py-8">

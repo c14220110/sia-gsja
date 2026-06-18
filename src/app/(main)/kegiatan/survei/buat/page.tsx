@@ -20,7 +20,6 @@ export default function BuatSurveiPage() {
   // Form State
   const [judul, setJudul] = useState('');
   const [deskripsi, setDeskripsi] = useState('');
-  const [kegiatanId, setKegiatanId] = useState('');
   const [satelitId, setSatelitId] = useState('');
   const [periodeMulai, setPeriodeMulai] = useState('');
   const [periodeSelesai, setPeriodeSelesai] = useState('');
@@ -30,10 +29,7 @@ export default function BuatSurveiPage() {
   ]);
 
   // Options
-  const [kegiatanOptions, setKegiatanOptions] = useState<any[]>([]);
   const [satelitOptions, setSatelitOptions] = useState<any[]>([]);
-  const [kegiatanSearch, setKegiatanSearch] = useState('');
-  const [debouncedKegSearch, setDebouncedKegSearch] = useState('');
 
   const [submitState, setSubmitState] = useState<{ status: 'idle'|'loading'|'success'|'error', message: string }>({ status: 'idle', message: '' });
 
@@ -70,29 +66,6 @@ export default function BuatSurveiPage() {
     fetchSatelit();
   }, []);
 
-  // Debounce kegiatan search
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedKegSearch(kegiatanSearch), 300);
-    return () => clearTimeout(timer);
-  }, [kegiatanSearch]);
-
-  // Fetch kegiatan options (only Selesai/Menunggu LPJ status or upcoming)
-  useEffect(() => {
-    const fetchKegiatan = async () => {
-      try {
-        const queryParams = new URLSearchParams();
-        if (debouncedKegSearch) queryParams.append('search', debouncedKegSearch);
-        queryParams.append('limit', '20');
-        const res = await fetch(`/api/kegiatan?${queryParams.toString()}`);
-        if (res.ok) {
-          const json = await res.json();
-          if (json.success) setKegiatanOptions(json.data);
-        }
-      } catch {}
-    };
-    fetchKegiatan();
-  }, [debouncedKegSearch]);
-
   // Pertanyaan management
   const addPertanyaan = () => {
     setPertanyaan(prev => [...prev, { teks_pertanyaan: '', tipe_jawaban: 'skala', is_required: true, urutan: prev.length + 1 }]);
@@ -127,7 +100,7 @@ export default function BuatSurveiPage() {
         body: JSON.stringify({
           judul: judul.trim(),
           deskripsi: deskripsi.trim() || null,
-          kegiatan_id: kegiatanId ? parseInt(kegiatanId) : null,
+          kegiatan_id: null, // Survei manual selalu Survei Mandiri
           satelit_id: parseInt(satelitId),
           periode_mulai: periodeMulai,
           periode_selesai: periodeSelesai,
@@ -204,41 +177,23 @@ export default function BuatSurveiPage() {
             />
           </div>
 
-          {/* Grid: Satelit + Kegiatan */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex flex-col gap-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Satelit <span className="text-rose-500">*</span></label>
-              <div className="relative">
-                <select
-                  value={satelitId}
-                  onChange={(e) => setSatelitId(e.target.value)}
-                  className="appearance-none w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium cursor-pointer pr-10"
-                >
-                  <option value="">Pilih Satelit</option>
-                  {satelitOptions.map((s: any) => (
-                    <option key={s.id} value={s.id}>{s.nama_satelit}</option>
-                  ))}
-                </select>
-                <span className="material-icons-round absolute right-3 top-3 text-slate-400 pointer-events-none">expand_more</span>
-              </div>
+          {/* Satelit — full width karena tidak ada dropdown kegiatan */}
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Satelit <span className="text-rose-500">*</span></label>
+            <div className="relative">
+              <select
+                value={satelitId}
+                onChange={(e) => setSatelitId(e.target.value)}
+                className="appearance-none w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium cursor-pointer pr-10"
+              >
+                <option value="">Pilih Satelit</option>
+                {satelitOptions.map((s: any) => (
+                  <option key={s.id} value={s.id}>{s.nama_satelit}</option>
+                ))}
+              </select>
+              <span className="material-icons-round absolute right-3 top-3 text-slate-400 pointer-events-none">expand_more</span>
             </div>
-
-            <div className="flex flex-col gap-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Terkait Kegiatan <span className="text-slate-400 font-normal">(opsional)</span></label>
-              <div className="relative">
-                <select
-                  value={kegiatanId}
-                  onChange={(e) => setKegiatanId(e.target.value)}
-                  className="appearance-none w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium cursor-pointer pr-10"
-                >
-                  <option value="">Survei Mandiri (tidak terikat kegiatan)</option>
-                  {kegiatanOptions.map((k: any) => (
-                    <option key={k.id} value={k.id}>{k.nama_kegiatan} ({k.kode_kegiatan})</option>
-                  ))}
-                </select>
-                <span className="material-icons-round absolute right-3 top-3 text-slate-400 pointer-events-none">expand_more</span>
-              </div>
-            </div>
+            <p className="text-xs text-slate-400">Survei mandiri tidak terikat kegiatan. Survei terkait kegiatan dibuat otomatis saat kegiatan diakhiri.</p>
           </div>
 
           {/* Grid: Periode */}

@@ -843,12 +843,16 @@ export default function DashboardHome() {
   const [isOnline, setIsOnline] = useState(true);
 
   // ── BSC Executive Dashboard ───────────────────────────────────────────────
+  // State BSC di-manage di halaman /bsc, bukan di sini.
+  // Variabel ini dipertahankan agar komponen BSC (KpiCard, dll) yang
+  // masih ada di file ini tidak menyebabkan TypeScript error jika ada referensi.
   const [bscData, setBscData]       = useState<any>(null);
   const [satelitComparisonData, setSatelitComparisonData] = useState<any[] | null>(null);
   const [loadingBsc, setLoadingBsc] = useState(false);
   const [satelitList, setSatelitList] = useState<{ id: number; nama_satelit: string }[]>([]);
   const [bscTab, setBscTab] = useState<'overview' | 'detail'>('overview');
   const [selectedPerspektif, setSelectedPerspektif] = useState<'jemaat' | 'keuangan' | 'proses' | 'pembelajaran'>('jemaat');
+
   const now = new Date();
   const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const [bscMonthFilter, setBscMonthFilter] = useState(
@@ -912,29 +916,10 @@ export default function DashboardHome() {
            setUserData(uData);
            localStorage.setItem('gsja_user_data', JSON.stringify(uData)); // Simpan Cache
 
-           // ── BSC fetch untuk Super Admin & Majelis ──────────────────────
-           const isExec = uData?.is_super_admin || uData?.role_name === 'MAJELIS';
-           if (isExec) {
-             setLoadingBsc(true);
-             try {
-               const [resBsc, resSatelit] = await Promise.all([
-                 fetch(`/api/dashboard/bsc?dari=${bscFilter.dari}&sampai=${bscFilter.sampai}`),
-                 fetch('/api/settings/organisasi?tab=satelit'),
-               ]);
-               if (resBsc.ok) {
-                 const j = await resBsc.json();
-                 if (j.success) {
-                   setBscData(j.data);
-                   setSatelitComparisonData(j.satelit_comparison ?? null);
-                 }
-               }
-               if (resSatelit.ok) {
-                 const j = await resSatelit.json();
-                 if (j.success) setSatelitList(j.satelit_list ?? []);
-               }
-             } catch (e) { console.error('BSC fetch error', e); }
-             finally { setLoadingBsc(false); }
-           }
+           // ── BSC fetch dihapus dari sini ───────────────────────────────────
+           // showBscDashboard selalu false dan tidak pernah dirender di halaman ini.
+           // Data BSC di-fetch saat user membuka halaman /bsc secara langsung.
+
 
            if (uData?.role_name?.toLowerCase() === 'jemaat') {
               // mode=publik: bypass RBAC satelit, tampilkan semua kegiatan yang is_published

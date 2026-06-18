@@ -95,6 +95,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ success: false, message: 'Status wajib diisi' }, { status: 400 });
     }
 
+    // ── Guard: permission check khusus untuk Approval (Akan Datang / Ditolak) ──
+    if (['Akan Datang', 'Ditolak'].includes(status_kegiatan)) {
+      if (!caller.is_super_admin && !caller.permissions.includes('kegiatan_approval')) {
+        return NextResponse.json({ success: false, message: 'Akses Ditolak: Anda tidak memiliki izin untuk menyetujui atau menolak proposal kegiatan' }, { status: 403 });
+      }
+    }
+
     // ── Guard: saat Terima & Publish (→ Akan Datang), pastikan RA aktif ──
     if (status_kegiatan === 'Akan Datang') {
       const raCheck = await pool.query(`

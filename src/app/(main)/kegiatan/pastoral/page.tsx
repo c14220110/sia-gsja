@@ -20,6 +20,7 @@ export default function AdminPastoralPage() {
   const [menunggu, setMenunggu] = useState(0);
   const [diproses, setDiproses] = useState(0);
   const [selesaiBulanIni, setSelesaiBulanIni] = useState(0);
+  const [callerRole, setCallerRole] = useState<string>('');
   
   const [currentPage, setCurrentPage] = useState(1);
   const limit = 10;
@@ -47,10 +48,10 @@ export default function AdminPastoralPage() {
   useEffect(() => {
     const fetchOptions = async () => {
       try {
-        const resJenis = await fetch('/api/options?type=jenis_kegiatan');
+        const resJenis = await fetch('/api/options?type=jenis_kegiatan_pastoral');
         if (resJenis.ok) {
           const json = await resJenis.json();
-          if (json.success) setJenisKegiatanOptions(json.data.filter((j: any) => j.kategori === 'Layanan Pastoral' || j.kategori === 'Sakramen & Layanan' || j.kategori === 'Sosial & Diakonia' || true)); // Fetch all or specific for pastoral
+          if (json.success) setJenisKegiatanOptions(json.data);
         }
       } catch (error) {
         console.error('Failed to fetch options', error);
@@ -103,7 +104,7 @@ export default function AdminPastoralPage() {
       const res = await fetch(`/api/kegiatan/pastoral/${selectedTicketId}/assign`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pengurus_id: pengurusId, tanggal_fix: tanggalFix, waktu_fix: waktuFix })
+        body: JSON.stringify({ pengguna_id: pengurusId, tanggal_fix: tanggalFix, waktu_fix: waktuFix })
       });
       const result = await res.json();
       if (result.success) {
@@ -148,6 +149,7 @@ export default function AdminPastoralPage() {
             setMenunggu(result.meta.menunggu || 0);
             setDiproses(result.meta.diproses || 0);
             setSelesaiBulanIni(result.meta.selesai_bulan_ini || 0);
+            setCallerRole((result.meta.caller_role || '').toUpperCase());
           } else {
              setSubmitState({ status: 'error', message: result.message + " " + (result.error || '') });
           }
@@ -336,7 +338,7 @@ export default function AdminPastoralPage() {
                   const isLastRows = data.length > 5 && idx >= data.length - 2;
                   
                   return (
-                <div key={ticket.id} className={`w-full flex items-center px-6 py-4 border-b border-slate-100 hover:bg-slate-50 transition-colors relative ${openMenuId === ticket.id ? 'z-50' : 'z-10'}`}>
+                  <div key={ticket.id} className={`w-full flex items-center px-6 py-4 border-b transition-colors relative ${openMenuId === ticket.id ? 'z-50' : 'z-10'} ${ticket.is_urgent ? 'bg-rose-50/60 border-b-rose-100 border-l-4 border-l-rose-500 hover:bg-rose-50' : 'border-slate-100 hover:bg-slate-50'}`}>
                   
                   {/* Kolom 1: Waktu Pengajuan */}
                   <div className="w-[180px] shrink-0 flex flex-col items-start justify-center pr-4 gap-1">
@@ -351,13 +353,15 @@ export default function AdminPastoralPage() {
                   
                   {/* Kolom 3: Pemohon & Target */}
                   <div className="flex-1 min-w-[200px] flex flex-col justify-center pr-4">
-                     <span className="text-slate-900 font-bold text-sm capitalize">{ticket.target_pelayanan}</span>
+                     <div className="flex items-center gap-2">
+                       <span className="text-slate-900 font-bold text-sm capitalize">{ticket.target_pelayanan}</span>
+                       {ticket.is_urgent && (
+                         <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-rose-500 text-white text-[9px] font-black uppercase rounded tracking-wide animate-pulse">
+                           <span className="material-icons-round text-[10px]">priority_high</span> DARURAT
+                         </span>
+                       )}
+                     </div>
                      <span className="text-slate-500 text-[11px] font-medium mt-0.5">Pemohon: {ticket.nama_pemohon}</span>
-                     {ticket.is_urgent && (
-                        <span className="text-rose-600 text-[10px] font-black uppercase mt-1 flex items-center gap-1">
-                          <span className="material-icons-round text-[12px]">warning</span> URGENT / DARURAT
-                        </span>
-                     )}
                   </div>
 
                   {/* Kolom 4: Jenis Layanan */}
@@ -395,7 +399,7 @@ export default function AdminPastoralPage() {
                           </Link>
                           
                           {/* Tindakan Cepat */}
-                          {ticket.status_permohonan === 'Menunggu' && (
+                          {ticket.status_permohonan === 'Menunggu' && ['SEKRETARIS_PUSAT', 'SUPER_ADMIN'].includes(callerRole) && (
                              <button 
                                onClick={() => {
                                  setSelectedTicketId(ticket.id);
@@ -459,7 +463,7 @@ export default function AdminPastoralPage() {
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-slate-900">Tugaskan Penanggung Jawab</h3>
-                  <p className="text-xs text-slate-500 font-medium">Pilih pelayan untuk tiket ini</p>
+                  <p className="text-xs text-slate-500 font-medium">Pilih Majelis atau Gembala untuk tiket ini</p>
                 </div>
               </div>
               <button onClick={() => setAssignModalOpen(false)} className="text-slate-400 hover:text-slate-600">
@@ -494,7 +498,7 @@ export default function AdminPastoralPage() {
                 <span className="material-icons-round absolute left-4 top-3 text-slate-400 text-[20px]">search</span>
                 <input 
                   type="text" 
-                  placeholder="Cari nama pengurus..."
+                  placeholder="Cari nama Majelis atau Gembala..."
                   className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-sans text-sm"
                   value={picSearch}
                   onChange={(e) => setPicSearch(e.target.value)}
@@ -506,12 +510,12 @@ export default function AdminPastoralPage() {
               {picOptions.length === 0 ? (
                 <div className="w-full py-10 flex flex-col items-center justify-center text-slate-400">
                   <span className="material-icons-round text-4xl mb-2 opacity-50">group_off</span>
-                  <span className="text-sm">Tidak ada pengurus yang ditemukan.</span>
+                  <span className="text-sm">Tidak ada Majelis/Gembala ditemukan.</span>
                 </div>
               ) : (
                 <div className="flex flex-col gap-1 p-2">
                   {picOptions.map(pic => (
-                    <div key={pic.pengurus_id} className="w-full bg-white border border-slate-100 rounded-xl p-3 flex justify-between items-center hover:shadow-sm hover:border-blue-100 transition-all">
+                    <div key={pic.pengguna_id} className="w-full bg-white border border-slate-100 rounded-xl p-3 flex justify-between items-center hover:shadow-sm hover:border-blue-100 transition-all">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-slate-100 flex justify-center items-center text-slate-600 font-bold uppercase">
                           {pic.nama.charAt(0)}
@@ -522,7 +526,7 @@ export default function AdminPastoralPage() {
                         </div>
                       </div>
                       <button 
-                        onClick={() => handleAssign(pic.pengurus_id)}
+                        onClick={() => handleAssign(pic.pengguna_id)}
                         disabled={assignLoading}
                         className="px-4 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
                       >

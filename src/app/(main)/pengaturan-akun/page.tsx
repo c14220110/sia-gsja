@@ -182,7 +182,7 @@ export default function PengaturanAkunPage() {
         {/* ── UBAH USERNAME ─────────────────────────────── */}
         <SectionCard title="Ubah Username" icon="account_circle">
           <form onSubmit={handleUpdateUsername} className="py-2 flex flex-col gap-3">
-            <p className="text-xs text-slate-500">Username minimal 6 karakter. Hanya boleh berisi huruf, angka, dan underscore (_).</p>
+            <p className="text-xs text-slate-500">Username minimal 6 karakter. Hanya boleh berisi huruf, angka, dan underscore (_). <strong>Tidak boleh HANYA berisi angka.</strong></p>
             
             {usernameMsg.text && (
               <div className={`p-2 rounded-lg text-xs font-semibold ${usernameMsg.type === 'success' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>

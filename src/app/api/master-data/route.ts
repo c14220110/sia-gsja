@@ -56,12 +56,8 @@ export async function GET(request: NextRequest) {
         query: `SELECT id, nama_pekerjaan, is_active, created_at FROM pekerjaan_master`,
         orderBy: 'nama_pekerjaan',
       },
-      jenis_relasi: {
-        query: `SELECT id, nama_relasi, is_active FROM jenis_relasi`,
-        orderBy: 'nama_relasi',
-      },
       jenis_kegiatan: {
-        query: `SELECT id, nama_jenis_kegiatan, kategori FROM jenis_kegiatan`,
+        query: `SELECT id, nama_jenis_kegiatan, kategori FROM jenis_kegiatan WHERE butuh_permohonan = false`,
         orderBy: 'kategori, nama_jenis_kegiatan',
       },
       jabatan_pegawai_master: {
@@ -88,7 +84,6 @@ export async function GET(request: NextRequest) {
       jabatan: 'nama_jabatan',
       role_pelayan: 'nama_role',
       pekerjaan_master: 'nama_pekerjaan',
-      jenis_relasi: 'nama_relasi',
       jenis_kegiatan: 'nama_jenis_kegiatan',
       jabatan_pegawai_master: 'nama_jabatan',
       buku_besar_coa: 'nama_akun',
@@ -96,10 +91,32 @@ export async function GET(request: NextRequest) {
 
     let fullQuery = query;
     const values: any[] = [];
+    let whereClauses: string[] = [];
+
     if (search && searchCols[table]) {
-      fullQuery += ` WHERE ${searchCols[table]} ILIKE $1`;
+      whereClauses.push(`${searchCols[table]} ILIKE $${values.length + 1}`);
       values.push(`%${search}%`);
     }
+
+    if (table === 'komisi') {
+      const satelit_id = searchParams.get('satelit_id');
+      if (satelit_id) {
+        whereClauses.push(`k.satelit_id = $${values.length + 1}`);
+        values.push(satelit_id);
+      }
+    }
+
+    if (whereClauses.length > 0) {
+      // Because some allowed queries already contain a WHERE clause (e.g., jabatan_pegawai_master),
+      // we need to check if the query string already contains 'WHERE'.
+      const hasWhere = fullQuery.toUpperCase().includes('WHERE ');
+      if (hasWhere) {
+        fullQuery += ` AND ` + whereClauses.join(' AND ');
+      } else {
+        fullQuery += ` WHERE ` + whereClauses.join(' AND ');
+      }
+    }
+
     fullQuery += ` ORDER BY ${orderBy}`;
 
     const res = await pool.query(fullQuery, values);
@@ -156,10 +173,6 @@ export async function POST(request: NextRequest) {
       case 'pekerjaan_master':
         query = `INSERT INTO pekerjaan_master (nama_pekerjaan) VALUES ($1) RETURNING id`;
         values = [data.nama_pekerjaan];
-        break;
-      case 'jenis_relasi':
-        query = `INSERT INTO jenis_relasi (nama_relasi) VALUES ($1) RETURNING id`;
-        values = [data.nama_relasi];
         break;
       case 'jenis_kegiatan':
         query = `INSERT INTO jenis_kegiatan (nama_jenis_kegiatan) VALUES ($1) RETURNING id`;
@@ -219,17 +232,80 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { table, id, is_active } = body;
+    const { table, id, is_active, ...data } = body;
 
-    const TOGGLEABLE = ['satelit', 'departemen', 'komisi', 'periode_kepengurusan', 'pekerjaan_master', 'role_pelayan', 'jabatan', 'jenis_relasi'];
-    if (!table || !id || !TOGGLEABLE.includes(table) || typeof is_active !== 'boolean') {
-      return NextResponse.json({ success: false, message: 'Parameter tidak valid' }, { status: 400 });
+    const ALLOWED_TABLES = ['wilayah', 'satelit', 'departemen', 'komisi', 'periode_kepengurusan', 'pekerjaan_master', 'role_pelayan', 'jabatan', 'jenis_kegiatan'];
+    
+    if (!table || !id || !ALLOWED_TABLES.includes(table)) {
+      return NextResponse.json({ success: false, message: 'Parameter tabel/id tidak valid' }, { status: 400 });
     }
 
-    await pool.query(`UPDATE ${table} SET is_active = $1 WHERE id = $2`, [is_active, id]);
+    // Toggle status mode
+    if (typeof is_active === 'boolean') {
+      const TOGGLEABLE = ['satelit', 'departemen', 'komisi', 'periode_kepengurusan', 'pekerjaan_master', 'role_pelayan', 'jabatan'];
+      if (!TOGGLEABLE.includes(table)) {
+        return NextResponse.json({ success: false, message: 'Parameter tidak valid untuk tabel ini' }, { status: 400 });
+      }
+      await pool.query(`UPDATE ${table} SET is_active = $1 WHERE id = $2`, [is_active, id]);
+      return NextResponse.json({ success: true });
+    }
+
+    // Update data mode (Edit)
+    let query = '';
+    let values: any[] = [];
+
+    switch (table) {
+      case 'wilayah':
+        query = `UPDATE wilayah SET kode_wilayah = $1, nama_wilayah = $2 WHERE id = $3`;
+        values = [data.kode_wilayah, data.nama_wilayah, id];
+        break;
+      case 'satelit':
+        query = `UPDATE satelit SET kode_satelit = $1, nama_satelit = $2, alamat = $3, kota = $4, kontak_satelit = $5, wilayah_id = $6 WHERE id = $7`;
+        values = [data.kode_satelit, data.nama_satelit, data.alamat || null, data.kota || null, data.kontak_satelit || null, data.wilayah_id || null, id];
+        break;
+      case 'departemen':
+        query = `UPDATE departemen SET nama_departemen = $1 WHERE id = $2`;
+        values = [data.nama_departemen, id];
+        break;
+      case 'komisi':
+        query = `UPDATE komisi SET nama_komisi = $1, satelit_id = $2 WHERE id = $3`;
+        values = [data.nama_komisi, data.satelit_id, id];
+        break;
+      case 'periode_kepengurusan':
+        query = `UPDATE periode_kepengurusan SET nama_periode = $1, tahun_mulai = $2, tahun_akhir = $3 WHERE id = $4`;
+        values = [data.nama_periode, data.tahun_mulai, data.tahun_akhir, id];
+        break;
+      case 'jabatan':
+        query = `UPDATE jabatan SET nama_jabatan = $1 WHERE id = $2`;
+        values = [data.nama_jabatan, id];
+        break;
+      case 'role_pelayan':
+        query = `UPDATE role_pelayan SET nama_role = $1, deskripsi = $2 WHERE id = $3`;
+        values = [data.nama_role, data.deskripsi || null, id];
+        break;
+      case 'pekerjaan_master':
+        query = `UPDATE pekerjaan_master SET nama_pekerjaan = $1 WHERE id = $2`;
+        values = [data.nama_pekerjaan, id];
+        break;
+      case 'jenis_kegiatan':
+        query = `UPDATE jenis_kegiatan SET nama_jenis_kegiatan = $1 WHERE id = $2`;
+        values = [data.nama_jenis_kegiatan, id];
+        break;
+      default:
+        return NextResponse.json({ success: false, message: 'Tabel tidak valid' }, { status: 400 });
+    }
+
+    const res = await pool.query(query, values);
+    if (res.rowCount === 0) {
+      return NextResponse.json({ success: false, message: 'Data tidak ditemukan' }, { status: 404 });
+    }
+
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error('[MasterDataRoute] PATCH error:', error);
+    if (error.code === '23505') {
+      return NextResponse.json({ success: false, message: 'Data sudah ada (duplikat)' }, { status: 409 });
+    }
     return NextResponse.json({ success: false, message: 'Internal Server Error' }, { status: 500 });
   }
 }

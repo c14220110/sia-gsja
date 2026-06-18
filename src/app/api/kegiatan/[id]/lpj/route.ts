@@ -198,6 +198,35 @@ export async function POST(request: Request, { params }: { params: any }) {
       );
     }
 
+    // ── Recalculate aggregated totals from actual detail items ─────────────────
+    // This ensures the header is always in sync with the line items,
+    // regardless of how they were entered. Fixes stale/incorrect totals.
+    await client.query(
+      `UPDATE public.kegiatan_lpj SET
+        total_pengeluaran = (
+          SELECT COALESCE(SUM(jumlah * harga_satuan), 0)
+          FROM public.kegiatan_lpj_detail
+          WHERE kegiatan_id = $1 AND jenis_anggaran = 'Pengeluaran'
+        ),
+        total_kontribusi_peserta = (
+          SELECT COALESCE(SUM(jumlah * harga_satuan), 0)
+          FROM public.kegiatan_lpj_detail
+          WHERE kegiatan_id = $1 AND jenis_anggaran = 'Penerimaan'
+        ),
+        sisa_dana = (
+          SELECT COALESCE(SUM(
+            CASE WHEN jenis_anggaran = 'Penerimaan'
+                 THEN jumlah * harga_satuan
+                 ELSE -(jumlah * harga_satuan)
+            END
+          ), 0)
+          FROM public.kegiatan_lpj_detail
+          WHERE kegiatan_id = $1
+        )
+      WHERE kegiatan_id = $1`,
+      [numId]
+    );
+
     await client.query('COMMIT');
 
     // Audit log (fire-and-forget) — only on actual submit actions

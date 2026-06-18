@@ -70,14 +70,17 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   const client = await pool.connect();
   try {
     const body = await request.json();
-    const { satelit_id, komisi_id, tahun, kategori_ra, pola_penggunaan, nama_rancangan, estimasi_waktu, action, items } = body;
+    const { satelit_id, komisi_id, tahun, kategori_ra, pola_penggunaan, jenis_kegiatan_id, nama_rancangan, estimasi_waktu, action, items } = body;
 
     if (!satelit_id || !tahun) return NextResponse.json({ success: false, message: 'Satelit dan Tahun wajib diisi' }, { status: 400 });
     if (!nama_rancangan) return NextResponse.json({ success: false, message: 'Nama Rancangan wajib diisi.' }, { status: 400 });
     if (!items || items.length === 0) return NextResponse.json({ success: false, message: 'Minimal harus ada 1 item' }, { status: 400 });
 
     const status = action === 'ajukan' ? 'Menunggu Review' : 'Draft';
+    // total_anggaran = volume keuangan total (Penerimaan + Pengeluaran) → angka referensi pengajuan.
+    // Plafon belanja nyata ada di total_disetujui (Pengeluaran ACC only, dihitung saat review).
     const total_anggaran = items.reduce((sum: number, i: any) => sum + (i.jumlah * i.harga_satuan), 0);
+
 
     await client.query('BEGIN');
 
@@ -109,10 +112,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     await client.query(
       `UPDATE public.anggaran_tahunan 
        SET tahun = $1, satelit_id = $2, komisi_id = $3, total_anggaran = $4, status = $5, 
-           kategori_ra = $6, pola_penggunaan = $7, nama_rancangan = $8, estimasi_waktu = $9,
+           kategori_ra = $6, pola_penggunaan = $7, jenis_kegiatan_id = $8, nama_rancangan = $9, estimasi_waktu = $10,
            updated_at = CURRENT_TIMESTAMP
-       WHERE id = $10`,
-      [tahun, satelit_id, komisi_id || null, total_anggaran, status, kategori_ra || 'Kegiatan', pola_penggunaan || 'Sekali Pakai', nama_rancangan || null, estimasi_waktu || null, id]
+       WHERE id = $11`,
+      [tahun, satelit_id, komisi_id || null, total_anggaran, status, kategori_ra || 'Kegiatan', pola_penggunaan || 'Sekali Pakai', jenis_kegiatan_id || null, nama_rancangan || null, estimasi_waktu || null, id]
     );
 
     // Fetch existing details to enforce row-level locking

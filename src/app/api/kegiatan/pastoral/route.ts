@@ -61,10 +61,20 @@ export async function GET(request: Request) {
       JOIN public.jenis_kegiatan jk ON p.jenis_kegiatan_id = jk.id
       JOIN public.jemaat pemohon ON p.jemaat_pemohon_id = pemohon.id
       LEFT JOIN public.jemaat jt ON p.jemaat_target_id = jt.id
-      LEFT JOIN public.pengurus pj ON p.penanggung_jawab_id = pj.id
-      LEFT JOIN public.jemaat pj_jemaat ON pj.jemaat_id = pj_jemaat.id
+      LEFT JOIN public.pengguna pj_pn ON p.penanggung_jawab_id = pj_pn.id
+      LEFT JOIN public.jemaat pj_jemaat ON pj_jemaat.id = pj_pn.jemaat_id
       ${whereString}
-      ORDER BY p.waktu_diterima DESC
+      ORDER BY 
+        CASE p.status_permohonan
+          WHEN 'Menunggu' THEN 1
+          WHEN 'Ditugaskan' THEN 2
+          WHEN 'Ditindaklanjuti' THEN 3
+          WHEN 'Selesai' THEN 4
+          WHEN 'Dibatalkan' THEN 5
+          ELSE 6
+        END ASC,
+        p.is_urgent DESC,
+        p.waktu_diterima ASC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
 
@@ -131,7 +141,8 @@ export async function GET(request: Request) {
         total,
         menunggu: parseInt(stats.total_menunggu || '0', 10),
         diproses: parseInt(stats.total_diproses || '0', 10),
-        selesai_bulan_ini: parseInt(stats.selesai_bulan_ini || '0', 10)
+        selesai_bulan_ini: parseInt(stats.selesai_bulan_ini || '0', 10),
+        caller_role: caller.role_name || '',
       }
     });
 

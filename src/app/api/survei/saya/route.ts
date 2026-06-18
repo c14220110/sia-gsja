@@ -6,17 +6,12 @@ export async function GET(request: Request) {
   try {
     const caller = getCallerFromRequest(request);
     if (!caller) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Only jemaat can access this endpoint
-    if (caller.role_name?.toLowerCase() !== 'jemaat') {
-      return NextResponse.json({ success: false, message: 'Endpoint ini hanya untuk jemaat' }, { status: 403 });
+      return NextResponse.json({ success: false, message: 'Tidak terautentikasi' }, { status: 401 });
     }
 
     const jemaatId = caller.jemaat_id;
     if (!jemaatId) {
-      return NextResponse.json({ success: false, message: 'Jemaat ID tidak ditemukan' }, { status: 400 });
+      return NextResponse.json({ success: false, message: 'Akun Anda tidak terhubung ke data jemaat.' }, { status: 403 });
     }
 
     // Fetch active surveys within period that jemaat has NOT responded to
