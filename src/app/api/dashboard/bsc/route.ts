@@ -1,5 +1,5 @@
 // src/app/api/dashboard/bsc/route.ts
-// Pola C — Direct API (sesuai AGENTS.md konvensi modul laporan/realisasi-kegiatan)
+// Pola C — Direct API konvensi modul laporan/realisasi-kegiatan)
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
@@ -26,7 +26,7 @@ interface KpiResult extends RawKpi {
   status: 'hijau' | 'kuning' | 'merah' | 'abu';
 }
 
-// ─── Helper: Status Warna ────────────────────────────────────────────────────
+// ─── Helper: Status Warna gte= greather than
 function buildStatus(
   nilai: number | null,
   type: string,
