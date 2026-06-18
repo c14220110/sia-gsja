@@ -29,7 +29,7 @@ export default function PelayanDetailPage() {
   const [roleOptions, setRoleOptions] = useState<any[]>([]);
   const [pelayan, setPelayan] = useState<any>(null);
 
-  // User Auth State
+  // Data Sesi Pengguna
   const [userData, setUserData] = useState<any>(null);
   const hasPermission = (perm: string) => {
     if (!userData) return false;
@@ -44,7 +44,7 @@ export default function PelayanDetailPage() {
     roles: [] as RoleEntry[],
   });
 
-  // State for Riwayat Pelayanan
+  // Tempat menyimpan data riwayat pelayanannya
   const [activeTab, setActiveTab] = useState<'data' | 'riwayat'>('data');
   const [riwayatData, setRiwayatData] = useState<any>(null);
   const [isLoadingRiwayat, setIsLoadingRiwayat] = useState(false);
@@ -147,7 +147,7 @@ export default function PelayanDetailPage() {
     setFormData(prev => {
       const newRoles = [...prev.roles];
       let updated = { ...newRoles[index], [field]: value };
-      // Jika status diubah jadi Aktif, hapus tanggal selesai
+      // Kalau statusnya diganti jadi Aktif, kosongin aja tanggal selesainya biar jalan terus
       if (field === 'status_role' && value === 'Aktif') {
         updated = { ...updated, tanggal_selesai: '' };
       }
@@ -156,13 +156,13 @@ export default function PelayanDetailPage() {
     });
   };
 
-  // Validasi duplikat role
+  // Cek bentar, jangan-jangan ada peran (role) yang dipilih dua kali
   const checkDuplicateRoles = (roles: RoleEntry[]): string | null => {
     const filledRoles = roles.filter(r => r.role_id);
     const roleIds = filledRoles.map(r => r.role_id);
     const uniqueIds = new Set(roleIds);
     if (uniqueIds.size !== roleIds.length) {
-      // Temukan yang duplikat
+      // Lacak baris mana yang isinya kembaran
       const seen = new Set<string>();
       for (const r of filledRoles) {
         if (seen.has(r.role_id)) {
@@ -175,7 +175,7 @@ export default function PelayanDetailPage() {
     return null;
   };
 
-  // Filter opsi dropdown agar role yang sudah dipakai di baris lain tidak muncul
+  // Saring dropdown supaya peran yang udah kepilih di baris sebelah gak nongol lagi, biar gak mubazir
   const getAvailableRoles = (currentIdx: number) => {
     const usedRoleIds = formData.roles
       .map((r, i) => i !== currentIdx ? r.role_id : null)
@@ -191,7 +191,7 @@ export default function PelayanDetailPage() {
       return;
     }
 
-    // Validasi setiap role
+    // Periksa satu per satu setiap peran yang ada
     for (const r of formData.roles) {
       if (!r.role_id || !r.tanggal_mulai) {
         setSubmitState({ status: 'error', message: 'Setiap baris role harus memiliki role dan tanggal mulai yang terisi' });
@@ -204,7 +204,7 @@ export default function PelayanDetailPage() {
       }
     }
 
-    // Validasi duplikat
+    // Pastiin sebersih mungkin gak ada yang tumpang tindih
     const dupError = checkDuplicateRoles(formData.roles);
     if (dupError) {
       setDuplicateError(dupError);

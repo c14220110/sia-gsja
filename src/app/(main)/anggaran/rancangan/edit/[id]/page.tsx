@@ -41,11 +41,11 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
   
   const [statusDokumen, setStatusDokumen] = useState('');
   
-  // RBAC State
+  // State buat hak akses
   const [userData, setUserData] = useState<any>(null);
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
-  // Fetch COA, Satelit & User Data once
+  // Ambil data COA, satelit, dan profil user sekaligus
   useEffect(() => {
     Promise.all([
       fetch('/api/buku-besar/coa').then(r=>r.json()).catch(() => ({})),
@@ -64,7 +64,7 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
       }
       if (resUser && (resUser.role_id || resUser.permissions)) {
         setUserData(resUser);
-        // Check authorization via permission (anggaran_create) or super admin
+        // Cek izin (anggaran_create) atau bypass buat bos besar (super admin)
         if (resUser.is_super_admin || resUser.permissions?.includes('anggaran_create')) {
           setIsAuthorized(true);
           // Auto-select satelit berdasarkan penugasan user
@@ -81,7 +81,7 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
     });
   }, []);
 
-  // Cascading: fetch komisi when satelit changes
+  // Tarik beruntun: ambil data komisi kalau satelitnya berubah
   useEffect(() => {
     setKomisiId(''); setKomisiList([]);
     if (!satelitId) return;
@@ -114,13 +114,13 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
 
 
   // Filter COA by jenis: Penerimaan → Kredit (income), Pengeluaran → Debit (expense)
-  // Both must be grup_laporan = 'Laba Rugi' for budget items
+  // Dua-duanya wajib grup_laporan = 'Laba Rugi' buat urusan anggaran
   const filteredCoaList = useMemo(() => coaList.filter(c =>
     c.grup_laporan === 'Laba Rugi' &&
     (form.jenis === 'Penerimaan' ? c.saldo_normal === 'Kredit' : c.saldo_normal === 'Debit')
   ), [coaList, form.jenis]);
 
-  // Reset COA when jenis changes (avoid wrong-type COA staying selected)
+  // Kosongin lagi COA kalau jenisnya ganti (biar COA yang salah tipe gak nyangkut)
   useEffect(() => { setForm(p=>({...p,coaId:'',coaLabel:''})); }, [form.jenis]);
 
   useEffect(() => {
@@ -188,7 +188,7 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
     return true;
   };
 
-  // Called when user clicks "Ajukan Anggaran" — shows AlertModal first
+  // Kepanggil pas tombol "Ajukan Anggaran" dipencet — munculin modal konfirmasi dulu
   const handleAjukanClick = () => {
     if (!validateFields()) return;
     setShowConfirmAjukan(true);
@@ -245,8 +245,8 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
     );
   }
 
-  // Determine if fields should be locked based on user role
-  // Ketua Komisi (8) -> only for their satelit & komisi. Bendahara Satelit (6) -> only their satelit.
+  // Tentukan apakah isian form harus dikunci sesuai role usernya
+  // Ketua Komisi (8) -> cuma buat satelit & komisinya. Bendahara Satelit (6) -> cuma buat satelitnya doang.
   const isRoleSatelitLocked = userData?.role_id === 6 || userData?.role_id === 8 || userData?.role_id === 7 || userData?.role_id === 10;
   const isHeaderLocked = statusDokumen === 'Revisi';
   

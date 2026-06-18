@@ -76,7 +76,7 @@ export default function Step2Review({ runId, onNext, onPrev, setSubmitState }: S
 
   const handleSaveAdj = async (item: any) => {
     // Kumpulkan overrides: semua komponen yang ada di input (even unchanged)
-    // Filter hanya Penerimaan yang editable (bukan employer portion)
+    // Cuma ambil Penerimaan yang emang bisa diedit (bukan tanggungan bos)
     const penerimaan = (item.komponen || []).filter((k: any) => k.tipe === 'Penerimaan' && !k.is_employer_portion);
     const itemAdjMap = localAdj[item.id] || {};
 
@@ -108,7 +108,7 @@ export default function Step2Review({ runId, onNext, onPrev, setSubmitState }: S
       if (result.success) {
         setAdjustedRows(prev => new Set([...prev, item.id]));
         setAdjMsg({ type: 'success', text: 'Penyesuaian berhasil disimpan.' });
-        // Refresh data untuk baris ini
+        // Segarkan data baris yang ini
         await fetchDetails();
       } else {
         setAdjMsg({ type: 'error', text: result.message || 'Gagal menyimpan penyesuaian.' });

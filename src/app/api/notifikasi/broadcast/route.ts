@@ -61,7 +61,7 @@ export async function GET(request: Request) {
     const statsResult = await pool.query(statsQuery, queryParams);
     const stats = statsResult.rows[0];
 
-    // Data query
+    // Query-an Tarik Data
     const dataParams = [...queryParams, limit, offset];
     const dataQuery = `
       SELECT 
@@ -155,7 +155,7 @@ export async function POST(request: Request) {
   try {
     await client.query('BEGIN');
 
-    // Determine target jemaat — ONLY those who have a pengguna (user account)
+    // Sortir targetnya — CUMA jemaat yang punya akun pengguna yang lurus tembus ke sini
     let jemaatIds: number[] = [];
 
     if (target_audience === 'semua_jemaat') {
@@ -222,7 +222,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // Log broadcast to database
+    // Setor rekam pencatatan ke database
     const insertQuery = `
       INSERT INTO public.notifikasi_broadcast (
         judul, isi_pesan, target_audience, 

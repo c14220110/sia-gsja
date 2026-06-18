@@ -36,16 +36,16 @@ export default function RancanganAnggaranPage() {
   const [isAuthorizedToCreate, setIsAuthorizedToCreate] = useState(false);
   const [userData, setUserData] = useState<any>(null);
 
-  // Delete state
+  // State penghapusan
   const [deleteTarget, setDeleteTarget] = useState<AnggaranItem | null>(null);
   const [deleteState, setDeleteState] = useState<{status:'idle'|'loading'|'success'|'error';message:string}>({status:'idle',message:''});
 
-  // Batalkan state
+  // State pembatalan
   const [batalTarget, setBatalTarget] = useState<AnggaranItem | null>(null);
   const [batalState, setBatalState] = useState<{status:'idle'|'loading'|'success'|'error';message:string}>({status:'idle',message:''});
   const [alasanBatal, setAlasanBatal] = useState('');
 
-  // Timeline state
+  // State linimasa perjalanan
   const [timelineId, setTimelineId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -63,7 +63,7 @@ export default function RancanganAnggaranPage() {
         if (resAuth.ok) {
           const authData = await resAuth.json();
           if (authData?.role_id) setUserData(authData);
-          // Permission-based: anggaran_create for create button
+          // Cek izin: anggaran_create khusus buat tombol tambah
           if (authData?.is_super_admin || authData?.permissions?.includes('anggaran_create')) {
             setIsAuthorizedToCreate(true);
           }
@@ -77,13 +77,13 @@ export default function RancanganAnggaranPage() {
     fetchData();
   }, []);
 
-  // Generate dynamic options from data
+  // Racik pilihan dinamis dari data yang dapet
   const tahunOptions = Array.from(new Set(data.map(d => String(d.tahun)))).sort().reverse();
   const satelitOptions = Array.from(new Set(data.map(d => d.satelit))).sort();
   const komisiOptions = Array.from(new Set(data.filter(d => d.komisi && (!filterSatelit || d.satelit === filterSatelit)).map(d => d.komisi as string))).sort();
   const statusOptions = ['Draft', 'Menunggu Review', 'Sedang Direviu', 'Revisi', 'Disetujui Sebagian', 'Disetujui Penuh', 'Ditolak', 'Dibatalkan'];
 
-  // Filter data
+  // Saring datanya
   const filteredData = data.filter(item => {
     const matchSearch = item.kode_dokumen.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (item.nama_rancangan || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -168,7 +168,7 @@ export default function RancanganAnggaranPage() {
     }
   };
 
-  // Role helpers for UI guards
+  // Pembantu role buat njaga tampilan UI
   // Draft → hanya bisa Hapus Permanen (hard delete), tidak perlu Batalkan
   // Batalkan RA → untuk status SETELAH diajukan (Menunggu Review dst)
   const ALLOWED_STATUS_PEMBUAT  = ['Menunggu Review']; // Draft dikecualikan — gunakan Hapus Permanen

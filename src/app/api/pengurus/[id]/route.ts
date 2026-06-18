@@ -68,7 +68,7 @@ export async function GET(
       return NextResponse.json({ success: false, message: 'Invalid ID' }, { status: 400 });
     }
 
-    // Fetch data pengurus + profil jemaat
+    // Tarik berbarengan data pengurus campur aduk sama profil jemaatnya
     const pengurusRes = await pool.query(`
       SELECT
         p.id, p.id_pengurus, p.created_at,
@@ -88,7 +88,7 @@ export async function GET(
       return NextResponse.json({ success: false, message: 'Pengurus tidak ditemukan' }, { status: 404 });
     }
 
-    // Fetch riwayat jabatan
+    // Tarik cerita riwayat jabatannya dia
     const jabatanRes = await pool.query(`
       SELECT
         dk.id, dk.status_jabatan, dk.lingkup,
@@ -110,7 +110,7 @@ export async function GET(
       ORDER BY dk.id DESC
     `, [id]);
 
-    // Fetch audit log
+    // Jejak log auditnya juga ikut ditarik
     const auditRes = await pool.query(`
       SELECT
         al.id, al.aksi, al.keterangan, al.created_at,

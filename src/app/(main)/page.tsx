@@ -26,9 +26,9 @@ import {
 
 // ── TOP-LEVEL BSC HELPER COMPONENTS ──────────────────────────────────────────
 // NOTE: These MUST be defined at file scope, NOT inside DashboardHome.
-// Placing them inside a component causes React to remount them on every
-// parent state change, which kills the useEffect fetch mid-flight and
-// causes sparklines to silently disappear.
+// Kalau ditaruh di dalam komponen, React bakal ngerender ulang tiap ada
+// perubahan di parent, yang bikin request nyangkut di tengah jalan dan
+// ngebikin grafik sparkline amblas gak bersisa.
 
 // ── Sparkline (SVG custom – avoids Recharts ResponsiveContainer 0px bug) ────
 function KpiSparkline({ kpiKey, color, satelitId }: { kpiKey: string; color: string; satelitId: string }) {
@@ -66,7 +66,7 @@ function KpiSparkline({ kpiKey, color, satelitId }: { kpiKey: string; color: str
     );
   }
 
-  // Require at least 1 real data point; fill nulls with 0 for rendering
+  // Wajib ada minimal 1 data beneran; sisanya yang kosong diisi 0 biar grafiknya jalan
   const hasAnyData = data.some(d => d.nilai !== null);
   if (!hasAnyData) return null;
 
@@ -145,7 +145,7 @@ function RadialGauge({ value, color }: { value: number; color: string }) {
 }
 
 // ── KPI Month-over-Month Comparison ─────────────────────────────────────────
-// Reads the last 2 data points from the trend endpoint to compute MoM delta.
+// Ngambil 2 data terakhir dari tren buat ngitung selisih bulan ini vs bulan lalu.
 function KpiMomBadge({ kpiKey, satelitId, higherIsBetter }: { kpiKey: string; satelitId: string; higherIsBetter: boolean }) {
   const [mom, setMom] = useState<{ delta: number; label: string } | null>(null);
 
@@ -176,7 +176,7 @@ function KpiMomBadge({ kpiKey, satelitId, higherIsBetter }: { kpiKey: string; sa
 
   if (!mom) return null;
 
-  // Determine if the change is "good" based on higherIsBetter
+  // Cek apakah perubahannya bagus atau jelek berpatokan sama aturan higherIsBetter
   const improved = higherIsBetter ? mom.delta > 0 : mom.delta < 0;
   const neutral  = mom.delta === 0;
   const sign     = mom.delta > 0 ? '+' : '';
@@ -223,7 +223,7 @@ function KpiCard({ kpi, label, icon, targetLabel, higherIsBetter = true, kpiKey,
         : (kpi.target / Math.max(kpi.nilai, 0.1)) * 100)
     : 0;
 
-  // Compact layout for empty / no-data cards — MUST use self-start in the parent grid
+  // Tata letak rapet buat kartu yang gak ada datanya — WAJIB pake self-start di wadah induknya
   if (!kpi.data_tersedia) {
     return (
       <div className={`relative rounded-xl border-l-4 ${statusColors.border} bg-white p-2.5 flex items-center gap-2.5 border border-slate-200 shadow-sm self-start h-fit w-full`}>
@@ -292,12 +292,12 @@ function KpiCard({ kpi, label, icon, targetLabel, higherIsBetter = true, kpiKey,
 }
 
 // ── Satelit Comparison Bar Chart ────────────────────────────────────────────
-// All 4 KPIs are now percentages sharing a single left Y-axis [0–100].
-// KPI-3 changed from jiwa (growth count) to % (retention rate) in v2.
+// Semua 4 KPI sekarang formatnya persen, kumpul di satu sumbu Y yang sama [0–100].
+// KPI-3 berubah, tadinya jiwa (jumlah murni), sekarang jadi persen (retensi) di v2.
 function SatelitComparisonChart({ data }: { data: any[] }) {
   if (!data || data.length === 0) return null;
 
-  // Cap all percentage values at 100 to avoid display bugs from bad data
+  // Mentokin maksimal persentase di 100 biar tampilannya gak ancur kalau datanya ngawur
   const chartData = data.map(row => ({
     ...row,
     kpi1: row.kpi1 != null ? Math.min(row.kpi1, 100) : null,
@@ -380,7 +380,7 @@ function SatelitComparisonChart({ data }: { data: any[] }) {
 }
 
 // ── BSC Perspektif Score Computation ────────────────────────────────────────
-// Converts each KPI's value/target into a 0–100% "achievement" then averages
+// Ubah pencapaian tiap KPI jadi 0-100% terus dirata-rata
 // per perspektif. Weighted overall: Jemaat 35%, Keuangan 25%, Proses 25%, Pembelajaran 15%.
 const BSC_PERSPEKTIF_DEF = {
   jemaat: {
@@ -407,7 +407,7 @@ const BSC_PERSPEKTIF_DEF = {
 
 type PerspektifKey = keyof typeof BSC_PERSPEKTIF_DEF;
 
-// KPIs where LOWER value = better performance
+// Ini daftar KPI yang angkanya makin kecil = makin bagus
 const LOWER_IS_BETTER = new Set(['kpi12']);
 
 function kpiAchievement(kpi: any, key: string): number | null {
@@ -415,7 +415,7 @@ function kpiAchievement(kpi: any, key: string): number | null {
   if (LOWER_IS_BETTER.has(key)) {
     return Math.min(100, (kpi.target / Math.max(kpi.nilai, 0.01)) * 100);
   }
-  // KPI-2 is on 5-point scale: convert to % (target 4.5 → 90%)
+  // KPI-2 pake skala 5: kita konversi ke persen (target 4.5 = 90%)
   if (key === 'kpi2') {
     return Math.min(100, (kpi.nilai / 5) * 100);
   }
@@ -445,7 +445,7 @@ function computePerspektifScores(d: any) {
 }
 
 // ── BSC Overview: Perspektif Summary Card ───────────────────────────────────
-// Matches the existing stat card pattern: bg-white rounded-xl shadow-sm border
+// Biar matching sama tampilan stat card lainnya: putih, siku melengkung, ada bayangannya
 function PerspektifSummaryCard({ pKey, d, score }: {
   pKey: PerspektifKey; d: any; score: number | null;
 }) {
@@ -778,7 +778,7 @@ export default function DashboardHome() {
   const [showBscDashboard, setShowBscDashboard] = useState(false);
   const [hasEventToday, setHasEventToday] = useState(false);
 
-  // Hydrate states synchronously before paint to prevent blink/flash during client-side navigation
+  // Siapin data state berbarengan sebelum dilukis di layar biar gak kedip pas pindah menu
   const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? React.useLayoutEffect : React.useEffect;
   useIsomorphicLayoutEffect(() => {
     if (typeof window !== 'undefined') {
@@ -796,7 +796,7 @@ export default function DashboardHome() {
     }
   }, []);
 
-  // Pull-To-Refresh states
+  // State buat fitur tarik ke bawah
   const [pullDist, setPullDist] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const touchStartY = useRef(0);
@@ -845,7 +845,7 @@ export default function DashboardHome() {
   // ── BSC Executive Dashboard ───────────────────────────────────────────────
   // State BSC di-manage di halaman /bsc, bukan di sini.
   // Variabel ini dipertahankan agar komponen BSC (KpiCard, dll) yang
-  // masih ada di file ini tidak menyebabkan TypeScript error jika ada referensi.
+  // masih stay di file ini gak bikin error TypeScript kalau kepanggil.
   const [bscData, setBscData]       = useState<any>(null);
   const [satelitComparisonData, setSatelitComparisonData] = useState<any[] | null>(null);
   const [loadingBsc, setLoadingBsc] = useState(false);
@@ -890,7 +890,7 @@ export default function DashboardHome() {
     const handleOpenScanner = () => setIsFullscreenQR(true);
     window.addEventListener('openScanner', handleOpenScanner);
     
-    // Check if redirected with ?action=scan
+    // Cek ada parameter ?action=scan gak di URL-nya
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('action') === 'scan') {
       setIsFullscreenQR(true);
@@ -931,7 +931,7 @@ export default function DashboardHome() {
                 mode: 'publik',
               });
               
-              // Fetch events, user's tickets, active surveys, and survey history in parallel
+              // Tarik data event, tiket pengguna, survei aktif, dan riwayat barengan (paralel)
               const [resEv, resTiket, resSurvei, resRiwayat, resToday] = await Promise.all([
                  fetch(`/api/kegiatan?${q.toString()}`),
                  fetch('/api/kegiatan/registrasi/saya'),
@@ -951,7 +951,7 @@ export default function DashboardHome() {
                     setUpcomingEvents([]);
                     localStorage.setItem('gsja_upcoming_events', JSON.stringify([]));
                  } else if (reqData.success && reqData.data.length > 0) {
-                    // Filter: exclude kategori 'Ibadah Rutin' — tampilkan event, perayaan, edukasi, dll
+                    // Filter: kecualikan 'Ibadah Rutin' — cuma tampilin event, edukasi, perayaan, dsb
                     const nonRutinEvents = reqData.data
                       .filter((e: any) => (e.kategori || '') !== 'Ibadah Rutin')
                       .slice(0, 6);
@@ -1023,7 +1023,7 @@ export default function DashboardHome() {
        } catch (err) {
           console.error('Mode Offline terdeteksi:', err);
           
-          // JIKA OFFLINE (Fetch Gagal), BONGKAR CACHE DARI LOCAL STORAGE
+          // JIKA OFFLINE (Fetch gagal total), BONGKAR AJA CACHE DARI LOKAL BROWSER
           const cachedUser = localStorage.getItem('gsja_user_data');
           if (cachedUser) {
              setUserData(JSON.parse(cachedUser));
@@ -1499,7 +1499,7 @@ export default function DashboardHome() {
                                 )}
                               </div>
                             ) : (() => {
-                               // Smart thumbnail fallback berdasarkan jenis kegiatan
+                               // Fallback thumbnail pinter yang ngikutin jenis acaranya
                                const kn = (evt.nama_jenis_kegiatan || '').toLowerCase();
                                const kat = (evt.kategori || '').toLowerCase();
                                let bg = 'from-indigo-500 to-blue-600', icon = 'church';

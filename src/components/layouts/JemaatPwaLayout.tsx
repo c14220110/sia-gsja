@@ -43,7 +43,7 @@ export default function JemaatPwaLayout({
     prevPathRef.current = pathname;
   }
 
-  // Install Prompt States
+  // State popup penginstalan yah
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
@@ -69,7 +69,7 @@ export default function JemaatPwaLayout({
     // Selalu tampilkan card untuk semua OS sebagai panduan utama
     setShowInstallPrompt(true);
 
-    // Untuk Android / Desktop Chrome (nangkap event otomatis kalau nyala)
+    // Spesial buat Chrome Android / Desktop aja ya (bisa nangkap otomatis ini lho kalu di nyalain)
     const handleBeforeInstallPrompt = (e: any) => {
       e.preventDefault(); // Tahan dulu bawaan HP
       setDeferredPrompt(e); // Simpan untuk dipanggil lewat tombol
@@ -102,7 +102,7 @@ export default function JemaatPwaLayout({
     setShowInstallPrompt(false);
   };
 
-  // Set loader menjadi minimal eksklusif hanya untuk PWA Jemaat 
+  // Patokin loader ini ngecilin diri ekslusif di ranah PWA Jemaat
   useEffect(() => {
     setLoaderVariant('minimal');
     return () => setLoaderVariant('sandy');
@@ -151,7 +151,7 @@ export default function JemaatPwaLayout({
     }
   ];
 
-  // Determine base background dynamically to avoid flash during transitions
+  // Selidiki warna bekgorund dasar nya biar transisinya lanjay gak ngeblink aneh.
   let wrapperBgClass = "bg-slate-50";
   if (pathname.startsWith('/alkitab')) {
     if (typeof window !== 'undefined' && localStorage.getItem('alkitab_dark_mode') === 'true') {

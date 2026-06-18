@@ -54,7 +54,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   try {
     const body = await request.json();
 
-    // IDOR check: pastikan pegawai milik satelit caller
+    // Cek IDOR: Wajib mastiin pegawainya emang peliharaan satelitnya si caller
     if (!caller.is_super_admin) {
       const ownerCheck = await pool.query(
         `SELECT satelit_id FROM public.pegawai WHERE id = $1`, [parseInt(id)]
@@ -71,7 +71,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       'status_approval', 'status_pegawai', 'tanggal_keluar', 'di_acc_oleh', 'tanggal_acc'
     ];
     
-    // Using a dynamic UPDATE builder for minimal effort based on requested fields
+    // Mengandalkan dynamic builder biar update cepet santai tanpa ngetik manual panjang lebar
     const updates: string[] = [];
     const values: any[] = [];
     let paramIndex = 1;
@@ -129,7 +129,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   try {
     const data = await request.json();
 
-    // IDOR check: pastikan pegawai milik satelit caller
+    // Cek IDOR: Wajib mastiin pegawainya emang peliharaan satelitnya si caller
     if (!caller.is_super_admin) {
       const ownerCheck = await pool.query(
         `SELECT satelit_id FROM public.pegawai WHERE id = $1`, [parseInt(id)]
@@ -142,7 +142,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       }
     }
 
-    // Convert necessary data fields (from null to appropriate type)
+    // Jangan lupa ngubah konversi datanya (dari null pindah haluan ke tipenya yang bener)
     const updateQuery = `
       UPDATE public.pegawai SET
         jemaat_id = $1,

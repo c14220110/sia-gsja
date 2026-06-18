@@ -25,7 +25,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ success: false, message: 'Pelayan tidak ditemukan atau gagal diupdate' }, { status: 404 });
     }
 
-    // Audit log (fire-and-forget)
+    // Tinggalkan jejak di log audit (lempar prosesnya jalan di belakang aja biar responsnya tetep ngacir)
     if (caller) {
       const isDeactivation = status_pelayan === 'Tidak Aktif';
       auditLogRepository.insertPelayanAuditLog({

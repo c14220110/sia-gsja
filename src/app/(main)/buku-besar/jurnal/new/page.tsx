@@ -30,7 +30,7 @@ export default function JurnalBaruPage() {
   const [komisiOptions, setKomisiOptions] = useState<any[]>([]);
   const [kegiatanOptions, setKegiatanOptions] = useState<any[]>([]);
 
-  // Form State
+  // Data Formnya
   const [formData, setFormData] = useState({
     id: 0,
     tanggal_transaksi: new Date().toISOString().split('T')[0],

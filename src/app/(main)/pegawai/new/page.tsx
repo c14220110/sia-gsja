@@ -11,22 +11,22 @@ export default function NewPegawaiPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitState, setSubmitState] = useState<{ status: 'idle'|'loading'|'success'|'error', message: string, errors?: any }>({ status: 'idle', message: '' });
 
-  // Options State
+  // Pilihan Data Dropdown
   const [satelitOptions, setSatelitOptions] = useState<any[]>([]);
   const [departemenOptions, setDepartemenOptions] = useState<any[]>([]);
   const [jabatanOptions, setJabatanOptions] = useState<any[]>([]);
   const [bankOptions, setBankOptions] = useState<any[]>([]);
   
-  // Custom Autocomplete State for Jemaat (Optional Link)
+  // Autocomplete khusus buat nama Jemaat (gak harus diisi)
   const [jemaatSearchModal, setJemaatSearchModal] = useState(false);
   const [jemaatQuery, setJemaatQuery] = useState('');
   const [jemaatResults, setJemaatResults] = useState<any[]>([]);
   const [linkedJemaatKode, setLinkedJemaatKode] = useState<string | null>(null);
 
-  // Auth State
+  // Data Otorisasinya
   const [userData, setUserData] = useState<any>(null);
 
-  // Form State
+  // Data Formnya
   const [formData, setFormData] = useState<any>({
     // Tab 1: Info Pribadi & Pekerjaan
     jemaat_id: '',

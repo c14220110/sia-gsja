@@ -59,7 +59,7 @@ export default function SurveiSayaPage() {
       const data = await res.json();
       if (data.success) {
         setSubmitSuccess(true);
-        // Refresh data in background
+        // Update data di latar belakang diem-diem bae
         const [activeRes, historyRes] = await Promise.all([
           fetch('/api/survei/saya'),
           fetch('/api/survei/saya/riwayat'),

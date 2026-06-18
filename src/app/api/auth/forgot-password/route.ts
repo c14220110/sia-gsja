@@ -11,15 +11,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Email wajib diisi' }, { status: 400 });
     }
 
-    // ALWAYS respond with the same generic message regardless of whether email exists
-    // This prevents user enumeration attacks
+    // INGAT: Jawabnya selalu pakai teks standar aja mau emailnya ada apa engga
+    // Ini penting lho buat nangkis serangan ngacak-ngacak identitas user
     const genericResponse = NextResponse.json({
       message: 'Jika email terdaftar dalam sistem, link reset password telah dikirim. Cek inbox dan folder spam Anda.',
     });
 
     const client = await pool.connect();
     try {
-      // Find user by email
+      // Cari pengguna dari emailnya
       const userResult = await client.query(
         `SELECT u.id, u.email, j.nama_lengkap
          FROM public.pengguna u
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
       );
 
       if (userResult.rows.length === 0) {
-        // Email not found — return generic response (do not reveal this)
+        // Emailnya ga ketangkep — kirim aja pesan kosong (jangan dikasih tau kalau ga ada)
         return genericResponse;
       }
 
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       const token = crypto.randomBytes(32).toString('hex');
       const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes from now
 
-      // Delete any existing tokens for this user (single active token policy)
+      // Berangus aja token-token lamanya si pengguna ini (biar aktifnya cuma 1 token)
       await client.query(
         `DELETE FROM public.password_reset_tokens WHERE user_id = $1`,
         [user.id]

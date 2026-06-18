@@ -259,7 +259,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         let totalBrutoPajak = 0;
         let komponenList = [];
 
-        // Ambil semua komponen aktif master, gabung dengan template_detail (jika ada) dan override
+        // Tarik keluar aja semua komponen aktif masternya, terus tumpukin sama yg ada di template-detailnya
         const allKomponen = await client.query(`
           SELECT 
             pkm.id AS komponen_id, 
@@ -338,7 +338,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
           // Pass 2: Hitung BPJS & simpan semua komponen
           for (const tk of activeKomponen) {
-             // PPh 21 DILEWATI di sini — dihitung otomatis oleh blok TER di bawah
+             // Skip aja PPh 21 nya — soalnya ntar diitungin langsung sama kalkulator blok TER
              // Mencegah entry nominal 0 dari template_detail terinsert
              if ((tk.nama_komponen || '').toLowerCase().includes('pph')) continue;
 

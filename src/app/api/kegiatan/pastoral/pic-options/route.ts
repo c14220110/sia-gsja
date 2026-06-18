@@ -26,9 +26,9 @@ export async function GET(request: Request) {
       queryParams.push(`%${search}%`);
     }
 
-    // Sumber: user_role dengan role MAJELIS / GEMBALA_SIDANG / GEMBALA_SATELIT
-    // Menggunakan GROUP BY agar jika satu orang merangkap 2 role (misal Majelis & Gembala),
-    // dia hanya muncul 1x di list (mencegah error Duplicate Key di React)
+    // Sumber data: user_role dengan peran MAJELIS / GEMBALA_SIDANG / GEMBALA_SATELIT
+    // Pakai GROUP BY buat jaga-jaga kalau ada yang merangkap 2 peran (misal jadi Majelis sekaligus Gembala),
+    // namanya cukup muncul sekali di daftar (biar React gak error karena key dobel)
     const query = `
       SELECT 
         pn.id as pengguna_id,
@@ -49,7 +49,7 @@ export async function GET(request: Request) {
     const result = await pool.query(query, queryParams);
 
     const data = result.rows.map(row => {
-      // Format role misal dari "MAJELIS, GEMBALA_SATELIT" menjadi "Majelis, Gembala Satelit"
+      // Rapikan format peran, misalnya dari "MAJELIS, GEMBALA_SATELIT" disulap jadi "Majelis, Gembala Satelit"
       const formattedRoles = row.roles
         .split(', ')
         .map((r: string) => ROLE_LABEL[r] || r)

@@ -5,7 +5,7 @@ import { auditLogRepository } from '@/server/repositories/auditLog.repository';
 import { resolveCallerSnapshot } from '@/server/utils/resolveCallerSnapshot';
 import { notifyMajelisRaSubmitted } from '@/lib/notificationService';
 
-// GET: Fetch all Anggaran Tahunan (with optional filters: satelit_id, status)
+// GET: Borong semua Anggaran Tahunan (ditambah opsional saringan)
 export async function GET(request: NextRequest) {
   const caller = getCallerFromRequest(request);
   if (!caller) {
@@ -193,7 +193,7 @@ export async function POST(request: NextRequest) {
           keterangan: 'RA langsung diajukan saat pembuatan',
         }).catch(err => console.error('[AuditLog] Failed Diajukan:', err));
 
-        // Notifikasi ke Majelis (Trigger #1)
+        // Kirim Peringatan ke Majelis (Trigger #1)
         const raRow = raInfo?.rows[0];
         const majelisEmails = majelisRes?.rows.map((r: any) => r.email) || [];
         if (majelisEmails.length > 0 && raRow) {

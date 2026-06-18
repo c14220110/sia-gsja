@@ -13,11 +13,11 @@ export async function GET(req: NextRequest) {
     const roleId = searchParams.get('role_id');
 
     if (roleId) {
-      // Get role permissions for a specific role
+      // Comot perizinan untuk tipe peran khususnya
       const permissions = await akunAksesRepository.getRolePermissions(parseInt(roleId, 10));
       return NextResponse.json({ success: true, data: permissions });
     } else {
-      // Get all roles and permissions definitions
+      // Ambillin semua pendefinisian perannya sekaligus sama otorisasi izin-izinnya
       const [roles, permissions] = await Promise.all([
         akunAksesRepository.getRoles(),
         akunAksesRepository.getPermissions(),

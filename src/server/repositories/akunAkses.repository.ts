@@ -128,7 +128,7 @@ export class AkunAksesRepository {
         }
         
         userId = existUser.rows[0].id;
-        // Optionally update password if needed, but for now we throw error if completely duplicate
+        // Silakan klw kepengen update passnya, tp buat sekrg ini, lsg di tolak kl bneran ganda persis kembarku
       } else {
         const insUser = await client.query(`
           INSERT INTO pengguna (email, password_hash, jemaat_id, requires_password_change)
@@ -369,7 +369,7 @@ export class AkunAksesRepository {
         
         const userId = insUser.rows[0].id;
 
-        // Insert ke user_role sebagai JEMAAT jika role id ditemukan
+        // Selundupin di user_role sbg jd anak JEMAAT gtu lho asalkan emg role id nya kliatan
         if (roleJemaatId) {
           await client.query(`
             INSERT INTO user_role (user_id, role_id, satelit_id)

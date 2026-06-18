@@ -86,7 +86,7 @@ function TemplateTab() {
 
   useEffect(() => {
     fetchTemplates();
-    // Fetch jabatan_pegawai_master for the modal dropdown
+    // Tarikin master jabatannya khusus buat isian dropdown modal
     fetch('/api/master-data?table=jabatan_pegawai_master')
       .then(res => res.json())
       .then(res => setJabatanList(res.success ? res.data : []))

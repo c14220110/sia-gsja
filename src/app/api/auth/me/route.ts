@@ -19,13 +19,13 @@ export async function GET(request: NextRequest) {
     // Verify token
     const decoded = jwt.verify(token, getJwtSecret()) as any;
     
-    // As per previous payload, we have user_id and role_id
-    // Fetch actual names from DB
+    // Ngikutin muatan dari payload sebelumnya, kita kantongin user_id sama role_id nya
+    // Comot nama aslinya dari pangkalan data
     const user = await userRepository.findById(decoded.user_id);
     const roles = await userRepository.getUserRoles(decoded.user_id);
     const activeRole = roles.find(r => r.role_id === decoded.role_id && r.satelit_id === decoded.satelit_id);
     
-    // Re-fetch permissions for latest accuracy (in case role_permission was updated)
+    // Tarik lagi izinnya biar presisi (jaga-jaga kalau pas-pasan aja ada update izin)
     const permissions = activeRole
       ? await userRepository.getRolePermissionNames(activeRole.role_id)
       : (decoded.permissions || []);
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/auth/me → Logout (merged from auth/logout)
+// POST /api/auth/me → Keluar (sekarang udah gabung jadi satu rute ini)
 export async function POST(request: NextRequest) {
   const response = NextResponse.json(
     { message: 'Logged out successfully' },

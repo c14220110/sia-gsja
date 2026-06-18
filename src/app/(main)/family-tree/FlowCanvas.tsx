@@ -163,14 +163,14 @@ export function buildGraph(data: any): { nodes: NodeItem[]; edges: EdgeItem[]; b
     ibuId = addNode(fakeIbu, 'ibu', midCenter + HG * 0.5, -VG, true);
   }
 
-  // Marriage bar: horizontal line between Ayah and Ibu (no arrow, just a coupling line)
+  // Garis perkawinan: garis datar antara Ayah dan Ibu (tanpa panah, cuma pengikat aja)
   if (ayahId && ibuId) {
     addEdge(ayahId, ibuId, '#f43f8e', '', false, true, true);
   }
 
   // ── Family branch: trunk → branch bar → stubs to all children ────────────────
   if (ayahId || ibuId) {
-    // trunkX = midpoint between the two parent node centers
+    // trunkX = titik tengah antara Ayah dan Ibu
     let trunkX: number;
     if (ayahId && ibuId) {
       trunkX = (posMap[ayahId].x + W / 2 + posMap[ibuId].x + W / 2) / 2;
@@ -240,7 +240,7 @@ export function buildGraph(data: any): { nodes: NodeItem[]; edges: EdgeItem[]; b
       anakIds.push(addNode(jemaat, 'anak', ax, VG, !isReg));
     });
 
-    // Trunk X = midpoint between person center and pasangan center (or just person)
+    // Trunk X = titik tengah antara orang ini dan pasangannya
     const anakTrunkX = pasanganId
       ? (posMap[personId].x + W / 2 + posMap[pasanganId].x + W / 2) / 2
       : posMap[personId].x + W / 2;
@@ -464,7 +464,7 @@ export default function FlowCanvas({ nodes, edges, branches = [], onNodeClick }:
   const onMouseUp   = useCallback(() => { dragging.current = false; }, []);
   const onWheel     = useCallback((e: React.WheelEvent) => {
     if (e.ctrlKey) {
-      // Pinch to zoom
+      // Cubit layar buat nge-zoom
       e.preventDefault();
       setZoom(z => Math.max(0.2, Math.min(2.5, z * (e.deltaY > 0 ? 0.9 : 1.1))));
     } else {

@@ -10,7 +10,7 @@ import type { NextRequest } from 'next/server';
  *    (except auth-flow endpoints like login, force-change-password, select-role)
  */
 
-// API routes that should be accessible WITHOUT authentication
+// Jalur Rute API yang sah dibuka TANPA perlu nunjukin identitas ya
 const PUBLIC_API_ROUTES = [
   '/api/auth/login',
   '/api/auth/force-change-password',
@@ -19,7 +19,7 @@ const PUBLIC_API_ROUTES = [
   '/api/auth/reset-password',   // No auth needed — user resets password via email token
 ];
 
-// API routes that are public only for specific HTTP methods
+// Jalur rute yang bole diumbar buat orang umum tp tetep ngeliat khusus metodenya apaan.
 const PUBLIC_GET_ONLY_ROUTES = [
   '/api/kegiatan',  // Public schedule page for jemaat (GET only)
 ];
@@ -66,12 +66,12 @@ export default function proxy(request: NextRequest) {
   // ═══════════════════════════════════════════════
   const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/reset-password');
 
-  // Redirect unauthenticated users trying to access protected pages
+  // Ojo ksini ! Belokan yg blom login yang nekat pgn nembus akses yg dikunci nih ya
   if (!token && !isAuthPage) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  // Redirect authenticated users away from login page
+  // Banting setir ngehalau yang udh login menjauh jauh dri ruang login page ini
   if (token && isAuthPage) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
@@ -83,7 +83,7 @@ export const config = {
   matcher: [
     // Match all API routes
     '/api/:path*',
-    // Match specific protected page routes only (NOT static assets)
+    // Cocokkan buat laman terlidung doang dong ya (asset yang diam-diam aja jgn diitung ege)
     '/dashboard/:path*',
     '/pengurus/:path*',
     '/pelayan/:path*',

@@ -14,7 +14,7 @@ export default function TabKompensasi({ pegawaiId }: TabKompensasiProps) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   
-  // Submit Overlay States
+  // State buat layar tumpang-tindih (overlay) pas ngirim
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [submitMessage, setSubmitMessage] = useState('');
 
@@ -28,7 +28,7 @@ export default function TabKompensasi({ pegawaiId }: TabKompensasiProps) {
       const json = await res.json();
       if (json.success) {
         setData(json.data);
-        // Initialize local overrides from existing data
+        // Siapin penimpaan data lokal dari yang udah ada
         const init: Record<number, string> = {};
         for (const k of json.data.komponen) {
           if (k.nominal_override !== null) {

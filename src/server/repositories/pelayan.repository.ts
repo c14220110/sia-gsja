@@ -122,7 +122,7 @@ export class PelayanRepository {
 
     const where = conditions.join(' AND ');
 
-    // Pisahkan klausa FROM dan WHERE agar bisa diselipkan JOIN
+    // Pecah posisi klausa FROM sama WHERE biar kita punya celah buat nyelipin JOIN sesuka hati
     const fromJoin = `
       FROM pelayan p
       JOIN jemaat  j  ON p.jemaat_id  = j.id
@@ -165,14 +165,14 @@ export class PelayanRepository {
         ORDER BY p.created_at DESC
         LIMIT $${idx} OFFSET $${idx + 1}
       `, [...values, limit, offset, targetMonthVal]),
-      // Pelayan baru bulan ini
+      // Pelayan-pelayan anyar yang baru join bulan ini
       pool.query(`
         SELECT COUNT(*) AS count FROM pelayan p
         WHERE DATE_TRUNC('month', p.created_at) = DATE_TRUNC('month', NOW())
       `),
-      // Total pelayan nonaktif
+      // Total seluruh pelayan yang lagi pada vakum alias nonaktif
       pool.query(`SELECT COUNT(*) AS count FROM pelayan WHERE status_pelayan != 'Aktif'`),
-      // Menunggu Konfirmasi (Global / filter satelit)
+      // Masih pada nunggu konfirmasi (Bisa global se-gereja / atau sesuai filter satelitnya)
       pool.query(`
         SELECT COUNT(DISTINCT kjp.id) AS count
         FROM kegiatan_jadwal_pelayan kjp
@@ -216,7 +216,7 @@ export class PelayanRepository {
       if (r.status_konfirmasi === 'Berhalangan' || r.status_konfirmasi === 'Tidak Hadir') totalBatal++;
     });
 
-    // Menghitung komitmen hanya dari yang sudah lewat atau dikonfirmasi
+    // Kita hitung angka komitmen kesetiaannya cuma dari jadwal yang udah lewat atau udah resmi dikonfirmasi hadir aja
     const pastOrConfirmed = res.rows.filter(r => 
       ['Hadir', 'Bersedia', 'Berhalangan', 'Tidak Hadir'].includes(r.status_konfirmasi)
     ).length;
@@ -355,7 +355,7 @@ export class PelayanRepository {
     } catch (error: any) {
       await client.query('ROLLBACK');
       console.error('Error creating pelayan:', error.message);
-      if (error.code === '23505') { // unique violation
+      if (error.code === '23505') { // aduh, nabrak aturan unik nih (datanya udah pernah ada)
         return { success: false, message: 'Jemaat ini mungkin sudah terdaftar sebagai pelayan (id_pelayanan duplikat) atau rolenya duplikat.' };
       }
       return { success: false, message: error.message };

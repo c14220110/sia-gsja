@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
       // Hash new password
       const hashedPassword = await bcrypt.hash(new_password, 12);
 
-      // Update password and clear force_change flag if any
+      // Ganti sandinya terus hapus penanda wajib gantinya
       await client.query(
         `UPDATE public.pengguna
          SET password_hash = $1,
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET - verify token validity (called when user opens the reset page)
+// GET - cek validitas token (ini ngerun pas user ngebuka web reset-nya)
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);

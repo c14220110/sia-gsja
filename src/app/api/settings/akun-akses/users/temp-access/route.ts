@@ -7,7 +7,7 @@ import pool from '@/lib/db';
 export async function POST(req: NextRequest) {
   try {
     const caller = await getCallerFromRequest(req);
-    // Authorization: Super Admin OR anyone with 'akses_sementara_manage'
+    // Cek Keamanan: Super admin silakan masuk ATAU siapapun yang pegang tiket 'akses_sementara_manage'
     const isAuthorized = caller && (caller.is_super_admin || caller.permissions?.includes('akses_sementara_manage'));
     if (!isAuthorized) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
@@ -20,15 +20,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: 'Field jemaat, role, satelit, dan durasi wajib diisi!' }, { status: 400 });
     }
 
-    // Attempt to find if user account already exists
+    // Muter-muter coba liat kali aja user-nya udah nongkrong
     const existUser = await pool.query(`SELECT id FROM pengguna WHERE jemaat_id = $1`, [jemaat_id]);
     let userId;
 
     if (existUser.rowCount && existUser.rowCount > 0) {
-      // User account exists, reuse the id
+      // Ternyata udah ada toh akunnya, yaudah colong pake ID itu aja
       userId = existUser.rows[0].id;
     } else {
-      // Create new user account for this Jemaat
+      // Kalau belom ada, ciptain user fresh buat Jemaat ini
       if (!email || !password) {
         return NextResponse.json({ success: false, message: 'Jemaat ini belum memiliki akun. Mohon isi Email dan Password untuk membuatkannya akses login baru.' }, { status: 400 });
       }

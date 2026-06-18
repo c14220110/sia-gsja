@@ -1,5 +1,0 @@
-rules:
-  no-ambiguous-paths: off
-  info-license: off
-  operation-operationId: off
-  operation-4xx-response: off

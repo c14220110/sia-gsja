@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'jemaat_id wajib diisi' }, { status: 400 });
     }
 
-    // Support multi-jabatan array AND legacy single flat payload
+    // Tolong support nampung payload jadul sekalian payload array biar ga berantakan
     let jabatanList: any[] = [];
     if (Array.isArray(body.jabatan_list) && body.jabatan_list.length > 0) {
       jabatanList = body.jabatan_list;

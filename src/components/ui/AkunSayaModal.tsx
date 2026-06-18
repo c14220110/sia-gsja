@@ -23,7 +23,7 @@ export default function AkunSayaModal({ isOpen, onClose, userData, setUserData }
   const [pwdLoading, setPwdLoading] = useState(false);
   const [pwdMsg, setPwdMsg] = useState({ type: '', text: '' });
 
-  // Update username if userData changes (e.g. initial load)
+  // Ganti username usernya krn profil si user kdg rubah wktu dimuat pertama tu
   React.useEffect(() => {
     if (userData && !username) {
       setUsername(userData.username || '');

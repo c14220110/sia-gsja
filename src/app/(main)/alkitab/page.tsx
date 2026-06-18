@@ -27,14 +27,14 @@ export default function AlkitabPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [lastRead, setLastRead] = useState<{ kitab: string; pasal: number; nama: string } | null>(null);
 
-  // Alphabet sidebar state
+  // State huruf abjad di pinggir
   const [isDragging, setIsDragging] = useState(false);
   const [activeLetter, setActiveLetter] = useState<string | null>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const letterRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // Numpad modal state
+  // State popup angka-angka numpad
   const [selectedKitab, setSelectedKitab] = useState<KitabInfo | null>(null);
   const [numpadInput, setNumpadInput] = useState('');
   const [numpadError, setNumpadError] = useState('');
@@ -73,7 +73,7 @@ export default function AlkitabPage() {
     } catch {}
   }, []);
 
-  // Sort and filter books
+  // Urutin dan saring kitab
   const sortedKitab = useMemo(() => {
     if (!meta) return [];
     let books = [...meta.kitab];
@@ -94,7 +94,7 @@ export default function AlkitabPage() {
     return books;
   }, [meta, searchQuery]);
 
-  // Available letters for sidebar
+  // Huruf-huruf yang tersedia buat sidebar
   const availableLetters = useMemo(() => {
     const letters = new Set(sortedKitab.map(k => {
       const sortableName = k.nama.replace(/^\d+\s*/, '').trim();
@@ -103,7 +103,7 @@ export default function AlkitabPage() {
     return Array.from(letters).sort((a, b) => a.localeCompare(b));
   }, [sortedKitab]);
 
-  // Group books by first letter for section headers
+  // Kelompokin kitab berdasarkan huruf depannya buat judul bagian
   const groupedKitab = useMemo(() => {
     const groups: Record<string, KitabInfo[]> = {};
     sortedKitab.forEach(k => {
@@ -125,7 +125,7 @@ export default function AlkitabPage() {
     const letter = availableLetters[Math.min(idx, availableLetters.length - 1)];
     if (letter && letter !== activeLetter) {
       setActiveLetter(letter);
-      // Scroll to section
+      // Gulung ke bagiannya
       const el = letterRefs.current[letter];
       if (el) {
         el.scrollIntoView({ block: 'start', behavior: 'instant' });
@@ -191,7 +191,7 @@ export default function AlkitabPage() {
       return;
     }
 
-    // Navigate — if has verse part, add as hash
+    // Pindah halaman — kalau ada ayatnya, tambahin jadi hash
     if (parts[1]) {
       router.push(`/alkitab/${selectedKitab.id}/${pasal}#ayat-${parts[1]}`);
     } else {

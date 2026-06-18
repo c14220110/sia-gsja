@@ -11,7 +11,7 @@ export default function AlkitabLayout({ children }: { children: React.ReactNode 
   });
 
   useEffect(() => {
-    // Only needed to ensure any side effects or storage sync if it was changed in another tab, but since we handle toggle here it's fine.
+    // Buat jaga-jaga kalau disinkron di tab lain, tapi karena kita handle toggle di sini, ya aman aja.
   }, []);
 
   const toggleDark = () => {
@@ -22,7 +22,7 @@ export default function AlkitabLayout({ children }: { children: React.ReactNode 
     });
   };
 
-  // No early return, render immediately to prevent flash during client navigation
+  // Jangan buru-buru return, langsung render aja biar layarnya gak kedip pas pindah halaman
 
   return (
     <DarkModeContext.Provider value={{ isDark, toggleDark }}>

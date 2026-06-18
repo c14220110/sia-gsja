@@ -62,7 +62,7 @@ export async function GET(request: Request) {
       monthsList.push({ label, dari, sampai });
     }
 
-    // Execute queries in parallel for each month
+    // Gaskeun jalanin query sejajar barengan buat sebulan ini
     const trendData = await Promise.all(
       monthsList.map(async (m) => {
         try {

@@ -31,7 +31,7 @@ export default function RiwayatKehadiranPage() {
     fetchRiwayat();
   }, []);
 
-  // Compute Gamification Stats for Selected Month
+  // Hitung poin gamifikasi buat bulan yang dipilih
   const stats = useMemo(() => {
     let jemaatCount = 0;
     let pelayanCount = 0;
@@ -50,7 +50,7 @@ export default function RiwayatKehadiranPage() {
     return { jemaatCount, pelayanCount };
   }, [records, selectedMonth, selectedYear]);
 
-  // Apply Chip Filters
+  // Terapin filter bentuk chip
   const filteredRecords = useMemo(() => {
     return records.filter(item => {
       const d = new Date(item.waktu_hadir);

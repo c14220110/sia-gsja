@@ -41,7 +41,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     const body = await request.json();
 
-    // Validate: nama_lengkap is required
+    // Validasi: nama_lengkap wajib diisi
     if (!body.nama_lengkap || typeof body.nama_lengkap !== 'string' || body.nama_lengkap.trim() === '') {
       return NextResponse.json({ success: false, message: 'Nama lengkap wajib diisi' }, { status: 400 });
     }
@@ -52,7 +52,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ success: false, message: 'Jemaat tidak ditemukan atau gagal diupdate' }, { status: 404 });
     }
 
-    // Insert audit log for UPDATE — fire-and-forget, don't block response
+    // Catat riwayat audit untuk aksi ubah — jalankan di background agar tidak memperlambat respons
     if (caller) {
       auditLogRepository.insertAuditLog({
         jemaat_id:  parseInt(id),
@@ -71,7 +71,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   }
 }
 
-// PATCH /api/members/:id → Update status jemaat (Nonaktifkan/Aktifkan)
+// PATCH /api/members/:id → Untuk mengubah status jemaat (Nonaktifkan/Aktifkan)
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const caller = getCallerFromRequest(request);
@@ -95,7 +95,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ success: false, message: 'Jemaat tidak ditemukan atau gagal diupdate' }, { status: 404 });
     }
 
-    // Only record DEACTIVATE when status is changed to non-active
+    // Hanya catat sebagai aksi DEACTIVATE jika statusnya berubah jadi tidak aktif
     const isDeactivation = status_jemaat === 'Tidak Aktif' || status_jemaat === 'Keluar';
     if (caller) {
       auditLogRepository.insertAuditLog({

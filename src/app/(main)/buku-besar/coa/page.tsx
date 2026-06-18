@@ -24,12 +24,12 @@ export default function COAPage() {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const hasInitiallyExpanded = React.useRef(false);
 
-  // Filters
+  // Saringan
   const [filterLaporan, setFilterLaporan] = useState('');
   const [filterTipe, setFilterTipe] = useState('');
   const [filterStatus, setFilterStatus] = useState('Aktif'); // default: hanya tampilkan aktif
   
-  // Drawer states
+  // State lacinya
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   
@@ -67,7 +67,7 @@ export default function COAPage() {
     });
   }, []);
 
-  // Compute Tree — applies search + all filters, then builds tree
+  // Hitung pohon datanya — terapin pencarian & filter, terus bangun strukturnya
   useEffect(() => {
     let flatData = [...coaList];
 
@@ -131,7 +131,7 @@ export default function COAPage() {
         }
       });
       flatData = flatData.filter(item => matchedIds.has(item.id));
-      // Auto expand all matching nodes when searching
+      // Otomatis buka semua simpul yang cocok waktu nyari
       const allExpanded: Record<number, boolean> = {};
       flatData.forEach(i => { allExpanded[i.id] = true; });
       setExpandedNodes(allExpanded);
@@ -167,7 +167,7 @@ export default function COAPage() {
   }, [coaList, searchQuery, filterLaporan, filterTipe, filterStatus]);
 
 
-  // Auto expand root nodes only on initial data load
+  // Cuma buka simpul paling atas waktu awal data dimuat
   useEffect(() => {
     if (coaList.length > 0 && !hasInitiallyExpanded.current) {
       hasInitiallyExpanded.current = true;
@@ -215,7 +215,7 @@ export default function COAPage() {
     setErrorMsg('');
     setIsEditMode(false);
     
-    // Auto fill parent logic
+    // Logika pengisian otomatis ke induknya
     if (parentItem) {
       setFormData({
         id: 0,
@@ -410,16 +410,16 @@ export default function COAPage() {
     return rows;
   };
 
-  // Compute logic for locking fields
+  // Hitungan buat ngunci isian tertentu
   const isParentSelected = formData.induk_akun_id !== '';
   
-  // Check if the current account has any children
+  // Cek akun ini punya anakan gak
   const hasChildren = useMemo(() => {
     if (!isEditMode) return false;
     return coaList.some(coa => coa.induk_akun_id === formData.id);
   }, [coaList, formData.id, isEditMode]);
 
-  // React to parent change
+  // Bereaksi pas induknya diganti
   useEffect(() => {
     if (formData.induk_akun_id) {
       const parent = coaList.find(p => p.id.toString() === formData.induk_akun_id);

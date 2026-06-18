@@ -99,6 +99,22 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     `, [id]);
     const stats = statRes.rows[0] || {};
 
+    // 3b. Fetch Persembahan dari LPJ Detail (COA 41101, 41102, 41103)
+    const persRes = await pool.query(`
+      SELECT coa.kode_akun, (lpjd.jumlah * lpjd.harga_satuan) AS total
+      FROM public.kegiatan_lpj_detail lpjd
+      JOIN public.buku_besar_coa coa ON coa.id = lpjd.coa_id
+      WHERE lpjd.kegiatan_id = $1
+        AND coa.kode_akun IN ('41101', '41102', '41103')
+        AND lpjd.jenis_anggaran = 'Penerimaan'
+    `, [id]);
+    const persMap: Record<string, number> = {};
+    for (const row of persRes.rows) {
+      persMap[row.kode_akun] = parseFloat(row.total);
+    }
+    const formatRupiah = (val: number | undefined) =>
+      val !== undefined ? val.toLocaleString('id-ID') : '-';
+
     // 4. Fetch Pelayan List (Grouped by Pelayan to handle multiple roles)
     const pRes = await pool.query(`
       SELECT 
@@ -164,6 +180,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       kolekte: 'Menunggu Input Bendahara',
       persepuluhan: 'Menunggu Input Bendahara',
       p_khusus: 'Menunggu Input Bendahara',
+
+      // Persembahan dari LPJ COA (otomatis terisi jika sudah diinput)
+      mingguan: formatRupiah(persMap['41101']),
+      kasih: formatRupiah(persMap['41102']),
+      dana_misi: formatRupiah(persMap['41103']),
       
       keterangan: kegiatan.keterangan || '-',
       

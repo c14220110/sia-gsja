@@ -14,7 +14,7 @@ const DotLottieReact = dynamic(
 
 const STEPS = ['Menunggu', 'Ditugaskan', 'Ditindaklanjuti', 'Selesai'];
 
-// Helper for step description
+// Pembantu buat teks deskripsi langkah
 const getStepDescription = (step: string) => {
   switch (step) {
     case 'Menunggu': return 'Permintaan telah diterima';
@@ -88,7 +88,7 @@ export default function DetailPermintaanPage() {
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return '';
-    // Normalize postgres timestamp (no timezone) to UTC for correct WIB display
+    // Normalkan timestamp postgres ke UTC biar jam WIB-nya pas
     let safeString = dateString;
     if (typeof safeString === 'string' && !safeString.endsWith('Z') && !safeString.includes('+')) {
       safeString = safeString.replace(' ', 'T') + 'Z';

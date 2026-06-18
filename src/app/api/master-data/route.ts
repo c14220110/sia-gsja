@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 
-// GET — Ambil semua data untuk tabel master tertentu
+// GET — Angkat semua data master
 export async function GET(request: NextRequest) {
   try {
     const caller = getCallerFromRequest(request);
@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
 
     if (whereClauses.length > 0) {
       // Because some allowed queries already contain a WHERE clause (e.g., jabatan_pegawai_master),
-      // we need to check if the query string already contains 'WHERE'.
+      // pastikan cek n ricek querynya itu punya klausa WHERE atau belum.
       const hasWhere = fullQuery.toUpperCase().includes('WHERE ');
       if (hasWhere) {
         fullQuery += ` AND ` + whereClauses.join(' AND ');
@@ -127,7 +127,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST — Tambah data baru ke tabel master
+// POST — Setorin data anyar buat nambah koleksi masternya
 export async function POST(request: NextRequest) {
   try {
     const caller = await getCallerFromRequest(request);
@@ -193,7 +193,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// DELETE — Hapus data dari tabel master berdasarkan ID
+// DELETE — Hapus aja sampai akarnya berdasarkan ID-nya
 export async function DELETE(request: NextRequest) {
   try {
     const caller = await getCallerFromRequest(request);
@@ -223,7 +223,7 @@ export async function DELETE(request: NextRequest) {
   }
 }
 
-// PATCH — Toggle is_active atau update data
+// PATCH — Buat ngatur aktif gaknya atau main update isian
 export async function PATCH(request: NextRequest) {
   try {
     const caller = await getCallerFromRequest(request);
@@ -250,7 +250,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ success: true });
     }
 
-    // Update data mode (Edit)
+    // Pindah tuas ke mode update/edit ganti data
     let query = '';
     let values: any[] = [];
 

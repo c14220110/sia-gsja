@@ -5,7 +5,7 @@ import { useLoader } from '@/components/ui/GlobalLoader';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
 import { AlertModal } from '@/components/ui/AlertModal';
 
-// Helper component for Jemaat Autocomplete
+// Komponen helper buat autocompletenya Jemaat nih
 const JemaatAutocomplete = ({ 
   label, 
   valueName, 
@@ -77,18 +77,18 @@ export default function AkunAksesPage() {
   const [dataRoles, setDataRoles] = useState<any[]>([]);
   const [dataUsers, setDataUsers] = useState<any[]>([]);
   
-  // Auth & Permissions State
+  // State autentikasi dan izin akses dong
   const [userData, setUserData] = useState<any>(null);
   const [canManageUserAccess, setCanManageUserAccess] = useState(false);
 
-  // Submit & Alert State
+  // State kirim form sama peringatan UI-nya
   const [submitState, setSubmitState] = useState<{ status: 'idle'|'loading'|'success'|'error', message: string }>({ status: 'idle', message: '' });
   const [alertState, setAlertState] = useState<{ isOpen: boolean; userId: number | null; newStatus: boolean }>({ isOpen: false, userId: null, newStatus: false });
 
-  // Action menu state (pola ... seperti Data Jemaat)
+  // State menu aksi (pakai titik tiga kek Data Jemaat)
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
 
-  // Filter & Search states for Tab 2
+  // State filter dan pencarian untuk Tab 2
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const [filterUserRole, setFilterUserRole] = useState('');
   const [filterUserSatelit, setFilterUserSatelit] = useState('');
@@ -100,7 +100,7 @@ export default function AkunAksesPage() {
   const [permissionsMaster, setPermissionsMaster] = useState<any[]>([]);
   const [rolePermissions, setRolePermissions] = useState<number[]>([]);
 
-  // Add User modal
+  // Modal Tambah User
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
   const [satelitOptions, setSatelitOptions] = useState<any[]>([]);
   const [komisiOptionsByRow, setKomisiOptionsByRow] = useState<Record<string, any[]>>({}); // key: `${modalKey}-${idx}`
@@ -111,14 +111,14 @@ export default function AkunAksesPage() {
   const [newUserLoginType, setNewUserLoginType] = useState<'email' | 'nohp' | 'username'>('email');
   const [roleAssignments, setRoleAssignments] = useState<RoleAssignment[]>([{ role_id: '', satelit_id: '' }]);
 
-  // Edit User modal
+  // Modal Edit User-nya
   const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
   const [editForm, setEditForm] = useState({ email: '', password: '' });
   const [editRoleAssignments, setEditRoleAssignments] = useState<RoleAssignment[]>([{ role_id: '', satelit_id: '' }]);
 
 
-  // Bulk Generate State
+  // State untuk buat akun massal nih
   const [dataBulk, setDataBulk] = useState<any[]>([]);
   const [filterBulkStatus, setFilterBulkStatus] = useState<string>('no_account'); // 'all' | 'no_account'
   const [bulkSearchQuery, setBulkSearchQuery] = useState('');
@@ -274,7 +274,7 @@ export default function AkunAksesPage() {
   const removeRoleRow = (setter: React.Dispatch<React.SetStateAction<RoleAssignment[]>>, idx: number) => setter(prev => prev.filter((_, i) => i !== idx));
   const updateRoleRow = (setter: React.Dispatch<React.SetStateAction<RoleAssignment[]>>, idx: number, field: keyof RoleAssignment, value: string) => setter(prev => prev.map((r, i) => i === idx ? { ...r, [field]: value } : r));
 
-  // Fetch komisi options when satelit+role changes (called from role row onChange)
+  // Ambil list komisi waktu satelit atau role ganti (kepanggil pas row ganti isian)
   const fetchKomisiForRow = async (rowKey: string, satelitId: string) => {
     if (!satelitId) { setKomisiOptionsByRow(p => ({ ...p, [rowKey]: [] })); return; }
     try {
@@ -284,7 +284,7 @@ export default function AkunAksesPage() {
     } catch { setKomisiOptionsByRow(p => ({ ...p, [rowKey]: [] })); }
   };
 
-  // Fetch departemen options (flat list, no satelit filter)
+  // Tarik data departemen (list mendatar, gak perlu mikirin satelit)
   const ensureDepartemenOptions = async () => {
     if (departemenOptions.length > 0) return;
     try {
@@ -294,7 +294,7 @@ export default function AkunAksesPage() {
     } catch {}
   };
 
-  // Helper: get role name string from role_id
+  // Pembantu aja: ubah ID jadi nama role yang beneran teks
   const getRoleName = (roleId: string) => dataRoles.find((r: any) => String(r.id) === roleId)?.nama_role || '';
 
   // Reusable role row renderer
@@ -897,7 +897,7 @@ export default function AkunAksesPage() {
                   onSelect={(j, str) => {
                     setNewUserSelectedJemaat(j);
                     setNewUserSearchQuery(str);
-                    // Auto-detect & set identifier dari data jemaat
+                    // Deteksi dan set pengenalnya otomatis dari data jemaat
                     if (j?.email) {
                       setNewUserForm(p => ({ ...p, email: j.email }));
                     } else if (j?.no_hp) {

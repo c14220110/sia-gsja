@@ -680,7 +680,7 @@ export default function MasterDataPage() {
                     </tr>
                   ) : (
                     data.map((row, i) => {
-                      // flip dropdown up for last 2 rows (same pattern as Jemaat page)
+                      // Balik arah dropdown ke atas buat dua baris terakhir (biar sama kayak menu Jemaat)
                       const isLastRows = data.length > 2 && i >= data.length - 2;
                       return (
                         <tr

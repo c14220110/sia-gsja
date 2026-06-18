@@ -96,7 +96,7 @@ export async function GET(request: Request) {
 
     const dataResult = await pool.query(dataQuery, [...values, limit, offset]);
 
-    // Count query for pagination (with all filters)
+    // Itungin semua kuantitas untuk paginasi (lengkap dgn semua filteran)
     const countQuery = `
       SELECT COUNT(*) AS total
       FROM public.survei_tindak_lanjut st
@@ -107,7 +107,7 @@ export async function GET(request: Request) {
     `;
     const countResult = await pool.query(countQuery, values);
 
-    // Global summary (without status filter, but keep other filters like satelit/search/RBAC)
+    // Ambil cuplikan global (gak bawa-bawa status filter tapi yang filter laennya masi nancep)
     const summaryConditions = conditions.filter(c => !c.startsWith('st.status'));
     const summaryValues = values.filter((_, i) => !conditions[i]?.startsWith('st.status'));
     const summaryWhere = summaryConditions.length > 0 ? `WHERE ${summaryConditions.join(' AND ')}` : '';

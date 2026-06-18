@@ -1,6 +1,6 @@
 import { Pool, types } from 'pg';
 
-// Override the date type parser (OID 1082) so that it returns the date string directly (e.g. 'YYYY-MM-DD')
+// Bajak tipe parse tanggal postgres (OID 1082) jd dapet output asli tanggal strings doang tanpa imbel imbel timezone aneh (YYYY-MM-DD gitu loh)
 // instead of creating a Date object that gets shifted by local timezone differences.
 types.setTypeParser(1082, (val) => val);
 

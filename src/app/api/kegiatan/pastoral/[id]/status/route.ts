@@ -17,13 +17,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ success: false, message: 'Status wajib diisi!' }, { status: 400 });
     }
 
-    // Permission: cek role caller dari JWT (tidak perlu query tambahan)
+    // Izin: cukup periksa role si pemanggil dari JWT (gak butuh query tambahan)
     const callerRole = (caller.role_name || '').toUpperCase();
     const isSekretaris = ['SEKRETARIS_PUSAT', 'SUPER_ADMIN'].includes(callerRole);
     const isMajelisOrGembala = ['MAJELIS', 'GEMBALA_SIDANG', 'GEMBALA_SATELIT'].includes(callerRole);
 
-    // Sekretaris boleh batalkan siapapun
-    // Majelis/Gembala hanya boleh batalkan tiket yang ia adalah PJ-nya
+    // Sekretaris punya kuasa untuk batalkan siapa saja
+    // Majelis/Gembala cuma boleh batalin tiket yang mereka pegang sebagai Penanggung Jawab
     if (status === 'Dibatalkan') {
       if (!isSekretaris && !isMajelisOrGembala) {
         return NextResponse.json({ success: false, message: 'Anda tidak memiliki hak untuk membatalkan tiket.' }, { status: 403 });
@@ -38,11 +38,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         }
       }
     }
-    // Majelis/Gembala hanya boleh Ditindaklanjuti & Selesai
+    // Majelis/Gembala cuma punya akses buat ubah status Ditindaklanjuti & Selesai
     if ((status === 'Ditindaklanjuti' || status === 'Selesai') && !isMajelisOrGembala) {
       return NextResponse.json({ success: false, message: 'Hanya Majelis/Gembala penanggung jawab yang dapat memperbarui status ini.' }, { status: 403 });
     }
-    // Untuk Ditindaklanjuti & Selesai: hanya penanggung jawab tiket ini yang boleh
+    // Khusus Ditindaklanjuti & Selesai: wajib penanggung jawab tiket yang bersangkutan
     if ((status === 'Ditindaklanjuti' || status === 'Selesai') && isMajelisOrGembala) {
       const pjRes = await pool.query(`
         SELECT 1 FROM public.permohonan_layanan_pastoral
@@ -91,8 +91,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       await client.query(updateQuery, queryParams);
 
       // 3. Insert Audit Log
-      // Catatan: suffix aktor tidak ditulis hardcode karena nama_pengubah sudah muncul
-      // otomatis di frontend dari JOIN jemaat.nama_lengkap pada GET route.
+      // Catatan: embel-embel nama aktor gak ditulis hardcode karena nama_pengubah-nya udah otomatis ada
+      // di frontend dari hasil JOIN jemaat.nama_lengkap di rute GET.
       let catatanLog = `Status diubah menjadi ${status}`;
       if (status === 'Ditindaklanjuti') catatanLog = `Pelayanan telah ditindaklanjuti oleh PIC`;
       else if (status === 'Selesai') catatanLog = `Diselesaikan: ${catatan_penyelesaian}`;

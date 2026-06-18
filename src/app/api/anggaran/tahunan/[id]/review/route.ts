@@ -9,7 +9,7 @@ import {
   notifyPengajuRaRevision,
 } from '@/lib/notificationService';
 
-// POST: Submit review decision for an RA
+// POST: Kirim keputusan review RA-nya
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
   const id = resolvedParams.id;
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // catatan_reviewer: string (overall note)
     // item_decisions: [{ detail_id, status: 'ACC'|'Ditolak'|'Revisi', catatan, nominal_disetujui? }]
 
-    // Validate the RA is in 'Menunggu Review' status
+    // Validasi dulu RA-nya emang lagi 'Menunggu Review' apa engga
     const raRes = await pool.query(
       `SELECT at.status, at.kode_dokumen, at.nama_rancangan, at.total_anggaran,
               s.nama_satelit, k.nama_komisi,
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (item_decisions && item_decisions.length > 0) {
       for (const decision of item_decisions) {
         if (decision.status === 'ACC') {
-          // Check if nominal was customized (partial cut)
+          // Cek kali aja angkanya diedit sepihak (dipotong sebagian)
           const itemRes = await client.query(
             `SELECT total FROM public.anggaran_tahunan_detail WHERE id = $1`,
             [decision.detail_id]
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             ? parseFloat(decision.nominal_disetujui)
             : originalTotal;
 
-          // Clamp to [0, originalTotal]
+          // Kurung rentangnya di [0, nilaiAwalnya]
           const finalNominal = Math.min(Math.max(customNominal, 0), originalTotal);
           const itemStatus = finalNominal < originalTotal ? 'ACC_DIPOTONG' : 'ACC';
 
@@ -129,7 +129,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         }
       }
     } else if (action === 'setujui_penuh') {
-      // Auto-ACC all items and set nominal_disetujui to match total
+      // Otomatis ACC semuanya terus samain nominal yang disetujui sama yang diajuin
       await client.query(
         `UPDATE public.anggaran_tahunan_detail 
          SET status_item = 'ACC', 
@@ -139,7 +139,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         [id]
       );
     } else if (action === 'tolak') {
-      // Auto-Tolak all items and set nominal_disetujui to 0
+      // Langsung tolak mentah-mentah aja semuanya jadi 0
       await client.query(
         `UPDATE public.anggaran_tahunan_detail 
          SET status_item = 'Ditolak', 
@@ -215,7 +215,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     if (raRow.pengaju_email) {
       if (action === 'setujui_penuh' || action === 'setujui_sebagian') {
-        // Fetch final total_disetujui for notification
+        // Panggil total akhir yang udah di-ACC buat modal notifikasinya
         pool.query(
           `SELECT total_disetujui FROM public.anggaran_tahunan WHERE id = $1`, [id]
         ).then(r => {

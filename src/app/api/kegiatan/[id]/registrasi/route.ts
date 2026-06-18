@@ -87,17 +87,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
 }
 
-// PUT /api/kegiatan/[id]/registrasi - Bulk or Single operations
+// PUT /api/kegiatan/[id]/registrasi - Untuk operasi massal atau satu-satu
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const caller = getCallerFromRequest(request);
   if (!caller) {
     return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
   }
 
-  // const { id } = await params; // Kegiatan ID, keeping it for params consistency
+  // const { id } = await params; // ID Kegiatan, dipertahankan supaya parameternya konsisten
   try {
     const body = await request.json();
-    const { action, registrasi_ids } = body; // action: 'VERIFY_PAYMENT', 'CHECK_IN', 'CANCEL'
+    const { action, registrasi_ids } = body; // aksi: 'VERIFY_PAYMENT', 'CHECK_IN', 'CANCEL'
 
     if (!registrasi_ids || registrasi_ids.length === 0) {
       return NextResponse.json({ success: false, message: 'Pilih peserta terlebih dahulu' }, { status: 400 });

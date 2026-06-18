@@ -11,7 +11,7 @@ export interface RawKpi {
   denominator?: number;
 }
 
-// KPI1: Rasio Presensi Jemaat (target > 80%)
+// KPI Ke 1: Peta Rasio Presensi Jemaat yg Dateng (Target > 80% lho)
 // rumus BSC: AVG(hadir_QR_unik per sesi Ibadah Raya / total_jemaat_aktif_satelit_itu) × 100%
 // CUMA Ibadah Raya (jenis_kegiatan_id = 1) — ibadah rutin utama yang wajib dihadiri semua jemaat.
 export async function getKpi1(dari: string, sampai: string, satelitId: number | null): Promise<RawKpi> {
@@ -37,7 +37,7 @@ export async function getKpi1(dari: string, sampai: string, satelitId: number | 
        GROUP BY k.id, k.satelit_id`,
       p,
     ),
-    // Total jemaat aktif PER satelit yang punya sesi Ibadah Raya dalam periode ini
+    // Total jemaat aktifnya PER satelit yg ngadain acara Ibadah Raya dalam masa masa ini
     pool.query(
       `SELECT j.satelit_id, COUNT(j.id) AS aktif
        FROM public.jemaat j
@@ -90,7 +90,7 @@ export async function getKpi1(dari: string, sampai: string, satelitId: number | 
   };
 }
 
-// KPI-2: Skor Kepuasan Rata-rata (target > 4.5)
+// KPI Ke 2: Rerata Skor Kepuasan (target > 4.5 ege)
 export async function getKpi2(dari: string, sampai: string, satelitId: number | null): Promise<RawKpi> {
   const p: (string | number)[] = [dari, sampai];
   const sf = satelitId ? ` AND s.satelit_id = $${p.push(satelitId)}` : '';
@@ -122,8 +122,8 @@ export async function getKpi2(dari: string, sampai: string, satelitId: number | 
   };
 }
 
-// KPI-3: Tingkat Retensi Kehadiran Jemaat (target >= 85%)
-// Definisi BSC: (COUNT DISTINCT jemaat hadir di Ibadah Rutin ÷ COUNT jemaat aktif di satelit yang punya kegiatan) × 100%
+// KPI Ke 3: Angka Ketahanan (Retensi) si Jemaatnya (Batas min >= 85%)
+// Artinya d BSC ini: (COUNT DISTINCT absensi Jemaat murni / COUNT si jemaat sese-Satelit) * 100an Persennya lho ya.
 // Hanya kegiatan 'Ibadah Rutin' (Ibadah Raya, SM, Kaum Muda, dll) — Event & Perayaan tidak dihitung.
 // Penyebut dibatasi hanya jemaat dari satelit yang memiliki sesi Ibadah Rutin dalam periode.
 export async function getKpi3(dari: string, sampai: string, satelitId: number | null): Promise<RawKpi> {
@@ -131,7 +131,7 @@ export async function getKpi3(dari: string, sampai: string, satelitId: number | 
   const sfK = satelitId ? ` AND k.satelit_id = $${p.push(satelitId)}` : '';
 
   const [rHadir, rAktif] = await Promise.all([
-    // Pembilang: Jemaat aktif yang hadir ≥ 1× di kegiatan Ibadah Rutin dalam periode
+    // Angka atas (pembilang): jemaat asli yg nimbrung lebih dr satu wkt kegiatan Ibadah Rutin di rentang waktunya
     pool.query(
       `SELECT COUNT(DISTINCT ka.jemaat_id) AS hadir_unik
        FROM public.kegiatan_absensi ka
@@ -144,7 +144,7 @@ export async function getKpi3(dari: string, sampai: string, satelitId: number | 
          AND k.tanggal_mulai BETWEEN $1 AND $2${sfK}`,
       p,
     ),
-    // Penyebut: Total jemaat aktif HANYA dari satelit yang punya sesi Ibadah Rutin di periode ini
+    // Angka bawah penyebut: Jemaat totalan KHUSUS buat satelit berIbadah Rutin di rentang ini aj
     pool.query(
       `SELECT COUNT(DISTINCT j.id) AS aktif
        FROM public.jemaat j
@@ -179,7 +179,7 @@ export async function getKpi3(dari: string, sampai: string, satelitId: number | 
   };
 }
 
-// KPI-4: Ketepatan Respons Pastoral (target > 90%)
+// KPI 4 : Laju Tanggapan (Response) Pastoral yg Pas sasaran (>90%)
 export async function getKpi4(dari: string, sampai: string, satelitId: number | null): Promise<RawKpi> {
   const p: (string | number)[] = [dari, sampai];
   const sf = satelitId ? ` AND j.satelit_id = $${p.push(satelitId)}` : '';
@@ -204,7 +204,7 @@ export async function getKpi4(dari: string, sampai: string, satelitId: number | 
   return { nilai, target: 90, unit: '%', data_tersedia: total > 0, numerator: onTime, denominator: total };
 }
 
-// KPI-5: Tingkat Kecukupan Pendanaan Kegiatan (target >= 100%, higher is better)
+// KPI 5: Porsi Kebutuhan Dananya (>= 100 % dan pastinya yg lebih gede ya lebih wow!)
 // Definisi: ((Total Subsidi Gereja + Total Kontribusi Peserta) ÷ Total Pengeluaran LPJ) × 100%
 export async function getKpi5(dari: string, sampai: string, satelitId: number | null): Promise<RawKpi> {
   const pLPJ: (string | number)[] = [dari, sampai];
@@ -240,11 +240,11 @@ export async function getKpi5(dari: string, sampai: string, satelitId: number | 
   };
 }
 
-// KPI-6: Efisiensi Anggaran (target 90%–100%)
+// KPI 6: Efisien Anggaran Duitnya (Target di kisaran 90-100 persennya yakk)
 // Definisi FINAL: Khusus kegiatan non-rutin (Tahunan / Sekali Pakai) yang sudah LPJ.
 // Bandingkan langsung: Σ(Realisasi Pengeluaran LPJ) ÷ Σ(RAB Pengeluaran Disetujui) × 100%
 // Pendekatan ini valid karena 1 dokumen RA = 1 event = 1 LPJ (apple-to-apple).
-// Kegiatan rutin (Mingguan/Bulanan) dikecualikan karena RAB-nya ditulis sebagai total tahunan
+// Kegiatan mingguan mah ga usah dibawa bawa dikesampingin krn RAB nya di patok setahun ya mksd e.
 // sehingga tidak bisa dibandingkan lurus dengan realisasi per sesi.
 export async function getKpi6(dari: string, sampai: string, satelitId: number | null): Promise<RawKpi> {
   const p: (string | number)[] = [dari, sampai];
@@ -309,7 +309,7 @@ export async function getKpi6(dari: string, sampai: string, satelitId: number | 
 }
 
 
-// KPI-7: Rasio Penyelesaian Tindak Lanjut Keluhan Survei (target 100%)
+// KPI 7: Rasio Membereskan yg Namanya Keluhan (Target 100 % beres smua dong!)
 export async function getKpi7(dari: string, sampai: string, satelitId: number | null): Promise<RawKpi> {
   const p: (string | number)[] = [dari, sampai];
   const sf = satelitId ? ` AND s.satelit_id = $${p.push(satelitId)}` : '';
@@ -338,9 +338,9 @@ export async function getKpi7(dari: string, sampai: string, satelitId: number | 
   };
 }
 
-// KPI-8: Kelengkapan Data Presensi Bernama (target > 95%)
-// Definisi: (Total presensi JEMAAT tercatat di sistem ÷ Total kehadiran fisik via hand tally counter) × 100%
-// Hanya menghitung role_kehadiran = 'Jemaat' — absensi pelayan tidak masuk hand tally jemaat.
+// KPI 8: Data Absen Komplit dengan Penamaannya (Hayo target > 95%)
+// Definisinya ya: (Jml Absen Jemaat Asli Di Kompi / Jml yang keitung jarkom klik klik klik pake jempol) x 100
+// Yaa yg keitung hny rombongan 'Jemaat' yak — Para kuli panitia (pelayan) mah gabole ngikut di itung klik klick ini.
 export async function getKpi8(dari: string, sampai: string, satelitId: number | null): Promise<RawKpi> {
   const p: (string | number)[] = [dari, sampai];
   const sf = satelitId ? ` AND k.satelit_id = $${p.push(satelitId)}` : '';
@@ -379,7 +379,7 @@ export async function getKpi8(dari: string, sampai: string, satelitId: number | 
   };
 }
 
-// KPI-9: Rasio Kehadiran Pelayan (target > 90%)
+// KPI 9: Rasio Kedatangan sang Pelayan ibadah (>90%)
 export async function getKpi9(dari: string, sampai: string, satelitId: number | null): Promise<RawKpi> {
   const p: (string | number)[] = [dari, sampai];
   const sf = satelitId ? ` AND k.satelit_id = $${p.push(satelitId)}` : '';
@@ -404,7 +404,7 @@ export async function getKpi9(dari: string, sampai: string, satelitId: number | 
   return { nilai, target: 90, unit: '%', data_tersedia: total > 0, numerator: hadir, denominator: total };
 }
 
-// KPI-10: Ketepatan Waktu Konfirmasi Jadwal (target > 85%)
+// KPI 10: Presisi Waktu dlm Hal ngkonfirmasi Jadwal (>85%)
 export async function getKpi10(dari: string, sampai: string, satelitId: number | null): Promise<RawKpi> {
   const p: (string | number)[] = [dari, sampai];
   const sf = satelitId ? ` AND k.satelit_id = $${p.push(satelitId)}` : '';
@@ -428,7 +428,7 @@ export async function getKpi10(dari: string, sampai: string, satelitId: number |
   return { nilai, target: 85, unit: '%', data_tersedia: total > 0, numerator: onTime, denominator: total };
 }
 
-// KPI-11: Kedisiplinan Waktu Kedatangan Pelayan (target > 95%)
+// KPI 11: Kepribadian Disiplin Kedatangan Tim Pelayan (>95% yah)
 export async function getKpi11(dari: string, sampai: string, satelitId: number | null): Promise<RawKpi> {
   const p: (string | number)[] = [dari, sampai];
   const sf = satelitId ? ` AND k.satelit_id = $${p.push(satelitId)}` : '';
@@ -449,7 +449,7 @@ export async function getKpi11(dari: string, sampai: string, satelitId: number |
   return { nilai, target: 95, unit: '%', data_tersedia: total > 0, numerator: tepat, denominator: total };
 }
 
-// KPI-12: Rata-rata Waktu Respons Pastoral (target < 72 jam)
+// KPI 12: Rerata Durasi Response Pastoralnya (Harus cepetan dri < 72 jam!)
 export async function getKpi12(dari: string, sampai: string, satelitId: number | null): Promise<RawKpi> {
   const p: (string | number)[] = [dari, sampai];
   const sf = satelitId ? ` AND j.satelit_id = $${p.push(satelitId)}` : '';

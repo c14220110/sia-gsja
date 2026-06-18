@@ -24,7 +24,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const {
       nama_komponen, coa_debit_id, coa_kredit_id,
       urutan, is_active,
-      // Only editable if not is_system:
+      // Peringatan: cuma yang ga dilabeli system yang dapet jatah di edit-edit
       tipe, calculation_type, is_employer_portion, global_rate_field,
     } = body;
 

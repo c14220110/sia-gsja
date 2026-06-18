@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { buildGraph } from './FlowCanvas';
 
-// ONE dynamic import for the entire React Flow canvas
+// SATU dynamic import buat narik utuh kanvas React Flow
 // (keeps all RF components in the same chunk + context)
 const FlowCanvas = dynamic(() => import('./FlowCanvas'), {
   ssr: false,

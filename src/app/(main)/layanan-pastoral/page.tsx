@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { createPortal } from 'react-dom';
 
-// Icon Map based on Jenis Kegiatan
+// Kumpulan ikon cocok sama jenis kegiatannya
 const iconMap: Record<string, string> = {
   'Bimbingan Pranikah': 'people',
   'Pernikahan': 'favorite',
@@ -17,7 +17,7 @@ const iconMap: Record<string, string> = {
   'Kunjungan Penjara': 'shield'
 };
 
-// Colors based on Status (matching the screenshot logic)
+// Warnanya ngikutin status (disamain persis sama screenshot)
 const statusMap: Record<string, { badgeBg: string, badgeText: string, borderLeft: string, iconColor: string, iconBg: string }> = {
   'Belum Ditangani': { 
     badgeBg: 'bg-rose-100', badgeText: 'text-rose-700', borderLeft: 'border-l-rose-600', iconColor: 'text-rose-600', iconBg: 'bg-rose-50' 
@@ -90,8 +90,8 @@ export default function LayananPastoralPage() {
   const filteredTickets = filter === 'Semua' 
     ? tickets 
     : tickets.filter(t => 
-        // Group "Belum Ditangani" into "Menunggu" tab logically, or strict match if we want it strict.
-        // Assuming "Menunggu" filter shows both Menunggu and Belum Ditangani.
+        // Gabungin "Belum Ditangani" masuk tab "Menunggu", biar logis kumpulannya.
+        // Asumsinya filter "Menunggu" itu merangkap dua status itu sekalian.
         (filter === 'Menunggu' && (t.displayStatus === 'Menunggu' || t.displayStatus === 'Belum Ditangani')) || 
         t.displayStatus === filter
       );

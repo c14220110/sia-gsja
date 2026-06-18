@@ -145,7 +145,7 @@ export default function NewPengurusPage() {
     setJabatanList(prev => prev.map((j, i) => i === idx ? updated : j));
   };
 
-  // Resolve satelit final (Pusat → auto) for each jabatan
+  // Mantepin pilihan satelit final (misal Pusat diisi otomatis) tiap jabatannya
   const resolveSatelitId = (jab: JabatanEntry): number => {
     if (jab.lingkup === 'Pusat') {
       const pusat = satelitOptions.find(s => s.nama_satelit.toLowerCase().includes('pusat') || s.nama_satelit.toLowerCase().includes('eben'));

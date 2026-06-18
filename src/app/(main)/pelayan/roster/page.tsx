@@ -8,12 +8,12 @@ export default function RosterPelayanPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [satelitOptions, setSatelitOptions] = useState<any[]>([]);
   
-  // Filters
+  // Filter saringannya
   const [filterMonth, setFilterMonth] = useState((new Date().getMonth() + 1).toString());
   const [filterYear, setFilterYear] = useState((new Date().getFullYear()).toString());
   const [filterSatelit, setFilterSatelit] = useState('');
 
-  // User auth state
+  // Sesi penggunanya
   const [userData, setUserData] = useState<any>(null);
 
   useEffect(() => {
@@ -71,7 +71,7 @@ export default function RosterPelayanPage() {
     fetchRoster();
   }, [filterMonth, filterYear, filterSatelit]);
 
-  // Group data by Date
+  // Rapikan datanya dengan mengelompokkannya per tanggal
   const groupedByDate = rosterData.reduce((acc: any, curr: any) => {
     const date = new Date(curr.tanggal_mulai).toISOString().split('T')[0];
     if (!acc[date]) acc[date] = [];

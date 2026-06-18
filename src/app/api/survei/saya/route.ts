@@ -14,9 +14,9 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, message: 'Akun Anda tidak terhubung ke data jemaat.' }, { status: 403 });
     }
 
-    // Fetch active surveys within period that jemaat has NOT responded to
-    // For kegiatan-linked surveys: only show if jemaat attended (recorded in kegiatan_absensi)
-    // For standalone surveys: show to all jemaat
+    // Bongkar survei period berjalan yg Masi kosong respon dr jemaat ini
+    // Khusus survei ikutan dari kegiatan: tayangkan CUMA kl si jemaat emang hadir (ada bukti di daftar hadirnya)
+    // Buat yang mandiri: sebarkan ke sekujur penjuru penjuru jemaat
     const query = `
       SELECT 
         s.id,
@@ -56,7 +56,7 @@ export async function GET(request: Request) {
 
     const result = await pool.query(query, [jemaatId]);
 
-    // Fetch pertanyaan for each survei
+    // Sedotin satu-persatu pertanyaannya ke dalam tiap survei
     const surveiIds = result.rows.map((r: any) => r.id);
     let pertanyaanMap: Record<number, any[]> = {};
 

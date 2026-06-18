@@ -54,7 +54,7 @@ function formatRelative(dateStr: string) {
 }
 
 function calcResponseTime(timeline: TimelineEntry[]): string | null {
-  // Find first 'Diajukan' and first review action after it
+  // Jejakin dan ciduk 'Diajukan' yang pertama kalinya muncul dan temuin keputusan rview yang numpang dr belakangnya.
   const diajukanIdx = timeline.findIndex(e => e.aksi === 'Diajukan');
   if (diajukanIdx === -1) return null;
 

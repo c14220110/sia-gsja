@@ -15,7 +15,7 @@ export default function PenggajianPage() {
   });
   const [loading, setLoading] = useState(true);
 
-  // Filters
+  // Saringan
   const [filterBulan, setFilterBulan] = useState('');
   const [filterTahun, setFilterTahun] = useState('');
   const [filterSatelit, setFilterSatelit] = useState('');
@@ -26,7 +26,7 @@ export default function PenggajianPage() {
   const [submittingId, setSubmittingId] = useState<number | null>(null);
   const [actionMsg, setActionMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Fetch Options
+  // Ambilin Opsinya
   useEffect(() => {
     fetch('/api/options?type=satelit')
       .then(res => res.json())

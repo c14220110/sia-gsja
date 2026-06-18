@@ -89,7 +89,7 @@ export default function AuditLogPage() {
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
-    // No showLoader() here — only used on first-time page mount
+    // Gak usah pakai loader() di sini — khusus buat layar pertama kali buka
     try {
       const params = new URLSearchParams({
         log_type: logType,
@@ -125,15 +125,15 @@ export default function AuditLogPage() {
     }
   }, [currentPage, logType, filterAksi, dateFrom, dateTo, search, initDone, isAnggaran]);
 
-  // Show Lottie overlay ONLY on first page mount
+  // Munculin animasi loading Lottie CUMA pas baru banget halamannya dirender
   useEffect(() => { showLoader(); }, []);
 
   useEffect(() => { fetchLogs(); }, [fetchLogs]);
 
-  // Reset to page 1 when any filter or log type changes
+  // Balik halaman pertama terus kalau filternya diubah-ubah
   useEffect(() => { setCurrentPage(1); }, [logType, filterAksi, dateFrom, dateTo, search]);
 
-  // Reset aksi filter when switching between entity/anggaran (different action sets)
+  // Bersihin filter aksi kalau pindah tab, soalnya set aksinya kan beda-beda
   useEffect(() => { setFilterAksi(''); }, [logType]);
 
   function formatDate(dateStr: string) {

@@ -25,7 +25,7 @@ export default function PushNotificationManager() {
     if (typeof window !== 'undefined' && 'Notification' in window && 'serviceWorker' in navigator) {
       setPermission(Notification.permission);
       
-      // If already granted, ensure subscription is active quietly
+      // Pas udh dpet ijin, yaudah lsg langganan di belakang layar sembunyi-sembunyi aje
       if (Notification.permission === 'granted') {
          subscribeToPush(true);
       }
@@ -51,7 +51,7 @@ export default function PushNotificationManager() {
          });
       }
 
-      // Send subscription to backend
+      // Setor kirim pendaftaran push nyo ke backend kodenya
       const res = await fetch('/api/push/subscribe', {
         method: 'POST',
         headers: {

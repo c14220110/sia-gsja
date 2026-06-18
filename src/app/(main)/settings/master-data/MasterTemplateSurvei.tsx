@@ -59,7 +59,7 @@ export function MasterTemplateSurvei() {
 
     try {
       const newActive = !item.is_active;
-      // If no template yet but toggling off, we need to create template first (PATCH handles this)
+      // Kalau template-nya bolong tapi pengen dimatiin, bikin templatenya dulu (udah diurusin PATCH)
       const res = await fetch('/api/settings/survei-template', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -257,7 +257,7 @@ function EditTemplateModal({ item, onClose, onSaved }: {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  // Fetch existing template detail
+  // Tarik detail templatenya yang sekarang
   useEffect(() => {
     fetch(`/api/settings/survei-template?jenis_kegiatan_id=${item.id}`)
       .then(res => res.json())

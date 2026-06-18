@@ -12,7 +12,7 @@ type ItemDecision = {
   nominal_disetujui?: number | null; // null = use full amount
 };
 
-// Reviewer access is now permission-based via 'anggaran_review'
+// Akses reviewer sekarang pakai izin 'anggaran_review' ya
 
 export default function ReviewAnggaranPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -32,7 +32,7 @@ export default function ReviewAnggaranPage({ params }: { params: Promise<{ id: s
     ]).then(([resData, resUser]) => {
       if (resData.success) {
         setData(resData.data);
-        // Initialize decisions for each item
+        // Setel awalan keputusan buat tiap item
         const items = resData.data?.items || [];
         setDecisions(items.map((item: any) => ({
           detail_id: item.id,
@@ -41,7 +41,7 @@ export default function ReviewAnggaranPage({ params }: { params: Promise<{ id: s
             ? (item.status_item === 'ACC_DIPOTONG' ? 'ACC' : item.status_item) // ACC_DIPOTONG → ACC in UI
             : '',
           catatan: item.catatan_reviewer || '',
-          // Preserve nominal_disetujui from DB for already-reviewed items
+          // Pertahankan nominal yang udah disetujui dari database buat item yang udah kelar direview
           nominal_disetujui: item.nominal_disetujui != null
             ? parseFloat(item.nominal_disetujui)
             : (parseFloat(item.total) || 0),
@@ -229,7 +229,7 @@ export default function ReviewAnggaranPage({ params }: { params: Promise<{ id: s
                 onChange={e => {
                   const val = Math.min(parseFloat(e.target.value) || 0, originalTotal);
                   updateDecision(item.id, 'nominal_disetujui', val);
-                  // Require catatan if cutting
+                  // Wajib isi catatan ya kalau disunat nominalnya
                   if (val < originalTotal && !dec?.catatan) {
                     updateDecision(item.id, 'catatan', '');
                   }

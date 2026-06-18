@@ -30,7 +30,7 @@ export async function sendPushNotificationToJemaat(jemaatId: number, title: stri
   }
 
   try {
-    // Cari user_id dari tabel pengguna milik jemaat_id ini
+    // Tolong digaliin user_id dari tabelnya si pengguna bermodal jemaat_id ini lho
     const userQuery = await pool.query(`
        SELECT id as user_id 
        FROM public.pengguna 
@@ -42,7 +42,7 @@ export async function sendPushNotificationToJemaat(jemaatId: number, title: stri
     }
     const userId = userQuery.rows[0].user_id;
 
-    // Ambil subscription menggunakan nama kolom yang tepat (endpoint, p256dh, auth)
+    // Bongkarlah subskripsi berpatokan di nama nama kolomnya yg bner tuh kaya (endpoint dkk yak)
     const subQuery = await pool.query(`
        SELECT endpoint, p256dh, auth 
        FROM public.push_subscriptions 

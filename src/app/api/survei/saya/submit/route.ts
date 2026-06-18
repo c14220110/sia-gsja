@@ -26,7 +26,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: 'Data survei tidak lengkap' }, { status: 400 });
     }
 
-    // Check survei exists and is active
+    // Validasi survei masih ada nafasnya dan posisinya emang nyala aktif ya
     const surveiCheck = await client.query(
       `SELECT id, threshold_flag, is_anonim, is_active, status
        FROM public.survei WHERE id = $1`,
@@ -43,8 +43,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: 'Survei ini sudah tidak menerima respons' }, { status: 400 });
     }
 
-    // Check if jemaat already responded (always use real jemaatId for duplicate detection,
-    // even for anonim surveys — prevents re-submission)
+    // Liat lagi udah ada isi belum dari jemaatnya (Pokoknya patokan tetep pake ID aslinya biar ga ganda,
+    // walau dia maen rahasia anonim juga tetep di cegat double kirimannya)
     const existingCheck = await client.query(
       `SELECT id FROM public.survei_respons WHERE survei_id = $1 AND jemaat_id = $2 LIMIT 1`,
       [survei_id, jemaatId]
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
       const { pertanyaan_id, skor, jawaban_teks } = j;
       const isFlagged = skor != null && skor < thresholdFlag;
 
-      // Always store jemaat_id for dedup & filtering. Anonymity enforced at display layer.
+      // Setor jemaat_id murni tanpa kompromi demi deduplikasi. Nah, anonimitasnya biarin diatur pas bagian displaynya aja ntar.
       const insertResult = await client.query(
         `INSERT INTO public.survei_respons (survei_id, pertanyaan_id, jemaat_id, skor, jawaban_teks, is_flagged)
          VALUES ($1, $2, $3, $4, $5, $6)
@@ -77,14 +77,14 @@ export async function POST(request: Request) {
         ]
       );
 
-      // Auto-create tindak_lanjut for flagged responses
+      // Ngalir aja auto buatin riwayat lanjuttan buat jawaban nyeleneh (flagged)
       if (isFlagged && insertResult.rows.length > 0) {
         await client.query(
           `INSERT INTO public.survei_tindak_lanjut (respons_id) VALUES ($1)`,
           [insertResult.rows[0].id]
         );
 
-        // Fire-and-forget: blast email ke semua SEKRETARIS_PUSAT (sama seperti pola notif pastoral)
+        // Gas lepasin lsg (Fire n forget): hujani email ke sekretariat pusat semua sprti pola notifikasin pastoral biasa.
         pool.query(`
           SELECT DISTINCT p.email, j.nama_lengkap as nama_jemaat,
             sv.judul as survei_judul, sv.is_anonim,

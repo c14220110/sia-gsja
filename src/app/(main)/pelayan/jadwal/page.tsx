@@ -27,7 +27,7 @@ export default function PelayanJadwalPage() {
         setSchedules(data.all_schedules);
         
         if (data.all_schedules.length > 0) {
-            // Default to today if there is an event today, otherwise to the closest future event
+            // Kalau hari ini kebetulan ada acara, langsung arahin ke hari ini. Kalau kosong, loncat ke acara terdekat di masa depan
             const todayStr = new Date().toISOString().substring(0, 10);
             const todayEvent = data.all_schedules.find((s: any) => s.tanggal_mulai?.substring(0, 10) === todayStr);
             if(todayEvent) {
@@ -69,7 +69,7 @@ export default function PelayanJadwalPage() {
     }
   };
 
-  // Grouping Schedules
+  // Mulai kelompokkan jadwal-jadwalnya
   const groupedSchedules = useMemo(() => {
     return schedules.reduce((acc, curr) => {
       const dateStr = curr.tanggal_mulai?.substring(0, 10) || '0000-00-00';
@@ -79,13 +79,13 @@ export default function PelayanJadwalPage() {
     }, {} as Record<string, any[]>);
   }, [schedules]);
 
-  // Calendar Engine
+  // Mesin utama penggerak tampilan kalendernya
   const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
   const firstDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay(); // 0 is Sunday
   
-  // Create calendar grid
+  // Bangun kerangka kotak-kotak kalendernya
   const calendarDays = [];
-  // Fill empty start days
+  // Isi slot kosong di hari awal bulan biar tanggal 1 jatuh di hari yang pas
   const prevMonthDays = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 0).getDate();
   for(let i = firstDay === 0 ? 6 : firstDay - 1; i > 0; i--) {
      calendarDays.push({ day: prevMonthDays - i + 1, isCurrentMonth: false, dateStr: null });

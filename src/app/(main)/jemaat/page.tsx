@@ -24,38 +24,38 @@ export default function MembersPage() {
   const [previewPhotoUrl, setPreviewPhotoUrl] = useState<string | null>(null);
   const router = useRouter();
 
-  // Alert Modal State
+  // State untuk popup peringatan
   const [alertState, setAlertState] = useState<{ isOpen: boolean; id: number | null; newStatus: string }>({
     isOpen: false,
     id: null,
     newStatus: ''
   });
 
-  // Authentication State
+  // Data sesi pengguna yang login
   const [userData, setUserData] = useState<any>(null);
 
-  // Options State
+  // Data pilihan dropdown
   const [satelitOptions, setSatelitOptions] = useState<any[]>([]);
   const [komisiOptions, setKomisiOptions] = useState<any[]>([]);
   
-  // Pagination & Stats State
+  // Data halaman dan statistik
   const [data, setData] = useState<any[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [newThisMonth, setNewThisMonth] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const limit = 10;
   
-  // Basic Filters
+  // Filter pencarian standar
   const [filterSatelit, setFilterSatelit] = useState('');
   const [filterKomisi, setFilterKomisi] = useState('');
   
-  // Advanced Filters
+  // Filter pencarian lanjutan
   const [filterStatusJemaat, setFilterStatusJemaat] = useState('Aktif');
   const [filterGender, setFilterGender] = useState('');
   const [filterUmur, setFilterUmur] = useState('');
   const [filterFoto, setFilterFoto] = useState('');
 
-  // Fetch Options and User Data on Mount
+  // Ambil data dropdown dan profil pengguna saat halaman dimuat
   useEffect(() => {
     const fetchOptionsAndUser = async () => {
       showLoader();
@@ -92,18 +92,18 @@ export default function MembersPage() {
     return userData.permissions?.includes?.(perm);
   };
 
-  // Debounce search query
+  // Beri sedikit jeda saat mengetik pencarian agar tidak membebani server
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchQuery), 500);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Reset page to 1 when filters change
+  // Kalau filternya diubah, kembalikan ke halaman pertama
   useEffect(() => {
     setCurrentPage(1);
   }, [debouncedSearch, filterSatelit, filterKomisi, filterStatusJemaat, filterGender, filterUmur, filterFoto]);
 
-  // Fetch Data
+  // Tarik data utama
   useEffect(() => {
     const fetchData = async () => {
       showLoader();
@@ -291,7 +291,7 @@ export default function MembersPage() {
             <option value="none">Tanpa komisi</option>
             {/* Filter komisi list dynamically based on selected satelit if needed, or simply map all of them */}
             {komisiOptions
-              .filter(k => filterSatelit ? k.satelit_id.toString() === filterSatelit : true)
+              .filter(k => filterSatelit ? (!k.satelit_id || k.satelit_id.toString() === filterSatelit) : true)
               .map((komisi) => (
                 <option key={komisi.id} value={komisi.id}>{komisi.nama_komisi}</option>
               ))
@@ -564,7 +564,7 @@ export default function MembersPage() {
               src={previewPhotoUrl} 
               alt="Preview Jemaat" 
               className="max-h-[85vh] w-auto object-contain rounded-xl shadow-2xl border border-white/20 bg-white" 
-              onClick={(e) => e.stopPropagation()} // Prevent closing when clicking the image itself
+              onClick={(e) => e.stopPropagation()} // Supaya popup tidak tertutup saat fotonya diklik
             />
           </div>
         </div>

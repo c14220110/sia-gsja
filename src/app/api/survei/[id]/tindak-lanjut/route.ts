@@ -14,7 +14,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ success: false, message: 'Akses Ditolak: Anda tidak memiliki izin melihat survei' }, { status: 403 });
     }
 
-    // Fetch flagged responses with tindak lanjut status
+    // Sikat jawaban yang mencurigakan (flagged) sambil bawa setatus tindaklanjutnya
     const query = `
       SELECT 
         st.id AS tindak_lanjut_id,
@@ -90,7 +90,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       }, { status: 400 });
     }
 
-    // Verify tindak lanjut exists for this respons in this survei
+    // Pastiin emang bener ada tindak lanjut di sini survei dan respon ini
     const existing = await pool.query(
       `SELECT st.id FROM public.survei_tindak_lanjut st
        JOIN public.survei_respons sr ON st.respons_id = sr.id

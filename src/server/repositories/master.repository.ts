@@ -60,7 +60,7 @@ export class MasterRepository {
       params.push(parseInt(roleId, 10));
     }
 
-    // Metrics: only computed when kegiatanId is provided (saves query cost in bypass mode without context)
+    // Metriknya ini: HNY dapet angkanya kl IdKegiataan nongol aje (biar irit query cost dan ngebut walau d bypass gaada konteks yak)
     let metricsSelect = `0::int AS jumlah_bulan_ini, NULL::text AS nama_kegiatan_bentrok`;
     if (kegiatanId) {
       paramIdx++;

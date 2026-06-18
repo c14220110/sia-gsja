@@ -27,7 +27,7 @@ export default function EditRunPage({ params }: { params: Promise<{ id: string }
     params.then(async (p) => {
       const id = parseInt(p.id);
       setRunId(id);
-      // Load existing run data to pre-fill Step 1
+      // Muat data run yang udah ada buat ngisi form Langkah 1 otomatis
       try {
         const res = await fetch(`/api/payroll/runs/${id}/summary`);
         const r = await res.json();

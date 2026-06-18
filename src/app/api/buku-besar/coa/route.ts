@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 
-// GET: Fetch all COA as a flat list
+// GET: Tarik murni semua daftar COA
 export async function GET(request: Request) {
   const caller = getCallerFromRequest(request);
   if (!caller) {
@@ -56,7 +56,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: false, message: 'Akun Detail tidak bisa menjadi Induk!' }, { status: 400 });
       }
 
-      // Security Override: Force values to match parent
+      // Paksa atur nilai nyamain dari indukannya
       grup_laporan = parent.grup_laporan;
       saldo_normal = parent.saldo_normal;
     } else {
@@ -100,15 +100,15 @@ export async function PUT(req: Request) {
       return NextResponse.json({ success: false, message: 'ID Akun tidak valid' }, { status: 400 });
     }
 
-    // Validation: Infinite Loop Check
+    // Validasi Mutlak: Cek biar ga ada looping abadi (anak jadi induk)
     if (induk_akun_id === id) {
       return NextResponse.json({ success: false, message: 'Akun tidak bisa menjadi induk bagi dirinya sendiri!' }, { status: 400 });
     }
 
-    // Note: A full infinite loop check would require recursive CTE to check if induk_akun_id is a child of id. 
-    // For now, we prevent self-referencing.
+    // Ya idealnya pakai CTE rekursif buat ngecek dalam-dalam, tapi untuk sekarang 
+    // cukup nyegah jangan sampai akun nunjuk dirinya sendiri dulu aja.
 
-    // Validation: Cannot change to 'Detail' if it has children
+    // Peringatan: Ga bisa main ganti ke 'Detail' kalau dia terlanjur punya anakan
     if (tipe_akun === 'Detail') {
       const childrenCheck = await pool.query(`SELECT id FROM public.buku_besar_coa WHERE induk_akun_id = $1 LIMIT 1`, [id]);
       if (childrenCheck.rows.length > 0) {

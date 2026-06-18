@@ -11,7 +11,7 @@ export async function GET(req: Request) {
     const id = searchParams.get('id');
 
     if (id) {
-      // Get single journal with details
+      // Ambil sebiji data jurnal lengkap sama isian detilnya
       const headerRes = await pool.query(`SELECT * FROM public.buku_besar_jurnal WHERE id = $1`, [id]);
       if (headerRes.rows.length === 0) {
         return NextResponse.json({ success: false, message: 'Jurnal tidak ditemukan' }, { status: 404 });
@@ -34,7 +34,7 @@ export async function GET(req: Request) {
       });
     }
 
-    // Get list of journals
+    // Comot daftarnya si jurnal
     const res = await pool.query(`
       SELECT * FROM public.buku_besar_jurnal 
       ORDER BY tanggal_transaksi DESC, created_at DESC 
@@ -59,7 +59,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { tanggal_transaksi, deskripsi, status, details, satelit_kode } = body; 
-    // satelit_kode is passed from frontend to generate the reference number (e.g. 'PST')
+    // kodenya dipassing sama frontend biar no ref-nya cantik (misal PST buat pusat)
 
     if (!details || details.length < 2) {
       return NextResponse.json({ success: false, message: 'Jurnal minimal harus memiliki 2 baris transaksi' }, { status: 400 });
@@ -78,7 +78,7 @@ export async function POST(req: Request) {
       else return NextResponse.json({ success: false, message: 'Posisi hanya boleh Debit atau Kredit' }, { status: 400 });
     }
 
-    // Validation: Balance Check ONLY for Posted
+    // Catat ya: Pengecekan balance itu HANYA berlaku kalau dia mau ke-POSTED
     if (status === 'Posted' && Math.abs(totalDebit - totalKredit) > 0.01) {
       return NextResponse.json({ success: false, message: 'Transaksi tidak seimbang! Jurnal yang diposting harus memiliki total Debit dan Kredit yang sama.' }, { status: 400 });
     }
@@ -117,7 +117,7 @@ export async function POST(req: Request) {
 
     // Insert Details
     for (const d of details) {
-      // Basic check if COA is Detail Type
+      // Cek standar, mastiin COA-nya tuh bertipe Detail
       const coaRes = await client.query(`SELECT tipe_akun FROM public.buku_besar_coa WHERE id = $1`, [d.coa_id]);
       if (coaRes.rows.length === 0 || coaRes.rows[0].tipe_akun !== 'Detail') {
         throw new Error(`Akun yang dipilih harus bertipe Detail (ID: ${d.coa_id})`);
@@ -156,7 +156,7 @@ export async function PUT(req: Request) {
     const body = await req.json();
     const { id, tanggal_transaksi, deskripsi, status, details } = body; 
 
-    // Check existing
+    // Tolong cek dulu ini beneran ada kan datanya
     const checkRes = await client.query(`SELECT status FROM public.buku_besar_jurnal WHERE id = $1`, [id]);
     if (checkRes.rows.length === 0) {
       return NextResponse.json({ success: false, message: 'Jurnal tidak ditemukan' }, { status: 404 });
@@ -182,7 +182,7 @@ export async function PUT(req: Request) {
       else return NextResponse.json({ success: false, message: 'Posisi hanya boleh Debit atau Kredit' }, { status: 400 });
     }
 
-    // Validation: Balance Check ONLY for Posted
+    // Catat ya: Pengecekan balance itu HANYA berlaku kalau dia mau ke-POSTED
     if (status === 'Posted' && Math.abs(totalDebit - totalKredit) > 0.01) {
       return NextResponse.json({ success: false, message: 'Transaksi tidak seimbang! Jurnal yang diposting harus memiliki total Debit dan Kredit yang sama.' }, { status: 400 });
     }

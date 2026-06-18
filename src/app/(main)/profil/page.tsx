@@ -98,7 +98,7 @@ export default function ProfilJemaatPage() {
   }, []);
 
 
-  // Data state
+  // Kumpulan datanya
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [satelitOptions, setSatelitOptions] = useState<any[]>([]);
@@ -106,7 +106,7 @@ export default function ProfilJemaatPage() {
   const [departemenOptions, setDepartemenOptions] = useState<any[]>([]);
   const [pekerjaanOptions, setPekerjaanOptions] = useState<any[]>([]);
 
-  // Family tree state
+  // Pohon keluarga state-nya
   const [treeNodes, setTreeNodes] = useState<any[]>([]);
   const [treeEdges, setTreeEdges] = useState<any[]>([]);
   const [treeBranches, setTreeBranches] = useState<any[]>([]);
@@ -143,7 +143,7 @@ export default function ProfilJemaatPage() {
         if (deptData.success) setDepartemenOptions(deptData.data);
         if (pekData.success)  setPekerjaanOptions(pekData.data);
 
-        // Fetch jemaat detail
+        // Tarik rincian jemaatnya dong
         if (authData.jemaat_id) {
           const res = await fetch(`/api/members/${authData.jemaat_id}`);
           if (res.ok) {
@@ -160,7 +160,7 @@ export default function ProfilJemaatPage() {
     init();
   }, []);
 
-  // Load family tree when switching to pohon tab
+  // Muat pohon keluarganya pas user geser ke tab Pohon
   useEffect(() => {
     if (activeTab !== 'pohon' || !profile?.id || treeNodes.length > 0) return;
     const loadTree = async () => {

@@ -3,7 +3,7 @@ import pool from '@/lib/db';
 import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 import { notifySekretarisPastoralBaru } from '@/lib/notificationService';
 
-// Helper to generate Ticket Number
+// Fungsi sakti pembantu buat nerbitin Nomor Tiket
 async function generateNomorTiket() {
   const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
   const prefix = `LYN-${dateStr}-`;
@@ -91,7 +91,7 @@ export async function POST(request: Request) {
 
       await client.query('COMMIT');
 
-      // Fire-and-forget: blast email ke semua SEKRETARIS_PUSAT aktif (tidak block response)
+      // Lempar aja prosesnya (blast email ke SEKRETARIS PUSAT), gak usah nungguin biar loading cepet
       pool.query(`
         SELECT DISTINCT p.email
         FROM public.pengguna p
@@ -101,11 +101,11 @@ export async function POST(request: Request) {
         AND p.is_active = true
         AND p.email IS NOT NULL AND p.email != ''
       `).then(sekRes => {
-        // Filter email valid (harus ada @) sebagai safety net data tidak valid di DB
+        // Jaring aja email yang beneran (minimal ada @), buat nyelametin cacat data di pangkalan data
         const emails = sekRes.rows
           .map((r: any) => r.email as string)
           .filter(e => e && e.includes('@'));
-        // Fetch target name for notification
+        // Sedot nama targetnya biar notifnya nyebutin nama yang pas
         pool.query(`
           SELECT 
             j.nama_lengkap as nama_pemohon,

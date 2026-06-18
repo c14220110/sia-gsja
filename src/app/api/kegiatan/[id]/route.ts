@@ -65,7 +65,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ success: false, message: 'Akses Ditolak: Anda tidak memiliki izin mengelola kegiatan' }, { status: 403 });
   }
 
-  // IDOR check: pastikan kegiatan milik satelit caller
+  // Cek keamanan IDOR: pastikan kegiatan ini benar milik satelit sang pemanggil
   if (!caller.is_super_admin) {
     const ownerCheck = await pool.query(
       `SELECT satelit_id FROM public.kegiatan WHERE id = $1`, [id]
@@ -138,7 +138,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     // ── Auto-Survei: trigger saat Ongoing → Menunggu LPJ ──────────────
     if (status_kegiatan === 'Menunggu LPJ') {
-      // Jalankan secara async agar tidak memblokir response ke frontend
+      // Dijalankan di belakang layar (async) supaya loading frontend gak ketahan
       (async () => {
         try {
           const { createAutoSurvei } = await import('@/server/utils/autoSurvei');
@@ -191,7 +191,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       }, { status: 403 });
     }
 
-    // IDOR check: pastikan kegiatan milik satelit caller
+    // Cek keamanan IDOR: pastikan kegiatan ini benar milik satelit sang pemanggil
     if (!caller.is_super_admin && currentStatusCheck.rows[0].satelit_id !== caller.satelit_id) {
       await client.query('ROLLBACK');
       return NextResponse.json({ success: false, message: 'Akses ditolak: kegiatan bukan milik satelit Anda' }, { status: 403 });
@@ -224,7 +224,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         await client.query('ROLLBACK');
         return NextResponse.json({ success: false, message: `RA ini berstatus "${ra.status}" — hanya RA yang disetujui yang bisa digunakan.` }, { status: 400 });
       }
-      // Cek Sekali Pakai: tidak boleh sudah diklaim oleh kegiatan lain yang bukan Draft/Dibatalkan
+      // Cek Sekali Pakai: tidak boleh sudah dipakai kegiatan lain, kecuali masih Draft atau Dibatalkan
       if (ra.pola_penggunaan === 'Sekali Pakai' && isSubmitting) {
         const claimCheck = await client.query(
           `SELECT k.id, k.nama_kegiatan FROM public.kegiatan k
@@ -239,7 +239,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         }
       }
       
-      // Override Eksekutor & Jenis Kegiatan secara paksa sesuai Master Data RA!
+      // Timpa Eksekutor & Jenis Kegiatan secara paksa biar sesuai Master Data RA!
       if (ra.jenis_kegiatan_id) jk_id = ra.jenis_kegiatan_id;
       if (ra.satelit_id) s_id = ra.satelit_id;
       if (ra.komisi_id) k_id = ra.komisi_id;
@@ -298,7 +298,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     // 2. Update atau Insert Detail Ibadah (Tema & Pengkhotbah)
     if (body.tema_khotbah || body.nama_pengkhotbah_1 || body.nama_pengkhotbah_2) {
-      // Upsert logic
+      // Logika tambah/perbarui (Upsert)
       const checkDetail = await client.query('SELECT kegiatan_id FROM public.kegiatan_detail_ibadah WHERE kegiatan_id = $1', [id]);
       if (checkDetail.rowCount && checkDetail.rowCount > 0) {
         await client.query(`
@@ -364,11 +364,11 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
       return NextResponse.json({ success: false, message: 'Akses ditolak: kegiatan bukan milik satelit Anda' }, { status: 403 });
     }
 
-    // Hard delete dependent tables first (to prevent foreign key constraints error)
+    // Hapus dulu tabel-tabel anak supaya tidak error karena foreign key
     await client.query('DELETE FROM public.kegiatan_detail_ibadah WHERE kegiatan_id = $1', [id]);
     await client.query('DELETE FROM public.kegiatan_pelayan WHERE kegiatan_id = $1', [id]);
     
-    // Hard delete main record
+    // Hapus data utamanya
     const result = await client.query('DELETE FROM public.kegiatan WHERE id = $1 RETURNING id', [id]);
     
     if (result.rowCount === 0) {

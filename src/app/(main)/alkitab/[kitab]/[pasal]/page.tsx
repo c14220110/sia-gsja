@@ -59,7 +59,7 @@ export default function BacaPasalPage() {
   const [flashingAyat, setFlashingAyat] = useState<number | null>(null);
   const [copyFeedback, setCopyFeedback] = useState(false);
 
-  // Touch swipe for prev/next chapter
+  // Geser layar buat pindah pasal sebelumnya/selanjutnya
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -74,7 +74,7 @@ export default function BacaPasalPage() {
     } catch {}
   }, []);
 
-  // Fetch chapter data
+  // Tarik data pasalnya
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
@@ -114,7 +114,7 @@ export default function BacaPasalPage() {
       } finally {
         setIsLoading(false);
 
-        // Scroll to specific verse if hash is present (e.g. #ayat-16)
+        // Gulung layar ke ayat tertentu kalau ada hash di URL (misal #ayat-16)
         setTimeout(() => {
           const hash = window.location.hash;
           if (hash && hash.startsWith('#ayat-')) {

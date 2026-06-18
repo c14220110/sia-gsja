@@ -14,10 +14,10 @@ export default function NewPayrollRunPage() {
   const [activeTab, setActiveTab] = useState(1);
   const [submitState, setSubmitState] = useState<{ status: 'idle'|'loading'|'success'|'error', message: string, errors?: any }>({ status: 'idle', message: '' });
 
-  // Master State for Wizard
+  // Induk state buat alur Wizard-nya
   const [runId, setRunId] = useState<number | null>(null); // assigned after Step 1 succeeds
   
-  // Data State for UI continuity
+  // Simpen data UI biar nyambung terus gak putus-putus
   const [setupData, setSetupData] = useState<any>({
     bulan: '',
     tahun: new Date().getFullYear().toString(),
@@ -62,7 +62,7 @@ export default function NewPayrollRunPage() {
             <div key={tab.id} className="flex flex-col items-center gap-2 w-1/3 relative group">
               <div className={`w-full h-1 absolute top-5 left-1/2 -z-10 ${tab.id === 3 ? 'hidden' : 'block'} ${activeTab > tab.id ? 'bg-blue-500' : 'bg-slate-200'}`}></div>
               <button 
-                // Disable clicking to jump ahead unless runId is present or returning back
+                // Jangan biarin loncat ke depan kecuali ID-nya udah dapet atau mau mundur doang
                 disabled={activeTab < tab.id && (tab.id > 1 && !runId)}
                 onClick={() => { if(activeTab > tab.id || (activeTab < tab.id && runId)) setActiveTab(tab.id); }}
                 className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors shadow-sm

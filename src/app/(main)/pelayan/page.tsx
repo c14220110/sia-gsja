@@ -19,21 +19,21 @@ export default function PelayanPage() {
   const [previewPhotoUrl, setPreviewPhotoUrl] = useState<string | null>(null);
   const router = useRouter();
 
-  // Alert Modal State
+  // State untuk popup peringatan manis
   const [alertState, setAlertState] = useState<{ isOpen: boolean; id: number | null; newStatus: string }>({
     isOpen: false,
     id: null,
     newStatus: ''
   });
 
-  // Authentication State
+  // Data sesi siapa yang lagi buka halaman ini
   const [userData, setUserData] = useState<any>(null);
 
-  // Options State
+  // Kumpulan data pilihan buat dropdown-dropdown kita
   const [satelitOptions,     setSatelitOptions]     = useState<any[]>([]);
   const [rolePelayanOptions, setRolePelayanOptions] = useState<any[]>([]);
 
-  // Pagination & Stats State
+  // State halaman saat ini dan angka-angka statistiknya
   const [data,          setData]          = useState<any[]>([]);
   const [totalItems,    setTotalItems]    = useState(0);
   const [pelayanBaru,   setPelayanBaru]   = useState(0);
@@ -41,24 +41,24 @@ export default function PelayanPage() {
   const [currentPage,   setCurrentPage]   = useState(1);
   const limit = 10;
 
-  // Basic Filters
+  // Filter saringan yang paling mendasar
   const [filterSatelit, setFilterSatelit] = useState('');
   const [filterRole,    setFilterRole]    = useState('');
   const [filterPending, setFilterPending] = useState(false);
 
-  // Advanced Filters
+  // Filter saringan lanjutan buat yang pengen lebih spesifik
   const [filterStatus,   setFilterStatus]   = useState('Aktif');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo,   setFilterDateTo]   = useState('');
   const [filterBulanJadwal, setFilterBulanJadwal] = useState('');
 
-  // Local temp states for Advanced Filters (apply button logic)
+  // Nyimpen data filter lanjutan sementara (biar tombol Terapkan berfungsi sebagaimana mestinya)
   const [tempStatus,     setTempStatus]     = useState('Aktif');
   const [tempDateFrom,   setTempDateFrom]   = useState('');
   const [tempDateTo,     setTempDateTo]     = useState('');
   const [tempBulanJadwal, setTempBulanJadwal] = useState('');
 
-  // Fetch Options and User Data on Mount
+  // Sedot data dropdown sama profil pengguna waktu halamannya pertama kali nongol
   useEffect(() => {
     const fetchOptionsAndUser = async () => {
       showLoader();
@@ -95,18 +95,18 @@ export default function PelayanPage() {
     return userData.permissions?.includes?.(perm);
   };
 
-  // Debounce search query
+  // Beri sedikit waktu nafas pas ngetik pencarian biar server gak kewalahan
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchQuery), 500);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Reset page to 1 when filters change
+  // Atur ulang posisinya ke halaman pertama tiap kali filternya diutak-atik
   useEffect(() => {
     setCurrentPage(1);
   }, [debouncedSearch, filterSatelit, filterRole, filterStatus, filterDateFrom, filterDateTo, filterBulanJadwal, filterPending]);
 
-  // Fetch Data
+  // Tarik data besarnya dari belakang layar
   useEffect(() => {
     const fetchData = async () => {
       showLoader();
@@ -456,7 +456,7 @@ export default function PelayanPage() {
                         className="relative group cursor-pointer shrink-0"
                         title="Lihat foto"
                         onClick={(e) => {
-                          e.stopPropagation(); // Mencegah pindah halaman saat klik foto
+                          e.stopPropagation(); // Mencegah pindah halaman pas lagi asik nge-klik foto
                           setPreviewPhotoUrl(pelayan.foto_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(pelayan.nama_lengkap)}&background=random`);
                         }}
                       >
@@ -617,7 +617,7 @@ export default function PelayanPage() {
               src={previewPhotoUrl} 
               alt="Preview Pelayan" 
               className="max-h-[85vh] w-auto object-contain rounded-xl shadow-2xl border border-white/20 bg-white" 
-              onClick={(e) => e.stopPropagation()} // Prevent closing when clicking the image itself
+              onClick={(e) => e.stopPropagation()} // Biar modalnya anteng gak ketutup tiba-tiba pas fotonya diklik
             />
           </div>
         </div>

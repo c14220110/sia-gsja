@@ -95,7 +95,7 @@ export async function PATCH(
       );
     }
 
-    // RBAC: user hanya bisa edit run milik unitnya kecuali super admin
+    // Keamanan RBAC: Kalau bukan admin sakti, edit ya sesuai kapasitas kandang unit sendiri
     if (!caller.is_super_admin && !caller.permissions.includes('multi_satelit_view')) {
       if (run.satelit_id !== caller.satelit_id) {
         return NextResponse.json(
@@ -192,7 +192,7 @@ export async function PATCH(
 
     await client.query('COMMIT');
 
-    // Return data komponen terbaru untuk baris ini
+    // Balikin komponen fress buat row ini
     const updatedKomponen = await client.query(
       `SELECT prk.*, pkm.nama_komponen
        FROM public.payroll_run_komponen prk

@@ -40,7 +40,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ success: false, message: 'Survei ini sudah di luar periode pengisian' }, { status: 400 });
     }
 
-    // RBAC: check satelit ownership
+    // Satpam: periksa nih kepemilikan si satelit
     if (!caller.is_super_admin && !caller.permissions.includes('multi_satelit_view')) {
       if (survei.satelit_id && survei.satelit_id !== caller.satelit_id) {
         return NextResponse.json({ success: false, message: 'Akses ditolak: survei bukan milik satelit Anda' }, { status: 403 });
@@ -60,7 +60,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       );
       jemaatIds = absensiRes.rows.map((r: any) => r.jemaat_id);
     } else {
-      // Survei mandiri → kirim ke semua jemaat aktif di satelit
+      // Mandiri beraksi survei: serbarkan segenap isinya ke semua jemaat satelit ini
       const jemaatRes = await pool.query(
         `SELECT j.id 
          FROM public.jemaat j

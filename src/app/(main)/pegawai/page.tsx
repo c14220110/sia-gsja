@@ -16,7 +16,7 @@ export default function PegawaiPage() {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [submitState, setSubmitState] = useState<{ status: 'idle'|'loading'|'success'|'error', message: string, errors?: any }>({ status: 'idle', message: '' });
 
-  // Alert Modal State
+  // State popup alert peringatannya
   const [alertState, setAlertState] = useState<{ 
     isOpen: boolean; 
     id: number | null; 
@@ -29,27 +29,27 @@ export default function PegawaiPage() {
     newValue: ''
   });
 
-  // Authentication State
+  // State Sesi Login-nya
   const [userData, setUserData] = useState<any>(null);
 
-  // Options State
+  // Pilihan Data Dropdown
   const [satelitOptions, setSatelitOptions] = useState<any[]>([]);
   
-  // Pagination & Stats State
+  // State Halaman dan Statistiknya
   const [data, setData] = useState<any[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [pendingApproval, setPendingApproval] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const limit = 10;
   
-  // Basic Filters
+  // Saringan Standar
   const [filterSatelit, setFilterSatelit] = useState('');
   
-  // Advanced Filters
+  // Saringan Lanjutan tingkat dewa
   const [filterStatusPegawai, setFilterStatusPegawai] = useState('Aktif');
   const [filterTipePekerja, setFilterTipePekerja] = useState('');
 
-  // Fetch Options and User Data on Mount
+  // Tarik semua data dropdown dan profil pas pertama dibuka
   useEffect(() => {
     const fetchOptionsAndUser = async () => {
       showLoader();
@@ -89,12 +89,12 @@ export default function PegawaiPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Reset page to 1 when filters change
+  // Atur balik ke halaman pertama pas filternya diputar
   useEffect(() => {
     setCurrentPage(1);
   }, [debouncedSearch, filterSatelit, filterStatusPegawai, filterTipePekerja]);
 
-  // Fetch Data
+  // Tarik Datanya Yuk
   const fetchData = async () => {
     try {
       const queryParams = new URLSearchParams();

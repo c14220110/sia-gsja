@@ -7,10 +7,10 @@ import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
 export default function AjukanPermintaanPage() {
   const router = useRouter();
 
-  // Form State
+  // Data Formnya
   const [untukSiapa, setUntukSiapa] = useState('Saya Sendiri');
   
-  // Dynamic fields for non-"Saya Sendiri"
+  // Isian dinamis kalau bukan daftarin "Saya Sendiri"
   const [isJemaatGsja, setIsJemaatGsja] = useState<boolean | null>(null);
   const [jemaatTargetId, setJemaatTargetId] = useState<number | null>(null);
   const [namaTargetLuar, setNamaTargetLuar] = useState('');
@@ -20,14 +20,14 @@ export default function AjukanPermintaanPage() {
   const [keterangan, setKeterangan] = useState('');
   const [isUrgent, setIsUrgent] = useState(false);
 
-  // Data Options
+  // Pilihan Datanya
   const [jenisOptions, setJenisOptions] = useState<any[]>([]);
   const [jemaatSearchQuery, setJemaatSearchQuery] = useState('');
   const [jemaatSearchResults, setJemaatSearchResults] = useState<any[]>([]);
   const [selectedJemaatName, setSelectedJemaatName] = useState('');
   const searchDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Submit Overlay State
+  // State popup pas ngirim data
   const [submitState, setSubmitState] = useState<{ status: 'idle' | 'loading' | 'success' | 'error', message: string }>({
     status: 'idle',
     message: ''
@@ -51,7 +51,7 @@ export default function AjukanPermintaanPage() {
     fetchJenis();
   }, []);
 
-  // Autofill Nomor HP if exists
+  // Otomatis isi nomor HP kalau ada datanya
   useEffect(() => {
     const fetchUser = async () => {
       try {

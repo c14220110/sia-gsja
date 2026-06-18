@@ -4,7 +4,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { getJwtSecret } from '@/server/utils/jwt';
 
-// Pre-auth token: ditandatangani JWT, expire 5 menit, hanya untuk select-role
+// Pre-auth token: dicap sama JWT, matinya 5 menit, khususon buat fitur pilih peran aja
 function createPreAuthToken(userId: number): string {
   return jwt.sign(
     { pre_auth_user_id: userId, purpose: 'role_selection' },
@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // Inline validation (email and password must be non-empty strings)
+    // Validasi cepet: email sama password ga boleh kosong melompong
     if (!body.email || typeof body.email !== 'string' || body.email.trim().length === 0) {
       return NextResponse.json(
         { message: 'Email wajib diisi' },
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
 
     // --- Inlined authenticateUser logic ---
 
-    // data.email is acting as the generic identifier (email/phone/username)
+    // data.email ini multi-fungsi ya, bisa diisi no hape / username juga
     const user = await userRepository.findByIdentifier(email);
 
     if (!user) {
@@ -71,8 +71,8 @@ export async function POST(request: NextRequest) {
       throw new Error('Akun Anda tidak memiliki hak akses (role) sama sekali.');
     }
 
-    // Case 2: multiple roles — kirim pre-auth token (bukan user_id mentah!)
-    // Pre-auth token ditandatangani JWT, expire 5 menit, bukti user sudah login dengan benar
+    // Kasus 2: perannya banyak — lemparkan token sementaranya (jangan kasi ID user aslinya!)
+    // Pre-auth token ini bukti sah JWT kalau dia udah bener loginnya
     if (roles.length > 1) {
       const preAuthToken = createPreAuthToken(user.id);
       return NextResponse.json(
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Case 3: exactly 1 role — issue the final token immediately
+    // Kasus 3: perannya cuma sebatang kara — terbitin token paten langsung
     const singleRole = roles[0];
     const is_super_admin = singleRole.nama_role === 'SUPER_ADMIN';
     const permissions = await userRepository.getRolePermissionNames(singleRole.role_id);
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
     // Update login timestamp
     await userRepository.updateLastLogin(user.id);
 
-    // Single role - issue token and set cookie
+    // Peran cuman satu - langsung tembakin token ke cookienya
     const response = NextResponse.json(
       { message: 'Login berhasil', data: tokenPayload, requires_role_selection: false },
       { status: 200 }

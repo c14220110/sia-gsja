@@ -14,7 +14,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, message: 'Jemaat ID tidak ditemukan' }, { status: 400 });
     }
 
-    // Fetch surveys that this jemaat has already responded to
+    // Ambilkan survei yang emang udah dihajar (di-respon) sama jemaat ini
     const query = `
       SELECT 
         s.id,

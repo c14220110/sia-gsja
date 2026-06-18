@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
         }, { status: 400 });
       }
 
-      // Check if taken
+      // Intip dulu, ada yang ambil belum?
       const isTaken = await userRepository.checkUsernameTaken(cleanUsername, caller.user_id);
       if (isTaken) {
         return NextResponse.json({ success: false, message: 'Username sudah digunakan oleh orang lain.' }, { status: 400 });

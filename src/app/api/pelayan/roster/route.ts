@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     
     let satelit_id = searchParams.get('satelit_id') || undefined;
 
-    // Filter satelit untuk admin cabang
+    // Saringan khusus satelit buat kenyamanan admin cabang
     if (!caller.is_super_admin && !caller.permissions.includes('multi_satelit_view')) {
       satelit_id = caller.satelit_id?.toString();
     }

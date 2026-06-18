@@ -5,7 +5,7 @@ import { auditLogRepository } from '@/server/repositories/auditLog.repository';
 import { resolveCallerSnapshot } from '@/server/utils/resolveCallerSnapshot';
 import { notifyMajelisRaSubmitted } from '@/lib/notificationService';
 
-// GET: Fetch a single Anggaran Tahunan with its details
+// GET: Ambilin data Anggaran Tahunan secara spesifik sama tetek-bengeknya
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
   const id = resolvedParams.id;
@@ -84,14 +84,14 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     await client.query('BEGIN');
 
-    // Fetch previous status for audit trail
+    // Tarik status sebelumnya buat nambahin rekam jejak
     const prevStatusRes = await client.query(
       `SELECT status, kode_dokumen, satelit_id FROM public.anggaran_tahunan WHERE id = $1`, [id]
     );
     const prevStatus = prevStatusRes.rows[0]?.status || 'Draft';
     const kode_dokumen = prevStatusRes.rows[0]?.kode_dokumen || '';
 
-    // IDOR check: pastikan anggaran milik satelit caller
+    // Cek keamanan IDOR: pastiin ini anggarannya beneran punya satelit si pemanggil
     if (!caller.is_super_admin) {
       if (!prevStatusRes.rows[0] || prevStatusRes.rows[0].satelit_id !== caller.satelit_id) {
         await client.query('ROLLBACK');
@@ -118,7 +118,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       [tahun, satelit_id, komisi_id || null, total_anggaran, status, kategori_ra || 'Kegiatan', pola_penggunaan || 'Sekali Pakai', jenis_kegiatan_id || null, nama_rancangan || null, estimasi_waktu || null, id]
     );
 
-    // Fetch existing details to enforce row-level locking
+    // Tarik aja datanya yang ada buat ngunci per baris
     const existingDetails = await client.query(
       `SELECT id, status_item, jumlah, harga_satuan FROM public.anggaran_tahunan_detail WHERE anggaran_tahunan_id = $1`,
       [id]
@@ -140,7 +140,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       }
     }
 
-    // Check for malicious deletions of locked rows
+    // Awas, ada yang iseng ngehapus baris yang udah dikunci
     for (const [existingId, existingRow] of Array.from(existingMap.entries())) {
       if (['ACC', 'Ditolak'].includes(existingRow.status_item) && !incomingIds.has(existingId)) {
         await client.query('ROLLBACK');
@@ -162,7 +162,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       if (item.id && existingMap.has(item.id)) {
         const existingRow = existingMap.get(item.id);
         if (!['ACC', 'Ditolak'].includes(existingRow.status_item)) {
-          // Update unlocked row, reset status to Menunggu Review if action is ajukan
+          // Update barisnya, kalau diajukan ganti balik statusnya jadi Menunggu Review
           const newStatus = action === 'ajukan' ? 'Menunggu Review' : existingRow.status_item;
           await client.query(
             `UPDATE public.anggaran_tahunan_detail
@@ -189,7 +189,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (status === 'Menunggu Review') {
       const isResubmit = prevStatus === 'Revisi';
 
-      // Fetch RA details + majelis emails in one go (parallel)
+      // Borong aja datanya RA sama email majelisnya sekalian jalan
       Promise.all([
         resolveCallerSnapshot(caller),
         pool.query(
@@ -287,7 +287,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       }, { status: 403 });
     }
 
-    // IDOR check: pastikan anggaran milik satelit caller
+    // Cek keamanan IDOR: pastiin ini anggarannya beneran punya satelit si pemanggil
     if (!caller.is_super_admin && doc.satelit_id !== caller.satelit_id) {
       await client.query('ROLLBACK');
       return NextResponse.json({ success: false, message: 'Akses ditolak: anggaran bukan milik satelit Anda' }, { status: 403 });

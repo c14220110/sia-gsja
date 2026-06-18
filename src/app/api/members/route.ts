@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
       offset: searchParams.has('offset') ? parseInt(searchParams.get('offset')!) : 0,
     };
 
-    // RBAC Security Check
+    // Cek hak akses (RBAC)
     const caller = getCallerFromRequest(request);
 
     if (!caller || (!caller.is_super_admin && !caller.permissions.includes('jemaat_view'))) {
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       }, { status: 403 });
     }
 
-    // Jika tidak punya multi_satelit_view → filter by satelit_id sendiri
+    // Kalau kagak dapet view muti_satelit -> yah kepaksa harus disaring satelit sendiri
     if (!caller.is_super_admin && !caller.permissions.includes('multi_satelit_view')) {
        params.satelit_id = caller.satelit_id?.toString();
     }
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    // RBAC Check for Create Jemaat
+    // Satpam pengecekan: Dia punya kunci buat nyiptain data jemaat gak?
     const caller = getCallerFromRequest(request);
 
     if (!caller || (!caller.is_super_admin && !caller.permissions.includes('jemaat_create'))) {
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
 
-    // Inline validation: nama_lengkap is required
+    // Validasi: nama_lengkap wajib diisi
     if (!body.nama_lengkap || typeof body.nama_lengkap !== 'string' || body.nama_lengkap.trim() === '') {
       return NextResponse.json({
         success: false,
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Inline validation: satelit_id is required (NOT NULL in DB)
+    // Penting: Wajib bin harus ngisi satelit_id (Tabelnya nangis kalo kosong)
     if (!body.satelit_id && body.satelit_id !== 0) {
       return NextResponse.json({
         success: false,
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
 
     const newId = await jemaatRepository.createJemaat(body);
 
-    // Insert audit log for CREATE
+    // Catat riwayat audit untuk aksi pembuatan
     if (caller) {
       await auditLogRepository.insertAuditLog({
         jemaat_id:  newId,

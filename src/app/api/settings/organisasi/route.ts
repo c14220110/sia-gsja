@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
 
     // ── Tab 1: Bagan Per Satelit ──────────────────────────────────────────────
     if (tab === 'satelit') {
-      // Ambil semua satelit (filter by caller.satelit_id if not multi_satelit)
+      // Angkat bersih daftar satelit (Saring patokan ID kalau ga punya muti-satelit)
       let satelitQuery = `SELECT id, kode_satelit, nama_satelit, kota, is_active FROM satelit WHERE is_active = true`;
       const satelitParams: any[] = [];
       if (!isMultiSatelit) {
@@ -184,7 +184,7 @@ export async function GET(req: NextRequest) {
 
     // ── Tab 3: Conflict Detection (Jabatan Ganda) ─────────────────────────────
     if (tab === 'konflik') {
-      // Base WHERE for RBAC — parameterized to prevent SQL injection
+      // Tancepin dasaran Klausa WHERE keamanannya (parameterized yak jangan lupa biar ga dijebol SQL)
       const rbacCondition = isMultiSatelit ? '' : `AND j.satelit_id = $1`;
       const rbacParams: any[] = isMultiSatelit ? [] : [caller.satelit_id];
 
@@ -222,7 +222,7 @@ export async function GET(req: NextRequest) {
         ORDER BY COUNT(dk.id) DESC, j.nama_lengkap ASC
       `, rbacParams);
 
-      // Masa jabatan hampir habis (≤ 90 hari dari tanggal_selesai periode)
+      // Wah, masa jabatan mau lengser nih (kurang dari 90 harian lagi)
       const segeraHabisRes = await pool.query(`
         SELECT
           j.id AS jemaat_id,

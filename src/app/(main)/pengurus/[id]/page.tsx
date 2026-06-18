@@ -20,16 +20,16 @@ export default function PengurusDetailPage() {
 
   const [userData, setUserData] = useState<any>(null);
 
-  // States for Modals
+  // State-state buat modal
   const [isAddJabatanOpen, setIsAddJabatanOpen] = useState(false);
   const [isDeactivateOpen, setIsDeactivateOpen] = useState(false);
   const [selectedDetailId, setSelectedDetailId] = useState<number | null>(null);
 
-  // Form Data for Tambah Jabatan
+  // Isian Form Nambah Jabatan
   const [newJabatan, setNewJabatan] = useState<JabatanEntry>(defaultJabatanEntry());
   const [options, setOptions] = useState<any>({ jabatan: [], satelit: [], komisi: [], departemen: [], periode: [] });
 
-  // Form Data for Pemberhentian
+  // Isian Form Buat Berhentiin Orang
   const [deactivateForm, setDeactivateForm] = useState({
     status_jabatan: 'Demisioner',
     tanggal_akhir_menjabat: '',

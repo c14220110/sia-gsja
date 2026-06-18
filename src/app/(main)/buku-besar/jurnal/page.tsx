@@ -33,7 +33,7 @@ export default function JurnalUmumPage() {
   const [jurnalList, setJurnalList] = useState<Jurnal[]>([]);
   const [viewDetailJurnal, setViewDetailJurnal] = useState<any>(null);
   
-  // Options for detail view
+  // Pilihan buat tampilan detail
   const [coaOptions, setCoaOptions] = useState<any[]>([]);
   const [satelitOptions, setSatelitOptions] = useState<any[]>([]);
   const [deptOptions, setDeptOptions] = useState<any[]>([]);

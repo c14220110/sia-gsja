@@ -5,11 +5,11 @@ import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 export async function GET(request: Request) {
   try {
     const caller = getCallerFromRequest(request);
-    // Basic Auth Check
+    // Pengecekan autentikasi dasar
     if (!caller) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
     }
-    // TODO: Add proper permission check for admin/sekretaris
+    // TODO: Nanti tolong tambahkan pengecekan izin yang benar buat admin/sekretaris ya
     if (caller.role_name?.toLowerCase() === 'jemaat') {
       return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
     }
@@ -25,21 +25,21 @@ export async function GET(request: Request) {
     let queryParams: any[] = [];
     let paramIndex = 1;
 
-    // Search by Ticket Number or Jemaat Name
+    // Cari berdasarkan nomor tiket atau nama jemaatnya
     if (search) {
       whereClauses.push(`(p.nomor_tiket ILIKE $${paramIndex} OR pemohon.nama_lengkap ILIKE $${paramIndex} OR p.nama_target_luar ILIKE $${paramIndex})`);
       queryParams.push(`%${search}%`);
       paramIndex++;
     }
 
-    // Filter by Status
+    // Saring berdasarkan status
     if (status) {
       whereClauses.push(`p.status_permohonan = $${paramIndex}`);
       queryParams.push(status);
       paramIndex++;
     }
 
-    // Filter by Jenis Layanan
+    // Saring berdasarkan jenis layanan
     if (jenisLayanan) {
       whereClauses.push(`p.jenis_kegiatan_id = $${paramIndex}`);
       queryParams.push(jenisLayanan);
@@ -48,7 +48,7 @@ export async function GET(request: Request) {
 
     const whereString = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
-    // Main Query
+    // Query utamanya
     const queryMaster = `
       SELECT 
         p.id, p.nomor_tiket, p.untuk_siapa, p.nama_target_luar, 
@@ -93,7 +93,7 @@ export async function GET(request: Request) {
       FROM public.permohonan_layanan_pastoral
     `;
 
-    // Execute queries
+    // Eksekusi query-nya
     const [resMaster, resCount, resStats] = await Promise.all([
       pool.query(queryMaster, [...queryParams, limit, offset]),
       pool.query(countQuery, queryParams),
@@ -104,7 +104,7 @@ export async function GET(request: Request) {
     const stats = resStats.rows[0];
 
     const data = resMaster.rows.map(row => {
-       // Evaluate display status (e.g., SLA Breached)
+       // Evaluasi status tampilan (misalnya, cek apakah lewat dari batas waktu penyelesaian)
        let displayStatus = row.status_permohonan;
        if (row.status_permohonan === 'Menunggu') {
          const diajukan = new Date(row.waktu_diterima);

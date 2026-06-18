@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST: create new template for a jabatan
+// POST: Tolong buatkan template kinyis-kinyis untuk si jabatannya
 export async function POST(request: NextRequest) {
   const caller = getCallerFromRequest(request);
   if (!caller) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });

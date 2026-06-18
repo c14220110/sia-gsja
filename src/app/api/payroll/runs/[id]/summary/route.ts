@@ -9,7 +9,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const { id: runId } = await params;
 
-    // Fetch Run Header + RA + Satelit + Created By
+    // Ambil Run Header bareng RA, Satelit, dan kreatornya sekalian ngekor
     const runData = await pool.query(`
       SELECT 
         r.*, 

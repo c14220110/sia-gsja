@@ -12,7 +12,7 @@ export default function JadwalDanAcaraPage() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { showLoader, hideLoader } = useLoader();
 
-  // Fetch satelit list once
+  // Tarik list satelit (sekali aja cukup)
   useEffect(() => {
     fetch('/api/master-data?table=satelit')
       .then(r => r.json())
@@ -22,7 +22,7 @@ export default function JadwalDanAcaraPage() {
       .catch(() => {});
   }, []);
 
-  // Fetch events whenever satelit filter changes
+  // Tarik event tiap kali filter satelit diganti
   useEffect(() => {
     const fetchEvents = async () => {
       showLoader();
@@ -69,7 +69,7 @@ export default function JadwalDanAcaraPage() {
     return timeString.substring(0, 5);
   };
 
-  // Filter by kategori
+  // Saring menurut kategorinya
   const filteredEvents = filterKategori === 'Semua'
     ? events
     : events.filter(item => (item.kategori || '') === filterKategori);

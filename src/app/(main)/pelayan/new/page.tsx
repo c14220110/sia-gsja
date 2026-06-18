@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
 import { useLoader } from '@/components/ui/GlobalLoader';
 
-// Helper component for Jemaat Autocomplete
+// Komponen pembantu buat fitur ketik otomatis nama jemaat
 const JemaatAutocomplete = ({ 
   label, 
   valueName, 
@@ -118,11 +118,11 @@ export default function NewPelayanPage() {
   
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
 
-  // Selected Jemaat state
+  // Ini tempat nyimpan data jemaat yang lagi dipilih
   const [selectedJemaat, setSelectedJemaat] = useState<any>(null);
   const [jemaatSearchQuery, setJemaatSearchQuery] = useState('');
 
-  // Form State
+  // State untuk form isian utamanya
   const [formData, setFormData] = useState({
     tanggal_mulai: '',
     catatan: '',
@@ -161,7 +161,7 @@ export default function NewPelayanPage() {
     fetchOptions();
   }, []);
 
-  // Saat jemaat dipilih, set default satelit ke satelit asal jemaat (bisa diubah)
+  // Begitu nama jemaat di-klik, default satelit pelayanannya ngikutin satelit asal si jemaat (tapi tenang, masih bisa diganti kok)
   useEffect(() => {
     if (selectedJemaat?.satelit_id) {
       setSelectedSatelitId(selectedJemaat.satelit_id.toString());

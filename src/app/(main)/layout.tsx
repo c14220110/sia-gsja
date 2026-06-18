@@ -53,7 +53,7 @@ export default function DashboardLayout({
   };
 
   useEffect(() => {
-    // Fetch currently active user from JWT
+    // Tarik info pengguna aktif dari token JWT
     const fetchUser = async () => {
       showLoader();
       try {
@@ -93,7 +93,7 @@ export default function DashboardLayout({
 
   const handleSwitchRole = () => {
     if (userData) {
-      // Tidak perlu simpan user_id — backend akan verifikasi identitas lewat access_token cookie.
+      // Gak perlu nyimpen user_id — urusan identitas biar diurus backend liat cookie.
       // Cukup simpan daftar role untuk ditampilkan di halaman pilih role.
       const payload = {
         available_roles: userData.available_roles || []
@@ -114,7 +114,7 @@ export default function DashboardLayout({
     return userData.permissions?.includes?.(perm);
   };
 
-  // Note: Sekretaris Satelit visibility was previously controlled by isSekretarisSatelit (role_id===7).
+  // Info: Dulu hak akses Sekretaris Satelit diatur pake isSekretarisSatelit kaku.
   // Now fully driven by hasPermission() on each menu section — no hardcoded role_id needed.
 
   let topbarTitle = 'Dashboard Utama';
@@ -162,7 +162,7 @@ export default function DashboardLayout({
     );
   }
 
-  // Selama data pengguna belum termuat, tampilkan layar kosong blank
+  // Selama data user-nya masih muter, kasih layar putih kosong aja sementara
   // agar sidebar admin tidak "flash" sesaat sebelum redirect ke PWA Jemaat
   if (!userData) {
     return (

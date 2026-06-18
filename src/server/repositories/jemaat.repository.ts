@@ -11,10 +11,10 @@ export interface JemaatData {
   status_jemaat: string;
   tanggal_lahir: Date | null;
   foto_url: string | null;
-  // This will grab their komisi from relasi or just let's join from detail_pelayanan if we can or keep it a simple string agg based on future schema.
-  // For the moment, since user requested to filter "Komisi" we will structure it. 
-  // However, looking at the schema, there isn't a direct "komisi_id" on jemaat. Pelayan has "role_pelayanan_id". 
-  // We will pull the komisi array as a joined string if possible, or placeholder.
+  // Ini akan mengambil data komisi mereka atau menggunakan string gabungan.
+  // Sementara ini kita format karena ada permintaan filter "Komisi". 
+  // Berdasarkan struktur database, tidak ada komisi_id langsung di jemaat. 
+  // Kita akan tarik data komisi sebagai teks gabungan jika memungkinkan.
   komisi: string; 
 }
 
@@ -66,7 +66,7 @@ export class JemaatRepository {
       WHERE j.is_deleted = false
     `;
 
-    // Filter clauses will be appended
+    // Kriteria filter akan ditambahkan di sini
     const queryParams: any[] = [];
     let paramIndex = 1;
     let whereClauses = [];
@@ -85,9 +85,9 @@ export class JemaatRepository {
 
     if (komisi_id) {
       if (komisi_id === 'none') {
-        whereClauses.push(`jk.komisi_id IS NULL`);
+        whereClauses.push(`NOT EXISTS (SELECT 1 FROM jemaat_komisi jk_sub WHERE jk_sub.jemaat_id = j.id AND jk_sub.is_active = true)`);
       } else {
-        whereClauses.push(`jk.komisi_id = $${paramIndex}`);
+        whereClauses.push(`EXISTS (SELECT 1 FROM jemaat_komisi jk_sub WHERE jk_sub.jemaat_id = j.id AND jk_sub.is_active = true AND jk_sub.komisi_id = $${paramIndex})`);
         queryParams.push(parseInt(komisi_id, 10));
         paramIndex++;
       }
@@ -141,7 +141,7 @@ export class JemaatRepository {
       baseQuery += ` AND ` + whereClauses.join(' AND ');
     }
 
-    // Group by for STRING_AGG
+    // Dikelompokkan untuk menggabungkan teks (STRING_AGG)
     baseQuery += `
       GROUP BY 
         j.id,
@@ -157,7 +157,7 @@ export class JemaatRepository {
         j.created_at
     `;
 
-    // Wrap in CTE to get total count easily
+    // Dibungkus dalam CTE supaya gampang menghitung total datanya
     const finalQuery = `
       WITH FilteredData AS (${baseQuery})
       SELECT *
@@ -166,7 +166,7 @@ export class JemaatRepository {
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1};
     `;
 
-    // Separate count query — always reflects filters accurately regardless of pagination
+    // Query hitungan terpisah — selalu akurat sesuai filter walau halamannya berganti
     const countBaseQuery = `
       SELECT count(DISTINCT j.id) as total_count
       FROM jemaat j
@@ -175,7 +175,7 @@ export class JemaatRepository {
       WHERE j.is_deleted = false
     ` + (whereClauses.length > 0 ? ` AND ` + whereClauses.join(' AND ') : '');
 
-    // Filtered "jemaat baru bulan ini" — must run BEFORE pushing limit/offset into queryParams
+    // Filter "jemaat baru bulan ini" — harus dijalankan SEBELUM menambahkan limit/offset ke parameter query
     let newThisMonthQuery = `
       SELECT count(DISTINCT j.id) as total_baru
       FROM jemaat j
@@ -194,7 +194,7 @@ export class JemaatRepository {
     const total = parseInt(countResult.rows[0]?.total_count ?? '0', 10);
     const jemaat_baru = parseInt(newThisMonthResult.rows[0].total_baru, 10) || 0;
 
-    // Now push limit/offset for the main paginated query
+    // Sekarang masukkan limit/offset untuk query utama halamannya
     queryParams.push(limit, offset);
 
     const result = await pool.query(finalQuery, queryParams);
@@ -205,7 +205,7 @@ export class JemaatRepository {
     }
 
 
-    // Map data
+    // Format ulang datanya
     const data: JemaatData[] = result.rows.map(r => ({
       id: r.id,
       jemaat_id: r.jemaat_id,
@@ -252,7 +252,7 @@ export class JemaatRepository {
 
       let nextNum = 0;
       if (countRes.rows.length > 0) {
-        const lastId = countRes.rows[0].jemaat_id; // e.g. "12027800"
+        const lastId = countRes.rows[0].jemaat_id; // contoh: "12027800"
         if (lastId && lastId.length >= 8) {
            const lastCounter = parseInt(lastId.slice(-2), 10);
            if (!isNaN(lastCounter)) {
@@ -262,7 +262,7 @@ export class JemaatRepository {
       }
       const jemaatId = `${idPrefix}${nextNum.toString().padStart(2, '0')}`;
 
-      // Insert Jemaat
+      // Masukkan data Jemaat
       const insertJemaatQuery = `
         INSERT INTO jemaat (
           jemaat_id, nama_lengkap, jenis_kelamin, tempat_lahir, tanggal_lahir,
@@ -318,7 +318,7 @@ export class JemaatRepository {
       const res = await client.query(insertJemaatQuery, jemaatValues);
       const newJemaatId = res.rows[0].id;
 
-      // Insert komisi map if provided
+      // Masukkan data komisi jika ada
       if (data.komisi_ids && Array.isArray(data.komisi_ids) && data.komisi_ids.length > 0) {
         const insertKomisiQuery = `
           INSERT INTO jemaat_komisi (jemaat_id, komisi_id, tanggal_bergabung)
@@ -329,7 +329,7 @@ export class JemaatRepository {
         }
       }
 
-      // Insert departemen map if provided
+      // Masukkan data departemen jika ada
       if (data.departemen_ids && Array.isArray(data.departemen_ids) && data.departemen_ids.length > 0) {
         const insertDeptQuery = `
           INSERT INTO jemaat_departemen (jemaat_id, departemen_id, satelit_id, tanggal_bergabung)
@@ -344,7 +344,7 @@ export class JemaatRepository {
         }
       }
 
-      // Insert Anak records into relasi_jemaat (replaces jemaat_anak)
+      // Masukkan data Anak ke relasi_jemaat (menggantikan jemaat_anak)
       if (data.anak && Array.isArray(data.anak) && data.anak.length > 0) {
         const jrAnakRes = await client.query(`SELECT id FROM jenis_relasi WHERE nama_relasi = 'Anak' LIMIT 1`);
         if (jrAnakRes.rows.length > 0) {
@@ -365,15 +365,15 @@ export class JemaatRepository {
       }
 
       // ── Bidirectional anak sync (create) ──────────────────────────────────
-      // After inserting anak relations, update each registered anak's ayah_id or ibu_id
-      // so the child's profile automatically shows this person as their parent.
-      // Guard: only update if the field is currently NULL (never overwrite existing parent).
+      // Setelah menyimpan relasi anak, perbarui data ayah_id atau ibu_id pada profil si anak
+      // supaya profil anak otomatis memunculkan orang ini sebagai orang tuanya.
+      // Penjaga: hanya update jika datanya masih kosong (jangan pernah timpa data orang tua yang sudah ada).
       if (data.anak && Array.isArray(data.anak) && data.jenis_kelamin) {
         for (const ank of data.anak) {
           const anakRegisteredId = ank.anak_jemaat_id ? parseInt(ank.anak_jemaat_id, 10) : null;
-          if (!anakRegisteredId) continue; // skip unnamed / external children (no DB record)
+          if (!anakRegisteredId) continue; // lewati kalau anaknya tidak ada namanya / tidak terdaftar di database
           if (data.jenis_kelamin === 'Laki-laki') {
-            // This person is the father — set child's ayah_id if not already set
+            // Orang ini adalah sang Ayah — atur ayah_id anak jika belum ada
             await client.query(
               `UPDATE jemaat
                SET ayah_id = $1, ayah_nama = $2, updated_at = CURRENT_TIMESTAMP
@@ -381,7 +381,7 @@ export class JemaatRepository {
               [newJemaatId, data.nama_lengkap, anakRegisteredId]
             );
           } else if (data.jenis_kelamin === 'Perempuan') {
-            // This person is the mother — set child's ibu_id if not already set
+            // Orang ini adalah sang Ibu — atur ibu_id anak jika belum ada
             await client.query(
               `UPDATE jemaat
                SET ibu_id = $1, ibu_nama = $2, updated_at = CURRENT_TIMESTAMP
@@ -393,9 +393,9 @@ export class JemaatRepository {
       }
 
       // ── Reverse parent sync (create) ─────────────────────────────────────
-      // If this new jemaat declares a registered parent (ayah_id / ibu_id),
-      // we insert a 'Anak' relasi_jemaat entry on the parent side so that
-      // the parent's family tree node immediately shows this person as a child.
+      // Kalau jemaat baru ini memasukkan orang tua yang terdaftar (ayah_id / ibu_id),
+      // kita juga buatkan relasi 'Anak' di sisi orang tuanya supaya
+      // pohon keluarga sang orang tua langsung memunculkan orang ini sebagai anaknya.
       {
         const jrAnakRes2 = await client.query(`SELECT id FROM jenis_relasi WHERE nama_relasi = 'Anak' LIMIT 1`);
         if (jrAnakRes2.rows.length > 0) {
@@ -403,7 +403,7 @@ export class JemaatRepository {
 
           if (data.ayah_id) {
             const ayahDbId = parseInt(data.ayah_id, 10);
-            // Only insert if not already present
+            // Hanya simpan kalau datanya belum ada
             await client.query(
               `INSERT INTO relasi_jemaat (jemaat_id, jemaat_terkait_id, jenis_relasi_id, nama_terkait)
                VALUES ($1, $2, $3, $4)
@@ -425,19 +425,19 @@ export class JemaatRepository {
       }
 
       if (data.saudara && Array.isArray(data.saudara) && data.saudara.length > 0) {
-        // Get jenis_relasi_id for 'Saudara Kandung'
+        // Ambil ID jenis relasi untuk 'Saudara Kandung'
         const jrRes = await client.query(`SELECT id FROM jenis_relasi WHERE nama_relasi = 'Saudara Kandung' LIMIT 1`);
         if (jrRes.rows.length > 0) {
           const jenisRelasiId = jrRes.rows[0].id;
           for (const s of data.saudara) {
             const saudaraId = s.saudara_jemaat_id ? parseInt(s.saudara_jemaat_id, 10) : null;
             if (saudaraId) {
-              // A -> B
+              // A ke B
               await client.query(
                 `INSERT INTO relasi_jemaat (jemaat_id, jemaat_terkait_id, jenis_relasi_id) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
                 [newJemaatId, saudaraId, jenisRelasiId]
               );
-              // B -> A (bidirectional)
+              // B ke A (dua arah)
               await client.query(
                 `INSERT INTO relasi_jemaat (jemaat_id, jemaat_terkait_id, jenis_relasi_id) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
                 [saudaraId, newJemaatId, jenisRelasiId]
@@ -450,7 +450,7 @@ export class JemaatRepository {
       // ── Bidirectional pasangan sync ────────────────────────────────────
       const newPasanganId = data.pasangan_id ? parseInt(data.pasangan_id, 10) : null;
       if (newPasanganId) {
-        // Set partner's pasangan_id → newJemaatId, pasangan_nama → this person's name
+        // Atur pasangan_id sang pasangan ke ID jemaat baru, dan namanya ke orang ini
         await client.query(
           `UPDATE jemaat SET pasangan_id = $1, pasangan_nama = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3 AND (pasangan_id IS NULL OR pasangan_id <> $1)`,
           [newJemaatId, data.nama_lengkap, newPasanganId]
@@ -491,12 +491,12 @@ export class JemaatRepository {
     const res = await pool.query(query, [id]);
     if (res.rows.length === 0) return null;
     
-    // Map Array string items to string so it plays nice with frontend expecting string[]
+    // Ubah format array supaya cocok dengan frontend
     const row = res.rows[0];
     row.komisi_ids = row.komisi_ids ? row.komisi_ids.map((k: number) => k.toString()) : [];
     row.departemen_ids = row.departemen_ids ? row.departemen_ids.map((k: number) => k.toString()) : [];
     
-    // Fetch fallback parents if not defined in main jemaat table
+    // Tarik data orang tua cadangan kalau tidak ada di tabel utama
     if (!row.ayah_id || !row.ibu_id) {
       const parentQuery = `
         SELECT
@@ -520,7 +520,7 @@ export class JemaatRepository {
       }
     }
     
-    // Fetch children from relasi_jemaat (replaces jemaat_anak)
+    // Tarik data anak dari tabel relasi
     const anakQuery = `
       SELECT
         rj.id,
@@ -543,7 +543,7 @@ export class JemaatRepository {
       gereja_asal_anak: a.gereja_asal_anak || ''
     }));
 
-    // Fetch saudara kandung from relasi_jemaat
+    // Tarik data saudara kandung dari tabel relasi
     const saudaraQuery = `
       SELECT
         rj.id,
@@ -589,7 +589,7 @@ export class JemaatRepository {
       const current = currentRes.rows[0];
       let newJemaatId: string | null = null;
 
-      // Convert dates to YYYY-MM-DD for comparison
+      // Ubah format tanggal ke YYYY-MM-DD supaya bisa dibandingkan
       const oldDate = current.tanggal_lahir ? new Date(current.tanggal_lahir).toISOString().split('T')[0] : null;
       const newDate = data.tanggal_lahir ? new Date(data.tanggal_lahir).toISOString().split('T')[0] : null;
 
@@ -605,14 +605,14 @@ export class JemaatRepository {
 
         const idPrefix = `${dateCode}`;
 
-        // Find next available counter for this prefix
+        // Cari nomor urut berikutnya untuk awalan ID ini
         const lastRes = await client.query(
           `SELECT jemaat_id FROM jemaat WHERE jemaat_id LIKE $1 ORDER BY jemaat_id DESC LIMIT 1`,
           [`${idPrefix}%`]
         );
         let nextNum = 0;
         if (lastRes.rows.length > 0) {
-          const lastId: string = lastRes.rows[0].jemaat_id; // e.g. "12027800"
+          const lastId: string = lastRes.rows[0].jemaat_id; // contoh: "12027800"
           if (lastId.length >= 8) {
             const lastCounter = parseInt(lastId.slice(-2), 10);
             if (!isNaN(lastCounter)) nextNum = lastCounter + 1;
@@ -676,10 +676,10 @@ export class JemaatRepository {
       const primaryId = res.rows[0].id;
 
       // ── Propagate nama_lengkap change to denormalized name fields ──────────
-      // Whenever a person's name changes, update all records that store their
-      // name as a cached/denormalized text field so UI is always consistent.
-      const oldNama = current.nama_lengkap; // not fetched yet — fetch separately if needed
-      // We always propagate unconditionally (cheap & safe — no-op if name unchanged)
+      // Setiap kali nama seseorang berubah, perbarui juga semua catatan lain yang menyimpan
+      // namanya secara teks agar tampilannya selalu seragam.
+      const oldNama = current.nama_lengkap; // belum diambil datanya — ambil secara terpisah kalau butuh
+      // Kita selaraskan tanpa syarat (prosesnya ringan & aman — tidak akan diproses kalau namanya sama saja)
       await client.query(
         `UPDATE jemaat SET ayah_nama = $1, updated_at = CURRENT_TIMESTAMP
          WHERE ayah_id = $2 AND is_deleted = false`,
@@ -701,13 +701,13 @@ export class JemaatRepository {
         [data.nama_lengkap, primaryId]
       );
 
-      // Wipe current komisi, departemen & anak bindings
+      // Hapus data ikatan komisi, departemen & anak yang lama
       await client.query(`DELETE FROM jemaat_komisi WHERE jemaat_id = $1`, [primaryId]);
       await client.query(`DELETE FROM jemaat_departemen WHERE jemaat_id = $1`, [primaryId]);
 
       // ── Snapshot old anak list BEFORE wiping (needed for back-link cleanup) ─
-      // We capture which registered jemaat were children of this person,
-      // so we can clear their ayah_id/ibu_id if they are removed from the list.
+      // Kita catat siapa saja jemaat terdaftar yang merupakan anak dari orang ini,
+      // supaya kita bisa menghapus ayah_id/ibu_id mereka kalau orang ini dihapus dari daftarnya.
       let oldAnakIds: number[] = [];
       const jrAnakDel = await client.query(`SELECT id FROM jenis_relasi WHERE nama_relasi = 'Anak' LIMIT 1`);
       const jenisAnakId = jrAnakDel.rows.length > 0 ? jrAnakDel.rows[0].id : null;
@@ -717,14 +717,14 @@ export class JemaatRepository {
           [primaryId, jenisAnakId]
         );
         oldAnakIds = oldAnakRes.rows.map((r: any) => r.jemaat_terkait_id);
-        // Now delete the anak relations
+        // Sekarang hapus relasi anaknya
         await client.query(
           `DELETE FROM relasi_jemaat WHERE jemaat_id = $1 AND jenis_relasi_id = $2`,
           [primaryId, jenisAnakId]
         );
       }
 
-      // Re-insert komisi bindings if provided
+      // Simpan ulang data ikatan komisi jika ada
       if (data.komisi_ids && Array.isArray(data.komisi_ids) && data.komisi_ids.length > 0) {
         const insertKomisiQuery = `
           INSERT INTO jemaat_komisi (jemaat_id, komisi_id, tanggal_bergabung)
@@ -735,7 +735,7 @@ export class JemaatRepository {
         }
       }
 
-      // Re-insert departemen bindings if provided
+      // Simpan ulang data ikatan departemen jika ada
       if (data.departemen_ids && Array.isArray(data.departemen_ids) && data.departemen_ids.length > 0) {
         const insertDeptQuery = `
           INSERT INTO jemaat_departemen (jemaat_id, departemen_id, satelit_id, tanggal_bergabung)
@@ -750,7 +750,7 @@ export class JemaatRepository {
         }
       }
 
-      // Re-insert Anak records into relasi_jemaat if provided
+      // Simpan ulang data Anak ke tabel relasi jika ada
       const newAnakIds: number[] = [];
       if (data.anak && Array.isArray(data.anak) && data.anak.length > 0 && jenisAnakId) {
         for (const ank of data.anak) {
@@ -775,7 +775,7 @@ export class JemaatRepository {
       const removedAnakIds = oldAnakIds.filter(id => !newAnakIds.includes(id));
       for (const removedId of removedAnakIds) {
         if (parentGender === 'Laki-laki') {
-          // Only clear if it was pointing to THIS person (avoid clearing unrelated ayah)
+          // Hanya hapus kalau datanya merujuk ke orang INI (jangan sampai menghapus ayah orang lain)
           await client.query(
             `UPDATE jemaat SET ayah_id = NULL, ayah_nama = NULL, updated_at = CURRENT_TIMESTAMP
              WHERE id = $1 AND is_deleted = false AND ayah_id = $2`,
@@ -791,7 +791,7 @@ export class JemaatRepository {
       }
 
       // (b) Set back-links for CURRENT anak list (newly added or re-confirmed)
-      // Guard: only update if field is NULL — never overwrite another parent's link.
+      // Penjaga: hanya update kalau masih kosong — jangan pernah menimpa relasi orang tua yang lain.
       for (const anakId of newAnakIds) {
         if (parentGender === 'Laki-laki') {
           await client.query(
@@ -809,7 +809,7 @@ export class JemaatRepository {
       }
 
       // ── Reverse parent sync (update) ──────────────────────────────────────
-      // When this person changes their ayah_id or ibu_id, we must:
+      // Saat orang ini mengganti ayah_id atau ibu_id mereka, kita wajib:
       //  (a) Remove the 'Anak' relasi from the OLD parent (if any)
       //  (b) Add an 'Anak' relasi to the NEW parent (if any)
       if (jenisAnakId) {
@@ -820,14 +820,14 @@ export class JemaatRepository {
 
         // ── Ayah changed ──
         if (oldAyahId !== newAyahId) {
-          // Remove from old ayah's anak list
+          // Hapus dari daftar anak milik ayah yang lama
           if (oldAyahId) {
             await client.query(
               `DELETE FROM relasi_jemaat WHERE jemaat_id = $1 AND jemaat_terkait_id = $2 AND jenis_relasi_id = $3`,
               [oldAyahId, primaryId, jenisAnakId]
             );
           }
-          // Add to new ayah's anak list
+          // Tambahkan ke daftar anak milik ayah yang baru
           if (newAyahId) {
             await client.query(
               `INSERT INTO relasi_jemaat (jemaat_id, jemaat_terkait_id, jenis_relasi_id, nama_terkait)
@@ -839,14 +839,14 @@ export class JemaatRepository {
 
         // ── Ibu changed ──
         if (oldIbuId !== newIbuId) {
-          // Remove from old ibu's anak list
+          // Hapus dari daftar anak milik ibu yang lama
           if (oldIbuId) {
             await client.query(
               `DELETE FROM relasi_jemaat WHERE jemaat_id = $1 AND jemaat_terkait_id = $2 AND jenis_relasi_id = $3`,
               [oldIbuId, primaryId, jenisAnakId]
             );
           }
-          // Add to new ibu's anak list
+          // Tambahkan ke daftar anak milik ibu yang baru
           if (newIbuId) {
             await client.query(
               `INSERT INTO relasi_jemaat (jemaat_id, jemaat_terkait_id, jenis_relasi_id, nama_terkait)
@@ -857,16 +857,16 @@ export class JemaatRepository {
         }
       }
 
-      // Re-insert Saudara (relasi_jemaat) — delete old bidirectional, then re-insert
+      // Simpan ulang relasi Saudara — hapus dua-arah yang lama, baru simpan lagi
       const jrRes = await client.query(`SELECT id FROM jenis_relasi WHERE nama_relasi = 'Saudara Kandung' LIMIT 1`);
       if (jrRes.rows.length > 0) {
         const jenisRelasiId = jrRes.rows[0].id;
-        // Delete outgoing relations from this person
+        // Hapus relasi yang mengarah ke luar dari orang ini
         await client.query(
           `DELETE FROM relasi_jemaat WHERE jemaat_id = $1 AND jenis_relasi_id = $2`,
           [primaryId, jenisRelasiId]
         );
-        // Delete incoming relations that point TO this person (bidirectional cleanup)
+        // Hapus relasi masuk yang mengarah KE orang ini (pembersihan dua-arah)
         await client.query(
           `DELETE FROM relasi_jemaat WHERE jemaat_terkait_id = $1 AND jenis_relasi_id = $2`,
           [primaryId, jenisRelasiId]
@@ -875,12 +875,12 @@ export class JemaatRepository {
           for (const s of data.saudara) {
             const saudaraId = s.saudara_jemaat_id ? parseInt(s.saudara_jemaat_id, 10) : null;
             if (saudaraId) {
-              // A -> B
+              // A ke B
               await client.query(
                 `INSERT INTO relasi_jemaat (jemaat_id, jemaat_terkait_id, jenis_relasi_id) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
                 [primaryId, saudaraId, jenisRelasiId]
               );
-              // B -> A
+              // B ke A
               await client.query(
                 `INSERT INTO relasi_jemaat (jemaat_id, jemaat_terkait_id, jenis_relasi_id) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
                 [saudaraId, primaryId, jenisRelasiId]
@@ -894,7 +894,7 @@ export class JemaatRepository {
       const newPasanganId = data.pasangan_id ? parseInt(data.pasangan_id, 10) : null;
       const oldPasanganId = current.pasangan_id ? parseInt(current.pasangan_id, 10) : null;
 
-      // If partner changed: clear old partner's back-link
+      // Jika pasangannya diganti: hapus tautan balik dari pasangan yang lama
       if (oldPasanganId && oldPasanganId !== newPasanganId) {
         await client.query(
           `UPDATE jemaat SET pasangan_id = NULL, pasangan_nama = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND pasangan_id = $2`,
@@ -902,7 +902,7 @@ export class JemaatRepository {
         );
       }
 
-      // Set new partner's back-link
+      // Atur tautan balik untuk pasangan yang baru
       if (newPasanganId) {
         await client.query(
           `UPDATE jemaat SET pasangan_id = $1, pasangan_nama = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3 AND (pasangan_id IS NULL OR pasangan_id <> $1)`,
@@ -910,7 +910,7 @@ export class JemaatRepository {
         );
       }
 
-      // If pasangan cleared (was set, now null): clear partner's back-link too
+      // Kalau pasangannya dihapus (sebelumnya ada, sekarang kosong): hapus tautan baliknya juga
       if (!newPasanganId && oldPasanganId) {
         await client.query(
           `UPDATE jemaat SET pasangan_id = NULL, pasangan_nama = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND pasangan_id = $2`,

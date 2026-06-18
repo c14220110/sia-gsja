@@ -180,7 +180,7 @@ export async function exportToExcel(data: any, tahun: string, satelitName: strin
     ws.addRow([]);
   });
 
-  // Grand Total
+  // Total Semuanya Kumpul
   const totalRow = ws.addRow(['', '', 'GRAND TOTAL', '', '', s.total_penerimaan, s.total_pengeluaran, '']);
   [1,2,3,4,5,6,7,8].forEach(c => fill(totalRow.getCell(c), SLATE_800, WHITE, true, 11));
   totalRow.getCell(6).numFmt = '"Rp "#,##0'; totalRow.getCell(6).alignment = { horizontal: 'right', vertical: 'middle' };
@@ -350,7 +350,7 @@ export async function exportToPDF(data: any, tahun: string, satelitName: string)
   doc.line(14, tableStartY, pw - 14, tableStartY);
 
   // ── Table — Grouped by Satelit ──
-  // Build body with satelit sub-headers, data rows, and sub-total rows
+  // Bangun bodi ama judul anakan sub-satelitnya, barisan datanya jg row totalan anakannya
   const bySatelit: Record<string, any[]> = {};
   data.list.forEach((r: any) => {
     const key = r.nama_satelit || 'Lainnya';

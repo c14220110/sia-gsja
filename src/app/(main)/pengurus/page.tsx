@@ -16,14 +16,14 @@ export default function PengurusPage() {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [submitState, setSubmitState] = useState<{ status: 'idle'|'loading'|'success'|'error', message: string, errors?: any }>({ status: 'idle', message: '' });
 
-  // Alert Modal State
+  // State popup alert peringatannya
   const [alertState, setAlertState] = useState<{ isOpen: boolean; id: number | null; newStatus: string }>({
     isOpen: false,
     id: null,
     newStatus: ''
   });
 
-  // Authentication State
+  // State Sesi Login-nya
   const [userData, setUserData] = useState<any>(null);
   
   const hasPermission = (perm: string) => {
@@ -32,7 +32,7 @@ export default function PengurusPage() {
     return userData.permissions?.includes?.(perm);
   };
 
-  // Options State
+  // Pilihan Data Dropdown
   const [satelitOptions,     setSatelitOptions]     = useState<any[]>([]);
   const [jabatanOptions,     setJabatanOptions]     = useState<any[]>([]);
   const [periodeOptions,     setPeriodeOptions]     = useState<any[]>([]);
@@ -40,7 +40,7 @@ export default function PengurusPage() {
   const [komisiOptions,      setKomisiOptions]      = useState<any[]>([]);
   const [roleOptions,        setRoleOptions]        = useState<any[]>([]);
 
-  // Modal Buatkan Akun State
+  // State popup buatin akunnya
   const [akunModal, setAkunModal] = useState<{
     open: boolean;
     pengurusId: number | null;
@@ -59,7 +59,7 @@ export default function PengurusPage() {
   const [akunSubmitState, setAkunSubmitState] = useState<'idle'|'loading'|'success'|'error'>('idle');
   const [akunError, setAkunError] = useState('');
 
-  // Modal Kelola Akun State
+  // State popup ngatur akunnya
   const [kelolaAkunModal, setKelolaAkunModal] = useState<{
     open: boolean;
     pengurusId: number | null;
@@ -72,7 +72,7 @@ export default function PengurusPage() {
   const [kelolaAkunSubmitState, setKelolaAkunSubmitState] = useState<'idle'|'loading'|'success'|'error'>('idle');
   const [kelolaAkunError, setKelolaAkunError] = useState('');
 
-  // Komisi terfilter untuk modal (tidak dipakai lagi, tapi dijaga agar tidak error)
+  // Komisi saringan buat popup (walau udah jarang kepake, biarin aja biar gak ngadat)
   const filteredKomisiModal: any[] = [];
 
   // Role yang butuh komisi/departemen scope
@@ -80,7 +80,7 @@ export default function PengurusPage() {
   const isKomisiRole = false;
   const isDepartemenRole = false;
 
-  // Pagination & Stats State
+  // State Halaman dan Statistiknya
   const [data,          setData]          = useState<any[]>([]);
   const [totalItems,    setTotalItems]    = useState(0);
   const [pengurusBaru,  setPengurusBaru]  = useState(0);
@@ -100,7 +100,7 @@ export default function PengurusPage() {
   const [filterKomisi,         setFilterKomisi]         = useState('');
   const [filterDepartemen,     setFilterDepartemen]     = useState('');
 
-  // Local temp states for Advanced Filters (apply button)
+  // Data mampir sementara buat Saringan Lanjutan (biar tombol terapkan guna)
   const [tempLingkup,          setTempLingkup]          = useState('');
   const [tempSatelitPenugasan, setTempSatelitPenugasan] = useState('');
   const [tempJabatan,          setTempJabatan]          = useState('');
@@ -108,7 +108,7 @@ export default function PengurusPage() {
   const [tempKomisi,           setTempKomisi]           = useState('');
   const [tempDepartemen,       setTempDepartemen]       = useState('');
 
-  // Fetch Options and User Data on Mount
+  // Tarik semua data dropdown dan profil pas pertama dibuka
   useEffect(() => {
     const fetchOptionsAndUser = async () => {
       showLoader();
@@ -160,12 +160,12 @@ export default function PengurusPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Reset page to 1 when filters change
+  // Atur balik ke halaman pertama pas filternya diputar
   useEffect(() => {
     setCurrentPage(1);
   }, [debouncedSearch, filterSatelitAsal, filterStatusGlobal, filterLingkup, filterSatelitPenugasan, filterJabatan, filterPeriode, filterKomisi, filterDepartemen]);
 
-  // Fetch Data
+  // Tarik Datanya Yuk
   useEffect(() => {
     const fetchData = async () => {
       showLoader();
@@ -221,7 +221,7 @@ export default function PengurusPage() {
       defaultPassword = `${dd}/${mm}/${yyyy}`;
     }
 
-    // Auto-build roles dari jabatan aktif + mapping ke role sistem
+    // Susun otomatis peran dari jabatan aktifnya + cocokin ke sistem
     const jabatanList: any[] = pengurus.jabatan_aktif_list ?? [];
     const autoRoles = jabatanList.map((jab: any) => {
       // Cari role sistem yang namanya mirip dengan jabatan

@@ -36,16 +36,16 @@ export default function InputAnggaranBaruPage() {
   const [form, setForm] = useState({ jenis:'Pengeluaran', coaId:'', coaLabel:'', sumber_dana:'Kas Mandiri', uraian:'', deskripsi:'', jumlah:1, satuan:'', harga:0 });
   const [items, setItems] = useState<RincianItem[]>([]);
 
-  // COA combobox state
+  // State dropdown COA
   const [coaQuery, setCoaQuery] = useState('');
   const [coaOpen, setCoaOpen] = useState(false);
   const coaRef = useRef<HTMLDivElement>(null);
   
-  // RBAC State
+  // State buat hak akses
   const [userData, setUserData] = useState<any>(null);
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
-  // Fetch COA, Satelit & User Data once
+  // Ambil data COA, satelit, dan profil user sekaligus
   useEffect(() => {
     Promise.all([
       fetch('/api/buku-besar/coa').then(r=>r.json()).catch(() => ({})),
@@ -64,7 +64,7 @@ export default function InputAnggaranBaruPage() {
       }
       if (resUser && (resUser.role_id || resUser.permissions)) {
         setUserData(resUser);
-        // Check authorization via permission (anggaran_create) or super admin
+        // Cek izin (anggaran_create) atau bypass buat bos besar (super admin)
         if (resUser.is_super_admin || resUser.permissions?.includes('anggaran_create')) {
           setIsAuthorized(true);
           // Auto-select satelit berdasarkan penugasan user
@@ -81,7 +81,7 @@ export default function InputAnggaranBaruPage() {
     });
   }, []);
 
-  // Cascading: fetch komisi when satelit changes
+  // Tarik beruntun: ambil data komisi kalau satelitnya berubah
   useEffect(() => {
     setKomisiId(''); setKomisiList([]);
     if (!satelitId) return;
@@ -112,8 +112,8 @@ export default function InputAnggaranBaruPage() {
   }, [satelitId]);
 
 
-  // Filter COA by jenis using kode_akun prefix — more reliable than saldo_normal
-  // which has a known data issue on group 50000 (saldo_normal='Kredit' but should be 'Debit').
+  // Saring COA dari awalan kode_akun — ini jauh lebih tahan banting ketimbang pake saldo_normal
+  // yang emang ada salah data di grup 50000 (saldo_normal 'Kredit' yang harusnya 'Debit').
   // Penerimaan  → 4xxxxx (Pendapatan) | 7xxxxx (Pendapatan Luar Usaha)
   // Pengeluaran → 5xxxxx (Beban Pelayanan) | 6xxxxx (Beban Operasional) | 8xxxxx (Beban Luar Usaha) | 12xxxx (Aset Tetap/CapEx)
   const filteredCoaList = useMemo(() => {
@@ -129,7 +129,7 @@ export default function InputAnggaranBaruPage() {
     });
   }, [coaList, form.jenis]);
 
-  // Reset COA when jenis changes (avoid wrong-type COA staying selected)
+  // Kosongin lagi COA kalau jenisnya ganti (biar COA yang salah tipe gak nyangkut)
   useEffect(() => { setForm(p=>({...p,coaId:'',coaLabel:''})); setCoaQuery(''); setCoaOpen(false); }, [form.jenis]);
 
   // Close COA dropdown on outside click
@@ -141,7 +141,7 @@ export default function InputAnggaranBaruPage() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // Filtered COA results based on coaQuery text
+  // Hasil saringan COA ngikutin ketikan user
   const coaResults = useMemo(() => {
     if (!coaQuery.trim()) return filteredCoaList;
     const q = coaQuery.toLowerCase();
@@ -156,7 +156,7 @@ export default function InputAnggaranBaruPage() {
     setForm(p=>({...p,uraian:'',deskripsi:'',jumlah:1,satuan:'',harga:0}));
   };
 
-  // Inline edit state
+  // State buat ngedit langsung di baris
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<{ uraian: string; deskripsi: string; jumlah: number; satuan: string; harga: number }>({ uraian: '', deskripsi: '', jumlah: 1, satuan: '', harga: 0 });
 
@@ -183,7 +183,7 @@ export default function InputAnggaranBaruPage() {
     return true;
   };
 
-  // Called when user clicks "Ajukan Anggaran" — shows AlertModal first
+  // Kepanggil pas tombol "Ajukan Anggaran" dipencet — munculin modal konfirmasi dulu
   const handleAjukanClick = () => {
     if (!validateFields()) return;
     setShowConfirmAjukan(true);
@@ -241,8 +241,8 @@ export default function InputAnggaranBaruPage() {
     );
   }
 
-  // Determine if fields should be locked based on user role
-  // Ketua Komisi (8) -> only for their satelit & komisi. Bendahara Satelit (6) -> only their satelit.
+  // Tentukan apakah isian form harus dikunci sesuai role usernya
+  // Ketua Komisi (8) -> cuma buat satelit & komisinya. Bendahara Satelit (6) -> cuma buat satelitnya doang.
   const isSatelitLocked = userData?.role_id === 6 || userData?.role_id === 8 || userData?.role_id === 7 || userData?.role_id === 10;
   
   return (
@@ -425,7 +425,7 @@ export default function InputAnggaranBaruPage() {
                       const val = e.target.value;
                       setCoaQuery(val);
                       setCoaOpen(true);
-                      // If user clears the input, also clear selection
+                      // Kalau inputan dihapus, bersihin juga pilihannya
                       if (!val) setForm(p => ({ ...p, coaId: '', coaLabel: '' }));
                     }}
                     onFocus={() => setCoaOpen(true)}

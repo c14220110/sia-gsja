@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 import { auditLogRepository } from '@/server/repositories/auditLog.repository';
 
-// GET: Fetch chronological audit trail for a specific RA document
+// GET: Ambil log jejak historis berurutan untuk RA ini
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
   const id = resolvedParams.id;

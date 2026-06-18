@@ -54,7 +54,7 @@ export default function ViewAnggaranPage({ params }: { params: Promise<{ id: str
   const [userData, setUserData] = useState<any>(null);
   const [showTimeline, setShowTimeline] = useState(false);
 
-  // Batalkan RA state
+  // State batalkan RA
   const [showBatalModal, setShowBatalModal] = useState(false);
   const [alasanBatal, setAlasanBatal] = useState('');
   const [batalState, setBatalState] = useState<{ status: 'idle'|'loading'|'success'|'error'; message: string }>({ status: 'idle', message: '' });
@@ -77,7 +77,7 @@ export default function ViewAnggaranPage({ params }: { params: Promise<{ id: str
   const totalK = useMemo(() => kelItems.reduce((a: number, c: any) => a + Number(c.total), 0), [kelItems]);
   const margin = totalP > 0 ? ((totalP - totalK) / totalP) * 100 : 0;
 
-  // Determine user capabilities via permissions
+  // Tentukan kesaktian pengguna dari izin yang mereka punya
   const isApprover = userData ? (userData.is_super_admin || userData.permissions?.includes('anggaran_review')) : false;
   const isPembuat  = userData?.permissions?.includes('anggaran_create');
   const status = data?.status || '';

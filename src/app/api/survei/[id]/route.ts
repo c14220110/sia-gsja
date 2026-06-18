@@ -14,7 +14,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ success: false, message: 'Akses Ditolak: Anda tidak memiliki izin melihat survei' }, { status: 403 });
     }
 
-    // Fetch survei header
+    // Serok survei header-nya
     const surveiResult = await pool.query(
       `SELECT 
         s.id, s.judul, s.deskripsi, s.kegiatan_id, s.satelit_id,
@@ -37,14 +37,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
     const survei = surveiResult.rows[0];
 
-    // RBAC: check satelit ownership
+    // Satpam: periksa nih kepemilikan si satelit
     if (!caller.is_super_admin && !caller.permissions.includes('multi_satelit_view')) {
       if (survei.satelit_id && survei.satelit_id !== caller.satelit_id) {
         return NextResponse.json({ success: false, message: 'Akses ditolak: survei bukan milik satelit Anda' }, { status: 403 });
       }
     }
 
-    // Fetch pertanyaan with per-pertanyaan stats
+    // Angkut pertanyaannya sekalian ama persentase statistiknya
     const pertanyaanResult = await pool.query(
       `SELECT 
         sp.id, sp.urutan, sp.teks_pertanyaan, sp.tipe_jawaban, sp.is_required,
@@ -128,7 +128,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     await client.query('BEGIN');
 
-    // Check survei exists & RBAC
+    // Pengecekan ada ndak nya dan hak akses RBAC
     const existing = await client.query(
       `SELECT id, satelit_id FROM public.survei WHERE id = $1`,
       [id]
@@ -145,14 +145,14 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       }
     }
 
-    // Protect data integrity: cannot update pertanyaan if responses exist
+    // Satpam Integritas: Ga boleh ngupdate tanyanya klau udah ada satupun yang jawab dong!
     const responsCheck = await client.query(
       `SELECT COUNT(*) FROM public.survei_respons WHERE survei_id = $1`,
       [id]
     );
     const hasRespons = parseInt(responsCheck.rows[0].count, 10) > 0;
 
-    // Satelit RBAC for update
+    // Satelit RBAC beraksi update
     let finalSatelitId = satelit_id || null;
     if (!caller.is_super_admin && !caller.permissions.includes('multi_satelit_view')) {
       finalSatelitId = caller.satelit_id;
@@ -178,7 +178,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       ]
     );
 
-    // Replace pertanyaan only if no responses yet (replace-all pattern from LPJ)
+    // Ganti pertanyaan mutlak kalau beneran kosong alias gada responnya sama skali (gaya ala LPJ)
     if (pertanyaan && Array.isArray(pertanyaan) && pertanyaan.length > 0) {
       if (hasRespons) {
         await client.query('ROLLBACK');
@@ -262,7 +262,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   }
 
   try {
-    // Check survei exists & status
+    // Periksa si surveinya ama ngecek kelangsungan statusnya
     const existing = await pool.query(
       `SELECT id, satelit_id, status FROM public.survei WHERE id = $1`,
       [id]
@@ -273,14 +273,14 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
 
     const survei = existing.rows[0];
 
-    // RBAC: check satelit ownership
+    // Satpam: periksa nih kepemilikan si satelit
     if (!caller.is_super_admin && !caller.permissions.includes('multi_satelit_view')) {
       if (survei.satelit_id && survei.satelit_id !== caller.satelit_id) {
         return NextResponse.json({ success: false, message: 'Akses ditolak: survei bukan milik satelit Anda' }, { status: 403 });
       }
     }
 
-    // Block delete if selesai
+    // Jaga pintu: Tolak di hancurkan kl udah kelar alias selesai!
     if (survei.status === 'selesai') {
       return NextResponse.json({ 
         success: false, 
@@ -295,7 +295,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
       return NextResponse.json({ success: true, message: 'Survei Terjadwal berhasil dihapus permanen.' });
     }
 
-    // Aktif → soft delete (nonaktifkan)
+    // Posisi on aktif → hapus kalem aja (dibikin nonaktif aja cukup)
     await pool.query(
       `UPDATE public.survei SET status = 'nonaktif', is_active = false, updated_at = NOW() WHERE id = $1`,
       [id]

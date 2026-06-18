@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-       // Using ON CONFLICT (col) to update if endpoint already exists
+       // Serahin ke ON CONFLICT kalau datanya kembar, tumpukin biar di-update aja
        await pool.query(
          `INSERT INTO public.push_subscriptions (user_id, endpoint, p256dh, auth) 
           VALUES ($1, $2, $3, $4)

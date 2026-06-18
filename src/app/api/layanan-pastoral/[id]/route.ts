@@ -14,7 +14,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
     const { id } = await params;
 
-    // Check if kegiatan_id column exists
+    // Tilik dikit, kolom kegiatan_id-nya kepasang kan?
     let kegiatanSelect = '';
     let kegiatanJoin = '';
     const checkCol = await pool.query(`SELECT column_name FROM information_schema.columns WHERE table_name='permohonan_layanan_pastoral' AND column_name='kegiatan_id'`);
@@ -54,7 +54,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
     const master = resMaster.rows[0];
 
-    // Tentukan display target pemohon
+    // Setel mau dipampangin apa dari sisi yang bikin permohonan
     let displayTarget = '';
     if (master.untuk_siapa === 'Saya Sendiri') {
       displayTarget = master.nama_pemohon; 

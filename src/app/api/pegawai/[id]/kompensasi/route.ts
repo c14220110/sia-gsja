@@ -88,7 +88,7 @@ export async function GET(
       ORDER BY id DESC
     `, [pegawaiId]);
 
-    // Build override map (komponen_id → override data)
+    // Bongkar terus bikin pemetaan override-nya
     // komponen_id = NULL → bpjs_mode override (global level)
     const overrideMap: Record<number, { nominal_override: number | null; catatan: string | null }> = {};
     let bpjsModeOverride: string | null = null;
@@ -210,7 +210,7 @@ export async function PUT(
     return NextResponse.json({ success: false, message: 'overrides harus berupa array.' }, { status: 400 });
   }
 
-  // IDOR check
+  // Pengecekan pakar IDOR
   const pegCheck = await pool.query(
     `SELECT id, satelit_id FROM public.pegawai WHERE id = $1`, [pegawaiId]
   );

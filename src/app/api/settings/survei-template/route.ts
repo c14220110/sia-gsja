@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
 
   try {
     if (jenisKegiatanId) {
-      // Detail: pertanyaan template untuk 1 jenis kegiatan
+      // Isi jerohannya: serentetan template pertanyaan untuk SATU kegiatan tok
       const templateRes = await pool.query(
         `SELECT st.id, st.is_active 
          FROM public.survei_template st 
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // List: semua jenis kegiatan + status template
+    // Daftarnya: Semua jenis plus template statusnya
     const result = await pool.query(`
       SELECT 
         jk.id,
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
 
     await client.query('BEGIN');
 
-    // Check if it's exactly the default configuration
+    // Periksa dengan teliti apa beneran nge-plek persis bawaan settingannya
     const defaults = [
       { urutan: 1, teks: 'Seberapa puas Anda dengan kegiatan ini secara keseluruhan?', tipe: 'skala', required: true },
       { urutan: 2, teks: 'Seberapa baik pelayanan dan fasilitas yang disediakan?', tipe: 'skala', required: true },
@@ -138,8 +138,8 @@ export async function POST(request: NextRequest) {
     }
 
     if (isDefault && is_active !== false) {
-      // User is saving the exact default template and it is active.
-      // We can just delete any existing template to let it fall back to true default (no row in DB).
+      // Oh, si User nge-save percis settingan default yang aktif.
+      // Lebih baik hapus aja template yang terekam biar balikan mulus kayak pabrikan lagi.
       await client.query(`DELETE FROM public.survei_template WHERE jenis_kegiatan_id = $1`, [jenis_kegiatan_id]);
       await client.query('COMMIT');
       return NextResponse.json({

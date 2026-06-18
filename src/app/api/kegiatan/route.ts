@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   const filterTanggal = searchParams.get('tanggal') || 'Bulan Ini';
   const startDate = searchParams.get('start_date') || '';
   const endDate = searchParams.get('end_date') || '';
-  const modePublik = searchParams.get('mode') === 'publik'; // bypass RBAC satelit untuk halaman jadwal jemaat
+  const modePublik = searchParams.get('mode') === 'publik'; // tembus filter RBAC satelit khusus buat halaman jadwal jemaat
   
   const limit = parseInt(searchParams.get('limit') || '10', 10);
   const offset = parseInt(searchParams.get('offset') || '0', 10);
@@ -35,18 +35,18 @@ export async function GET(request: Request) {
     }
 
     // 2. Satelit & RBAC check
-    // mode=publik: halaman jadwal jemaat → tampilkan semua satelit, filter is_published otomatis
+    // mode=publik: halaman jadwal jemaat → buka untuk semua satelit, otomatis filter is_published
     if (modePublik) {
-      // Tambahkan filter is_published otomatis untuk mode publik
+      // Selipkan filter is_published otomatis buat mode publik
       whereClauses.push(`k.is_published = true`);
-      // satelit_id boleh dikirim sebagai filter opsional dari dropdown
+      // satelit_id boleh-boleh saja dikirim jadi filter opsional dari dropdown
       if (satelitId) {
         whereClauses.push(`k.satelit_id = $${paramIndex}`);
         values.push(satelitId);
         paramIndex++;
       }
     } else {
-      // Mode normal: terapkan RBAC satelit
+      // Mode normal: jalankan filter keamanan RBAC satelit
       let finalSatelitId = satelitId;
       if (!caller.is_super_admin && !caller.permissions.includes('multi_satelit_view')) {
         finalSatelitId = caller.satelit_id?.toString() || '';
@@ -92,14 +92,8 @@ export async function GET(request: Request) {
       paramIndex += 2;
     }
 
-    // 6. Filter Berdasarkan Status Kegiatan Murni (Ditambah Sihir Tanggal Sinkron UX)
-    if (statusKegiatan === 'Menunggu LPJ') {
-      whereClauses.push(`COALESCE(k.tanggal_selesai, k.tanggal_mulai) < CURRENT_DATE AND lpj.kegiatan_id IS NULL AND k.status_kegiatan NOT IN ('Dibatalkan', 'Draft', 'Selesai')`);
-    } else if (statusKegiatan === 'Ongoing') {
-      whereClauses.push(`CURRENT_DATE BETWEEN k.tanggal_mulai AND COALESCE(k.tanggal_selesai, k.tanggal_mulai) AND lpj.kegiatan_id IS NULL AND k.status_kegiatan NOT IN ('Dibatalkan', 'Draft', 'Selesai')`);
-    } else if (statusKegiatan === 'Akan Datang') {
-      whereClauses.push(`k.tanggal_mulai >= CURRENT_DATE AND k.status_kegiatan NOT IN ('Dibatalkan', 'Draft', 'Selesai')`);
-    } else if (statusKegiatan) {
+    // 6. Filter Berdasarkan Status Kegiatan Murni
+    if (statusKegiatan) {
       whereClauses.push(`k.status_kegiatan = $${paramIndex}`);
       values.push(statusKegiatan);
       paramIndex++;
@@ -107,7 +101,7 @@ export async function GET(request: Request) {
 
     const whereString = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
-    // Fetch total count for pagination (Need left join lpj if Menunggu LPJ is checked, but safely we can join lpj for count too)
+    // Ambil total data buat pagination (Butuh left join lpj kalau status Menunggu LPJ dicentang, tapi amannya kita gabung lpj sekalian buat ngitung totalnya)
     const joinClauses = `
       LEFT JOIN public.jenis_kegiatan jk ON k.jenis_kegiatan_id = jk.id
       LEFT JOIN public.satelit s ON k.satelit_id = s.id
@@ -125,7 +119,7 @@ export async function GET(request: Request) {
     );
     const totalCount = parseInt(countResult.rows[0].count, 10);
 
-    // Subquery survei rating — computed per kegiatan (skala 1-5, hanya jawaban bertipe 'skala')
+    // Subquery rating survei — dihitung per kegiatan (skala 1-5, cuma ambil jawaban yang tipenya 'skala')
     const surveiSubquery = `
       LEFT JOIN (
         SELECT
@@ -181,7 +175,7 @@ export async function GET(request: Request) {
 
     const dataResult = await pool.query(query, [...values, limit, offset]);
 
-    // Fetch counts for cards
+    // Ambil jumlah data buat ditampilkan di kartu-kartu statistik
     // 1. Total kegiatan bulan ini
     const countBulanIniResult = await pool.query(`
       SELECT COUNT(*) as total FROM public.kegiatan 
@@ -199,8 +193,7 @@ export async function GET(request: Request) {
     // 3. Menunggu LPJ
     const countMenungguLpjResult = await pool.query(`
       SELECT COUNT(*) as total FROM public.kegiatan k
-      LEFT JOIN public.kegiatan_lpj l ON k.id = l.kegiatan_id
-      WHERE COALESCE(k.tanggal_selesai, k.tanggal_mulai) < CURRENT_DATE AND l.kegiatan_id IS NULL AND k.status_kegiatan NOT IN ('Dibatalkan', 'Draft', 'Selesai')
+      WHERE k.status_kegiatan = 'Menunggu LPJ'
     `);
     const totalMenungguLpj = parseInt(countMenungguLpjResult.rows[0].total, 10);
 
@@ -234,7 +227,7 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     
-      // Parse Payload
+      // Baca payload yang dikirim
       const {
         nama_kegiatan, jenis_kegiatan_id, frekuensi_kegiatan,
         tanggal_mulai, tanggal_selesai, waktu_mulai, waktu_selesai,
@@ -243,28 +236,28 @@ export async function POST(request: Request) {
         is_published, butuh_registrasi, url_banner,
         harga_tiket_rp, kuota_peserta,
         
-        // Sumber Anggaran (RA Link)
+        // Sumber Anggarannya (Tautan ke Rancangan Anggaran)
         anggaran_tahunan_id,
 
-        // Ibadah specific (3A)
+        // Khusus kategori Ibadah (3A)
         tema_khotbah, nama_pengkhotbah_1, nama_pengkhotbah_2,
 
-        // Eksternal / Akomodasi (3B)
+        // Buat keperluan pihak Eksternal / Akomodasi (3B)
         akomodasi,
 
-        // Sakramen (3C)
+        // Buat kegiatan Sakramen (3C)
         nama_pendeta_pelayan, keterangan_sakramen,
 
-        // Layanan Personal (3D)
+        // Layanan yang sifatnya lebih Personal (3D)
         jemaat_target_1_id, jemaat_target_2_id, keterangan_layanan
       } = body;
 
-    // Validation
+    // Proses validasi kelengkapan
     if (!nama_kegiatan || !jenis_kegiatan_id || !tanggal_mulai || !waktu_mulai) {
       return NextResponse.json({ success: false, message: 'Lengkapi field wajib (Nama, Jenis, Tanggal Mulai, Waktu Mulai)' }, { status: 400 });
     }
 
-    // RA wajib saat Ajukan (bukan Draft)
+    // Pastikan RA wajib dilampirkan kalau mau di-Ajukan (kalau cuma Draft gapapa kosong)
     const isSubmitting = status_kegiatan !== 'Draft';
     if (isSubmitting && !anggaran_tahunan_id) {
       return NextResponse.json({ success: false, message: 'Sumber Anggaran (RA) wajib dipilih saat mengajukan kegiatan.' }, { status: 400 });
@@ -290,13 +283,13 @@ export async function POST(request: Request) {
     const kp = kuota_peserta && kuota_peserta !== '' ? parseInt(kuota_peserta, 10) : null;
     const ra_id = anggaran_tahunan_id || null;
 
-    // Generate unique code using the new standardized helper
+    // Bikin kode uniknya pakai fungsi helper standar yang baru
     const { generateKodeKegiatan } = await import('@/server/utils/kegiatanUtils');
-    // Important: We must use the client that is currently part of the transaction
+    // Penting banget: Kita wajib pakai client database yang lagi ikutan transaksi ini
     client = await pool.connect();
-    await client.query('BEGIN'); // Start Transaction
+    await client.query('BEGIN'); // Mulai proses transaksinya
 
-    // RA Integrity Check (di dalam transaksi untuk race-condition safety)
+    // Cek integritas RA (sengaja dilakukan di dalam transaksi biar aman dari bentrok data alias race-condition)
     if (ra_id) {
       const raCheck = await client.query(
         `SELECT id, status, pola_penggunaan, jenis_kegiatan_id, satelit_id, komisi_id, departemen_id FROM public.anggaran_tahunan WHERE id = $1`, [ra_id]
@@ -396,7 +389,7 @@ export async function POST(request: Request) {
       );
     }
 
-    await client.query('COMMIT'); // Finish Transaction successful
+    await client.query('COMMIT'); // Selesaikan transaksi dan simpan ke database dengan sukses
     
     return NextResponse.json({ success: true, message: 'Kegiatan berhasil dibuat!', data: { id: newKegiatanId } });
 

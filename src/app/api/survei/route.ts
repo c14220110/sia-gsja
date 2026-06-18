@@ -63,14 +63,14 @@ export async function GET(request: Request) {
 
     const whereString = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
-    // Count total for pagination
+    // Totalan itungan buat bantu paginasinya dong
     const countResult = await pool.query(
       `SELECT COUNT(*) FROM public.survei s ${whereString}`,
       values
     );
     const totalCount = parseInt(countResult.rows[0].count, 10);
 
-    // Fetch data with JOINs + subquery stats
+    // Sedot data hasil campuran JOIN + statistik itungan subquery-nya lho
     const query = `
       SELECT 
         s.id,
@@ -104,7 +104,7 @@ export async function GET(request: Request) {
 
     const dataResult = await pool.query(query, [...values, limit, offset]);
 
-    // Global stats (respecting same filters)
+    // Data statistik se-global tp ngikut alunan saringanya yak
     const statsResult = await pool.query(
       `SELECT
         COUNT(DISTINCT s.id) AS total_survei,

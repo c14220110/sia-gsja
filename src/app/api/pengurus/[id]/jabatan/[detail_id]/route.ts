@@ -42,7 +42,7 @@ export async function PATCH(
       }, { status: 400 });
     }
 
-    // Verify detail jabatan belongs to this pengurus and is currently Aktif
+    // Validasi detail jabatannya sinkron dengan yang punya & pastiin emang masih Aktif
     const detailRes = await pool.query(
       `SELECT dk.id, dk.status_jabatan, p.jemaat_id, j.satelit_id AS jemaat_satelit_id
        FROM detail_kepengurusan dk

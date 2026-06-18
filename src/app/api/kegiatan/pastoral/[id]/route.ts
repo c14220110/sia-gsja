@@ -45,7 +45,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
     const ticket = resMaster.rows[0];
 
-    // Determine target name
+    // Tentukan nama targetnya
     let targetDisplay = ticket.nama_pemohon;
     if (ticket.untuk_siapa !== 'Saya Sendiri') {
       if (ticket.nama_target_jemaat) targetDisplay = ticket.nama_target_jemaat;
@@ -68,7 +68,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     `;
     const resLogs = await pool.query(logQuery, [id]);
 
-    // penanggung_jawab_id sekarang = pengguna.id → cukup compare langsung
+    // ID penanggung jawab sekarang sama dengan pengguna.id → jadi tinggal dicocokkan saja
     const isCurrentPJ = ticket.penanggung_jawab_id != null
       && parseInt(ticket.penanggung_jawab_id) === caller.user_id;
 
@@ -77,7 +77,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       data: {
         ticket,
         logs: resLogs.rows,
-        caller_role: caller.role_name || '',  // e.g. 'SEKRETARIS_PUSAT', 'MAJELIS'
+        caller_role: caller.role_name || '',  // contoh: 'SEKRETARIS_PUSAT', 'MAJELIS'
         is_current_pj: isCurrentPJ,
       }
     });

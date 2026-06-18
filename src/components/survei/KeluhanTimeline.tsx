@@ -75,7 +75,7 @@ export default function KeluhanTimeline({ surveiId, isOpen, onClose, tindakLanju
 
   if (!isOpen || tindakLanjutData.length === 0) return null;
 
-  // Group by respons_id to handle multiple flagged questions per respondent
+  // Klusterin kumpul berdasar respons_id untuk ngelola keluh kesahnya (flagged pertanyaan)
   const grouped = new Map<number, any[]>();
   for (const tl of tindakLanjutData) {
     const key = tl.respons_id;
@@ -87,7 +87,7 @@ export default function KeluhanTimeline({ surveiId, isOpen, onClose, tindakLanju
   const buildTimeline = (tl: any) => {
     const entries: { aksi: string; timestamp: string; detail?: string; actor?: string; statusFrom?: string; statusTo?: string }[] = [];
 
-    // Entry 1: Keluhan masuk (from created_at of the tindak_lanjut)
+    // Catetan ke 1: Catetan keluhan yang baru nyampe (sumber: jam bikin awalnya)
     entries.push({
       aksi: 'Keluhan Masuk',
       timestamp: tl.respons_created_at || tl.tindak_lanjut_created_at,
@@ -95,7 +95,7 @@ export default function KeluhanTimeline({ surveiId, isOpen, onClose, tindakLanju
       actor: tl.nama_jemaat || 'Anonim',
     });
 
-    // Entry 2+: Current status (if changed from "Belum Ditangani")
+    // Catetan di baris 2 & dst: Update situasi yg skrg ini ya (klo emang dia pindah setatusnya jd 'Belum Tertangani')
     if (tl.status === 'Sedang Ditangani') {
       entries.push({
         aksi: 'Sedang Ditangani',

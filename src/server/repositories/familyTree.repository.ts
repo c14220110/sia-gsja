@@ -112,7 +112,7 @@ export class FamilyTreeRepository {
       this.getAnak(personId),
     ]);
 
-    // Fallback: If DB didn't define ayah_id/ibu_id, look backward from 'Anak' relations
+    // Plan cadangan: Kalau dr tabel gaada ngedefinisiin ayah / ibunya sapa, yowis cari mundur nyontek dari jalur 'Anak'nya siapa
     if (!ayah || !ibu) {
       const parentFallback = await this.getOrangTuaFromRelasi(personId);
       if (!ayah) ayah = parentFallback.ayah;

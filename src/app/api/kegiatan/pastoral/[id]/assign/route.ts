@@ -10,7 +10,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
     }
 
-    // Permission: hanya SEKRETARIS_PUSAT (dan SUPER_ADMIN) yang boleh assign
+    // Izin: cuma SEKRETARIS_PUSAT (sama SUPER_ADMIN) yang dikasih wewenang buat nge-assign
     const callerRole = (caller.role_name || '').toUpperCase();
     if (!['SEKRETARIS_PUSAT', 'SUPER_ADMIN'].includes(callerRole)) {
       return NextResponse.json({ success: false, message: 'Hanya Sekretaris Pusat yang dapat menugaskan penanggung jawab.' }, { status: 403 });

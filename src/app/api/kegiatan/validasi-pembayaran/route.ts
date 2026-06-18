@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 
-// GET /api/kegiatan/validasi-pembayaran
+// Ambil status validasi pembayarannya
 export async function GET(request: Request) {
   const caller = getCallerFromRequest(request);
   if (!caller) {

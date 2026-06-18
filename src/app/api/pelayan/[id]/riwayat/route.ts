@@ -18,7 +18,7 @@ export async function GET(
       return NextResponse.json({ success: false, message: 'Invalid ID' }, { status: 400 });
     }
 
-    // Ambil riwayat dari repository
+    // Tarik langsung riwayat pelayanannya dari repositori database
     const result = await pelayanRepository.getRiwayatPelayanan(id);
 
     return NextResponse.json({

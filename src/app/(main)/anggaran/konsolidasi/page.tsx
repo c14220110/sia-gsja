@@ -70,7 +70,7 @@ export default function KonsolidasiAnggaranPage() {
     fetchKonsolidasi();
   }, [selectedTahun, selectedSatelit, selectedKomisi]);
 
-  // Fetch komisi list when satelit changes
+  // Tarik list komisi pas satelitnya ganti
   useEffect(() => {
     setSelectedKomisi('');
     setKomisiList([]);

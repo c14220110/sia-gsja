@@ -18,12 +18,12 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, is_pelayan: false, pending: [], total: 0 });
     }
 
-    // Gunakan user_id (selalu ada di JWT) untuk lookup jemaat_id dari DB
-    // Lebih reliable daripada caller.jemaat_id yang mungkin tidak ada di token lama
+    // Andalkan user_id (yang pasti nyangkut di token JWT) buat nyari jemaat_id dari database
+    // Cara ini jauh lebih tangguh daripada ngarepin caller.jemaat_id yang kadang malu-malu kucing gak muncul di token lawas
     let jemaat_id = caller.jemaat_id ?? null;
 
     if (!jemaat_id) {
-      // Fallback: ambil jemaat_id dari tabel pengguna menggunakan user_id yang selalu ada di JWT
+      // Skenario cadangan: cabut jemaat_id dari tabel pengguna nempel ke user_id dari JWT yang pantang ilang
       const userRow = await pool.query(
         `SELECT jemaat_id FROM public.pengguna WHERE id = $1 LIMIT 1`,
         [caller.user_id]
@@ -34,7 +34,7 @@ export async function GET(request: Request) {
     console.log('[JadwalSaya] user_id =', caller.user_id, '| jemaat_id (resolved) =', jemaat_id);
 
     if (!jemaat_id) {
-      // User tidak punya jemaat_id → pasti bukan pelayan
+      // Penggunanya gak punya jemaat_id → udah pasti bukan anak pelayan ini mah
       return NextResponse.json({ success: true, is_pelayan: false, pending: [], total: 0 });
     }
 

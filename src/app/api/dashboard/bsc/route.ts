@@ -69,7 +69,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
 
   // Default: 30 hari rolling ke belakang dari hari ini.
-  // Ini memastikan dashboard selalu punya data meski di awal bulan baru.
+  // Ini buat nangkal kosong di awal bulan biar layarnya selalu ada senyum isinya.
   const now     = new Date();
   const defaultSampai = now.toISOString().split('T')[0];
   const thirtyDaysAgo = new Date(now);
@@ -106,7 +106,7 @@ export async function GET(request: Request) {
       getKpi12(dari, sampai, satelitId),
     ]);
 
-    // Optional satellite comparison (Super Admin and no satelit_id filter)
+    // Tambahan komparasi antarsatelit (Hanya berlaku untuk Super Admin yang gak main filter satelit)
     let satelitComparison: any[] = [];
     if (caller.is_super_admin && satelitId === null) {
       const satRes = await pool.query(

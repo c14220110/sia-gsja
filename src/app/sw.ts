@@ -2,7 +2,7 @@ import { defaultCache } from "@serwist/next/worker";
 import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
 import { Serwist, CacheFirst, ExpirationPlugin } from "serwist";
 
-// This declares the value of `injectionPoint` to TypeScript.
+// Deklarasikan nilai `injectionPoint`-nya di radar penangkapan TypeScript nih.
 // `injectionPoint` is the string that points to where you want to inject the precache manifest.
 declare global {
   interface WorkerGlobalScope extends SerwistGlobalConfig {
@@ -13,7 +13,7 @@ declare global {
 // @ts-expect-error: TypeScript doesn't include ServiceWorkerGlobalScope by default without webworker lib
 declare const self: ServiceWorkerGlobalScope;
 
-// Custom caching rules for Alkitab static JSON files
+// Custom caching sepesial aturan mainnya buatt si Alkitab
 const alkitabCache = [
   {
     matcher: ({ url }: { url: URL }) => url.pathname.startsWith('/alkitab/') && url.pathname.endsWith('.json'),
@@ -69,7 +69,7 @@ self.addEventListener("notificationclick", (event: any) => {
 
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients: any[]) => {
-      // If window is already open, focus it and navigate
+      // Nah, klo tyt window-nya uda ngebuka, arahin dan geser kesana lsg
       for (let i = 0; i < windowClients.length; i++) {
         const client = windowClients[i];
         if (client.url.includes(urlToOpen) && "focus" in client) {

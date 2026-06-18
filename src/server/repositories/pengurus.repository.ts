@@ -2,10 +2,10 @@ import pool from '@/lib/db';
 
 export interface PengurusFilterParams {
   search?: string;
-  // Quick Filters
+  // Saringan Kilat
   satelit_asal_id?: string;      // homebase jemaat (j.satelit_id)
   status_global?: string;         // 'Aktif' | 'Non-Aktif' | '' — maps to p.is_active
-  // Advanced Filters
+  // Saringan Lanjutan tingkat dewa
   lingkup?: string;               // dk.lingkup: Pusat | Satelit | Komisi | Departemen
   satelit_penugasan_id?: string;  // lokasi jabatan (dk.satelit_id)
   jabatan_id?: string;
@@ -33,27 +33,27 @@ export class PengurusRepository {
     const values: any[] = [];
     let idx = 1;
 
-    // Quick filter: search by name or ID
+    // Saringan kilat: lacak mengandalkan penamaan atau kodenya ID nya
     if (search) {
       conditions.push(`(j.nama_lengkap ILIKE $${idx} OR p.id_pengurus ILIKE $${idx})`);
       values.push(`%${search}%`);
       idx++;
     }
 
-    // Quick filter: satelit asal/homebase (from jemaat table, NOT jabatan)
+    // Saringan kilat: kandang asal dari satelit (bukan dr posisis jabatan tapi base on database jemaat nya lgsg ya)
     if (satelit_asal_id) {
       conditions.push(`j.satelit_id = $${idx++}`);
       values.push(parseInt(satelit_asal_id));
     }
 
-    // Quick filter: status global pengurus (p.is_active)
+    // Saringan kilat: global sttus kepengurusanya ni idup kg (is active kaga gitu)
     if (status_global === 'Aktif') {
       conditions.push(`p.is_active = true`);
     } else if (status_global === 'Non-Aktif') {
       conditions.push(`p.is_active = false`);
     }
 
-    // Advanced filters — all via EXISTS to preserve 1-row-per-person guarantee
+    // Saringan dewanya ini — full gunain EXISTS biar kejaga 1 row per makhluk manusianya aja
     const jabatanConds: string[] = [];
     if (lingkup)               { jabatanConds.push(`dk.lingkup        = $${idx++}`); values.push(lingkup); }
     if (satelit_penugasan_id)  { jabatanConds.push(`dk.satelit_id     = $${idx++}`); values.push(parseInt(satelit_penugasan_id)); }

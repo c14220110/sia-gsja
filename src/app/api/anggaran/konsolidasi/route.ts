@@ -62,7 +62,7 @@ export async function GET(request: Request) {
       const result = await client.query(q, queryParams);
 
       // === QUERY 2: Fetch ALL detail items for these RA docs ===
-      // This powers the slide-in panel drill-down
+      // Nah, ini yang bikin panel slide masuk ke dalem
       const raIds = result.rows.map(r => r.id);
       let detailMap: Record<string, any[]> = {};
 
@@ -96,8 +96,8 @@ export async function GET(request: Request) {
       }
 
       // === Calculate Summaries ===
-      // IMPORTANT: All financial aggregation is done at ITEM level, not header level.
-      // This ensures Penerimaan items don't inflate Pengeluaran breakdown numbers.
+      // PENTING BGT: Semua itung-itungan uang dilakuin di level ITEM ya, bukan level judulnya.
+      // Ini demi menjaga supaya item Pemasukan gak bikin bengkak rincian Pengeluaran.
       const summary = {
         total_pengajuan: 0,
         total_disetujui: 0,
@@ -116,18 +116,18 @@ export async function GET(request: Request) {
         }
       };
 
-      // Build a lookup: RA id → header row (for kategori/pola info)
+      // Bikin kamusnya: dari RA id -> baris judul (buat narik info kategorinya)
       const headerMap = new Map(result.rows.map(r => [r.id, r]));
 
-      // Header-level totals (only for display: pengajuan awal)
+      // Total di judul-judul besarnya (sekadar pamer doang buat angka awal)
       result.rows.forEach(row => {
         summary.total_pengajuan += parseFloat(row.total_anggaran) || 0;
         summary.total_disetujui += parseFloat(row.total_disetujui) || 0;
       });
 
       // === Aggregate everything from ITEM level ===
-      // This is the single source of truth for all financial numbers.
-      // Track which RA IDs contribute to each kategori (for counting "X RA")
+      // Pokoknya ini sumber acuan utama buat narik angka keuangan yang pasti.
+      // Jejakin RA mana aja yang ikutan urunan di kategori ini
       const kategoriRaTracker: Record<string, Set<string>> = {};
       const komisiRaTracker: Record<string, Set<string>> = {};
       const polaRaTracker = { single: new Set<string>(), multi: new Set<string>() };
@@ -144,7 +144,7 @@ export async function GET(request: Request) {
         const komisiKey = header?.nama_komisi || 'Anggaran Umum Satelit';
         if (!summary.komisi[komisiKey]) summary.komisi[komisiKey] = { total_ra: 0, total_pengeluaran: 0, total_penerimaan: 0, satelit_names: [] };
         if (!komisiRaTracker[komisiKey]) komisiRaTracker[komisiKey] = new Set();
-        // Track which satellites contribute to this komisi key
+        // Lacak satelit mana aja yang sumbangsih ke kunci komisi ini
         const satName = header?.nama_satelit || '';
         if (satName && !summary.komisi[komisiKey].satelit_names.includes(satName)) {
           summary.komisi[komisiKey].satelit_names.push(satName);
@@ -162,7 +162,7 @@ export async function GET(request: Request) {
             summary.kategori[kat].total_pengeluaran += nominalDisetujui;
             summary.komisi[komisiKey].total_pengeluaran += nominalDisetujui;
 
-            // Track sumber dana (only for pengeluaran)
+            // Cari tau sumber dananya dari mana (cuma khusus pengeluaran)
             // 'Kas Mandiri' / 'Kas Pusat' → kas sendiri (mandiri)
             // 'Plafon Pusat' → subsidi dari gereja pusat ke satelit
             const sumber = (item.sumber_dana || '').toLowerCase();
@@ -172,7 +172,7 @@ export async function GET(request: Request) {
               summary.sumber_dana.plafon_pusat += nominalDisetujui;
             }
 
-            // Track pola kegiatan (only for Kegiatan category pengeluaran)
+            // Jejakin tipe pola kegiatannya (tapi cuma buat pengeluaran jenis kegiatan)
             if (kat === 'Kegiatan') {
               if (pola === 'Sekali Pakai') {
                 summary.pola_kegiatan.single.total_pengeluaran += nominalDisetujui;

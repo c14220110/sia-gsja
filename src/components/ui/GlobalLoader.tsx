@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import { useRouter, usePathname } from 'next/navigation';
 import { useSplash } from './SplashContext';
 
-// Dynamically import Lottie to avoid SSR issues
+// Import lottie-nya nyantai dinamik aje yakk biaar ga tabrakan ame SSR (Server Side Rendering)
 const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
 const DotLottieReact = dynamic(
   () => import('@lottiefiles/dotlottie-react').then((mod) => mod.DotLottieReact),
@@ -43,7 +43,7 @@ export const LoaderProvider = ({ children }: { children: ReactNode }) => {
   const isLoading = activeRequests > 0;
   const { isAppReady } = useSplash();
 
-  // On mobile, suppress loader while splash screen is still covering the screen
+  // Pas posisi mobile, timbun loder-loadingnya selagi layar splash awal masih nongrong ya
   const isMobileSplashActive = !isAppReady;
 
   return (

@@ -85,13 +85,13 @@ export async function createAutoSurvei(kegiatanId: number, createdByUserId: numb
       if (templateRes.rows.length > 0) {
         const template = templateRes.rows[0];
 
-        // Template ada tapi nonaktif → SKIP, jangan buat survei
+        // Template e wis ada tapi non aktip ta -> LEWATT aje, jgn disuruh buat surbei baru!
         if (!template.is_active) {
           console.log(`[AutoSurvei] Template survei untuk jenis kegiatan ID ${kegiatan.jenis_kegiatan_id} dinonaktifkan. Survei otomatis dilewati.`);
           return null;
         }
 
-        // Template aktif → gunakan pertanyaan dari template
+        // Kloo Template nyala -> hayo di comot aja buat ngisi
         const pertanyaanRes = await client.query(
           `SELECT urutan, teks_pertanyaan, tipe_jawaban, is_required 
            FROM public.survei_template_pertanyaan 

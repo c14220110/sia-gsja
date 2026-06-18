@@ -12,7 +12,7 @@ export default function DetailJadwalJemaatPage() {
   const [data, setData] = useState<any>(null);
   const [userData, setUserData] = useState<any>(null);
   
-  // Registration States
+  // State Pendaftaran
   const [ticketInfo, setTicketInfo] = useState<any>(null);
   const [isRegModalOpen, setIsRegModalOpen] = useState(false);
   const [catatanKhusus, setCatatanKhusus] = useState('');
@@ -73,7 +73,7 @@ export default function DetailJadwalJemaatPage() {
            setData(result.data);
         }
 
-        // Fetch user tickets
+        // Tarik tiket milik pengguna
         if (user && user.jemaat_id) {
            const resTiket = await fetch(`/api/kegiatan/registrasi/saya`);
            if(resTiket.ok) {

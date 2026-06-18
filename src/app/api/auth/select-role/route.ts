@@ -19,10 +19,10 @@ export async function POST(request: NextRequest) {
 
     // ── Verifikasi identitas caller — dua mode yang valid ────────────────────
     //
-    // MODE A: pre_auth_token (dikirim oleh /api/auth/login saat multi-role)
+    // MODE A: token persiapan doang dari halaman login (khusus yang perannya double/banyak)
     //   → User baru saja login dengan benar, belum punya access_token cookie.
     //
-    // MODE B: access_token cookie (user sudah login, mau ganti role)
+    // MODE B: pakai access token beneran dari cookie (pengguna emang udah login dari sononya)
     //   → User sudah terautentikasi, ganti role dari dalam dashboard.
     //
     // Tanpa salah satu dari dua ini, request ditolak 401.

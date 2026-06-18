@@ -78,7 +78,7 @@ export function FormDetailKepengurusan({
     allowedNames.some(name => j.nama_jabatan.toLowerCase().includes(name.toLowerCase()))
   );
 
-  // Filter komisi hanya yang milik satelit yang dipilih
+  // Seleksiin komisinya cuma ngepas satelit kepunyaan yg kepilih ya
   const filteredKomisi = data.lokasi_satelit_id
     ? komisiOptions.filter(k => k.satelit_id?.toString() === data.lokasi_satelit_id)
     : komisiOptions;

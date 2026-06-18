@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 
-// GET /api/kegiatan/registrasi/saya
+// Ambil data pendaftaran kegiatan milik saya
 export async function GET(request: NextRequest) {
   try {
     const caller = getCallerFromRequest(request);
@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (!caller.jemaat_id && !caller.is_super_admin) {
-      return NextResponse.json({ success: true, data: [] }); // User is not linked to any jemaat_id
+      return NextResponse.json({ success: true, data: [] }); // Akun ini belum ditautkan ke jemaat_id manapun
     }
 
     const targetJemaatId = caller.jemaat_id;

@@ -99,7 +99,7 @@ async function sendEmail(to: string, subject: string, html: string) {
 }
 
 // ─── Placeholder untuk WhatsApp (masa depan) ─────────────────────────────────
-// async function sendWhatsApp(to: string, template: string, data: object) {
+// async function jalaninWhatsApp(to: string, template: string, data: object) {
 //   // Implementasi dengan WhatsApp Business API / Fonnte / Wablas
 // }
 

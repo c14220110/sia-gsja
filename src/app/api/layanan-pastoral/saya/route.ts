@@ -14,7 +14,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, message: 'Akun Anda tidak terhubung ke data jemaat.' }, { status: 403 });
     }
 
-    // Fetch riwayat permohonan dari Jemaat yang bersangkutan
+    // Sedotin history riwayat permohonan si jemaat tsb.
     const query = `
       SELECT 
         p.id, p.nomor_tiket, p.untuk_siapa, p.nama_target_luar, 
@@ -32,9 +32,9 @@ export async function GET(request: Request) {
 
     const result = await pool.query(query, [jemaatPemohonId]);
 
-    // Format the response
+    // Rapihin respons biar mulus dapetnya
     const formattedData = result.rows.map(row => {
-      // Tentukan nama target yang akan ditampilkan di UI
+      // Tentukan dengan matang nama panggung siapa yang bakal muncul di layar UI
       let displayTarget = '';
       if (row.untuk_siapa === 'Saya Sendiri') {
         displayTarget = row.nama_pemohon; // Nama asli, konsisten dengan halaman detail

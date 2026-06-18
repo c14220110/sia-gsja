@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: 'Harap pilih minimal 1 jemaat' }, { status: 400 });
     }
 
-    // Ambil data detail jemaat berdasarkan ID yang dikirim
+    // Tarik sejelas-jelasnya data detail Jemaat mengacu ID dari seberang
     const jemaatQuery = `
       SELECT id, email, no_hp, tanggal_lahir, satelit_id
       FROM jemaat

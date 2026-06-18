@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
 
     const result = await pool.query(query, params);
     
-    // Hitung summary card secara dinamis dari hasil query
+    // Rakit summary card dinamis ngambil dari tangkapan query-nya
     let summary = {
       total_payroll_amount: 0,
       total_payroll_count: 0,

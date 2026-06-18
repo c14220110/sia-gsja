@@ -22,7 +22,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
     const isAnonim = surveiCheck.rows[0].is_anonim;
 
-    // Fetch all responses with jemaat name and pertanyaan text
+    // Keruk aja sekalian jawaban-jawabannya lengkap ama nama jemaat & isi tanyanya
     const query = `
       SELECT 
         sr.id AS respons_id,
@@ -86,7 +86,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     await client.query('BEGIN');
 
-    // Verify survei exists, is active, and within period
+    // Cross check dong: Surveinya ada kah? idup kah? Apa masuk dalam eranya?
     const surveiResult = await client.query(
       `SELECT id, is_active, periode_mulai, periode_selesai, threshold_flag, is_anonim
        FROM public.survei 
@@ -104,7 +104,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ success: false, message: 'Survei ini sudah tidak aktif' }, { status: 400 });
     }
 
-    // Check if within period
+    // Cross check: periodenya emang ke-check kah?
     const periodCheck = await client.query(
       `SELECT CASE WHEN CURRENT_DATE BETWEEN $1 AND $2 THEN true ELSE false END AS is_valid`,
       [survei.periode_mulai, survei.periode_selesai]
@@ -114,7 +114,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ success: false, message: 'Survei ini sudah melewati periode pengisian' }, { status: 400 });
     }
 
-    // Prevent duplicate: check if jemaat already responded
+    // Tahan ganda: Jangan lupa ngintip apa jemaat ini udah ngumpulin kerjaannya belom
     const dupCheck = await client.query(
       `SELECT COUNT(*) FROM public.survei_respons WHERE survei_id = $1 AND jemaat_id = $2`,
       [id, jemaatId]
@@ -144,7 +144,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         ]
       );
 
-      // Auto-create tindak lanjut for flagged responses
+      // Langsung gas bikin lanjuttan buat jawban yang ditandain merah
       if (isFlagged) {
         await client.query(
           `INSERT INTO public.survei_tindak_lanjut (respons_id, status, catatan_tindakan)

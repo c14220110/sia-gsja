@@ -15,7 +15,7 @@ export default function Step1Setup({ runId, setupData, setSetupData, onNext, set
   const [isRaLoading, setIsRaLoading] = useState(false);
   const [selectedRa, setSelectedRa] = useState<any>(null);
 
-  // Fetch Satelit
+  // Ambil Data Satelit
   useEffect(() => {
     fetch('/api/options?type=satelit')
       .then(res => res.json())
@@ -25,7 +25,7 @@ export default function Step1Setup({ runId, setupData, setSetupData, onNext, set
       .catch(console.error);
   }, []);
 
-  // Fetch RA when satelit and tahun change
+  // Tarik RA pas satelit atau tahunnya digeser
   useEffect(() => {
     if (!setupData.satelit_id || !setupData.tahun) {
       setRaOptions([]);
@@ -35,7 +35,7 @@ export default function Step1Setup({ runId, setupData, setSetupData, onNext, set
     }
 
     setIsRaLoading(true);
-    // Fetch all RA then filter locally because /api/anggaran/tahunan does not support query params
+    // Tarik semua RA terus disaring di lokal aja soalnya API-nya gak nerima parameter
     fetch('/api/anggaran/tahunan')
       .then(res => res.json())
       .then(res => {
@@ -47,7 +47,7 @@ export default function Step1Setup({ runId, setupData, setSetupData, onNext, set
             ra.tahun?.toString() === setupData.tahun?.toString()
           );
           setRaOptions(filteredRa);
-          // Auto clear selected if not in new options
+          // Bersihin data kepilih secara otomatis kalau gak ada di pilihan yang baru
           if (!filteredRa.find((ra: any) => ra.id === setupData.anggaran_tahunan_id)) {
             setSetupData((prev: any) => ({ ...prev, anggaran_tahunan_id: '', sisa_plafon: 0 }));
             setSelectedRa(null);

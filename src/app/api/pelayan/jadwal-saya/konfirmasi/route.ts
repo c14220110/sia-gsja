@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { roster_id, status_konfirmasi, alasan_absen } = body;
 
-    // Check if user is pelayan natively
+    // Cek dulu nih apa pengguna ini beneran terdaftar resmi sebagai pelayan di sistem
     let jemaat_id = caller.jemaat_id;
     if (!jemaat_id) {
         const u = await pool.query('SELECT jemaat_id FROM pengguna WHERE id = $1', [caller.user_id]);
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     
     if (!jemaat_id) return NextResponse.json({ success: false, message: 'Not a member' }, { status: 403 });
 
-    // Ensure the roster belongs to this jemaat
+    // Pastiin jadwal roster ini emang beneran punyanya jemaat yang ini
     const resCheck = await pool.query(`
         SELECT kjp.id 
         FROM kegiatan_jadwal_pelayan kjp 
@@ -31,8 +31,8 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: false, message: 'Unauthorized / Invalid Roster' }, { status: 403 });
     }
 
-    // Nanti ditambahkan kolom alasan_absen di database secara manual oleh user.
-    // Sementara, untuk mencegah error saat query jika kolom belum ada, kita bisa gunakan try-catch spesifik untuk query update.
+    // Nanti tinggal ditambahin aja kolom alasan_absen di tabel database-nya.
+    // Sambil nunggu kolomnya ada, kita pasang perisai try-catch khusus pas update biar query-nya gak mbledos.
     
     try {
         await pool.query(
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
             [status_konfirmasi, alasan_absen || null, roster_id, status_konfirmasi]
         );
     } catch(err: any) {
-        // Jika kolom belum ada, fall back ke query tanpa alasan_absen
+        // Kalau ternyata kolomnya emang belum nangkring, mending melipir balik pakai query biasa tanpa alasan_absen
         if(err.message && err.message.includes('column "alasan_absen" of relation "kegiatan_jadwal_pelayan" does not exist')) {
             console.log('User belum menambah kolom alasan_absen, skip alasan_absen');
             await pool.query(

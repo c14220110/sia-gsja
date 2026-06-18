@@ -94,7 +94,7 @@ export async function GET(request: Request) {
 
     const total = parseInt(countResult.rows[0].total);
 
-    // Get Pending approval count today for meta
+    // Cek dulu berapa antrian pending yang nongkrong buat approval hari ini
     const pendingQuery = `SELECT COUNT(*) as pending_count FROM public.pegawai WHERE status_approval = 'Pending'`;
     const pendingResult = await pool.query(pendingQuery);
 
