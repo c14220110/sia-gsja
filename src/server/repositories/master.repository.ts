@@ -242,7 +242,11 @@ export class MasterRepository {
         END AS is_available,
         (SELECT COUNT(*) FROM public.kegiatan kg 
          WHERE kg.anggaran_tahunan_id = at.id 
-         AND kg.status_kegiatan NOT IN ('Draft', 'Dibatalkan'))::int AS jumlah_kegiatan_aktif
+         AND kg.status_kegiatan NOT IN ('Draft', 'Dibatalkan'))::int AS jumlah_kegiatan_aktif,
+        -- Estimasi kas kegiatan: Penerimaan - Pengeluaran dari detail items
+        COALESCE((SELECT SUM(d.jumlah * d.harga_satuan) FROM public.anggaran_tahunan_detail d WHERE d.anggaran_tahunan_id = at.id AND d.jenis_anggaran = 'Penerimaan'), 0)
+          - COALESCE((SELECT SUM(d.jumlah * d.harga_satuan) FROM public.anggaran_tahunan_detail d WHERE d.anggaran_tahunan_id = at.id AND d.jenis_anggaran = 'Pengeluaran'), 0)
+          AS estimasi_awal
       FROM public.anggaran_tahunan at
       LEFT JOIN public.satelit s ON at.satelit_id = s.id
       LEFT JOIN public.komisi k ON at.komisi_id = k.id

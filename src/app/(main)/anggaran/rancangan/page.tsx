@@ -14,6 +14,8 @@ type AnggaranItem = {
   komisi: string | null;
   total_anggaran: number;
   total_disetujui: number | null;
+  estimasi_awal: number | null;        // Penerimaan - Pengeluaran (sebelum review)
+  estimasi_disetujui: number | null;   // Penerimaan ACC - Pengeluaran ACC setelah review
   updated_at: string;
   status: string;
   tipe_ra?: string;
@@ -399,12 +401,15 @@ export default function RancanganAnggaranPage() {
                     <td className="p-4 text-sm text-slate-700 font-medium">{item.satelit}</td>
                     <td className="p-4 text-sm text-slate-600">{item.komisi || <span className="text-slate-400 italic">Anggaran Umum Satelit</span>}</td>
                     <td className="p-4 text-sm text-right">
+                      {/* Tampilkan estimasi (Penerimaan - Pengeluaran) bukan gross total */}
                       <span className={`font-bold font-sans block ${
                         item.status === 'Disetujui Sebagian' ? 'text-slate-400 line-through text-xs' : 'text-slate-800'
-                      }`}>{formatRupiah(item.total_anggaran)}</span>
-                      {item.status === 'Disetujui Sebagian' && item.total_disetujui != null && (
+                      }`}>
+                        {formatRupiah(item.estimasi_awal ?? item.total_anggaran)}
+                      </span>
+                      {item.status === 'Disetujui Sebagian' && item.estimasi_disetujui != null && (
                         <span className="font-bold font-sans text-sm text-blue-700 block">
-                          {formatRupiah(item.total_disetujui)}
+                          {formatRupiah(item.estimasi_disetujui)}
                           <span className="text-[9px] font-normal text-blue-400 ml-1">disetujui</span>
                         </span>
                       )}

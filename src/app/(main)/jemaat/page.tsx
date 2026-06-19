@@ -84,7 +84,7 @@ export default function MembersPage() {
       }
     };
     fetchOptionsAndUser();
-  }, []);
+  }, []); //TRIGGER KOSOMG
 
   const hasPermission = (perm: string) => {
     if (!userData) return false;
@@ -92,11 +92,11 @@ export default function MembersPage() {
     return userData.permissions?.includes?.(perm);
   };
 
-  // Beri sedikit jeda saat mengetik pencarian agar tidak membebani server
+  // debounce pas ngetik, jeda ortomatis manggil api sesuai q param sedikit jeda saat mengetik pencarian agar tidak membebani server
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchQuery), 500);
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [searchQuery]); //TRIGGER SEARCH QUERY
 
   // Kalau filternya diubah, kembalikan ke halaman pertama
   useEffect(() => {

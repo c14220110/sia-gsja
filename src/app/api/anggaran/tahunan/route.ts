@@ -48,7 +48,15 @@ export async function GET(request: NextRequest) {
         at.pola_penggunaan,
         at.nama_rancangan,
         at.estimasi_waktu,
-        at.updated_at
+        at.updated_at,
+        -- Estimasi awal: Penerimaan - Pengeluaran (sebelum review)
+        COALESCE((SELECT SUM(d.jumlah * d.harga_satuan) FROM public.anggaran_tahunan_detail d WHERE d.anggaran_tahunan_id = at.id AND d.jenis_anggaran = 'Penerimaan'), 0)
+          - COALESCE((SELECT SUM(d.jumlah * d.harga_satuan) FROM public.anggaran_tahunan_detail d WHERE d.anggaran_tahunan_id = at.id AND d.jenis_anggaran = 'Pengeluaran'), 0)
+          AS estimasi_awal,
+        -- Estimasi setelah review: Penerimaan ACC - Pengeluaran ACC/ACC_DIPOTONG
+        COALESCE((SELECT SUM(d.nominal_disetujui) FROM public.anggaran_tahunan_detail d WHERE d.anggaran_tahunan_id = at.id AND d.jenis_anggaran = 'Penerimaan' AND d.status_item = 'ACC'), 0)
+          - COALESCE((SELECT SUM(d.nominal_disetujui) FROM public.anggaran_tahunan_detail d WHERE d.anggaran_tahunan_id = at.id AND d.jenis_anggaran = 'Pengeluaran' AND d.status_item IN ('ACC', 'ACC_DIPOTONG')), 0)
+          AS estimasi_disetujui
       FROM public.anggaran_tahunan at
       LEFT JOIN public.satelit  s ON at.satelit_id::varchar = s.id::varchar
       LEFT JOIN public.komisi   k ON at.komisi_id::varchar   = k.id::varchar

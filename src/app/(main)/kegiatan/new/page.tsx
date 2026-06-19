@@ -1010,7 +1010,13 @@ export default function NewKegiatanPage() {
                     </div>
                     <div className="w-full h-px bg-slate-100 my-1"></div>
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] text-slate-500">Plafon Disetujui</span>
+                      <span className="text-[11px] text-slate-500">Estimasi Kas Kegiatan</span>
+                      <span className="text-sm font-black text-slate-700">
+                        Rp {Number((selectedRA.estimasi_awal ?? selectedRA.total_anggaran) || 0).toLocaleString('id-ID')}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-slate-500">Plafon Belanja Disetujui</span>
                       <span className="text-sm font-black text-emerald-700">Rp {Number(selectedRA.total_disetujui || 0).toLocaleString('id-ID')}</span>
                     </div>
                     <div className="flex items-center gap-2">

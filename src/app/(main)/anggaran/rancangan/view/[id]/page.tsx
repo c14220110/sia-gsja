@@ -76,6 +76,10 @@ export default function ViewAnggaranPage({ params }: { params: Promise<{ id: str
   const totalP = useMemo(() => penItems.reduce((a: number, c: any) => a + Number(c.total), 0), [penItems]);
   const totalK = useMemo(() => kelItems.reduce((a: number, c: any) => a + Number(c.total), 0), [kelItems]);
   const margin = totalP > 0 ? ((totalP - totalK) / totalP) * 100 : 0;
+  // Angka setelah review: hanya item yang di-ACC (nominal_disetujui)
+  const totalP_acc = useMemo(() => penItems.filter((i: any) => i.status_item === 'ACC').reduce((a: number, c: any) => a + Number(c.nominal_disetujui ?? c.total), 0), [penItems]);
+  const totalK_acc = useMemo(() => kelItems.filter((i: any) => ['ACC', 'ACC_DIPOTONG'].includes(i.status_item)).reduce((a: number, c: any) => a + Number(c.nominal_disetujui ?? c.total), 0), [kelItems]);
+  const margin_acc = totalP_acc > 0 ? ((totalP_acc - totalK_acc) / totalP_acc) * 100 : 0;
 
   // Tentukan kesaktian pengguna dari izin yang mereka punya
   const isApprover = userData ? (userData.is_super_admin || userData.permissions?.includes('anggaran_review')) : false;
@@ -409,7 +413,12 @@ export default function ViewAnggaranPage({ params }: { params: Promise<{ id: str
             )}
           </div>
           <div className="flex gap-5 overflow-x-auto">
-            {[['Total Penerimaan', fmt(totalP), 'text-emerald-400'], ['Total Pengeluaran', `(${fmt(totalK)})`, 'text-red-400'], ['Margin', `${margin.toFixed(1)}%`, 'text-white'], ['Total Estimasi', fmt(totalP - totalK), totalP - totalK >= 0 ? 'text-emerald-400' : 'text-red-400']].map(([label, value, cls], i, arr) => (
+            {(isReviewed
+              // Kalau sudah direview, tampilkan angka yang disetujui (ACC)
+              ? [['Total Penerimaan (ACC)', fmt(totalP_acc), 'text-emerald-400'], ['Total Pengeluaran (ACC)', `(${fmt(totalK_acc)})`, 'text-red-400'], ['Margin', `${margin_acc.toFixed(1)}%`, 'text-white'], ['Total Estimasi Disetujui', fmt(totalP_acc - totalK_acc), totalP_acc - totalK_acc >= 0 ? 'text-emerald-400' : 'text-red-400']]
+              // Kalau belum direview, tampilkan angka pengajuan awal
+              : [['Total Penerimaan', fmt(totalP), 'text-emerald-400'], ['Total Pengeluaran', `(${fmt(totalK)})`, 'text-red-400'], ['Margin', `${margin.toFixed(1)}%`, 'text-white'], ['Total Estimasi', fmt(totalP - totalK), totalP - totalK >= 0 ? 'text-emerald-400' : 'text-red-400']]
+            ).map(([label, value, cls], i, arr) => (
               <React.Fragment key={label}>
                 <div className="flex flex-col text-right shrink-0">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{label}</span>
