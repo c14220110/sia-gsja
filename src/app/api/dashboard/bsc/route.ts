@@ -26,28 +26,67 @@ interface KpiResult extends RawKpi {
   status: 'hijau' | 'kuning' | 'merah' | 'abu';
 }
 
-// ─── Helper: Status Warna gte= greather than
-function buildStatus(
+// ─── Helper: Status Warna — SEKARANG BACA DARI DATABASE ──────────────────────
+// Menerima threshold dari tabel bsc_kpi, bukan hardcode switch-case lagi
+function buildStatusFromConfig(
   nilai: number | null,
-  type: string,
+  thresholdHijau: number,
+  thresholdKuning: number,
+  higherIsBetter: boolean,
 ): 'hijau' | 'kuning' | 'merah' | 'abu' {
   if (nilai === null) return 'abu';
-  switch (type) {
-    case 'gte80':  return nilai >= 80 ? 'hijau' : nilai >= 50 ? 'kuning' : 'merah';
-    case 'gte85':  return nilai >= 85 ? 'hijau' : nilai >= 65 ? 'kuning' : 'merah';
-    case 'gte90':  return nilai >= 90 ? 'hijau' : nilai >= 70 ? 'kuning' : 'merah';
-    case 'gte95':  return nilai >= 95 ? 'hijau' : nilai >= 80 ? 'kuning' : 'merah';
-    case 'gte4_5': return nilai >= 4.5 ? 'hijau' : nilai >= 4.0 ? 'kuning' : 'merah';
-    case 'lt45':   return nilai <= 45 ? 'hijau' : nilai <= 60 ? 'kuning' : 'merah';
-    case 'lt72':   return nilai <= 72 ? 'hijau' : nilai <= 96 ? 'kuning' : 'merah';
-    case 'eff':    return nilai >= 90 && nilai <= 100 ? 'hijau' : nilai >= 80 ? 'kuning' : 'merah';
-    case 'eq100':  return nilai >= 100 ? 'hijau' : nilai >= 80 ? 'kuning' : 'merah';
-    default:       return 'abu';
+
+  if (higherIsBetter) {
+    // Semakin tinggi semakin bagus (KPI 1-11)
+    if (nilai >= thresholdHijau) return 'hijau';
+    if (nilai >= thresholdKuning) return 'kuning';
+    return 'merah';
+  } else {
+    // Semakin rendah semakin bagus (KPI 12: durasi respons pastoral)
+    if (nilai <= thresholdHijau) return 'hijau';
+    if (nilai <= thresholdKuning) return 'kuning';
+    return 'merah';
   }
 }
 
-function tag(r: RawKpi, type: string): KpiResult {
-  return { ...r, status: buildStatus(r.nilai, type) };
+// Khusus KPI 6 (Efisiensi Anggaran), logikanya range 90-100% = hijau
+// Ini tetap pakai threshold dari DB tapi logika "range" ditangani secara khusus
+function buildStatusEfisiensi(
+  nilai: number | null,
+  thresholdHijau: number,
+  thresholdKuning: number,
+): 'hijau' | 'kuning' | 'merah' | 'abu' {
+  if (nilai === null) return 'abu';
+  // Efisiensi ideal = 90–100% (tidak boleh terlalu rendah, juga tidak terlalu tinggi)
+  if (nilai >= thresholdHijau && nilai <= 100) return 'hijau';
+  if (nilai >= thresholdKuning) return 'kuning';
+  return 'merah';
+}
+
+function tagWithConfig(r: RawKpi, kpiConfig: any): KpiResult {
+  // Override target dari database
+  const result: RawKpi = {
+    ...r,
+    target: parseFloat(kpiConfig.target),
+  };
+
+  let status: 'hijau' | 'kuning' | 'merah' | 'abu';
+  if (kpiConfig.kode === 'kpi6') {
+    status = buildStatusEfisiensi(
+      r.nilai,
+      parseFloat(kpiConfig.threshold_hijau),
+      parseFloat(kpiConfig.threshold_kuning),
+    );
+  } else {
+    status = buildStatusFromConfig(
+      r.nilai,
+      parseFloat(kpiConfig.threshold_hijau),
+      parseFloat(kpiConfig.threshold_kuning),
+      kpiConfig.higher_is_better,
+    );
+  }
+
+  return { ...result, status };
 }
 
 // ─── Main Handler ─────────────────────────────────────────────────────────────
@@ -79,7 +118,7 @@ export async function GET(request: Request) {
   const dari   = searchParams.get('dari')   || defaultDari;
   const sampai = searchParams.get('sampai') || defaultSampai;
 
-  // RBAC satelit — AGENTS.md §3: non-super-admin wajib dipaksa ke satelitnya sendiri
+  // RBAC satelit — non-super-admin wajib dipaksa ke satelitnya sendiri
   let satelitId: number | null = null;
   const rawSatelit = searchParams.get('satelit_id');
   if (rawSatelit !== null && rawSatelit !== undefined && rawSatelit.trim() !== '') {
@@ -90,6 +129,25 @@ export async function GET(request: Request) {
   }
 
   try {
+    // ─── BACA KONFIGURASI BSC DARI DATABASE ──────────────────────────────
+    const [perspektifRes, kpiRes] = await Promise.all([
+      pool.query(`SELECT id, kode, nama, nama_singkat, icon, warna, bobot, urutan
+                  FROM bsc_perspektif ORDER BY urutan ASC`),
+      pool.query(`SELECT k.id, k.perspektif_id, k.kode, k.nama, k.icon, k.bobot, k.target,
+                         k.satuan, k.higher_is_better, k.threshold_hijau, k.threshold_kuning,
+                         k.rekomendasi, k.urutan,
+                         p.kode AS perspektif_kode
+                  FROM bsc_kpi k
+                  JOIN bsc_perspektif p ON p.id = k.perspektif_id
+                  ORDER BY p.urutan ASC, k.urutan ASC`),
+    ]);
+
+    // Buat map KPI config: kode -> config row
+    const kpiConfigMap: Record<string, any> = {};
+    for (const row of kpiRes.rows) {
+      kpiConfigMap[row.kode] = row;
+    }
+
     // Execute all 12 KPI calculations in parallel
     const [r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12] = await Promise.all([
       getKpi1(dari, sampai, satelitId),
@@ -105,6 +163,23 @@ export async function GET(request: Request) {
       getKpi11(dari, sampai, satelitId),
       getKpi12(dari, sampai, satelitId),
     ]);
+
+    // Tag setiap KPI dengan config dari database (bukan hardcode)
+    const rawResults: Record<string, RawKpi> = {
+      kpi1: r1, kpi2: r2, kpi3: r3, kpi4: r4, kpi5: r5, kpi6: r6,
+      kpi7: r7, kpi8: r8, kpi9: r9, kpi10: r10, kpi11: r11, kpi12: r12,
+    };
+
+    const taggedData: Record<string, KpiResult> = {};
+    for (const [kode, rawKpi] of Object.entries(rawResults)) {
+      const cfg = kpiConfigMap[kode];
+      if (cfg) {
+        taggedData[kode] = tagWithConfig(rawKpi, cfg);
+      } else {
+        // Fallback: kalau config belum ada di DB, pakai nilai mentah dengan status abu
+        taggedData[kode] = { ...rawKpi, status: 'abu' };
+      }
+    }
 
     // Tambahan komparasi antarsatelit (Hanya berlaku untuk Super Admin yang gak main filter satelit)
     let satelitComparison: any[] = [];
@@ -142,20 +217,21 @@ export async function GET(request: Request) {
         satelit_id: satelitId,
         generated_at: new Date().toISOString(),
       },
-      data: {
-        kpi1:  tag(r1,  'gte80'),
-        kpi2:  tag(r2,  'gte4_5'),
-        kpi3:  tag(r3,  'gte85'),
-        kpi4:  tag(r4,  'gte90'),
-        kpi5:  tag(r5,  'eq100'),
-        kpi6:  tag(r6,  'eff'),
-        kpi7:  tag(r7,  'eq100'),
-        kpi8:  tag(r8,  'gte95'),
-        kpi9:  tag(r9,  'gte90'),
-        kpi10: tag(r10, 'gte85'),
-        kpi11: tag(r11, 'gte95'),
-        kpi12: tag(r12, 'lt72'),
+      // ─── KIRIM KONFIGURASI BSC KE FRONTEND ────────────────────────────
+      bsc_config: {
+        perspektif: perspektifRes.rows.map((p: any) => ({
+          ...p,
+          bobot: parseFloat(p.bobot),
+        })),
+        kpi: kpiRes.rows.map((k: any) => ({
+          ...k,
+          bobot: parseFloat(k.bobot),
+          target: parseFloat(k.target),
+          threshold_hijau: parseFloat(k.threshold_hijau),
+          threshold_kuning: parseFloat(k.threshold_kuning),
+        })),
       },
+      data: taggedData,
       satelit_comparison: satelitComparison.length > 0 ? satelitComparison : undefined,
     });
 

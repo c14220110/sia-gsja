@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
 import {
   RadialBarChart,
   RadialBar,
@@ -370,8 +371,8 @@ function SatelitComparisonChart({ data }: { data: any[] }) {
 }
 
 // ── BSC Perspektif Score Computation ────────────────────────────────────────
-// Ubah pencapaian tiap KPI jadi 0-100% terus dirata-rata
-// per perspektif. Weighted overall: Jemaat 35%, Keuangan 25%, Proses 25%, Pembelajaran 15%.
+// SEKARANG: Bobot dibaca dari database via bscConfig, bukan hardcode.
+// BSC_PERSPEKTIF_DEF hanya dipakai sebagai fallback jika config belum dimuat.
 const BSC_PERSPEKTIF_DEF = {
   jemaat: {
     label: 'Jemaat & Pemangku Kepentingan', shortLabel: 'Jemaat',
@@ -397,12 +398,14 @@ const BSC_PERSPEKTIF_DEF = {
 
 type PerspektifKey = keyof typeof BSC_PERSPEKTIF_DEF;
 
-// Ini daftar KPI yang angkanya makin kecil = makin bagus
-const LOWER_IS_BETTER = new Set(['kpi12']);
-
-function kpiAchievement(kpi: any, key: string): number | null {
+function kpiAchievement(kpi: any, key: string, kpiConfigMap?: Record<string, any>): number | null {
   if (!kpi || !kpi.data_tersedia || kpi.nilai === null || kpi.target === null) return null;
-  if (LOWER_IS_BETTER.has(key)) {
+  
+  // Cek higher_is_better dari config database, fallback ke logika lama
+  const cfg = kpiConfigMap?.[key];
+  const higherIsBetter = cfg ? cfg.higher_is_better : !['kpi12'].includes(key);
+
+  if (!higherIsBetter) {
     return Math.min(100, (kpi.target / Math.max(kpi.nilai, 0.01)) * 100);
   }
   // KPI-2 pake skala 5: kita konversi ke persen (target 4.5 = 90%)
@@ -412,14 +415,50 @@ function kpiAchievement(kpi: any, key: string): number | null {
   return Math.min(100, (kpi.nilai / kpi.target) * 100);
 }
 
-function computePerspektifScores(d: any) {
-  if (!d) return { scores: {} as Record<PerspektifKey, number | null>, overall: null as number | null };
+function computePerspektifScores(d: any, bscConfig?: { perspektif: any[]; kpi: any[] } | null) {
+  if (!d) return { scores: {} as Record<string, number | null>, overall: null as number | null };
+
+  // Buat KPI config map untuk kpiAchievement
+  const kpiConfigMap: Record<string, any> = {};
+  if (bscConfig?.kpi) {
+    for (const k of bscConfig.kpi) {
+      kpiConfigMap[k.kode] = k;
+    }
+  }
+
+  // Jika bscConfig tersedia, pakai bobot dari database
+  if (bscConfig?.perspektif && bscConfig?.kpi) {
+    const scores: Record<string, number | null> = {};
+    let weightedSum = 0;
+    let weightSum = 0;
+
+    for (const pDef of bscConfig.perspektif) {
+      const pKpis = bscConfig.kpi.filter((k: any) => k.perspektif_kode === pDef.kode);
+      const achievements = pKpis
+        .map((k: any) => kpiAchievement(d[k.kode], k.kode, kpiConfigMap))
+        .filter((v: any): v is number => v !== null);
+
+      if (achievements.length === 0) {
+        scores[pDef.kode] = null;
+      } else {
+        const avg = achievements.reduce((a: number, b: number) => a + b, 0) / achievements.length;
+        scores[pDef.kode] = Math.round(avg * 10) / 10;
+        const weight = parseFloat(pDef.bobot) / 100; // bobot di DB = persen (35), konversi ke desimal (0.35)
+        weightedSum += avg * weight;
+        weightSum += weight;
+      }
+    }
+    const overall = weightSum > 0 ? Math.round((weightedSum / weightSum) * 10) / 10 : null;
+    return { scores, overall };
+  }
+
+  // Fallback: pakai BSC_PERSPEKTIF_DEF hardcode (jaga-jaga kalau config belum dimuat)
   const scores: Record<string, number | null> = {};
   let weightedSum = 0;
   let weightSum = 0;
   for (const [pKey, pDef] of Object.entries(BSC_PERSPEKTIF_DEF)) {
     const achievements = pDef.kpis
-      .map(k => kpiAchievement(d[k], k))
+      .map(k => kpiAchievement(d[k], k, kpiConfigMap))
       .filter((v): v is number => v !== null);
     if (achievements.length === 0) {
       scores[pKey] = null;
@@ -759,11 +798,13 @@ export default function BscDashboardPage() {
   const [userData, setUserData] = useState<any>(null);
   const [loadingBsc, setLoadingBsc] = useState(true);
   const [bscData, setBscData] = useState<any>(null);
+  const [bscConfig, setBscConfig] = useState<{ perspektif: any[]; kpi: any[] } | null>(null);
   const [satelitComparisonData, setSatelitComparisonData] = useState<any[]>([]);
   const [satelitList, setSatelitList] = useState<any[]>([]);
   
   const [bscTab, setBscTab] = useState<'overview' | 'detail'>('overview');
-  const [selectedPerspektif, setSelectedPerspektif] = useState<'jemaat' | 'keuangan' | 'proses' | 'pembelajaran'>('jemaat');
+  const [selectedPerspektif, setSelectedPerspektif] = useState<string>('jemaat');
+  const [showConfigModal, setShowConfigModal] = useState(false);
   
   const now = new Date();
   const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -798,6 +839,7 @@ export default function BscDashboardPage() {
         if (j.success) {
           setBscData(j.data);
           setSatelitComparisonData(j.satelit_comparison ?? null);
+          if (j.bsc_config) setBscConfig(j.bsc_config);
         }
       }
     } catch(e) { 
@@ -840,26 +882,28 @@ export default function BscDashboardPage() {
 
     // Hitung pencapaian KPI untuk Summary Bar
     const kpisList = d ? Object.values(d) as any[] : [];
+    const totalKpiCount = bscConfig?.kpi?.length ?? 12;
     const hijauCount = kpisList.filter(k => k.status === 'hijau').length;
     const kuningCount = kpisList.filter(k => k.status === 'kuning').length;
     const merahCount = kpisList.filter(k => k.status === 'merah').length;
     const sid = bscFilter.satelit_id;
 
-    // Aksi rekomendasi strategis per KPI
-    const kpiMapping: Record<string, { label: string; rec: string }> = {
-      kpi1: { label: "Rasio Presensi Jemaat", rec: "Sosialisasikan kembali pentingnya pencatatan presensi mandiri lewat QR Code di setiap ibadah." },
-      kpi2: { label: "Skor Kepuasan Rata-rata", rec: "Lakukan evaluasi berkala terhadap umpan balik jemaat mengenai ibadah dan fasilitas." },
-      kpi3: { label: "Tingkat Retensi Kehadiran Jemaat", rec: "Evaluasi jemaat yang tidak hadir ≥ 1 bulan, aktifkan kunjungan pastoral proaktif, dan perkuat program kelompok kecil." },
-      kpi4: { label: "Tingkat Ketepatan Respons Pastoral", rec: "Evaluasi beban kerja tim pastoral dan optimalkan alur penugasan kunjungan jemaat." },
-      kpi5: { label: "Tingkat Kecukupan Pendanaan", rec: "Pastikan proyeksi pendapatan (subsidi & kontribusi) disusun secara matang agar seluruh kegiatan terdanai penuh tanpa mengalami defisit (≥ 100%)." },
-      kpi6: { label: "Efisiensi Anggaran", rec: "Berikan bimbingan teknis penyusunan proposal kegiatan agar estimasi biaya lebih presisi." },
-      kpi7: { label: "Rasio Penyelesaian Tindak Lanjut", rec: "Adakan koordinasi rutin untuk segera menyelesaikan dan menindaklanjuti keluhan dari jemaat." },
-      kpi8: { label: "Kelengkapan Data Presensi Bernama", rec: "Tugaskan pelayan pintu (usher) ekstra untuk membantu jemaat melakukan QR scan saat masuk." },
-      kpi9: { label: "Rasio Kehadiran Pelayan", rec: "Kirimkan pengingat jadwal otomatis lebih awal dan lakukan pembinaan komitmen pelayan." },
-      kpi10: { label: "Ketepatan Waktu Konfirmasi Jadwal", rec: "Sederhanakan proses konfirmasi jadwal pelayan melalui aplikasi seluler atau WhatsApp bot." },
-      kpi11: { label: "Kedisiplinan Waktu Kedatangan Pelayan", rec: "Berikan apresiasi kepada pelayan yang disiplin dan adakan briefing sebelum ibadah dimulai." },
-      kpi12: { label: "Tingkat Respons Pelayanan Pastoral", rec: "Gunakan sistem notifikasi instan agar permohonan kunjungan pastoral segera ditindaklanjuti." },
-    };
+    // ── KONFIGURASI KPI DARI DATABASE (bukan hardcode) ─────────────────────
+    // Buat map: kode KPI → config dari API
+    const kpiConfigMap: Record<string, any> = {};
+    if (bscConfig?.kpi) {
+      for (const k of bscConfig.kpi) {
+        kpiConfigMap[k.kode] = k;
+      }
+    }
+
+    // kpiMapping sekarang dibangun dari database config
+    const kpiMapping: Record<string, { label: string; rec: string }> = {};
+    if (bscConfig?.kpi) {
+      for (const k of bscConfig.kpi) {
+        kpiMapping[k.kode] = { label: k.nama, rec: k.rekomendasi || '' };
+      }
+    }
 
     // Filter KPI bermasalah untuk Hero Section (maksimal 3)
     const troubledKpis = Object.entries(d || {})
@@ -880,10 +924,10 @@ export default function BscDashboardPage() {
       .slice(0, 3);
 
 
-    const { scores: pScores, overall: overallScore } = computePerspektifScores(d);
+    const { scores: pScores, overall: overallScore } = computePerspektifScores(d, bscConfig);
 
     // Perspektif detail config for Detail tab
-    const perspektifDetailConfig: Record<PerspektifKey, { header: { warna: string; icon: string; title: string; subtitle: string }; cards: React.ReactNode[] }> = {
+    const perspektifDetailConfig: Record<string, { header: { warna: string; icon: string; title: string; subtitle: string }; cards: React.ReactNode[] }> = {
       jemaat: {
         header: { warna: 'bg-blue-100 text-blue-600 border border-blue-200', icon: 'groups', title: 'Jemaat & Pemangku Kepentingan', subtitle: 'Customer Perspective' },
         cards: [
@@ -965,10 +1009,10 @@ export default function BscDashboardPage() {
               <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Tercapai</div>
               <div className="flex items-baseline gap-1">
                 <span className="text-2xl font-black text-emerald-600">{hijauCount}</span>
-                <span className="text-xs text-slate-400 font-bold">/ 12</span>
+                <span className="text-xs text-slate-400 font-bold">/ {totalKpiCount}</span>
               </div>
               <div className="mt-1.5 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(hijauCount/12)*100}%` }} />
+                <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(hijauCount/totalKpiCount)*100}%` }} />
               </div>
             </div>
           </div>
@@ -980,10 +1024,10 @@ export default function BscDashboardPage() {
               <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Waspada</div>
               <div className="flex items-baseline gap-1">
                 <span className="text-2xl font-black text-amber-600">{kuningCount}</span>
-                <span className="text-xs text-slate-400 font-bold">/ 12</span>
+                <span className="text-xs text-slate-400 font-bold">/ {totalKpiCount}</span>
               </div>
               <div className="mt-1.5 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-amber-400 rounded-full" style={{ width: `${(kuningCount/12)*100}%` }} />
+                <div className="h-full bg-amber-400 rounded-full" style={{ width: `${(kuningCount/totalKpiCount)*100}%` }} />
               </div>
             </div>
           </div>
@@ -995,10 +1039,10 @@ export default function BscDashboardPage() {
               <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Tindakan</div>
               <div className="flex items-baseline gap-1">
                 <span className="text-2xl font-black text-rose-600">{merahCount}</span>
-                <span className="text-xs text-slate-400 font-bold">/ 12</span>
+                <span className="text-xs text-slate-400 font-bold">/ {totalKpiCount}</span>
               </div>
               <div className="mt-1.5 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-rose-500 rounded-full" style={{ width: `${(merahCount/12)*100}%` }} />
+                <div className="h-full bg-rose-500 rounded-full" style={{ width: `${(merahCount/totalKpiCount)*100}%` }} />
               </div>
             </div>
           </div>
@@ -1036,6 +1080,12 @@ export default function BscDashboardPage() {
             <span className={`material-icons-round text-[14px] ${loadingBsc ? 'animate-spin' : ''}`}>{loadingBsc ? 'autorenew' : 'refresh'}</span>
             Muat Data
           </button>
+          {userData?.is_super_admin && (
+            <button onClick={() => setShowConfigModal(true)} className="flex items-center gap-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-bold px-4 py-1.5 rounded-lg transition-colors shadow-sm ml-auto">
+              <span className="material-icons-round text-[14px]">settings</span>
+              Konfigurasi BSC
+            </button>
+          )}
         </div>
 
         {/* Tab Bar */}
@@ -1180,23 +1230,23 @@ export default function BscDashboardPage() {
           <div className="flex flex-col gap-6 animate-in fade-in duration-300">
             {/* Perspektif Selector Tabs */}
             <div className="w-full bg-white rounded-xl border border-slate-200 shadow-sm flex overflow-hidden">
-              {(Object.entries(BSC_PERSPEKTIF_DEF) as [PerspektifKey, typeof BSC_PERSPEKTIF_DEF[PerspektifKey]][]).map(([pKey, pDef]) => (
+              {(bscConfig?.perspektif || []).map((pDef: any) => (
                 <button
-                  key={pKey}
-                  onClick={() => setSelectedPerspektif(pKey)}
+                  key={pDef.kode}
+                  onClick={() => setSelectedPerspektif(pDef.kode)}
                   className={`flex-1 flex flex-col items-center justify-center gap-1.5 py-4 px-2 transition-all border-b-2 ${
-                    selectedPerspektif === pKey
+                    selectedPerspektif === pDef.kode
                       ? 'bg-slate-50 border-indigo-600 text-indigo-700'
                       : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50/50'
                   }`}
                 >
                   <div className="flex items-center gap-2">
                     <span className="material-icons-round text-[18px]">{pDef.icon}</span>
-                    <span className="font-bold text-sm">{pDef.shortLabel}</span>
+                    <span className="font-bold text-sm">{pDef.nama_singkat}</span>
                   </div>
-                  {pScores[pKey] !== null && (
-                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${selectedPerspektif === pKey ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>
-                      {pScores[pKey]}%
+                  {(pScores as Record<string, number | null>)[pDef.kode] !== null && (pScores as Record<string, number | null>)[pDef.kode] !== undefined && (
+                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${selectedPerspektif === pDef.kode ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>
+                      {(pScores as Record<string, number | null>)[pDef.kode]}%
                     </span>
                   )}
                 </button>
@@ -1214,9 +1264,9 @@ export default function BscDashboardPage() {
                     <h3 className="font-black text-slate-800 text-xl leading-tight">{detailConf.header.title}</h3>
                     <p className="text-[10px] text-slate-400 font-bold tracking-widest uppercase mt-0.5">{detailConf.header.subtitle}</p>
                   </div>
-                  {pScores[selectedPerspektif] !== null && (
+                  {(pScores as Record<string, number | null>)[selectedPerspektif] !== null && (
                     <div className="ml-auto text-right">
-                      <span className="text-3xl font-black text-slate-800">{pScores[selectedPerspektif]}%</span>
+                      <span className="text-3xl font-black text-slate-800">{(pScores as Record<string, number | null>)[selectedPerspektif]}%</span>
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Skor Perspektif</p>
                     </div>
                   )}
@@ -1282,6 +1332,212 @@ export default function BscDashboardPage() {
           </div>
         )}
 
+        {/* ── BSC Configuration Modal ────────────────────────────── */}
+        {showConfigModal && bscConfig && (
+          <BscConfigModal
+            config={bscConfig}
+            onClose={() => setShowConfigModal(false)}
+            onSaved={() => { setShowConfigModal(false); fetchBsc(bscFilter); }}
+          />
+        )}
+
       </div>
     );
   }
+
+// ── BSC Configuration Modal Component ─────────────────────────────────────
+function BscConfigModal({ config, onClose, onSaved }: { config: { perspektif: any[]; kpi: any[] }; onClose: () => void; onSaved: () => void }) {
+  const [perspektif, setPerspektif] = useState(config.perspektif.map(p => ({ ...p, bobot: p.bobot.toString() })));
+  const [kpi, setKpi] = useState(config.kpi.map(k => ({
+    ...k,
+    bobot: k.bobot.toString(),
+    target: k.target.toString(),
+    threshold_hijau: k.threshold_hijau.toString(),
+    threshold_kuning: k.threshold_kuning.toString(),
+  })));
+  const [saving, setSaving] = useState(false);
+  const [submitState, setSubmitState] = useState<{ status: 'idle' | 'loading' | 'success' | 'error'; message: string }>({ status: 'idle', message: '' });
+  const [activeTab, setActiveTab] = useState<'perspektif' | 'kpi'>('perspektif');
+
+  const totalBobotPerspektif = perspektif.reduce((sum, p) => sum + (parseFloat(p.bobot as any) || 0), 0);
+  const bobotValid = Math.abs(totalBobotPerspektif - 100) < 0.01;
+
+  const getKpiBobotByPerspektif = (perspektifId: number) => {
+    return kpi.filter(k => k.perspektif_id === perspektifId).reduce((sum, k) => sum + (parseFloat(k.bobot as any) || 0), 0);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    setSubmitState({ status: 'loading', message: 'Menyimpan konfigurasi BSC...' });
+    try {
+      const res = await fetch('/api/settings/bsc', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ perspektif, kpi }),
+      });
+      const j = await res.json();
+      if (j.success) {
+        setSubmitState({ status: 'success', message: 'Konfigurasi BSC berhasil disimpan!' });
+      } else {
+        setSubmitState({ status: 'error', message: j.message || 'Gagal menyimpan konfigurasi.' });
+      }
+    } catch (e: any) {
+      setSubmitState({ status: 'error', message: e.message || 'Terjadi kesalahan jaringan.' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <>
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+        <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl animate-in zoom-in-95 fade-in duration-200">
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center">
+                <span className="material-icons-round text-indigo-600 text-xl">tune</span>
+              </div>
+              <div>
+                <h2 className="text-lg font-black text-slate-800">Konfigurasi BSC</h2>
+                <p className="text-xs text-slate-400 font-medium">Atur bobot, target, dan threshold KPI</p>
+              </div>
+            </div>
+            <button onClick={onClose} className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center">
+              <span className="material-icons-round text-slate-400">close</span>
+            </button>
+          </div>
+
+          {/* Tab */}
+          <div className="flex border-b border-slate-200">
+            <button onClick={() => setActiveTab('perspektif')} className={`flex-1 py-3 text-sm font-bold text-center transition-all border-b-2 ${activeTab === 'perspektif' ? 'border-indigo-600 text-indigo-700 bg-indigo-50/50' : 'border-transparent text-slate-400'}`}>Bobot Perspektif</button>
+            <button onClick={() => setActiveTab('kpi')} className={`flex-1 py-3 text-sm font-bold text-center transition-all border-b-2 ${activeTab === 'kpi' ? 'border-indigo-600 text-indigo-700 bg-indigo-50/50' : 'border-transparent text-slate-400'}`}>Target & Bobot KPI</button>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto p-6">
+            {activeTab === 'perspektif' && (
+              <div className="flex flex-col gap-4">
+                <div className={`text-xs font-bold px-3 py-2 rounded-lg ${bobotValid ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
+                  Total Bobot: {totalBobotPerspektif.toFixed(1)}% {bobotValid ? '✓' : '(Harus = 100%)'}
+                </div>
+                {perspektif.map((p, idx) => (
+                  <div key={p.id} className="flex items-center gap-4 bg-slate-50 rounded-xl p-4">
+                    <span className="material-icons-round text-slate-500">{p.icon}</span>
+                    <div className="flex-1">
+                      <div className="text-sm font-bold text-slate-700">{p.nama}</div>
+                      <div className="text-xs text-slate-400">{p.nama_singkat}</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number" step="0.1" min="0" max="100"
+                        value={p.bobot}
+                        onChange={e => {
+                          const next = [...perspektif];
+                          next[idx] = { ...next[idx], bobot: e.target.value };
+                          setPerspektif(next);
+                        }}
+                        className="w-20 text-right border border-slate-200 rounded-lg px-2 py-1.5 text-sm font-bold focus:outline-none focus:border-indigo-400"
+                      />
+                      <span className="text-xs font-bold text-slate-400">%</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {activeTab === 'kpi' && (
+              <div className="flex flex-col gap-6">
+                {perspektif.map(p => {
+                  const pKpis = kpi.filter(k => k.perspektif_id === p.id);
+                  const totalBobot = getKpiBobotByPerspektif(p.id);
+                  const bobotOk = Math.abs(totalBobot - 100) < 0.01;
+                  return (
+                    <div key={p.id} className="border border-slate-200 rounded-xl overflow-hidden">
+                      <div className="bg-slate-50 px-4 py-3 flex items-center justify-between border-b border-slate-200">
+                        <div className="flex items-center gap-2">
+                          <span className="material-icons-round text-slate-500 text-lg">{p.icon}</span>
+                          <span className="font-bold text-sm text-slate-700">{p.nama_singkat}</span>
+                        </div>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${bobotOk ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                          Σ Bobot: {totalBobot.toFixed(1)}% {bobotOk ? '✓' : '≠ 100%'}
+                        </span>
+                      </div>
+                      <div className="divide-y divide-slate-100">
+                        {pKpis.map(k => {
+                          const kIdx = kpi.findIndex(x => x.id === k.id);
+                          return (
+                            <div key={k.id} className="px-4 py-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+                              <div className="flex-1 min-w-[140px]">
+                                <div className="text-xs font-bold text-slate-700">{k.nama}</div>
+                                <div className="text-[10px] text-slate-400">{k.kode.toUpperCase()}</div>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <label className="text-[10px] font-bold text-slate-400 w-12">Bobot</label>
+                                <input type="number" step="0.1" min="0" max="100" value={k.bobot}
+                                  onChange={e => { const next = [...kpi]; next[kIdx] = { ...next[kIdx], bobot: e.target.value }; setKpi(next); }}
+                                  className="w-16 text-right border border-slate-200 rounded px-1.5 py-1 text-xs font-bold focus:outline-none focus:border-indigo-400"
+                                />
+                                <span className="text-[10px] text-slate-400">%</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <label className="text-[10px] font-bold text-slate-400 w-12">Target</label>
+                                <input type="number" step="0.1" min="0" value={k.target}
+                                  onChange={e => { const next = [...kpi]; next[kIdx] = { ...next[kIdx], target: e.target.value }; setKpi(next); }}
+                                  className="w-16 text-right border border-slate-200 rounded px-1.5 py-1 text-xs font-bold focus:outline-none focus:border-indigo-400"
+                                />
+                                <span className="text-[10px] text-slate-400">{k.satuan}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <label className="text-[10px] font-bold text-emerald-500 w-12">Hijau≥</label>
+                                <input type="number" step="0.1" value={k.threshold_hijau}
+                                  onChange={e => { const next = [...kpi]; next[kIdx] = { ...next[kIdx], threshold_hijau: e.target.value }; setKpi(next); }}
+                                  className="w-16 text-right border border-slate-200 rounded px-1.5 py-1 text-xs font-bold focus:outline-none focus:border-emerald-400"
+                                />
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <label className="text-[10px] font-bold text-amber-500 w-12">Kuning≥</label>
+                                <input type="number" step="0.1" value={k.threshold_kuning}
+                                  onChange={e => { const next = [...kpi]; next[kIdx] = { ...next[kIdx], threshold_kuning: e.target.value }; setKpi(next); }}
+                                  className="w-16 text-right border border-slate-200 rounded px-1.5 py-1 text-xs font-bold focus:outline-none focus:border-amber-400"
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between">
+            <div className="flex gap-3 ml-auto">
+              <button onClick={onClose} className="px-5 py-2 text-sm font-bold text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors">Batal</button>
+              <button onClick={handleSave} disabled={saving || !bobotValid} className="px-5 py-2 text-sm font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm flex items-center gap-2">
+                {saving && <span className="material-icons-round text-[14px] animate-spin">autorenew</span>}
+                {saving ? 'Menyimpan...' : 'Simpan Konfigurasi'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Lottie overlay — loading/success/error */}
+      <SubmitOverlay
+        status={submitState.status}
+        message={submitState.message}
+        onClose={() => {
+          if (submitState.status === 'success') {
+            onSaved();
+          } else {
+            setSubmitState({ status: 'idle', message: '' });
+          }
+        }}
+      />
+    </>
+  );
+}
