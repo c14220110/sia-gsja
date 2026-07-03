@@ -298,17 +298,19 @@ export default function RancanganAnggaranPage() {
           <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
         </div>
 
-        {/* Satelit Dropdown */}
-        <div className="relative min-w-[150px]">
-          <select 
-            value={filterSatelit} onChange={e => { setFilterSatelit(e.target.value); setFilterKomisi(''); }}
-            className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
-          >
-            <option value="">Semua Satelit</option>
-            {satelitOptions.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
-          <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
-        </div>
+        {/* Satelit Dropdown - Hanya tampil untuk admin/pusat */}
+        {isApprover && (
+          <div className="relative min-w-[150px]">
+            <select 
+              value={filterSatelit} onChange={e => { setFilterSatelit(e.target.value); setFilterKomisi(''); }}
+              className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
+            >
+              <option value="">Semua Satelit</option>
+              {satelitOptions.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
+          </div>
+        )}
 
         {/* Komisi Dropdown */}
         <div className="relative min-w-[150px]">

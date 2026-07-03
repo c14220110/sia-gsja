@@ -115,7 +115,8 @@ export function buildGraph(data: any): { nodes: NodeItem[]; edges: EdgeItem[]; b
         currentX += HG;
       }
     } else {
-      saudaraIds.push(addNode(item, 'saudara', currentX, personY));
+      const isReg = !!item.id;
+      saudaraIds.push(addNode(item, 'saudara', currentX, personY, !isReg));
       currentX += HG;
     }
   });

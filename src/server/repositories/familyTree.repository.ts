@@ -36,11 +36,18 @@ export class FamilyTreeRepository {
 
   async getSaudara(personId: number): Promise<any[]> {
     const res = await pool.query(
-      `SELECT j.id, j.jemaat_id, j.nama_lengkap, j.jenis_kelamin, j.tanggal_lahir,
-              j.foto_url, j.status_jemaat
+      `SELECT
+         rj.id             AS relasi_id,
+         j.id,
+         j.jemaat_id,
+         COALESCE(j.nama_lengkap, rj.nama_terkait) AS nama_lengkap,
+         j.jenis_kelamin,
+         j.tanggal_lahir,
+         j.foto_url,
+         j.status_jemaat
        FROM relasi_jemaat rj
        JOIN jenis_relasi  jr ON rj.jenis_relasi_id = jr.id AND jr.nama_relasi = 'Saudara Kandung'
-       JOIN jemaat        j  ON rj.jemaat_terkait_id = j.id AND j.is_deleted = false
+       LEFT JOIN jemaat   j  ON rj.jemaat_terkait_id = j.id AND j.is_deleted = false
        WHERE rj.jemaat_id = $1`,
       [personId]
     );
@@ -49,14 +56,15 @@ export class FamilyTreeRepository {
 
   async getAnak(orang_tua_id: number): Promise<any[]> {
     const res = await pool.query(
-      `SELECT
+      `-- Jalur 1: Anak yang eksplisit diinput oleh orang tua (via relasi_jemaat)
+       SELECT
          rj.id             AS relasi_id,
          rj.nama_terkait   AS nama_anak,
          rj.gereja_asal    AS gereja_asal_anak,
          rj.jemaat_terkait_id AS anak_jemaat_id,
          j.id,
          j.jemaat_id       AS jemaat_nomor,
-         j.nama_lengkap,
+         COALESCE(j.nama_lengkap, rj.nama_terkait) AS nama_lengkap,
          j.jenis_kelamin,
          j.tanggal_lahir,
          j.foto_url,
@@ -65,7 +73,38 @@ export class FamilyTreeRepository {
        JOIN jenis_relasi  jr ON rj.jenis_relasi_id = jr.id AND jr.nama_relasi = 'Anak'
        LEFT JOIN jemaat   j  ON rj.jemaat_terkait_id = j.id AND j.is_deleted = false
        WHERE rj.jemaat_id = $1
-       ORDER BY j.tanggal_lahir ASC NULLS LAST, rj.id ASC`,
+
+       UNION
+
+       -- Jalur 2: Auto-infer — anak terdaftar yang secara eksplisit mencantumkan
+       -- orang ini sebagai ayah/ibu mereka, tapi belum di-link di relasi_jemaat orang tua.
+       -- Ini membuat tree simetris tanpa perlu orang tua input ulang.
+       SELECT
+         NULL             AS relasi_id,
+         j.nama_lengkap   AS nama_anak,
+         NULL             AS gereja_asal_anak,
+         j.id             AS anak_jemaat_id,
+         j.id,
+         j.jemaat_id      AS jemaat_nomor,
+         j.nama_lengkap,
+         j.jenis_kelamin,
+         j.tanggal_lahir,
+         j.foto_url,
+         j.status_jemaat
+       FROM jemaat j
+       WHERE (j.ayah_id = $1 OR j.ibu_id = $1)
+         AND j.is_deleted = false
+         AND (
+           -- Hindari duplikat dengan yang sudah ada di jalur 1
+           j.id IS NULL OR j.id NOT IN (
+             SELECT rj2.jemaat_terkait_id
+             FROM relasi_jemaat rj2
+             JOIN jenis_relasi  jr2 ON rj2.jenis_relasi_id = jr2.id AND jr2.nama_relasi = 'Anak'
+             WHERE rj2.jemaat_id = $1 AND rj2.jemaat_terkait_id IS NOT NULL
+           )
+         )
+
+       ORDER BY tanggal_lahir ASC NULLS LAST, relasi_id ASC NULLS LAST`,
       [orang_tua_id]
     );
     return res.rows;

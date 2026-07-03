@@ -20,9 +20,21 @@ export async function GET(request: NextRequest) {
     const conditions: string[] = [];
     const values: any[] = [];
 
-    if (satelitFilter) {
-      values.push(parseInt(satelitFilter));
-      conditions.push(`at.satelit_id = $${values.length}`);
+    if (!caller.is_super_admin && !caller.permissions.includes('anggaran_review')) {
+      // Jika bukan admin/pusat, paksa hanya bisa lihat satelit sendiri
+      if (caller.satelit_id) {
+        values.push(caller.satelit_id);
+        conditions.push(`at.satelit_id = $${values.length}`);
+      } else {
+        // Jika tidak punya satelit_id dan bukan pusat, jangan tampilkan apa-apa (atau return error)
+        conditions.push(`1 = 0`); 
+      }
+    } else {
+      // Admin/pusat bisa filter berdasarkan dropdown di UI
+      if (satelitFilter) {
+        values.push(parseInt(satelitFilter));
+        conditions.push(`at.satelit_id = $${values.length}`);
+      }
     }
     if (statusFilter) {
       const statuses = statusFilter.split(',').map(s => s.trim());

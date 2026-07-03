@@ -431,16 +431,24 @@ export class JemaatRepository {
           const jenisRelasiId = jrRes.rows[0].id;
           for (const s of data.saudara) {
             const saudaraId = s.saudara_jemaat_id ? parseInt(s.saudara_jemaat_id, 10) : null;
+            const saudaraNama = s.nama_saudara || null;
+            const saudaraGerAsal = s.gereja_asal_saudara || null;
             if (saudaraId) {
-              // A ke B
+              // Saudara terdaftar: simpan dua arah
               await client.query(
-                `INSERT INTO relasi_jemaat (jemaat_id, jemaat_terkait_id, jenis_relasi_id) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
-                [newJemaatId, saudaraId, jenisRelasiId]
+                `INSERT INTO relasi_jemaat (jemaat_id, jemaat_terkait_id, jenis_relasi_id, nama_terkait, gereja_asal) VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING`,
+                [newJemaatId, saudaraId, jenisRelasiId, saudaraNama, saudaraGerAsal]
               );
               // B ke A (dua arah)
               await client.query(
                 `INSERT INTO relasi_jemaat (jemaat_id, jemaat_terkait_id, jenis_relasi_id) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
                 [saudaraId, newJemaatId, jenisRelasiId]
+              );
+            } else if (saudaraNama) {
+              // Saudara belum terdaftar: simpan hanya nama & gereja asal, tanpa reverse link
+              await client.query(
+                `INSERT INTO relasi_jemaat (jemaat_id, jemaat_terkait_id, jenis_relasi_id, nama_terkait, gereja_asal) VALUES ($1, NULL, $2, $3, $4)`,
+                [newJemaatId, jenisRelasiId, saudaraNama, saudaraGerAsal]
               );
             }
           }
@@ -547,12 +555,13 @@ export class JemaatRepository {
     const saudaraQuery = `
       SELECT
         rj.id,
-        rj.jemaat_terkait_id AS saudara_jemaat_id,
-        s.jemaat_id           AS saudara_jemaat_kode,
-        s.nama_lengkap        AS nama_saudara
+        rj.jemaat_terkait_id                    AS saudara_jemaat_id,
+        s.jemaat_id                              AS saudara_jemaat_kode,
+        COALESCE(s.nama_lengkap, rj.nama_terkait) AS nama_saudara,
+        COALESCE(rj.gereja_asal, '')             AS gereja_asal_saudara
       FROM relasi_jemaat rj
       JOIN jenis_relasi jr ON rj.jenis_relasi_id = jr.id
-      JOIN jemaat s        ON rj.jemaat_terkait_id = s.id AND s.is_deleted = false
+      LEFT JOIN jemaat s   ON rj.jemaat_terkait_id = s.id AND s.is_deleted = false
       WHERE rj.jemaat_id = $1
         AND jr.nama_relasi = 'Saudara Kandung'
       ORDER BY rj.id ASC
@@ -563,6 +572,7 @@ export class JemaatRepository {
       saudara_jemaat_id:    s.saudara_jemaat_id ? s.saudara_jemaat_id.toString() : '',
       saudara_jemaat_kode:  s.saudara_jemaat_kode || '',
       nama_saudara:         s.nama_saudara || '',
+      gereja_asal_saudara:  s.gereja_asal_saudara || '',
     }));
 
     return row;
@@ -874,16 +884,24 @@ export class JemaatRepository {
         if (data.saudara && Array.isArray(data.saudara) && data.saudara.length > 0) {
           for (const s of data.saudara) {
             const saudaraId = s.saudara_jemaat_id ? parseInt(s.saudara_jemaat_id, 10) : null;
+            const saudaraNama = s.nama_saudara || null;
+            const saudaraGerAsal = s.gereja_asal_saudara || null;
             if (saudaraId) {
-              // A ke B
+              // Saudara terdaftar: simpan dua arah
               await client.query(
-                `INSERT INTO relasi_jemaat (jemaat_id, jemaat_terkait_id, jenis_relasi_id) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
-                [primaryId, saudaraId, jenisRelasiId]
+                `INSERT INTO relasi_jemaat (jemaat_id, jemaat_terkait_id, jenis_relasi_id, nama_terkait, gereja_asal) VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING`,
+                [primaryId, saudaraId, jenisRelasiId, saudaraNama, saudaraGerAsal]
               );
               // B ke A
               await client.query(
                 `INSERT INTO relasi_jemaat (jemaat_id, jemaat_terkait_id, jenis_relasi_id) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
                 [saudaraId, primaryId, jenisRelasiId]
+              );
+            } else if (saudaraNama) {
+              // Saudara belum terdaftar: simpan hanya nama & gereja asal, tanpa reverse link
+              await client.query(
+                `INSERT INTO relasi_jemaat (jemaat_id, jemaat_terkait_id, jenis_relasi_id, nama_terkait, gereja_asal) VALUES ($1, NULL, $2, $3, $4)`,
+                [primaryId, jenisRelasiId, saudaraNama, saudaraGerAsal]
               );
             }
           }
