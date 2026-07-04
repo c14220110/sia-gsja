@@ -191,6 +191,12 @@ export default function PelayanPage() {
               <span className="text-slate-700 text-sm font-bold font-sans leading-5">Kalender Roster</span>
             </Link>
           )}
+          {hasPermission('pelayan_view') && (
+            <Link href="/pelayan/tim" className="px-5 py-2.5 bg-white border border-slate-300 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-50 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none">
+              <span className="material-icons-round text-slate-700 text-[20px]">groups</span>
+              <span className="text-slate-700 text-sm font-bold font-sans leading-5">Tim Pelayan</span>
+            </Link>
+          )}
           {hasPermission('pelayan_manage') && (
             <Link href="/pelayan/new" className="px-5 py-2.5 bg-slate-700 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none">
               <span className="material-icons-round text-white text-[20px]">add</span>

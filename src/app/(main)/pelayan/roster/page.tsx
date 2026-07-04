@@ -163,70 +163,89 @@ export default function RosterPelayanPage() {
                 </div>
                 
                 {/* Cards Container */}
-                <div className="flex-1 flex flex-col gap-3">
-                  {items.map((item: any) => {
-                    let statusColor = 'bg-slate-100 text-slate-600';
-                    if (item.status_konfirmasi === 'Hadir' || item.status_konfirmasi === 'Bersedia') statusColor = 'bg-emerald-100 text-emerald-700';
-                    if (item.status_konfirmasi === 'Berhalangan' || item.status_konfirmasi === 'Tidak Hadir') statusColor = 'bg-rose-100 text-rose-700';
-                    if (item.status_konfirmasi === 'Menunggu Konfirmasi') statusColor = 'bg-amber-100 text-amber-700';
-
-                    return (
-                      <div key={item.roster_id} className="w-full bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col lg:flex-row gap-4 lg:items-center hover:shadow-md transition-shadow">
-                        
-                        <div className="flex-1 flex flex-col lg:flex-row gap-4 lg:items-center min-w-0">
-                          {/* Kegiatan Info */}
-                          <div className="w-full lg:w-1/3 flex flex-col">
-                            <span className="text-slate-900 font-bold font-sans truncate">{item.nama_kegiatan}</span>
-                            <div className="flex items-center gap-2 mt-1 text-slate-500 text-xs">
-                              <span className="material-icons-round text-[14px]">schedule</span>
-                              <span className="font-sans">{item.waktu_mulai?.substring(0, 5)} WIB</span>
-                            </div>
-                            <div className="flex items-center gap-2 mt-0.5 text-slate-500 text-xs truncate">
-                              <span className="material-icons-round text-[14px]">location_on</span>
-                              <span className="truncate">{item.lokasi_kegiatan}</span>
-                            </div>
+                <div className="flex-1 flex flex-col gap-5">
+                  {Object.values(
+                    items.reduce((acc: any, curr: any) => {
+                      const actKey = `${curr.nama_kegiatan}|${curr.waktu_mulai}|${curr.lokasi_kegiatan}`;
+                      if (!acc[actKey]) {
+                        acc[actKey] = {
+                          nama_kegiatan: curr.nama_kegiatan,
+                          waktu_mulai: curr.waktu_mulai,
+                          lokasi_kegiatan: curr.lokasi_kegiatan,
+                          pelayans: []
+                        };
+                      }
+                      acc[actKey].pelayans.push(curr);
+                      return acc;
+                    }, {})
+                  ).map((act: any, actIdx) => (
+                    <div key={actIdx} className="w-full bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow">
+                      {/* Activity Header */}
+                      <div className="bg-slate-50 border-b border-slate-200 p-4 flex flex-col gap-1.5">
+                        <span className="text-slate-900 font-bold font-sans text-base leading-tight">{act.nama_kegiatan}</span>
+                        <div className="flex items-center gap-4 text-slate-500 text-xs">
+                          <div className="flex items-center gap-1.5">
+                            <span className="material-icons-round text-[14px]">schedule</span>
+                            <span className="font-sans font-medium">{act.waktu_mulai?.substring(0, 5)} WIB</span>
                           </div>
-
-                          <div className="hidden lg:block w-px h-10 bg-slate-200 shrink-0 mx-2"></div>
-
-                          {/* Role Info */}
-                          <div className="w-full lg:w-1/4 flex flex-col justify-center">
-                            <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider mb-1">Peran / Role</span>
-                            <span className="px-2.5 py-1 bg-slate-50 text-slate-700 rounded-md border border-slate-200 text-xs font-semibold w-fit">
-                              {item.nama_role}
-                            </span>
-                          </div>
-
-                          <div className="hidden lg:block w-px h-10 bg-slate-200 shrink-0 mx-2"></div>
-
-                          {/* Pelayan Info */}
-                          <div className="flex-1 flex items-center gap-3 min-w-0">
-                            <img 
-                              src={item.foto_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.nama_lengkap)}&background=random`} 
-                              alt="Avatar" 
-                              className="w-10 h-10 rounded-full object-cover shrink-0 border border-slate-200"
-                            />
-                            <div className="flex flex-col min-w-0">
-                              <span className="text-slate-900 text-sm font-bold truncate">
-                                <Link href={`/pelayan/${item.pelayan_id}?mode=view`} className="hover:text-violet-600 transition-colors">
-                                  {item.nama_lengkap}
-                                </Link>
-                              </span>
-                              <span className="text-slate-500 text-[11px] truncate">ID Pelayan: #{item.pelayan_id}</span>
-                            </div>
+                          <div className="flex items-center gap-1.5 truncate">
+                            <span className="material-icons-round text-[14px]">location_on</span>
+                            <span className="truncate">{act.lokasi_kegiatan}</span>
                           </div>
                         </div>
-
-                        {/* Status */}
-                        <div className="shrink-0 flex items-center lg:justify-end border-t border-slate-100 lg:border-t-0 pt-3 lg:pt-0 mt-2 lg:mt-0">
-                          <span className={`px-3 py-1.5 rounded-full text-xs font-bold capitalize ${statusColor}`}>
-                            {item.status_konfirmasi}
-                          </span>
-                        </div>
-                        
                       </div>
-                    );
-                  })}
+
+                      {/* Pelayans List */}
+                      <div className="flex flex-col p-2">
+                        {act.pelayans.map((item: any) => {
+                          let statusColor = 'bg-slate-100 text-slate-600';
+                          if (item.status_konfirmasi === 'Hadir' || item.status_konfirmasi === 'Bersedia') statusColor = 'bg-emerald-100 text-emerald-700';
+                          if (item.status_konfirmasi === 'Berhalangan' || item.status_konfirmasi === 'Tidak Hadir') statusColor = 'bg-rose-100 text-rose-700';
+                          if (item.status_konfirmasi === 'Menunggu Konfirmasi') statusColor = 'bg-amber-100 text-amber-700';
+
+                          return (
+                            <div key={item.roster_id} className="w-full flex flex-col lg:flex-row gap-4 lg:items-center p-3 hover:bg-slate-50 rounded-lg transition-colors border-b border-slate-100 last:border-0">
+                              
+                              {/* Role Info */}
+                              <div className="w-full lg:w-40 shrink-0 flex flex-col justify-center">
+                                <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider mb-1">Peran / Role</span>
+                                <span className="px-2.5 py-1 bg-white text-slate-700 rounded-md border border-slate-200 text-xs font-semibold w-fit truncate max-w-full">
+                                  {item.nama_role}
+                                </span>
+                              </div>
+
+                              <div className="hidden lg:block w-px h-10 bg-slate-200 shrink-0 mx-2"></div>
+
+                              {/* Pelayan Info */}
+                              <div className="flex-1 flex items-center gap-3 min-w-0">
+                                <img 
+                                  src={item.foto_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.nama_lengkap)}&background=random`} 
+                                  alt="Avatar" 
+                                  className="w-10 h-10 rounded-full object-cover shrink-0 border border-slate-200"
+                                />
+                                <div className="flex flex-col min-w-0">
+                                  <span className="text-slate-900 text-sm font-bold truncate">
+                                    <Link href={`/pelayan/${item.pelayan_id}?mode=view`} className="hover:text-violet-600 transition-colors">
+                                      {item.nama_lengkap}
+                                    </Link>
+                                  </span>
+                                  <span className="text-slate-500 text-[11px] truncate">ID Pelayan: #{item.pelayan_id}</span>
+                                </div>
+                              </div>
+
+                              {/* Status */}
+                              <div className="shrink-0 flex items-center lg:justify-end mt-2 lg:mt-0">
+                                <span className={`px-3 py-1.5 rounded-full text-[11px] font-bold capitalize ${statusColor}`}>
+                                  {item.status_konfirmasi}
+                                </span>
+                              </div>
+                              
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             );

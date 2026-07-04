@@ -101,23 +101,24 @@ export default function RancanganAnggaranPage() {
   });
 
   const getStatusBadge = (status: string) => {
+    const baseClass = "inline-flex whitespace-nowrap px-3 py-1 rounded-full text-xs font-bold font-sans uppercase";
     switch (status) {
       case 'Draft':
-        return <span className="px-3 py-1 rounded-full text-xs font-bold font-sans uppercase bg-slate-100 text-slate-600">DRAFT</span>;
+        return <span className={`${baseClass} bg-slate-100 text-slate-600`}>DRAFT</span>;
       case 'Menunggu Review':
-        return <span className="px-3 py-1 rounded-full text-xs font-bold font-sans uppercase bg-amber-100 text-amber-700">MENUNGGU REVIEW</span>;
+        return <span className={`${baseClass} bg-amber-100 text-amber-700`}>MENUNGGU REVIEW</span>;
       case 'Sedang Direviu':
-        return <span className="px-3 py-1 rounded-full text-xs font-bold font-sans uppercase bg-blue-100 text-blue-700">SEDANG DIREVIU</span>;
+        return <span className={`${baseClass} bg-blue-100 text-blue-700`}>SEDANG DIREVIU</span>;
       case 'Disetujui Sebagian':
-        return <span className="px-3 py-1 rounded-full text-xs font-bold font-sans uppercase bg-orange-100 text-orange-700">DISETUJUI SEBAGIAN</span>;
+        return <span className={`${baseClass} bg-orange-100 text-orange-700`}>DISETUJUI SEBAGIAN</span>;
       case 'Disetujui Penuh':
-        return <span className="px-3 py-1 rounded-full text-xs font-bold font-sans uppercase bg-green-100 text-green-700">DISETUJUI PENUH</span>;
+        return <span className={`${baseClass} bg-green-100 text-green-700`}>DISETUJUI PENUH</span>;
       case 'Ditolak':
-        return <span className="px-3 py-1 rounded-full text-xs font-bold font-sans uppercase bg-red-100 text-red-700">DITOLAK</span>;
+        return <span className={`${baseClass} bg-red-100 text-red-700`}>DITOLAK</span>;
       case 'Dibatalkan':
-        return <span className="px-3 py-1 rounded-full text-xs font-bold font-sans uppercase bg-zinc-100 text-zinc-600">DIBATALKAN</span>;
+        return <span className={`${baseClass} bg-zinc-100 text-zinc-600`}>DIBATALKAN</span>;
       default:
-        return <span className="px-3 py-1 rounded-full text-xs font-bold font-sans uppercase bg-slate-100 text-slate-600">{status.toUpperCase()}</span>;
+        return <span className={`${baseClass} bg-slate-100 text-slate-600`}>{status.toUpperCase()}</span>;
     }
   };
 

@@ -4,6 +4,8 @@ import React, { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useSplash } from './SplashContext';
 
+const SPLASH_SHOWN_KEY = 'gsja_splash_shown';
+
 const DotLottieReact = dynamic(
   () => import('@lottiefiles/dotlottie-react').then((mod) => mod.DotLottieReact),
   { ssr: false }
@@ -11,17 +13,24 @@ const DotLottieReact = dynamic(
 
 export default function MobileSplashScreen() {
   const { isAppReady } = useSplash();
-  const [isVisible, setIsVisible] = useState(true);
+
+  // Nilai awal: langsung false jika sudah pernah tampil di sesi ini
+  // → tidak ada flash/splash saat navigasi internal, tab resize, PWA foreground
+  const [isVisible, setIsVisible] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    // Jika sessionStorage sudah mencatat splash pernah tampil, skip
+    if (sessionStorage.getItem(SPLASH_SHOWN_KEY) === '1') return false;
+    // Juga skip kalau desktop (md ke atas)
+    if (window.innerWidth >= 768) return false;
+    return true;
+  });
+
   const [isFadingOut, setIsFadingOut] = useState(false);
 
   useEffect(() => {
-    // Kalau tidak di mobile (md screen ke atas), tidak perlu splash
-    if (window.innerWidth >= 768) {
-      setIsVisible(false);
-      return;
-    }
+    if (!isVisible) return;
 
-    // Jika app sudah siap (api selesai), langsung mulai fade out
+    // Jika app sudah siap (API selesai), langsung mulai fade out
     if (isAppReady) {
       setIsFadingOut(true);
       const t = setTimeout(() => setIsVisible(false), 600);
@@ -35,7 +44,7 @@ export default function MobileSplashScreen() {
     }, 8000);
 
     return () => clearTimeout(maxTimer);
-  }, [isAppReady]);
+  }, [isAppReady, isVisible]);
 
   if (!isVisible) return null;
 

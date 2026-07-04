@@ -134,9 +134,45 @@ export default function DetailJadwalJemaatPage() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    if (!dateString) return '-';
-    return new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(dateString));
+  // Format tanggal: jika ada tanggal_selesai dan beda hari → tampilkan range
+  const formatDateRange = (mulai: string, selesai: string) => {
+    if (!mulai) return '-';
+    const tglMulai = new Date(mulai);
+    const tglSelesai = selesai ? new Date(selesai) : null;
+
+    const fmtShort = (d: Date) => new Intl.DateTimeFormat('id-ID', {
+      weekday: 'short', day: 'numeric', month: 'long'
+    }).format(d);
+    const fmtFull = (d: Date) => new Intl.DateTimeFormat('id-ID', {
+      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+    }).format(d);
+
+    // Jika tidak ada selesai atau sama hari → tampilkan 1 tanggal penuh
+    if (!tglSelesai || tglMulai.toDateString() === tglSelesai.toDateString()) {
+      return fmtFull(tglMulai);
+    }
+
+    // Range multi-hari: "Rab, 15 – Kam, 16 Juli 2026"
+    // Cek apakah bulan & tahun sama agar tidak redundan
+    const sameBulanTahun = tglMulai.getMonth() === tglSelesai.getMonth()
+      && tglMulai.getFullYear() === tglSelesai.getFullYear();
+
+    if (sameBulanTahun) {
+      const mulaiStr = new Intl.DateTimeFormat('id-ID', { weekday: 'short', day: 'numeric' }).format(tglMulai);
+      const selesaiStr = new Intl.DateTimeFormat('id-ID', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' }).format(tglSelesai);
+      return `${mulaiStr} – ${selesaiStr}`;
+    }
+
+    // Beda bulan
+    return `${fmtShort(tglMulai)} – ${fmtShort(tglSelesai)} ${tglSelesai.getFullYear()}`;
+  };
+
+  // Format jam: tampilkan waktu_selesai jika ada, fallback "Selesai"
+  const formatJam = (mulai: string, selesai: string) => {
+    if (!mulai) return '-';
+    const jamMulai = mulai.slice(0, 5);
+    if (!selesai || selesai === '00:00:00' || selesai === mulai) return `${jamMulai} - Selesai`;
+    return `${jamMulai} - ${selesai.slice(0, 5)} WIB`;
   };
 
   if (!data) return null;
@@ -194,12 +230,12 @@ export default function DetailJadwalJemaatPage() {
                <div className="flex flex-col gap-1.5 p-4 bg-slate-50 border border-slate-100 rounded-2xl">
                   <span className="material-icons-round text-blue-500 mb-1">calendar_month</span>
                   <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tanggal</span>
-                  <span className="text-sm font-bold text-slate-800 leading-snug">{formatDate(data.tanggal_mulai)}</span>
+                  <span className="text-sm font-bold text-slate-800 leading-snug">{formatDateRange(data.tanggal_mulai, data.tanggal_selesai)}</span>
                </div>
                <div className="flex flex-col gap-1.5 p-4 bg-slate-50 border border-slate-100 rounded-2xl">
                   <span className="material-icons-round text-indigo-500 mb-1">schedule</span>
                   <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Pukul</span>
-                  <span className="text-sm font-bold text-slate-800 leading-snug">{data.waktu_mulai.slice(0,5)} - Selesai</span>
+                  <span className="text-sm font-bold text-slate-800 leading-snug">{formatJam(data.waktu_mulai, data.waktu_selesai)}</span>
                </div>
             </div>
 
@@ -213,11 +249,31 @@ export default function DetailJadwalJemaatPage() {
                </div>
             </div>
 
-            {/* Keterangan */}
-            <div className="flex flex-col gap-2">
-               <h3 className="text-lg font-black text-slate-900">Tentang Acara</h3>
-               <p className="text-slate-600 leading-relaxed text-sm whitespace-pre-wrap">{data.keterangan || 'Tidak ada deskripsi detail mengenai acara ini.'}</p>
-            </div>
+            {/* Keterangan / Tentang Acara */}
+            {(data.keterangan || data.akomodasi) && (
+               <div className="flex flex-col gap-3">
+                  <h3 className="text-lg font-black text-slate-900">Tentang Acara</h3>
+                  {data.keterangan && (
+                     <p className="text-slate-600 leading-relaxed text-sm whitespace-pre-wrap">{data.keterangan}</p>
+                  )}
+                  {/* Tampilkan akomodasi hanya untuk kategori Event & Perayaan */}
+                  {data.akomodasi && data.kategori_jenis_kegiatan === 'Event & Perayaan' && (
+                     <div className="flex items-start gap-3 p-3.5 bg-emerald-50 border border-emerald-100 rounded-xl mt-1">
+                        <span className="material-icons-round text-emerald-600 text-[20px] shrink-0 mt-0.5">hotel</span>
+                        <div>
+                           <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider block mb-0.5">Akomodasi</span>
+                           <span className="text-sm font-semibold text-emerald-900">{data.akomodasi}</span>
+                        </div>
+                     </div>
+                  )}
+               </div>
+            )}
+            {!data.keterangan && !data.akomodasi && (
+               <div className="flex flex-col gap-2">
+                  <h3 className="text-lg font-black text-slate-900">Tentang Acara</h3>
+                  <p className="text-slate-400 leading-relaxed text-sm">Tidak ada deskripsi detail mengenai acara ini.</p>
+               </div>
+            )}
 
          </div>
 

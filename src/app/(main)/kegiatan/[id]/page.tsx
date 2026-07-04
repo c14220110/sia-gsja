@@ -382,6 +382,14 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
   const [isSavingRA, setIsSavingRA] = useState(false);
   const [selectedNewRA, setSelectedNewRA] = useState('');
 
+  // Tim Pelayan modal state
+  const [isTimModalOpen, setIsTimModalOpen] = useState(false);
+  const [timOptions, setTimOptions] = useState<any[]>([]);
+  const [isLoadingTim, setIsLoadingTim] = useState(false);
+  const [selectedTimId, setSelectedTimId] = useState('');
+  const [isSavingTim, setIsSavingTim] = useState(false);
+  const [timResult, setTimResult] = useState<{ assigned: string[]; skipped_duplicate: string[]; skipped_conflict: { nama: string; bentrokDengan: string }[] } | null>(null);
+
   useEffect(() => {
     fetchDetail();
     fetchPelayan();
@@ -523,6 +531,46 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
       alert('Terjadi kesalahan server');
     } finally {
       setIsSavingPelayan(false);
+    }
+  };
+
+  // Fetch tim options (semua satelit yang diizinkan untuk admin)
+  const fetchTimOptions = async () => {
+    setIsLoadingTim(true);
+    try {
+      const res = await fetch(`/api/pelayan/tim`);
+      const json = await res.json();
+      if (json.success) setTimOptions((json.data || []).filter((t: any) => t.is_active));
+    } catch (e) { console.error(e); }
+    finally { setIsLoadingTim(false); }
+  };
+
+  const handleTambahTimPelayan = async () => {
+    if (!selectedTimId) return;
+    setIsSavingTim(true);
+    setTimResult(null);
+    try {
+      const res = await fetch(`/api/kegiatan/${id}/pelayan/tim`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tim_id: parseInt(selectedTimId) }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setTimResult({
+          assigned: json.assigned || [],
+          skipped_duplicate: json.skipped_duplicate || [],
+          skipped_conflict: json.skipped_conflict || [],
+        });
+        fetchPelayan(); // refresh roster
+      } else {
+        alert(json.message || 'Gagal menambahkan tim.');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Terjadi kesalahan server.');
+    } finally {
+      setIsSavingTim(false);
     }
   };
 
@@ -1178,12 +1226,20 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
                  <p className="text-xs text-slate-500 mt-1">Kelola peranan teknis (WL, singer, usher, dsb) untuk mengawal eksekusi jadwal.</p>
                </div>
                {isPelayanManager && (
-                 <button 
-                   onClick={() => setIsModalOpen(true)}
-                   className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-sm flex items-center gap-2 text-sm transition-all"
-                 >
-                   <span className="material-icons-round text-[18px]">person_add</span> Tambah Pelayan Baru
-                 </button>
+                 <div className="flex items-center gap-2">
+                   <button
+                     onClick={() => { setSelectedTimId(''); setTimResult(null); fetchTimOptions(); setIsTimModalOpen(true); }}
+                     className="px-4 py-2.5 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-lg shadow-sm flex items-center gap-2 text-sm transition-all"
+                   >
+                     <span className="material-icons-round text-[18px]">groups</span> Tambahkan Tim
+                   </button>
+                   <button 
+                     onClick={() => setIsModalOpen(true)}
+                     className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-sm flex items-center gap-2 text-sm transition-all"
+                   >
+                     <span className="material-icons-round text-[18px]">person_add</span> Tambah Pelayan Baru
+                   </button>
+                 </div>
                )}
             </div>
 
@@ -1806,8 +1862,133 @@ export default function DetailKegiatanPage({ params }: { params: Promise<{ id: s
 
       </div>
 
+      {/* MODAL TAMBAHKAN TIM PELAYAN */}
+      {isTimModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-4 py-6">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => !isSavingTim && !timResult && setIsTimModalOpen(false)}></div>
+          <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl relative z-10 animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+            {/* Header */}
+            <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+              <h3 className="text-slate-900 font-black text-lg flex items-center gap-2">
+                <span className="material-icons-round text-violet-600">groups</span> Tambahkan Tim Pelayan
+              </h3>
+              <button onClick={() => { setIsTimModalOpen(false); setTimResult(null); setSelectedTimId(''); }} className="text-slate-400 hover:text-slate-700 w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-200">
+                <span className="material-icons-round text-[20px]">close</span>
+              </button>
+            </div>
+
+            <div className="p-6 flex flex-col gap-5 overflow-y-auto">
+              {/* Jika sudah ada hasil */}
+              {timResult ? (
+                <div className="flex flex-col gap-4">
+                  {timResult.assigned.length > 0 && (
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+                      <p className="text-emerald-800 font-bold text-sm flex items-center gap-2 mb-2">
+                        <span className="material-icons-round text-[18px] text-emerald-600">check_circle</span>
+                        {timResult.assigned.length} Pelayan Berhasil Ditambahkan
+                      </p>
+                      <ul className="text-xs text-emerald-700 space-y-1 ml-6">
+                        {timResult.assigned.map((n, i) => <li key={i}>• {n}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                  {timResult.skipped_conflict.length > 0 && (
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                      <p className="text-red-800 font-bold text-sm flex items-center gap-2 mb-2">
+                        <span className="material-icons-round text-[18px] text-red-600">event_busy</span>
+                        {timResult.skipped_conflict.length} Dilewati — Jadwal Bentrok
+                      </p>
+                      <ul className="text-xs text-red-700 space-y-1 ml-6">
+                        {timResult.skipped_conflict.map((c, i) => (
+                          <li key={i}>• <strong>{c.nama}</strong> — bentrok dengan: {c.bentrokDengan}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {timResult.skipped_duplicate.length > 0 && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                      <p className="text-amber-800 font-bold text-sm flex items-center gap-2 mb-2">
+                        <span className="material-icons-round text-[18px] text-amber-600">info</span>
+                        {timResult.skipped_duplicate.length} Sudah Ada di Roster
+                      </p>
+                      <ul className="text-xs text-amber-700 space-y-1 ml-6">
+                        {timResult.skipped_duplicate.map((n, i) => <li key={i}>• {n}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                  <button
+                    onClick={() => { setIsTimModalOpen(false); setTimResult(null); setSelectedTimId(''); }}
+                    className="w-full py-2.5 rounded-xl bg-slate-700 hover:bg-slate-800 text-white font-bold text-sm transition-all"
+                  >
+                    Selesai
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {/* Pilih Tim */}
+                  <div>
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Pilih Tim Pelayan</label>
+                    {isLoadingTim ? (
+                      <div className="flex items-center gap-2 text-slate-400 text-sm py-3">
+                        <div className="w-4 h-4 border-2 border-slate-200 border-t-violet-600 rounded-full animate-spin"></div>
+                        Memuat daftar tim...
+                      </div>
+                    ) : timOptions.length === 0 ? (
+                      <div className="text-sm text-slate-400 bg-slate-50 rounded-xl px-4 py-3 border border-slate-200">
+                        Tidak ada tim aktif yang tersedia.
+                      </div>
+                    ) : (
+                      <select
+                        value={selectedTimId}
+                        onChange={e => setSelectedTimId(e.target.value)}
+                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-400"
+                      >
+                        <option value="">-- Pilih Tim --</option>
+                        {timOptions.map((t: any) => (
+                          <option key={t.id} value={t.id}>
+                            {t.nama_tim} ({t.jumlah_anggota} anggota · {t.nama_satelit})
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+
+                  {/* Info box */}
+                  <div className="bg-violet-50 border border-violet-100 rounded-xl p-4 text-xs text-violet-700 flex gap-2">
+                    <span className="material-icons-round text-[16px] text-violet-400 shrink-0 mt-0.5">info</span>
+                    <span>Semua anggota tim akan dicoba ditambahkan ke roster. Pelayan yang jadwalnya <strong>bentrok</strong> otomatis dilewati dan dilaporkan. Notifikasi akan dikirim ke setiap pelayan yang berhasil ditugaskan.</span>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="flex gap-3 justify-end pt-1">
+                    <button
+                      onClick={() => { setIsTimModalOpen(false); setSelectedTimId(''); }}
+                      className="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-600 text-sm font-semibold hover:bg-slate-50"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      onClick={handleTambahTimPelayan}
+                      disabled={!selectedTimId || isSavingTim}
+                      className="px-6 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold text-sm flex items-center gap-2 shadow-sm disabled:opacity-50 transition-all"
+                    >
+                      {isSavingTim ? (
+                        <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"></div> Memproses...</>
+                      ) : (
+                        <><span className="material-icons-round text-[18px]">groups</span> Tambahkan Tim ke Roster</>
+                      )}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* POPUP MODAL TAMBAH PELAYAN TAMU/LOKAL */}
       {isModalOpen && (
+
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-4 py-6">
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => !isSavingPelayan && setIsModalOpen(false)}></div>
           <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl relative z-10 animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">

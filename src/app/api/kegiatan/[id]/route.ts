@@ -15,6 +15,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       SELECT 
         k.*,
         jk.nama_jenis_kegiatan,
+        jk.kategori AS kategori_jenis_kegiatan,
         s.nama_satelit,
         d.nama_departemen,
         kom.nama_komisi,
@@ -27,7 +28,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         ra.pola_penggunaan as ra_pola,
         ra.total_disetujui as ra_total,
         ra.status as ra_status,
-        kl.status_lpj
+        kl.status_lpj,
+        kde.akomodasi
       FROM public.kegiatan k
       LEFT JOIN public.jenis_kegiatan jk ON k.jenis_kegiatan_id = jk.id
       LEFT JOIN public.satelit s ON k.satelit_id = s.id
@@ -38,6 +40,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       LEFT JOIN public.kegiatan_detail_ibadah kdi ON k.id = kdi.kegiatan_id
       LEFT JOIN public.anggaran_tahunan ra ON k.anggaran_tahunan_id = ra.id
       LEFT JOIN public.kegiatan_lpj kl ON k.id = kl.kegiatan_id
+      LEFT JOIN public.kegiatan_detail_eksternal kde ON k.id = kde.kegiatan_id
       WHERE k.id = $1
     `;
 
