@@ -5,7 +5,7 @@ import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 const ROLE_LABEL: Record<string, string> = {
   MAJELIS: 'Majelis',
   GEMBALA_SIDANG: 'Gembala Sidang',
-  GEMBALA_SATELIT: 'Gembala Satelit',
+  KETUA_SATELIT: 'Gembala Satelit',
 };
 
 export async function GET(request: Request) {
@@ -26,7 +26,7 @@ export async function GET(request: Request) {
       queryParams.push(`%${search}%`);
     }
 
-    // Sumber data: user_role dengan peran MAJELIS / GEMBALA_SIDANG / GEMBALA_SATELIT
+    // Sumber data: user_role dengan peran MAJELIS / GEMBALA_SIDANG / KETUA_SATELIT
     // Pakai GROUP BY buat jaga-jaga kalau ada yang merangkap 2 peran (misal jadi Majelis sekaligus Gembala),
     // namanya cukup muncul sekali di daftar (biar React gak error karena key dobel)
     const query = `
@@ -38,7 +38,7 @@ export async function GET(request: Request) {
       JOIN public.role r ON r.id = ur.role_id
       JOIN public.pengguna pn ON pn.id = ur.user_id AND pn.is_active = true
       JOIN public.jemaat j ON j.id = pn.jemaat_id
-      WHERE r.nama_role IN ('MAJELIS', 'GEMBALA_SIDANG', 'GEMBALA_SATELIT')
+      WHERE r.nama_role IN ('MAJELIS', 'GEMBALA_SIDANG', 'KETUA_SATELIT')
         AND ur.is_active = true
         AND (ur.tanggal_selesai IS NULL OR ur.tanggal_selesai >= CURRENT_DATE)
         ${whereSearch}
@@ -49,7 +49,7 @@ export async function GET(request: Request) {
     const result = await pool.query(query, queryParams);
 
     const data = result.rows.map(row => {
-      // Rapikan format peran, misalnya dari "MAJELIS, GEMBALA_SATELIT" disulap jadi "Majelis, Gembala Satelit"
+      // Rapikan format peran, misalnya dari "MAJELIS, KETUA_SATELIT" disulap jadi "Majelis, Gembala Satelit"
       const formattedRoles = row.roles
         .split(', ')
         .map((r: string) => ROLE_LABEL[r] || r)

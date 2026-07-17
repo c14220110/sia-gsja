@@ -20,7 +20,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     // Izin: cukup periksa role si pemanggil dari JWT (gak butuh query tambahan)
     const callerRole = (caller.role_name || '').toUpperCase();
     const isSekretaris = ['SEKRETARIS_PUSAT', 'SUPER_ADMIN'].includes(callerRole);
-    const isMajelisOrGembala = ['MAJELIS', 'GEMBALA_SIDANG', 'GEMBALA_SATELIT'].includes(callerRole);
+    const isMajelisOrGembala = ['MAJELIS', 'GEMBALA_SIDANG', 'KETUA_SATELIT'].includes(callerRole);
 
     // Sekretaris punya kuasa untuk batalkan siapa saja
     // Majelis/Gembala cuma boleh batalin tiket yang mereka pegang sebagai Penanggung Jawab

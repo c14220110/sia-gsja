@@ -61,7 +61,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       const ticket = checkRes.rows[0];
       const statusSebelumnya = ticket.status_permohonan;
 
-      // 2. Validasi pengguna memiliki role MAJELIS / GEMBALA_SIDANG / GEMBALA_SATELIT
+      // 2. Validasi pengguna memiliki role MAJELIS / GEMBALA_SIDANG / KETUA_SATELIT
       const pjRes = await client.query(`
         SELECT pn.id, j.nama_lengkap, pn.email
         FROM public.pengguna pn
@@ -70,7 +70,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         JOIN public.role r ON r.id = ur.role_id
         WHERE pn.id = $1
           AND pn.is_active = true
-          AND r.nama_role IN ('MAJELIS', 'GEMBALA_SIDANG', 'GEMBALA_SATELIT')
+          AND r.nama_role IN ('MAJELIS', 'GEMBALA_SIDANG', 'KETUA_SATELIT')
           AND ur.is_active = true
           AND (ur.tanggal_selesai IS NULL OR ur.tanggal_selesai >= CURRENT_DATE)
         LIMIT 1
