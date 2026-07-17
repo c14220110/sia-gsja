@@ -83,7 +83,7 @@ export default function RancanganAnggaranPage() {
   const tahunOptions = Array.from(new Set(data.map(d => String(d.tahun)))).sort().reverse();
   const satelitOptions = Array.from(new Set(data.map(d => d.satelit))).sort();
   const komisiOptions = Array.from(new Set(data.filter(d => d.komisi && (!filterSatelit || d.satelit === filterSatelit)).map(d => d.komisi as string))).sort();
-  const statusOptions = ['Draft', 'Menunggu Review', 'Sedang Direviu', 'Revisi', 'Disetujui Sebagian', 'Disetujui Penuh', 'Ditolak', 'Dibatalkan'];
+  const statusOptions = ['Draft', 'Menunggu Persetujuan Ketua', 'Menunggu Review', 'Sedang Direviu', 'Revisi', 'Disetujui Sebagian', 'Disetujui Penuh', 'Ditolak', 'Dibatalkan'];
 
   // Saring datanya
   const filteredData = data.filter(item => {
@@ -105,6 +105,8 @@ export default function RancanganAnggaranPage() {
     switch (status) {
       case 'Draft':
         return <span className={`${baseClass} bg-slate-100 text-slate-600`}>DRAFT</span>;
+      case 'Menunggu Persetujuan Ketua':
+        return <span className={`${baseClass} bg-orange-100 text-orange-700`}>MENUNGGU KETUA</span>;
       case 'Menunggu Review':
         return <span className={`${baseClass} bg-amber-100 text-amber-700`}>MENUNGGU REVIEW</span>;
       case 'Sedang Direviu':
@@ -173,10 +175,11 @@ export default function RancanganAnggaranPage() {
 
   // Pembantu role buat njaga tampilan UI
   // Draft → hanya bisa Hapus Permanen (hard delete), tidak perlu Batalkan
-  // Batalkan RA → untuk status SETELAH diajukan (Menunggu Review dst)
-  const ALLOWED_STATUS_PEMBUAT  = ['Menunggu Review']; // Draft dikecualikan — gunakan Hapus Permanen
-  const ALLOWED_STATUS_APPROVER = ['Menunggu Review', 'Disetujui Penuh', 'Disetujui Sebagian'];
+  // Batalkan RA → untuk status SETELAH diajukan (Menunggu Persetujuan Ketua / Menunggu Review dst)
+  const ALLOWED_STATUS_PEMBUAT  = ['Menunggu Persetujuan Ketua', 'Menunggu Review']; // Draft dikecualikan — gunakan Hapus Permanen
+  const ALLOWED_STATUS_APPROVER = ['Menunggu Persetujuan Ketua', 'Menunggu Review', 'Disetujui Penuh', 'Disetujui Sebagian'];
   const isApprover = userData?.is_super_admin || userData?.permissions?.includes('anggaran_review');
+  const isKetua    = userData?.is_super_admin || userData?.permissions?.includes('anggaran_approve_ketua');
   const isPembuat  = userData?.permissions?.includes('anggaran_create');
   const canBatalkanItem = (item: AnggaranItem) => {
     if (item.status === 'Dibatalkan') return false;
@@ -442,10 +445,16 @@ export default function RancanganAnggaranPage() {
                                   <span className="material-icons-round text-[18px] text-slate-400">history</span>Lihat Riwayat
                                 </button>
                               )}
-                              {/* Edit — hanya Draft/Revisi untuk pembuat */}
-                              {['Draft', 'Revisi'].includes(item.status) && isPembuat && (
+                              {/* Edit — hanya Draft/Revisi/Menunggu Persetujuan Ketua untuk pembuat */}
+                              {['Draft', 'Revisi', 'Menunggu Persetujuan Ketua'].includes(item.status) && isPembuat && (
                                 <Link href={`/anggaran/rancangan/edit/${item.id}`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2">
                                   <span className="material-icons-round text-[18px] text-slate-400">edit</span>{item.status === 'Revisi' ? 'Edit & Perbaiki' : 'Edit Rancangan'}
+                                </Link>
+                              )}
+                              {/* Approve Ketua — hanya Menunggu Persetujuan Ketua untuk Ketua Satelit */}
+                              {item.status === 'Menunggu Persetujuan Ketua' && isKetua && (
+                                <Link href={`/anggaran/rancangan/review/${item.id}`} className="w-full text-left px-4 py-2 hover:bg-orange-50 text-orange-700 text-sm flex items-center gap-2">
+                                  <span className="material-icons-round text-[18px] text-orange-500">how_to_reg</span>Proses Persetujuan Ketua
                                 </Link>
                               )}
                               {/* Mulai Review — hanya Menunggu Review untuk reviewer */}

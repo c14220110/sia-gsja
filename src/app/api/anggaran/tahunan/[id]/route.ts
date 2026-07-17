@@ -3,7 +3,7 @@ import pool from '@/lib/db';
 import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 import { auditLogRepository } from '@/server/repositories/auditLog.repository';
 import { resolveCallerSnapshot } from '@/server/utils/resolveCallerSnapshot';
-import { notifyMajelisRaSubmitted } from '@/lib/notificationService';
+// Note: notifyMajelisRaSubmitted is NOT imported here — Majelis notifications fire from approve-ketua endpoint
 
 // GET: Ambilin data Anggaran Tahunan secara spesifik sama tetek-bengeknya
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -76,7 +76,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (!nama_rancangan) return NextResponse.json({ success: false, message: 'Nama Rancangan wajib diisi.' }, { status: 400 });
     if (!items || items.length === 0) return NextResponse.json({ success: false, message: 'Minimal harus ada 1 item' }, { status: 400 });
 
-    const status = action === 'ajukan' ? 'Menunggu Review' : 'Draft';
+    const status = action === 'ajukan' ? 'Menunggu Persetujuan Ketua' : 'Draft';
     // total_anggaran = volume keuangan total (Penerimaan + Pengeluaran) → angka referensi pengajuan.
     // Plafon belanja nyata ada di total_disetujui (Pengeluaran ACC only, dihitung saat review).
     const total_anggaran = items.reduce((sum: number, i: any) => sum + (i.jumlah * i.harga_satuan), 0);
@@ -99,12 +99,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       }
     }
 
-    // Status guard: hanya Draft dan Revisi yang boleh diedit
-    if (prevStatus !== 'Draft' && prevStatus !== 'Revisi') {
+    // Status guard: hanya Draft, Revisi, dan Menunggu Persetujuan Ketua yang boleh diedit
+    // (Bendahara bisa retract sebelum Ketua review)
+    if (prevStatus !== 'Draft' && prevStatus !== 'Revisi' && prevStatus !== 'Menunggu Persetujuan Ketua') {
       await client.query('ROLLBACK');
       return NextResponse.json({
         success: false,
-        message: `Dokumen ${kode_dokumen} berstatus "${prevStatus}" dan tidak dapat diedit. Hanya dokumen berstatus Draft atau Revisi yang boleh diubah.`
+        message: `Dokumen ${kode_dokumen} berstatus "${prevStatus}" dan tidak dapat diedit. Hanya dokumen berstatus Draft, Revisi, atau Menunggu Persetujuan Ketua yang boleh diubah.`
       }, { status: 403 });
     }
 
@@ -185,65 +186,31 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     await client.query('COMMIT');
 
-    // ── Audit Log + Notification (fire-and-forget) ────────────────────────────
-    if (status === 'Menunggu Review') {
+    // ── Audit Log (awaited — must complete before response to avoid Vercel kill) ──────
+    if (status === 'Menunggu Persetujuan Ketua') {
       const isResubmit = prevStatus === 'Revisi';
-
-      // Borong aja datanya RA sama email majelisnya sekalian jalan
-      Promise.all([
-        resolveCallerSnapshot(caller),
-        pool.query(
-          `SELECT at.nama_rancangan, at.total_anggaran,
-                  s.nama_satelit, k.nama_komisi
-           FROM public.anggaran_tahunan at
-           LEFT JOIN public.satelit s ON s.id = at.satelit_id
-           LEFT JOIN public.komisi k ON k.id = at.komisi_id
-           WHERE at.id = $1`, [id]
-        ),
-        pool.query(
-          `SELECT DISTINCT p.email
-           FROM public.user_role ur
-           JOIN public.pengguna p ON p.id = ur.user_id
-           WHERE ur.role_id IN (3, 5) AND ur.is_active = true
-             AND p.email IS NOT NULL AND p.email <> ''`
-        ),
-      ]).then(([snapshot, raInfo, majelisRes]) => {
-        const raRow = raInfo.rows[0];
-        const majelisEmails = majelisRes.rows.map((r: any) => r.email);
-
-        // Audit Log
+      try {
+        const snapshot = await resolveCallerSnapshot(caller);
         const aksi = isResubmit ? 'Direvisi & Diajukan Ulang' : 'Diajukan';
-        auditLogRepository.insertAnggaranAuditLog({
+        await auditLogRepository.insertAnggaranAuditLog({
           anggaran_id: id,
           kode_dokumen,
           aksi,
           status_sebelum: prevStatus,
-          status_sesudah: 'Menunggu Review',
+          status_sesudah: 'Menunggu Persetujuan Ketua',
           user_id: caller.user_id,
           role_id: caller.role_id,
           satelit_id: caller.satelit_id,
           ...snapshot,
-          keterangan: `RA di-${isResubmit ? 'revisi dan diajukan ulang' : 'ajukan'} dengan ${items.length} item`,
-        }).catch(err => console.error('[AuditLog] Failed:', err));
-
-        // Notification ke Majelis
-        if (majelisEmails.length > 0 && raRow) {
-          notifyMajelisRaSubmitted(
-            majelisEmails,
-            {
-              kode_dokumen,
-              nama_rancangan: raRow.nama_rancangan,
-              nama_satelit: raRow.nama_satelit,
-              nama_komisi: raRow.nama_komisi,
-              total_pengajuan: parseFloat(raRow.total_anggaran) || 0,
-            },
-            isResubmit
-          ).catch(err => console.error('[Notification] ra-submitted failed:', err));
-        }
-      }).catch(err => console.error('[AuditLog/Notification] Resolution failed:', err));
+          keterangan: `RA di-${isResubmit ? 'revisi dan diajukan ulang ke Ketua' : 'ajukan ke Ketua Satelit'} dengan ${items.length} item`,
+        });
+      } catch (err) {
+        console.error('[AuditLog] Failed:', err);
+      }
+      // Notification to Majelis fires from approve-ketua endpoint (step 2), not here
     }
 
-    return NextResponse.json({ success: true, message: action === 'ajukan' ? 'Anggaran berhasil diajukan!' : 'Perubahan draft berhasil disimpan!' });
+    return NextResponse.json({ success: true, message: action === 'ajukan' ? 'Anggaran berhasil diajukan ke Ketua Satelit!' : 'Perubahan draft berhasil disimpan!' });
   } catch (error: any) {
     await client.query('ROLLBACK');
     console.error('Error updating anggaran:', error);

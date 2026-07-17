@@ -1,7 +1,7 @@
 import pool from '@/lib/db';
 
 export type AuditAction = 'CREATE' | 'UPDATE' | 'DEACTIVATE';
-export type AnggaranAuditAksi = 'Dibuat' | 'Diajukan' | 'Disetujui Penuh' | 'Disetujui Sebagian' | 'Ditolak' | 'Revisi' | 'Direvisi & Diajukan Ulang' | 'Dihapus' | 'Dibatalkan';
+export type AnggaranAuditAksi = 'Dibuat' | 'Diajukan' | 'Disetujui Penuh' | 'Disetujui Sebagian' | 'Ditolak' | 'Revisi' | 'Direvisi & Diajukan Ulang' | 'Dihapus' | 'Dibatalkan' | 'Disetujui Ketua';
 export type LpjAuditAksi = 'Dibuat' | 'Diajukan' | 'Direvisi & Diajukan Ulang' | 'Disetujui' | 'Revisi';
 
 // ──────────────────────────────────────────────────────────────────────────────

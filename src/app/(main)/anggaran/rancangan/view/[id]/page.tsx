@@ -9,19 +9,20 @@ const fmt = (n: number) => new Intl.NumberFormat('id-ID', { style: 'currency', c
 // Status badge with appropriate colors
 const getStatusBadge = (status: string) => {
   const map: Record<string, { bg: string; text: string; dot: string }> = {
-    'Draft':             { bg: 'bg-slate-100',   text: 'text-slate-600',   dot: 'bg-slate-400' },
-    'Menunggu Review':   { bg: 'bg-amber-50',    text: 'text-amber-700',   dot: 'bg-amber-500' },
-    'Sedang Direviu':    { bg: 'bg-blue-50',     text: 'text-blue-700',    dot: 'bg-blue-500' },
-    'Revisi':            { bg: 'bg-orange-50',   text: 'text-orange-700',  dot: 'bg-orange-500' },
-    'Disetujui Penuh':   { bg: 'bg-emerald-50',  text: 'text-emerald-700', dot: 'bg-emerald-500' },
-    'Disetujui Sebagian':{ bg: 'bg-teal-50',     text: 'text-teal-700',    dot: 'bg-teal-500' },
-    'Ditolak':           { bg: 'bg-red-50',      text: 'text-red-700',     dot: 'bg-red-500' },
-    'Dibatalkan':        { bg: 'bg-zinc-100',    text: 'text-zinc-600',    dot: 'bg-zinc-400' },
+    'Draft':                        { bg: 'bg-slate-100',   text: 'text-slate-600',   dot: 'bg-slate-400' },
+    'Menunggu Persetujuan Ketua':   { bg: 'bg-orange-50',   text: 'text-orange-700',  dot: 'bg-orange-500' },
+    'Menunggu Review':              { bg: 'bg-amber-50',    text: 'text-amber-700',   dot: 'bg-amber-500' },
+    'Sedang Direviu':               { bg: 'bg-blue-50',     text: 'text-blue-700',    dot: 'bg-blue-500' },
+    'Revisi':                       { bg: 'bg-orange-50',   text: 'text-orange-700',  dot: 'bg-orange-500' },
+    'Disetujui Penuh':              { bg: 'bg-emerald-50',  text: 'text-emerald-700', dot: 'bg-emerald-500' },
+    'Disetujui Sebagian':           { bg: 'bg-teal-50',     text: 'text-teal-700',    dot: 'bg-teal-500' },
+    'Ditolak':                      { bg: 'bg-red-50',      text: 'text-red-700',     dot: 'bg-red-500' },
+    'Dibatalkan':                   { bg: 'bg-zinc-100',    text: 'text-zinc-600',    dot: 'bg-zinc-400' },
   };
   const s = map[status] || map['Draft'];
   return (
     <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${s.bg} ${s.text} flex items-center gap-1.5 w-max border`}>
-      <span className={`w-2 h-2 rounded-full ${s.dot} ${status === 'Menunggu Review' ? 'animate-pulse' : ''}`}></span>
+      <span className={`w-2 h-2 rounded-full ${s.dot} ${['Menunggu Review', 'Menunggu Persetujuan Ketua'].includes(status) ? 'animate-pulse' : ''}`}></span>
       {status}
     </span>
   );
@@ -83,12 +84,14 @@ export default function ViewAnggaranPage({ params }: { params: Promise<{ id: str
 
   // Tentukan kesaktian pengguna dari izin yang mereka punya
   const isApprover = userData ? (userData.is_super_admin || userData.permissions?.includes('anggaran_review')) : false;
+  const isKetua    = userData ? (userData.is_super_admin || userData.permissions?.includes('anggaran_approve_ketua')) : false;
   const isPembuat  = userData?.permissions?.includes('anggaran_create');
   const status = data?.status || '';
 
   // Action permissions
-  const canEdit    = isPembuat && ['Draft', 'Revisi'].includes(status);
+  const canEdit    = isPembuat && ['Draft', 'Revisi', 'Menunggu Persetujuan Ketua'].includes(status);
   const canReview  = isApprover && status === 'Menunggu Review';
+  const canApproveAsKetua = isKetua && status === 'Menunggu Persetujuan Ketua';
   const isFinal    = ['Disetujui Penuh', 'Disetujui Sebagian', 'Ditolak', 'Dibatalkan'].includes(status);
   // Show review columns when RA has been through reviewer decision
   const isReviewed  = ['Disetujui Penuh', 'Disetujui Sebagian', 'Ditolak', 'Revisi'].includes(status);
@@ -400,6 +403,19 @@ export default function ViewAnggaranPage({ params }: { params: Promise<{ id: str
             {status === 'Menunggu Review' && !canReview && (
               <span className="px-4 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 bg-slate-800 text-amber-400 border border-slate-700">
                 <span className="material-icons-round text-[18px]">hourglass_top</span> Menunggu Review dari Majelis
+              </span>
+            )}
+            {status === 'Menunggu Persetujuan Ketua' && canApproveAsKetua && (
+              <Link
+                href={`/anggaran/rancangan/review/${id}`}
+                className="px-4 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white transition-colors"
+              >
+                <span className="material-icons-round text-[18px]">how_to_reg</span> Proses Persetujuan Ketua
+              </Link>
+            )}
+            {status === 'Menunggu Persetujuan Ketua' && !canApproveAsKetua && (
+              <span className="px-4 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 bg-slate-800 text-orange-400 border border-slate-700">
+                <span className="material-icons-round text-[18px]">hourglass_top</span> Menunggu Persetujuan Ketua Satelit
               </span>
             )}
             {/* Batalkan RA */}

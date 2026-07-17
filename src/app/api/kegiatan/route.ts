@@ -79,6 +79,11 @@ export async function GET(request: Request) {
       paramIndex++;
     }
 
+    // --- Base clauses for KPI stats ---
+    const kpiWhereClauses = [...whereClauses];
+    const kpiValues = [...values];
+    // ----------------------------------
+
     // 5. Rentang Waktu (Tanggal)
     if (filterTanggal === 'Bulan Ini') {
       whereClauses.push(`date_trunc('month', k.tanggal_mulai) = date_trunc('month', CURRENT_DATE)`);
@@ -86,11 +91,14 @@ export async function GET(request: Request) {
       whereClauses.push(`k.tanggal_mulai >= date_trunc('week', CURRENT_DATE) AND k.tanggal_mulai < date_trunc('week', CURRENT_DATE) + interval '7 days'`);
     } else if (filterTanggal === 'Hari Ini') {
       whereClauses.push(`k.tanggal_mulai = CURRENT_DATE`);
+    } else if (filterTanggal === 'Tahun Ini') {
+      whereClauses.push(`date_trunc('year', k.tanggal_mulai) = date_trunc('year', CURRENT_DATE)`);
     } else if (filterTanggal === 'Custom' && startDate && endDate) {
       whereClauses.push(`k.tanggal_mulai >= $${paramIndex} AND k.tanggal_mulai <= $${paramIndex + 1}`);
       values.push(startDate, endDate);
       paramIndex += 2;
     }
+    // Jika filterTanggal === 'Semua' atau lainnya, tidak perlu tambah where clause untuk tanggal
 
     // 6. Filter Berdasarkan Status Kegiatan Murni
     if (statusKegiatan) {
@@ -176,25 +184,27 @@ export async function GET(request: Request) {
     const dataResult = await pool.query(query, [...values, limit, offset]);
 
     // Ambil jumlah data buat ditampilkan di kartu-kartu statistik
+    const kpiWhereBase = kpiWhereClauses.length > 0 ? kpiWhereClauses.join(' AND ') + ' AND ' : '';
+
     // 1. Total kegiatan bulan ini
     const countBulanIniResult = await pool.query(`
-      SELECT COUNT(*) as total FROM public.kegiatan 
-      WHERE date_trunc('month', tanggal_mulai) = date_trunc('month', CURRENT_DATE)
-    `);
+      SELECT COUNT(*) as total FROM public.kegiatan k
+      WHERE ${kpiWhereBase} date_trunc('month', k.tanggal_mulai) = date_trunc('month', CURRENT_DATE)
+    `, kpiValues);
     const totalBulanIni = parseInt(countBulanIniResult.rows[0].total, 10);
 
     // 2. Kegiatan mendatang 7 hari
     const count7HariResult = await pool.query(`
-      SELECT COUNT(*) as total FROM public.kegiatan 
-      WHERE tanggal_mulai BETWEEN CURRENT_DATE AND (CURRENT_DATE + INTERVAL '7 days')
-    `);
+      SELECT COUNT(*) as total FROM public.kegiatan k
+      WHERE ${kpiWhereBase} k.tanggal_mulai BETWEEN CURRENT_DATE AND (CURRENT_DATE + INTERVAL '7 days')
+    `, kpiValues);
     const total7Hari = parseInt(count7HariResult.rows[0].total, 10);
 
     // 3. Menunggu LPJ
     const countMenungguLpjResult = await pool.query(`
       SELECT COUNT(*) as total FROM public.kegiatan k
-      WHERE k.status_kegiatan = 'Menunggu LPJ'
-    `);
+      WHERE ${kpiWhereBase} k.status_kegiatan = 'Menunggu LPJ'
+    `, kpiValues);
     const totalMenungguLpj = parseInt(countMenungguLpjResult.rows[0].total, 10);
 
     return NextResponse.json({

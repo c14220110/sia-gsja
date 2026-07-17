@@ -445,6 +445,8 @@ export default function KegiatanPage() {
             <option value="Hari Ini">Hari Ini</option>
             <option value="Minggu Ini">Minggu Ini</option>
             <option value="Bulan Ini">Bulan Ini</option>
+            <option value="Tahun Ini">Tahun Ini</option>
+            <option value="Semua">Semua Waktu</option>
             <option value="Custom">Custom...</option>
           </select>
           <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">calendar_today</span>

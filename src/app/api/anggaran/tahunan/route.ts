@@ -3,7 +3,7 @@ import pool from '@/lib/db';
 import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 import { auditLogRepository } from '@/server/repositories/auditLog.repository';
 import { resolveCallerSnapshot } from '@/server/utils/resolveCallerSnapshot';
-import { notifyMajelisRaSubmitted } from '@/lib/notificationService';
+// Note: notifyMajelisRaSubmitted is NOT imported here — Majelis notifications fire from approve-ketua endpoint
 
 // GET: Borong semua Anggaran Tahunan (ditambah opsional saringan)
 export async function GET(request: NextRequest) {
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: `Item "${missingCoa.uraian}" belum memiliki Akun COA. Semua item wajib ditautkan ke COA.` }, { status: 400 });
     }
 
-    const status = action === 'ajukan' ? 'Menunggu Review' : 'Draft';
+    const status = action === 'ajukan' ? 'Menunggu Persetujuan Ketua' : 'Draft';
 
     // Generate kode_dokumen: RA-YY-XXX
     const yearCode = String(tahun).slice(-2);
@@ -163,28 +163,9 @@ export async function POST(request: NextRequest) {
 
     await client.query('COMMIT');
 
-    // ── Audit Log + Notification (fire-and-forget) ────────────────────────────
-    Promise.all([
-      resolveCallerSnapshot(caller),
-      status === 'Menunggu Review'
-        ? pool.query(
-            `SELECT at.nama_rancangan, s.nama_satelit, k.nama_komisi
-             FROM public.anggaran_tahunan at
-             LEFT JOIN public.satelit s ON s.id = at.satelit_id
-             LEFT JOIN public.komisi k ON k.id = at.komisi_id
-             WHERE at.id = $1`, [anggaranId]
-          )
-        : Promise.resolve(null),
-      status === 'Menunggu Review'
-        ? pool.query(
-            `SELECT DISTINCT p.email
-             FROM public.user_role ur
-             JOIN public.pengguna p ON p.id = ur.user_id
-             WHERE ur.role_id IN (3, 5) AND ur.is_active = true
-               AND p.email IS NOT NULL AND p.email <> ''`
-          )
-        : Promise.resolve(null),
-    ]).then(([snapshot, raInfo, majelisRes]) => {
+    // ── Audit Log (awaited — must complete before response to avoid Vercel kill) ──
+    try {
+      const snapshot = await resolveCallerSnapshot(caller);
       const baseParams = {
         anggaran_id: anggaranId,
         kode_dokumen,
@@ -195,44 +176,32 @@ export async function POST(request: NextRequest) {
       };
 
       // Audit: Dibuat
-      auditLogRepository.insertAnggaranAuditLog({
+      await auditLogRepository.insertAnggaranAuditLog({
         ...baseParams,
         aksi: 'Dibuat',
         status_sebelum: null,
         status_sesudah: status,
         keterangan: `RA dibuat dengan ${items.length} item, total Rp ${total_anggaran.toLocaleString('id-ID')}`,
-      }).catch(err => console.error('[AuditLog] Failed Dibuat:', err));
+      });
 
-      if (status === 'Menunggu Review') {
-        // Audit: Diajukan
-        auditLogRepository.insertAnggaranAuditLog({
+      if (status === 'Menunggu Persetujuan Ketua') {
+        // Audit: Diajukan (ke Ketua — step 1)
+        await auditLogRepository.insertAnggaranAuditLog({
           ...baseParams,
           aksi: 'Diajukan',
           status_sebelum: 'Draft',
-          status_sesudah: 'Menunggu Review',
-          keterangan: 'RA langsung diajukan saat pembuatan',
-        }).catch(err => console.error('[AuditLog] Failed Diajukan:', err));
-
-        // Kirim Peringatan ke Majelis (Trigger #1)
-        const raRow = raInfo?.rows[0];
-        const majelisEmails = majelisRes?.rows.map((r: any) => r.email) || [];
-        if (majelisEmails.length > 0 && raRow) {
-          notifyMajelisRaSubmitted(
-            majelisEmails,
-            {
-              kode_dokumen,
-              nama_rancangan: raRow.nama_rancangan,
-              nama_satelit: raRow.nama_satelit,
-              nama_komisi: raRow.nama_komisi,
-              total_pengajuan: total_anggaran,
-            },
-            false // bukan resubmit
-          ).catch(err => console.error('[Notification] ra-submitted (new) failed:', err));
-        }
+          status_sesudah: 'Menunggu Persetujuan Ketua',
+          keterangan: 'RA langsung diajukan ke Ketua Satelit saat pembuatan',
+        });
       }
-    }).catch(err => console.error('[AuditLog/Notification] Resolution failed:', err));
+    } catch (err) {
+      console.error('[AuditLog] Failed to insert audit log:', err);
+    }
 
-    return NextResponse.json({ success: true, message: status === 'Menunggu Review' ? 'Anggaran berhasil diajukan!' : 'Draft anggaran berhasil disimpan!', data: { id: anggaranId, kode_dokumen } });
+    // ── Notification to Majelis removed from here ─────────────────────────────
+    // Majelis notification now fires from approve-ketua endpoint (step 2)
+
+    return NextResponse.json({ success: true, message: status === 'Menunggu Persetujuan Ketua' ? 'Anggaran berhasil diajukan ke Ketua Satelit!' : 'Draft anggaran berhasil disimpan!', data: { id: anggaranId, kode_dokumen } });
   } catch (error: any) {
     await client.query('ROLLBACK');
     console.error('Error creating anggaran tahunan:', error);

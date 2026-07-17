@@ -214,7 +214,10 @@ export class MasterRepository {
     return result.rows;
   }
 
-  async getApprovedAnggaranOptions(): Promise<any[]> {
+  async getApprovedAnggaranOptions(satelitId?: number | null): Promise<any[]> {
+    // Filter by satelit when caller is not super-admin (prevents cross-satellite RA leakage)
+    const satelitClause = satelitId ? `AND at.satelit_id = ${parseInt(String(satelitId))}` : '';
+
     const query = `
       SELECT 
         at.id, 
@@ -252,10 +255,12 @@ export class MasterRepository {
       LEFT JOIN public.komisi k ON at.komisi_id = k.id
       WHERE at.status IN ('Disetujui Penuh', 'Disetujui Sebagian')
         AND at.kategori_ra = 'Kegiatan'
+        ${satelitClause}
       ORDER BY at.pola_penggunaan ASC, at.tahun DESC, at.kode_dokumen ASC;
     `;
     const result = await pool.query(query);
     return result.rows;
   }
+
 
 }

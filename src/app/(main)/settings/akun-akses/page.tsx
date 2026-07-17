@@ -115,6 +115,7 @@ export default function AkunAksesPage() {
   const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
   const [editForm, setEditForm] = useState({ email: '', password: '' });
+  const [editLoginType, setEditLoginType] = useState<'email' | 'nohp' | 'username'>('email');
   const [editRoleAssignments, setEditRoleAssignments] = useState<RoleAssignment[]>([{ role_id: '', satelit_id: '' }]);
 
 
@@ -443,6 +444,10 @@ export default function AkunAksesPage() {
     setOpenMenuId(null);
     setEditingUser(user);
     setEditForm({ email: user.email || user.no_hp || user.username || '', password: '' });
+    if (user.email) setEditLoginType('email');
+    else if (user.no_hp) setEditLoginType('nohp');
+    else setEditLoginType('username');
+    
     const existingRoles = (user.roles || [])
       .filter((r: any) => !r.tanggal_selesai && r.role_name !== 'JEMAAT')
       .map((r: any) => ({
@@ -1091,14 +1096,43 @@ export default function AkunAksesPage() {
             </div>
             <div className="p-6 flex flex-col gap-5 bg-slate-50/50 overflow-y-auto">
               <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1">
-                  <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">Identifier Login
-                    <span className="text-slate-400 ml-1 normal-case font-normal">
-                      {editingUser?.email ? '(email)' : editingUser?.no_hp ? '(no HP)' : editingUser?.username ? '(username)' : ''}
-                    </span>
-                  </label>
-                  <input type="text" className="px-3 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 text-sm" value={editForm.email} onChange={e => setEditForm(p => ({ ...p, email: e.target.value }))} />
-                  <p className="text-[11px] text-slate-400 mt-0.5">Sistem mendeteksi tipe otomatis: @ → email, angka → no HP, lainnya → username.</p>
+                <div className="flex flex-col gap-3">
+                  <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">Identifier Login (Kredensial untuk Login)</label>
+                  <div className="flex gap-2">
+                    {(['email', 'nohp', 'username'] as const).map(type => {
+                      const cfg: Record<string, { icon: string; label: string; activeBtn: string; activeIcon: string; activeLabel: string }> = {
+                        email: { icon: 'email', label: 'Email', activeBtn: 'border-amber-500 bg-amber-50', activeIcon: 'text-amber-600', activeLabel: 'text-amber-700' },
+                        nohp: { icon: 'phone_iphone', label: 'No HP', activeBtn: 'border-amber-500 bg-amber-50', activeIcon: 'text-amber-600', activeLabel: 'text-amber-700' },
+                        username: { icon: 'badge', label: 'Username', activeBtn: 'border-amber-500 bg-amber-50', activeIcon: 'text-amber-600', activeLabel: 'text-amber-700' },
+                      };
+                      const c = cfg[type];
+                      const isActive = editLoginType === type;
+                      return (
+                        <button key={type} type="button"
+                          onClick={() => { setEditLoginType(type); setEditForm(p => ({ ...p, email: '' })); }}
+                          className={`flex-1 border rounded-xl py-2.5 px-3 flex flex-col items-center gap-1 transition-all ${
+                            isActive ? c.activeBtn : 'border-slate-200 bg-white hover:border-slate-300'
+                          }`}>
+                          <span className={`material-icons-round text-[20px] ${isActive ? c.activeIcon : 'text-slate-400'}`}>{c.icon}</span>
+                          <span className={`text-xs font-bold ${isActive ? c.activeLabel : 'text-slate-500'}`}>{c.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <input
+                    type={editLoginType === 'nohp' ? 'tel' : editLoginType === 'email' ? 'email' : 'text'}
+                    placeholder={{
+                      email: 'Masukkan alamat email (cth: nama@gsja.id)',
+                      nohp: 'Masukkan nomor HP (cth: 081234567890)',
+                      username: 'Masukkan username (cth: adminpusat)',
+                    }[editLoginType]}
+                    className="px-3 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm"
+                    value={editForm.email} onChange={e => setEditForm(p => ({ ...p, email: e.target.value }))} />
+                  <p className="text-[11px] text-slate-500 italic -mt-1">
+                    {editLoginType === 'email' && '💡 Sistem mendeteksi email dari karakter @'}
+                    {editLoginType === 'nohp' && '💡 Sistem mendeteksi No HP dari format angka saja'}
+                    {editLoginType === 'username' && '💡 Sistem mendeteksi username dari format non-email dan non-angka'}
+                  </p>
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">Password Baru <span className="text-slate-400 normal-case font-normal">(kosongkan jika tidak diubah)</span></label>

@@ -58,7 +58,16 @@ export async function GET(request: Request) {
     } else if (type === 'bank') {
       data = await masterRepository.getAllBank();
     } else if (type === 'ra_approved') {
-      data = await masterRepository.getApprovedAnggaranOptions();
+      // Ambil caller untuk filter satelit (non super admin hanya bisa lihat RA milik satelitnya)
+      const caller = getCallerFromRequest(request);
+      if (!caller) {
+        return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+      }
+      const satelitFilter = (!caller.is_super_admin && !caller.permissions?.includes('multi_satelit_view'))
+        ? caller.satelit_id
+        : null;
+      data = await masterRepository.getApprovedAnggaranOptions(satelitFilter);
+
     } else {
       return NextResponse.json({ success: false, message: 'Invalid type parameter' }, { status: 400 });
     }

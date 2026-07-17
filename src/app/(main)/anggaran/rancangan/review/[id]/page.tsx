@@ -13,6 +13,7 @@ type ItemDecision = {
 };
 
 // Akses reviewer sekarang pakai izin 'anggaran_review' ya
+// Ketua Satelit pakai izin 'anggaran_approve_ketua'
 
 export default function ReviewAnggaranPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -24,6 +25,10 @@ export default function ReviewAnggaranPage({ params }: { params: Promise<{ id: s
   const [decisions, setDecisions] = useState<ItemDecision[]>([]);
   const [submitState, setSubmitState] = useState<{ status: 'idle' | 'loading' | 'success' | 'error'; message: string }>({ status: 'idle', message: '' });
   const [confirmAction, setConfirmAction] = useState<string | null>(null);
+
+  // Ketua Satelit approval state
+  const [ketuaAction, setKetuaAction] = useState<'setujui' | 'minta_revisi' | null>(null);
+  const [catatanKetua, setCatatanKetua] = useState('');
 
   useEffect(() => {
     Promise.all([
@@ -77,6 +82,9 @@ export default function ReviewAnggaranPage({ params }: { params: Promise<{ id: s
 
   const isReviewer = userData ? (userData.is_super_admin || userData.permissions?.includes('anggaran_review')) : false;
   const isReviewable = data?.status === 'Menunggu Review';
+  const isKetua = userData ? (userData.is_super_admin || userData.permissions?.includes('anggaran_approve_ketua')) : false;
+  const isApprovableByKetua = data?.status === 'Menunggu Persetujuan Ketua';
+  const canAccess = isReviewer || isKetua;
 
   const updateDecision = (detailId: string, field: keyof ItemDecision, value: any) => {
     setDecisions(prev => prev.map(d => d.detail_id === detailId ? { ...d, [field]: value } : d));
@@ -154,23 +162,36 @@ export default function ReviewAnggaranPage({ params }: { params: Promise<{ id: s
     return <div className="p-10 text-center text-slate-500 flex flex-col items-center"><div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4"></div>Memuat data review...</div>;
   }
 
-  if (!data || !isReviewer) {
+  if (!data || !canAccess) {
     return (
       <div className="w-full flex flex-col items-center justify-center py-20">
         <span className="material-icons-round text-6xl text-red-200 mb-4">gpp_bad</span>
         <h1 className="text-2xl font-black text-slate-800 mb-2">{!data ? 'Dokumen Tidak Ditemukan' : 'Akses Ditolak'}</h1>
-        <p className="text-slate-500 mb-6">{!data ? 'RA yang Anda cari tidak tersedia.' : 'Hanya Majelis / Super Admin yang dapat melakukan review.'}</p>
+        <p className="text-slate-500 mb-6">{!data ? 'RA yang Anda cari tidak tersedia.' : 'Hanya Majelis, Ketua Satelit, atau Super Admin yang dapat memproses RA.'}</p>
         <Link href="/anggaran/rancangan" className="px-6 py-2.5 bg-slate-800 text-white rounded-lg font-bold hover:bg-slate-900 transition-colors">Kembali ke Daftar</Link>
       </div>
     );
   }
 
-  if (!isReviewable) {
+  // Guard: Majelis reviewer who lands on a 'Menunggu Persetujuan Ketua' RA
+  if (isReviewer && !isKetua && isApprovableByKetua) {
+    return (
+      <div className="w-full flex flex-col items-center justify-center py-20">
+        <span className="material-icons-round text-6xl text-orange-200 mb-4">hourglass_top</span>
+        <h1 className="text-2xl font-black text-slate-800 mb-2">Menunggu Persetujuan Ketua</h1>
+        <p className="text-slate-500 mb-6">RA ini masih menunggu persetujuan <strong>Ketua Satelit</strong> sebelum dapat direview oleh Majelis.</p>
+        <Link href={`/anggaran/rancangan/view/${id}`} className="px-6 py-2.5 bg-slate-800 text-white rounded-lg font-bold hover:bg-slate-900 transition-colors">Lihat Detail</Link>
+      </div>
+    );
+  }
+
+  // Guard: Ketua who lands on an RA already in 'Menunggu Review' or other non-applicable status
+  if (!isReviewer && isKetua && !isApprovableByKetua) {
     return (
       <div className="w-full flex flex-col items-center justify-center py-20">
         <span className="material-icons-round text-6xl text-amber-200 mb-4">info</span>
-        <h1 className="text-2xl font-black text-slate-800 mb-2">Tidak Bisa Direview</h1>
-        <p className="text-slate-500 mb-6">Status RA saat ini: <strong>{data.status}</strong>. Hanya RA berstatus &quot;Menunggu Review&quot; yang dapat direview.</p>
+        <h1 className="text-2xl font-black text-slate-800 mb-2">Tidak Bisa Diproses</h1>
+        <p className="text-slate-500 mb-6">Status RA saat ini: <strong>{data.status}</strong>. Hanya RA berstatus &quot;Menunggu Persetujuan Ketua&quot; yang dapat diproses di sini.</p>
         <Link href={`/anggaran/rancangan/view/${id}`} className="px-6 py-2.5 bg-slate-800 text-white rounded-lg font-bold hover:bg-slate-900 transition-colors">Lihat Detail</Link>
       </div>
     );
@@ -266,11 +287,82 @@ export default function ReviewAnggaranPage({ params }: { params: Promise<{ id: s
     );
   };
 
+  const handleKetuaAction = async () => {
+    if (!ketuaAction) return;
+    setSubmitState({ status: 'loading', message: ketuaAction === 'setujui' ? 'Meneruskan ke Majelis...' : 'Mengembalikan untuk revisi...' });
+    setKetuaAction(null);
+    try {
+      const res = await fetch(`/api/anggaran/tahunan/${id}/approve-ketua`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: ketuaAction, catatan_ketua: catatanKetua || undefined }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setSubmitState({ status: 'success', message: json.message });
+        setTimeout(() => { window.location.href = `/anggaran/rancangan/view/${id}`; }, 2000);
+      } else {
+        setSubmitState({ status: 'error', message: json.message || 'Gagal memproses.' });
+      }
+    } catch {
+      setSubmitState({ status: 'error', message: 'Gagal terhubung ke server.' });
+    }
+  };
+
   return (
     <div className="w-full flex flex-col gap-6 pb-32">
       <SubmitOverlay status={submitState.status} message={submitState.message} onClose={() => setSubmitState({ status: 'idle', message: '' })} />
 
-      {/* Confirmation Modal */}
+      {/* ── Ketua Satelit Approval Modal ─────────────────────────── */}
+      {ketuaAction && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6 flex flex-col gap-4">
+            <div className="flex items-center gap-3">
+              <span className={`material-icons-round text-3xl ${ketuaAction === 'setujui' ? 'text-emerald-500' : 'text-amber-500'}`}>
+                {ketuaAction === 'setujui' ? 'check_circle' : 'undo'}
+              </span>
+              <h3 className="text-lg font-black text-slate-800">
+                {ketuaAction === 'setujui' ? 'Teruskan ke Majelis?' : 'Kembalikan untuk Revisi?'}
+              </h3>
+            </div>
+            <p className="text-sm text-slate-600">
+              {ketuaAction === 'setujui'
+                ? 'RA ini akan diteruskan ke Majelis untuk review akhir. Bendahara tidak dapat mengedit lagi sampai Majelis mengembalikannya.'
+                : 'RA ini akan dikembalikan ke Bendahara dengan catatan perbaikan.'}
+            </p>
+            <div>
+              <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block mb-1.5">
+                Catatan {ketuaAction === 'minta_revisi' ? <span className="text-red-500">*</span> : '(Opsional)'}
+              </label>
+              <textarea
+                value={catatanKetua}
+                onChange={e => setCatatanKetua(e.target.value)}
+                placeholder={ketuaAction === 'setujui' ? 'Catatan untuk Majelis (opsional)...' : 'Isi catatan perbaikan untuk Bendahara...'}
+                className="w-full p-3 rounded-lg border border-slate-200 text-sm text-slate-700 focus:ring-2 focus:ring-indigo-300 focus:outline-none resize-none bg-white"
+                rows={3}
+                autoFocus
+              />
+              {ketuaAction === 'minta_revisi' && !catatanKetua.trim() && (
+                <p className="text-[11px] text-red-500 mt-1">Catatan wajib diisi saat meminta revisi.</p>
+              )}
+            </div>
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => { setKetuaAction(null); setCatatanKetua(''); }} className="px-4 py-2 rounded-lg border border-slate-300 text-sm font-semibold text-slate-600 hover:bg-slate-50">Batal</button>
+              <button
+                onClick={handleKetuaAction}
+                disabled={ketuaAction === 'minta_revisi' && !catatanKetua.trim()}
+                className={`px-5 py-2 rounded-lg text-sm font-bold text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors ${
+                  ketuaAction === 'setujui' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-amber-600 hover:bg-amber-700'
+                }`}
+              >
+                Ya, Lanjutkan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal (Majelis) */}
       {confirmAction && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6 flex flex-col gap-4">
@@ -308,14 +400,21 @@ export default function ReviewAnggaranPage({ params }: { params: Promise<{ id: s
           <span className="text-slate-500 material-icons-round text-[14px]">chevron_right</span>
           <Link href="/anggaran/rancangan" className="text-slate-500 hover:text-blue-600">Rancangan Anggaran</Link>
           <span className="text-slate-500 material-icons-round text-[14px]">chevron_right</span>
-          <span className="text-slate-700 font-bold">Review RA</span>
+          <span className="text-slate-700 font-bold">{isApprovableByKetua ? 'Persetujuan Ketua' : 'Review RA'}</span>
         </div>
         <div className="flex justify-between items-end">
           <div className="flex flex-col gap-2">
             <div className="inline-flex gap-4 items-center">
-              <h1 className="text-slate-900 text-3xl font-black font-sans">Review Rancangan Anggaran</h1>
-              <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-amber-50 text-amber-700 flex items-center gap-1.5 border border-amber-200">
-                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>Menunggu Review
+              <h1 className="text-slate-900 text-3xl font-black font-sans">
+                {isApprovableByKetua ? 'Persetujuan Ketua Satelit' : 'Review Rancangan Anggaran'}
+              </h1>
+              <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-1.5 border ${
+                isApprovableByKetua
+                  ? 'bg-orange-50 text-orange-700 border-orange-200'
+                  : 'bg-amber-50 text-amber-700 border-amber-200'
+              }`}>
+                <span className={`w-2 h-2 rounded-full animate-pulse ${isApprovableByKetua ? 'bg-orange-500' : 'bg-amber-500'}`}></span>
+                {data.status}
               </span>
             </div>
             {data.nama_rancangan && <p className="text-slate-500 text-base font-medium">{data.nama_rancangan}</p>}
@@ -348,7 +447,45 @@ export default function ReviewAnggaranPage({ params }: { params: Promise<{ id: s
         </div>
       </div>
 
-      {/* Decision Summary Bar */}
+      {/* ── KETUA SATELIT APPROVAL PANEL ─────────────────────────────────────── */}
+      {isKetua && isApprovableByKetua && (
+        <div className="bg-orange-50 border border-orange-200 rounded-xl p-5 shadow-sm">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="material-icons-round text-orange-500 text-2xl">how_to_reg</span>
+            <div>
+              <h2 className="text-base font-black text-orange-800">Persetujuan Ketua Satelit</h2>
+              <p className="text-xs text-orange-600 mt-0.5">Teruskan RA ini ke Majelis atau kembalikan ke Bendahara untuk diperbaiki.</p>
+            </div>
+          </div>
+          <div className="flex gap-3 flex-wrap">
+            <button
+              onClick={() => { setCatatanKetua(''); setKetuaAction('setujui'); }}
+              className="px-5 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm flex items-center gap-2 transition-colors shadow-sm"
+            >
+              <span className="material-icons-round text-[18px]">check_circle</span>
+              ✓ Teruskan ke Majelis
+            </button>
+            <button
+              onClick={() => { setCatatanKetua(''); setKetuaAction('minta_revisi'); }}
+              className="px-5 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm flex items-center gap-2 transition-colors shadow-sm"
+            >
+              <span className="material-icons-round text-[18px]">undo</span>
+              ↩ Minta Revisi ke Bendahara
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Banner for non-Ketua when status is Menunggu Persetujuan Ketua */}
+      {!isKetua && isApprovableByKetua && (
+        <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex items-center gap-3">
+          <span className="material-icons-round text-orange-500">hourglass_top</span>
+          <p className="text-sm text-orange-700 font-semibold">Menunggu persetujuan Ketua Satelit sebelum diteruskan ke Majelis.</p>
+        </div>
+      )}
+
+      {/* Decision Summary Bar + Review Table — only for Majelis reviewer when 'Menunggu Review' */}
+      {isReviewer && isReviewable && (<>
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center gap-4">
         <div className="text-sm font-bold text-slate-700 mr-2">Ringkasan Keputusan:</div>
         <div className="flex gap-3 flex-wrap">
@@ -468,6 +605,7 @@ export default function ReviewAnggaranPage({ params }: { params: Promise<{ id: s
           </div>
         </div>
       </div>
+      </>)}
     </div>
   );
 }

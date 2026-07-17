@@ -94,7 +94,19 @@ export async function POST(request: Request) {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Supabase upload error:', errorText);
-      throw new Error(`Gagal upload ke Supabase: ${response.statusText} - ${errorText}`);
+      
+      // Beri pesan yang lebih actionable kalau bucket tidak ditemukan
+      let userMessage = `Gagal upload ke Supabase: ${response.statusText}`;
+      try {
+        const errJson = JSON.parse(errorText);
+        if (errJson?.error === 'Bucket not found') {
+          userMessage = `Bucket storage "${targetBucket}" belum dibuat. Buat bucket ini di Supabase Dashboard → Storage lalu set sebagai Public.`;
+        } else if (errJson?.message) {
+          userMessage = errJson.message;
+        }
+      } catch { /* errorText bukan JSON */ }
+      
+      throw new Error(userMessage);
     }
 
     // Mendapatkan bentuk URL public dari Supabase

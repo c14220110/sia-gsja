@@ -158,18 +158,26 @@ export default function InputAnggaranBaruPage() {
 
   // State buat ngedit langsung di baris
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editValues, setEditValues] = useState<{ uraian: string; deskripsi: string; jumlah: number; satuan: string; harga: number }>({ uraian: '', deskripsi: '', jumlah: 1, satuan: '', harga: 0 });
+  const [editValues, setEditValues] = useState<{ uraian: string; deskripsi: string; jumlah: number; satuan: string; harga: number; coaId: string; coaLabel: string }>({
+    uraian: '', deskripsi: '', jumlah: 1, satuan: '', harga: 0, coaId: '', coaLabel: ''
+  });
+  const [editCoaQuery, setEditCoaQuery] = useState('');
+  const [editCoaOpen, setEditCoaOpen] = useState(false);
 
   const handleStartEdit = useCallback((item: RincianItem) => {
     setEditingId(item.id);
-    setEditValues({ uraian: item.uraian, deskripsi: item.deskripsi, jumlah: item.jumlah, satuan: item.satuan, harga: item.harga });
+    setEditValues({ uraian: item.uraian, deskripsi: item.deskripsi, jumlah: item.jumlah, satuan: item.satuan, harga: item.harga, coaId: String(item.coaId), coaLabel: item.coa });
+    setEditCoaQuery(item.coa);
+    setEditCoaOpen(false);
   }, []);
 
   const handleEditSave = useCallback((id: string) => {
     if (!editValues.uraian.trim()) { alert('Uraian tidak boleh kosong!'); return; }
+    if (!editValues.coaId) { alert('Akun COA wajib dipilih!'); return; }
     if (editValues.jumlah <= 0 || editValues.harga <= 0) { alert('Jumlah dan Harga harus lebih dari 0!'); return; }
-    setItems(prev => prev.map(i => i.id === id ? { ...i, ...editValues, total: editValues.jumlah * editValues.harga } : i));
+    setItems(prev => prev.map(i => i.id === id ? { ...i, ...editValues, coaId: parseInt(editValues.coaId), coa: editValues.coaLabel, total: editValues.jumlah * editValues.harga } : i));
     setEditingId(null);
+    setEditCoaOpen(false);
   }, [editValues]);
 
   // Pre-validate fields before showing confirmation or saving
@@ -575,9 +583,26 @@ export default function InputAnggaranBaruPage() {
                       <tr><td colSpan={8} className="px-4 py-1.5 bg-emerald-50 border-b border-emerald-100 text-[10px] font-bold text-emerald-700">↑ PENERIMAAN</td></tr>
                       {penItems.map((item, idx) => editingId === item.id ? (
                         <tr key={item.id} className="border-b border-emerald-200 bg-emerald-50/40">
-                          <td className="p-3 pl-6" colSpan={2}>
+                          <td className="p-3 pl-6">
                             <input type="text" value={editValues.uraian} onChange={e => setEditValues(p => ({ ...p, uraian: e.target.value }))} placeholder="Uraian" className="w-full mb-1 px-2 py-1 border border-emerald-300 rounded text-sm outline-none focus:ring-1 focus:ring-emerald-500" />
                             <input type="text" value={editValues.deskripsi} onChange={e => setEditValues(p => ({ ...p, deskripsi: e.target.value }))} placeholder="Deskripsi (opsional)" className="w-full px-2 py-1 border border-slate-200 rounded text-xs outline-none" />
+                          </td>
+                          <td className="p-3">
+                            {/* COA mini-search in edit mode */}
+                            <div className="relative">
+                              <input type="text" value={editCoaQuery}
+                                onChange={e => { setEditCoaQuery(e.target.value); setEditValues(p => ({ ...p, coaId: '', coaLabel: '' })); setEditCoaOpen(true); }}
+                                onFocus={() => setEditCoaOpen(true)}
+                                placeholder="Cari akun..."
+                                className="w-full px-2 py-1 border border-emerald-300 rounded text-xs outline-none focus:ring-1 focus:ring-emerald-400" />
+                              {editCoaOpen && editCoaQuery && (
+                                <div className="absolute top-full left-0 z-50 bg-white border border-slate-200 rounded shadow-lg max-h-40 overflow-y-auto w-56">
+                                  {coaList.filter(c => c.saldo_normal !== 'Debit' && (c.label.toLowerCase().includes(editCoaQuery.toLowerCase()))).slice(0,10).map(c => (
+                                    <div key={c.id} className="px-3 py-1.5 text-xs cursor-pointer hover:bg-emerald-50" onClick={() => { setEditValues(p => ({ ...p, coaId: String(c.id), coaLabel: c.label })); setEditCoaQuery(c.label); setEditCoaOpen(false); }}>{c.label}</div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                           </td>
                           <td className="p-3"><select disabled className="px-2 py-1 border border-slate-200 rounded text-xs bg-slate-50 w-full"><option>{item.sumber_dana}</option></select></td>
                           <td className="p-3 text-center"><input type="number" min={1} step={1} value={editValues.jumlah} onChange={e => setEditValues(p => ({ ...p, jumlah: Math.round(Number(e.target.value)) || 1 }))} className="w-16 px-2 py-1 border border-emerald-300 rounded text-sm text-center outline-none" /></td>
@@ -604,9 +629,26 @@ export default function InputAnggaranBaruPage() {
                       <tr><td colSpan={8} className="px-4 py-1.5 bg-red-50 border-b border-red-100 border-t border-t-slate-200 text-[10px] font-bold text-red-700">↓ PENGELUARAN</td></tr>
                       {kelItems.map((item, idx) => editingId === item.id ? (
                         <tr key={item.id} className="border-b border-indigo-200 bg-indigo-50/30">
-                          <td className="p-3 pl-6" colSpan={2}>
+                          <td className="p-3 pl-6">
                             <input type="text" value={editValues.uraian} onChange={e => setEditValues(p => ({ ...p, uraian: e.target.value }))} placeholder="Uraian" className="w-full mb-1 px-2 py-1 border border-indigo-300 rounded text-sm outline-none focus:ring-1 focus:ring-indigo-500" />
                             <input type="text" value={editValues.deskripsi} onChange={e => setEditValues(p => ({ ...p, deskripsi: e.target.value }))} placeholder="Deskripsi (opsional)" className="w-full px-2 py-1 border border-slate-200 rounded text-xs outline-none" />
+                          </td>
+                          <td className="p-3">
+                            {/* COA mini-search in edit mode */}
+                            <div className="relative">
+                              <input type="text" value={editCoaQuery}
+                                onChange={e => { setEditCoaQuery(e.target.value); setEditValues(p => ({ ...p, coaId: '', coaLabel: '' })); setEditCoaOpen(true); }}
+                                onFocus={() => setEditCoaOpen(true)}
+                                placeholder="Cari akun..."
+                                className="w-full px-2 py-1 border border-indigo-300 rounded text-xs outline-none focus:ring-1 focus:ring-indigo-400" />
+                              {editCoaOpen && editCoaQuery && (
+                                <div className="absolute top-full left-0 z-50 bg-white border border-slate-200 rounded shadow-lg max-h-40 overflow-y-auto w-56">
+                                  {coaList.filter(c => c.saldo_normal !== 'Kredit' && (c.label.toLowerCase().includes(editCoaQuery.toLowerCase()))).slice(0,10).map(c => (
+                                    <div key={c.id} className="px-3 py-1.5 text-xs cursor-pointer hover:bg-indigo-50" onClick={() => { setEditValues(p => ({ ...p, coaId: String(c.id), coaLabel: c.label })); setEditCoaQuery(c.label); setEditCoaOpen(false); }}>{c.label}</div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                           </td>
                           <td className="p-3"><select disabled className="px-2 py-1 border border-slate-200 rounded text-xs bg-slate-50 w-full"><option>{item.sumber_dana}</option></select></td>
                           <td className="p-3 text-center"><input type="number" min={1} step={1} value={editValues.jumlah} onChange={e => setEditValues(p => ({ ...p, jumlah: Math.round(Number(e.target.value)) || 1 }))} className="w-16 px-2 py-1 border border-indigo-300 rounded text-sm text-center outline-none" /></td>

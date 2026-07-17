@@ -22,11 +22,44 @@ export function BirthdayCalendar() {
   const currentMonth = currentDate.getMonth(); // 0-11
   const currentYear = currentDate.getFullYear();
 
+  const [filterSatelit, setFilterSatelit] = useState('');
+  const [satelitOptions, setSatelitOptions] = useState<any[]>([]);
+  const [userData, setUserData] = useState<any>(null);
+
+  useEffect(() => {
+    const init = async () => {
+      try {
+        const [resSatelit, resUser] = await Promise.all([
+          fetch('/api/options?type=satelit'),
+          fetch('/api/auth/me')
+        ]);
+        if (resSatelit.ok) {
+          const result = await resSatelit.json();
+          if (result.success) setSatelitOptions(result.data);
+        }
+        if (resUser.ok) {
+          const authData = await resUser.json();
+          setUserData(authData);
+          if (authData && !authData.is_super_admin && !authData.permissions?.includes('multi_satelit_view')) {
+            setFilterSatelit(authData.satelit_id?.toString() || '');
+          }
+        }
+      } catch (err) {
+        console.error('Error init birthdays:', err);
+      }
+    };
+    init();
+  }, []);
+
   useEffect(() => {
     const fetchBirthdays = async () => {
       setIsLoading(true);
       try {
-        const res = await fetch(`/api/members/birthdays?month=${currentMonth + 1}`);
+        const query = new URLSearchParams();
+        query.append('month', (currentMonth + 1).toString());
+        if (filterSatelit) query.append('satelit_id', filterSatelit);
+
+        const res = await fetch(`/api/members/birthdays?${query.toString()}`);
         const result = await res.json();
         if (result.success) {
           setBirthdays(result.data || []);
@@ -39,7 +72,7 @@ export function BirthdayCalendar() {
     };
 
     fetchBirthdays();
-  }, [currentMonth]);
+  }, [currentMonth, filterSatelit]);
 
   const prevMonth = () => {
     setCurrentDate(new Date(currentYear, currentMonth - 1, 1));
@@ -57,7 +90,7 @@ export function BirthdayCalendar() {
   return (
     <div className="w-full bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+      <div className="px-6 py-4 border-b border-slate-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-slate-50/50">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-indigo-500/10 rounded-lg flex justify-center items-center">
             <span className="material-icons-round text-indigo-600">cake</span>
@@ -68,7 +101,21 @@ export function BirthdayCalendar() {
           </div>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+          {(!userData || userData?.is_super_admin || userData?.permissions?.includes('multi_satelit_view')) && (
+            <select
+              value={filterSatelit}
+              onChange={(e) => setFilterSatelit(e.target.value)}
+              className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-white"
+            >
+              <option value="">Semua Satelit</option>
+              {satelitOptions.map((opt: any) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          )}
+
+          <div className="flex items-center gap-2">
           <button 
             onClick={prevMonth}
             className="w-8 h-8 rounded-lg border border-slate-200 flex justify-center items-center hover:bg-slate-100 text-slate-500 transition-colors"
@@ -84,6 +131,7 @@ export function BirthdayCalendar() {
           >
             <span className="material-icons-round text-[18px]">chevron_right</span>
           </button>
+        </div>
         </div>
       </div>
 
