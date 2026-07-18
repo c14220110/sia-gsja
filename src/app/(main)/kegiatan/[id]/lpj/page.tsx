@@ -537,7 +537,7 @@ export default function InputLPJPage() {
               </div>
               <div>
                 <label className={lbl}>Sumber Dana</label>
-                <select value={form.sumber_dana} onChange={e=>setForm(p=>({...p,sumber_dana:e.target.value}))} className={selectCls}>
+                <select value={form.sumber_dana} onChange={e=>setForm(p=>({...p,sumber_dana:e.target.value}))} className={sel}>
                 <option value="Pusat">Pusat</option>
                 <option value="Swadaya">Swadaya</option>
                 <option value="Kontribusi peserta">Kontribusi peserta</option>
