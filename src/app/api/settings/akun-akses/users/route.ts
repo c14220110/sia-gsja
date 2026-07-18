@@ -88,7 +88,7 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { user_id, email, password, roles } = body;
+    const { user_id, email, password, roles, jemaat_id } = body;
 
     if (!user_id) {
       return NextResponse.json({ success: false, message: 'user_id diperlukan' }, { status: 400 });
@@ -99,6 +99,8 @@ export async function PUT(req: NextRequest) {
     if (password) {
       updateData.password_hash = await bcrypt.hash(password, 10);
     }
+    // jemaat_id: undefined = tidak diubah, null = hapus link, number = set link baru
+    if (jemaat_id !== undefined) updateData.jemaat_id = jemaat_id;
     // Teruskan komisi_id dan departemen_id per-role-row (bukan dari level global)
     if (roles !== undefined) {
       updateData.roles = roles.map((r: any) => ({

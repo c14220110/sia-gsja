@@ -248,7 +248,25 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
   // Tentukan apakah isian form harus dikunci sesuai role usernya
   // Ketua Komisi (8) -> cuma buat satelit & komisinya. Bendahara Satelit (6) -> cuma buat satelitnya doang.
   const isRoleSatelitLocked = userData?.role_id === 6 || userData?.role_id === 8 || userData?.role_id === 7 || userData?.role_id === 10;
-  const isHeaderLocked = statusDokumen === 'Revisi';
+  const isMenungguKetua = statusDokumen === 'Menunggu Persetujuan Ketua';
+  // isHeaderLocked juga mencakup status Menunggu Ketua agar seluruh form dikunci
+  const isHeaderLocked = statusDokumen === 'Revisi' || isMenungguKetua;
+
+  // Fungsi tarik kembali ke Draft
+  const handleTarikKembali = async () => {
+    if (!confirm('Tarik kembali RA ini ke Draft? Ketua tidak akan bisa review lagi sampai Anda ajukan ulang.')) return;
+    setSubmitState({ status: 'loading', message: 'Menarik kembali ke Draft...' });
+    try {
+      const res = await fetch(`/api/anggaran/tahunan/${id}/retract`, { method: 'POST' });
+      const json = await res.json();
+      if (json.success) {
+        setSubmitState({ status: 'success', message: 'RA berhasil ditarik ke Draft.' });
+        setTimeout(() => { window.location.reload(); }, 1500);
+      } else {
+        setSubmitState({ status: 'error', message: json.message || 'Gagal menarik kembali.' });
+      }
+    } catch { setSubmitState({ status: 'error', message: 'Gagal terhubung ke server.' }); }
+  };
   
   return (
     <div className="w-full flex flex-col gap-6 pb-32">
@@ -268,6 +286,24 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
         onConfirm={() => { setShowConfirmAjukan(false); handleSave('ajukan'); }}
         onCancel={() => setShowConfirmAjukan(false)}
       />
+      {/* Banner: Menunggu Ketua — form dikunci */}
+      {isMenungguKetua && (
+        <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center gap-4">
+          <span className="material-icons-round text-orange-500 text-2xl shrink-0">hourglass_top</span>
+          <div className="flex-1">
+            <p className="text-sm font-black text-orange-800">RA Sedang Menunggu Persetujuan Ketua Satelit</p>
+            <p className="text-xs text-orange-600 mt-0.5">Dokumen ini sedang dalam antrian review Ketua dan <strong>tidak dapat diedit</strong>. Jika perlu diubah, tarik kembali ke Draft terlebih dahulu.</p>
+          </div>
+          <button
+            onClick={handleTarikKembali}
+            className="px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-sm font-bold flex items-center gap-2 shrink-0 transition-colors"
+          >
+            <span className="material-icons-round text-[16px]">undo</span>
+            Tarik Kembali ke Draft
+          </button>
+        </div>
+      )}
+
       {/* Header Area */}
       <div className="w-full flex flex-col justify-start items-start gap-4">
         <div className="self-stretch inline-flex justify-start items-center gap-2 text-xs font-medium font-sans leading-4">
@@ -308,7 +344,9 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
             <span>Informasi Rancangan Anggaran</span>
           </div>
           <p className="text-xs text-slate-400 mt-0.5 ml-10">
-            {isHeaderLocked 
+            {isMenungguKetua
+              ? 'Dokumen sedang menunggu persetujuan Ketua — seluruh form dikunci. Tarik kembali ke Draft jika perlu diubah.'
+              : isHeaderLocked 
               ? "Informasi utama dokumen dikunci selama masa revisi untuk menjaga konsistensi scope persetujuan." 
               : "Tentukan kategori, nama, dan cakupan organisasi dari rancangan ini."}
           </p>
@@ -569,13 +607,27 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
         </div>
         <div className="bg-slate-900 p-4 flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex gap-3 w-full md:w-auto">
-            <button onClick={()=>handleSave('draft')} className="px-5 py-2.5 rounded-lg border border-slate-700 text-white font-semibold hover:bg-slate-800 transition-colors text-sm flex items-center gap-2">
-              <span className="material-icons-round text-[18px]">save</span> Simpan Draft
-            </button>
-            <button onClick={handleAjukanClick} className="px-5 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold transition-colors text-sm flex items-center gap-2 shadow-sm">
-              <span className="material-icons-round text-[18px]">send</span> Ajukan Anggaran
-            </button>
-            <span className="px-4 py-2.5 bg-white rounded-lg text-sm font-bold text-slate-800 flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">info</span>STATUS: DRAFT</span>
+            {isMenungguKetua ? (
+              <>
+                <span className="px-4 py-2.5 bg-orange-600 rounded-lg text-sm font-bold text-white flex items-center gap-2">
+                  <span className="material-icons-round text-[18px]">hourglass_top</span>
+                  MENUNGGU KETUA — Form Dikunci
+                </span>
+                <button onClick={handleTarikKembali} className="px-5 py-2.5 rounded-lg border border-slate-700 hover:bg-slate-800 text-white font-semibold transition-colors text-sm flex items-center gap-2">
+                  <span className="material-icons-round text-[18px]">undo</span> Tarik ke Draft
+                </button>
+              </>
+            ) : (
+              <>
+                <button onClick={()=>handleSave('draft')} className="px-5 py-2.5 rounded-lg border border-slate-700 text-white font-semibold hover:bg-slate-800 transition-colors text-sm flex items-center gap-2">
+                  <span className="material-icons-round text-[18px]">save</span> Simpan Draft
+                </button>
+                <button onClick={handleAjukanClick} className="px-5 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold transition-colors text-sm flex items-center gap-2 shadow-sm">
+                  <span className="material-icons-round text-[18px]">send</span> Ajukan Anggaran
+                </button>
+                <span className="px-4 py-2.5 bg-white rounded-lg text-sm font-bold text-slate-800 flex items-center gap-2"><span className="material-icons-round text-[18px] text-slate-400">info</span>STATUS: {statusDokumen === 'Revisi' ? 'REVISI' : 'DRAFT'}</span>
+              </>
+            )}
           </div>
           <div className="flex gap-5 overflow-x-auto">
             {[['Total Penerimaan',fmt(totalP),'text-emerald-400'],['Total Pengeluaran',`(${fmt(totalK)})`,'text-red-400'],['Margin',`${margin.toFixed(1)}%`,'text-white'],['Total Estimasi',fmt(totalP-totalK),totalP-totalK>=0?'text-emerald-400':'text-red-400']].map(([label,value,cls],i,arr)=>(

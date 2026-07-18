@@ -68,8 +68,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ success: false, message: 'Akses Ditolak: Anda tidak memiliki izin mengelola kegiatan' }, { status: 403 });
   }
 
-  // Cek keamanan IDOR: pastikan kegiatan ini benar milik satelit sang pemanggil
-  if (!caller.is_super_admin) {
+  // Cek keamanan IDOR: pastikan kegiatan ini milik satelit sang pemanggil
+  // PENGECUALIAN: user dengan 'multi_satelit_view' (Majelis, Gembala Sidang, Sekretaris Pusat) boleh lintas satelit
+  const hasMultiSatelitAccess = caller.permissions.includes('multi_satelit_view');
+  if (!caller.is_super_admin && !hasMultiSatelitAccess) {
     const ownerCheck = await pool.query(
       `SELECT satelit_id FROM public.kegiatan WHERE id = $1`, [id]
     );
@@ -194,8 +196,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       }, { status: 403 });
     }
 
-    // Cek keamanan IDOR: pastikan kegiatan ini benar milik satelit sang pemanggil
-    if (!caller.is_super_admin && currentStatusCheck.rows[0].satelit_id !== caller.satelit_id) {
+    // Cek keamanan IDOR untuk edit: hanya pemilik satelit atau user lintas-satelit yang boleh
+    // PENGECUALIAN: user dengan multi_satelit_view (Majelis, Sekretaris Pusat, dll) boleh lintas satelit
+    if (!caller.is_super_admin && !caller.permissions.includes('multi_satelit_view') && currentStatusCheck.rows[0].satelit_id !== caller.satelit_id) {
       await client.query('ROLLBACK');
       return NextResponse.json({ success: false, message: 'Akses ditolak: kegiatan bukan milik satelit Anda' }, { status: 403 });
     }
@@ -362,6 +365,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
         message: `Kegiatan berstatus "${keg.status_kegiatan}" tidak dapat dihapus. Hanya Draft yang boleh dihapus.`
       }, { status: 403 });
     }
+    // Hapus hanya boleh oleh pemilik satelit; Majelis/Sekretaris Pusat (kegiatan_approval) tetap tidak boleh hapus draft satelit lain
     if (!caller.is_super_admin && keg.satelit_id !== caller.satelit_id) {
       await client.query('ROLLBACK');
       return NextResponse.json({ success: false, message: 'Akses ditolak: kegiatan bukan milik satelit Anda' }, { status: 403 });

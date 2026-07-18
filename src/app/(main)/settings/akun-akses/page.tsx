@@ -117,6 +117,8 @@ export default function AkunAksesPage() {
   const [editForm, setEditForm] = useState({ email: '', password: '' });
   const [editLoginType, setEditLoginType] = useState<'email' | 'nohp' | 'username'>('email');
   const [editRoleAssignments, setEditRoleAssignments] = useState<RoleAssignment[]>([{ role_id: '', satelit_id: '' }]);
+  const [editSelectedJemaat, setEditSelectedJemaat] = useState<any>(null);
+  const [editJemaatQuery, setEditJemaatQuery] = useState('');
 
 
   // State untuk buat akun massal nih
@@ -455,6 +457,14 @@ export default function AkunAksesPage() {
         satelit_id: r.satelit_id ? String(r.satelit_id) : ''
       }));
     setEditRoleAssignments(existingRoles.length > 0 ? existingRoles : [{ role_id: '', satelit_id: '' }]);
+    // Set jemaat yang sudah terhubung (jika ada)
+    if (user.jemaat_id && user.nama_lengkap) {
+      setEditSelectedJemaat({ id: user.jemaat_id, jemaat_id: user.jemaat_id_str || '', nama_lengkap: user.nama_lengkap, foto_url: user.foto_url });
+      setEditJemaatQuery(user.nama_lengkap);
+    } else {
+      setEditSelectedJemaat(null);
+      setEditJemaatQuery('');
+    }
     setIsEditUserModalOpen(true);
   };
 
@@ -472,7 +482,15 @@ export default function AkunAksesPage() {
     setIsEditUserModalOpen(false);
     setSubmitState({ status: 'loading', message: '' });
     try {
-      const res = await fetch('/api/settings/akun-akses/users', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: editingUser.id, email: editForm.email, ...(editForm.password ? { password: editForm.password } : {}), roles: validRoles.map(r => ({ role_id: parseInt(r.role_id), satelit_id: parseInt(r.satelit_id), komisi_id: r.komisi_id ? parseInt(r.komisi_id) : null, departemen_id: r.departemen_id ? parseInt(r.departemen_id) : null })) }) });
+      const payload: any = {
+        user_id: editingUser.id,
+        email: editForm.email,
+        ...(editForm.password ? { password: editForm.password } : {}),
+        // Kirim jemaat_id: null jika sengaja dikosongkan (hapus link), atau id jemaat yang dipilih
+        jemaat_id: editSelectedJemaat ? editSelectedJemaat.id : null,
+        roles: validRoles.map(r => ({ role_id: parseInt(r.role_id), satelit_id: parseInt(r.satelit_id), komisi_id: r.komisi_id ? parseInt(r.komisi_id) : null, departemen_id: r.departemen_id ? parseInt(r.departemen_id) : null }))
+      };
+      const res = await fetch('/api/settings/akun-akses/users', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const json = await res.json();
       if (json.success) { setSubmitState({ status: 'success', message: 'Data pengguna berhasil diperbarui!' }); fetchUsersData(); }
       else setSubmitState({ status: 'error', message: json.message || 'Gagal memperbarui data.' });
@@ -1138,6 +1156,46 @@ export default function AkunAksesPage() {
                   <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">Password Baru <span className="text-slate-400 normal-case font-normal">(kosongkan jika tidak diubah)</span></label>
                   <input type="text" placeholder="Password baru..." className="px-3 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 text-sm" value={editForm.password} onChange={e => setEditForm(p => ({ ...p, password: e.target.value }))} />
                 </div>
+              </div>
+              <div className="flex flex-col gap-2 p-4 bg-indigo-50 border border-indigo-100 rounded-xl">
+                <div className="text-indigo-800 font-bold text-sm flex items-center gap-1.5">
+                  <span className="material-icons-round text-[16px]">person_pin</span>
+                  Tautkan ke Data Jemaat
+                  <span className="text-[11px] font-normal text-slate-500 ml-1 italic">💡 Opsional. Hubungkan akun ini ke profil jemaat terdaftar.</span>
+                </div>
+                <JemaatAutocomplete
+                  label=""
+                  valueName={editJemaatQuery}
+                  placeholder="Ketik nama jemaat terdaftar..."
+                  onSelect={(jemaat, name) => {
+                    setEditSelectedJemaat(jemaat);
+                    setEditJemaatQuery(name);
+                  }}
+                />
+                {editSelectedJemaat ? (
+                  <div className="flex items-center justify-between p-2 bg-indigo-100 text-indigo-800 text-xs font-bold border border-indigo-200 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <img
+                        src={editSelectedJemaat.foto_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(editSelectedJemaat.nama_lengkap)}&background=random`}
+                        alt="avatar"
+                        className="w-6 h-6 rounded-full object-cover"
+                      />
+                      <span className="material-icons-round text-emerald-600 text-[16px]">check_circle</span>
+                      {editSelectedJemaat.nama_lengkap}
+                      {editSelectedJemaat.jemaat_id && <span className="text-indigo-500 font-sans font-normal">({editSelectedJemaat.jemaat_id})</span>}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => { setEditSelectedJemaat(null); setEditJemaatQuery(''); }}
+                      className="text-red-500 hover:text-red-700 text-[11px] font-bold flex items-center gap-0.5"
+                    >
+                      <span className="material-icons-round text-[14px]">link_off</span>
+                      Lepas Tautan
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-indigo-600 italic">Tidak ada jemaat yang ditautkan. Akun ini akan menjadi akun mandiri (non-jemaat).</p>
+                )}
               </div>
               <div className="flex flex-col gap-3 p-4 bg-amber-50 border border-amber-100 rounded-xl">
                 <div className="flex items-center justify-between">

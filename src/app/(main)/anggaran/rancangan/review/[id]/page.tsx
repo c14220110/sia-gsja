@@ -484,6 +484,74 @@ export default function ReviewAnggaranPage({ params }: { params: Promise<{ id: s
         </div>
       )}
 
+      {/* Tabel Read-Only Item — untuk Ketua baca isi RA sebelum memutuskan */}
+      {isKetua && isApprovableByKetua && (
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="px-5 py-3 bg-orange-50 border-b border-orange-100 flex items-center gap-2">
+            <span className="material-icons-round text-orange-500 text-lg">list_alt</span>
+            <p className="text-sm font-bold text-orange-800">Rincian Item Anggaran (Baca Saja)</p>
+          </div>
+          <div className="overflow-x-auto w-full">
+            <table className="w-full text-left border-collapse min-w-[800px]">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 tracking-wider">
+                  <th className="p-4 w-[30%]">URAIAN</th>
+                  <th className="p-4 w-[20%]">AKUN</th>
+                  <th className="p-4 w-[12%]">SUMBER</th>
+                  <th className="p-4 w-[6%] text-center">JML</th>
+                  <th className="p-4 w-[7%] text-center">SATUAN</th>
+                  <th className="p-4 w-[14%] text-right">TOTAL</th>
+                  <th className="p-4 w-[11%] text-center">STATUS ITEM</th>
+                </tr>
+              </thead>
+              <tbody>
+                {penItems.length > 0 && <>
+                  <tr><td colSpan={7} className="px-4 py-1.5 bg-emerald-50 border-b border-emerald-100 text-[10px] font-bold text-emerald-700">↑ PENERIMAAN ({penItems.length} item)</td></tr>
+                  {penItems.map((item: any, idx: number) => (
+                    <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50">
+                      <td className="p-4 pl-6 text-sm font-semibold text-slate-800">{idx + 1}. {item.uraian}
+                        <p className="text-xs font-normal text-slate-400">{item.deskripsi}</p>
+                      </td>
+                      <td className="p-4 text-xs text-slate-500">{item.kode_akun} — {item.nama_akun}</td>
+                      <td className="p-4"><span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${['Pusat','Plafon Pusat'].includes(item.sumber_dana) ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : ['Swadaya','Kas Pusat'].includes(item.sumber_dana) ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>{item.sumber_dana}</span></td>
+                      <td className="p-4 text-sm text-center">{item.jumlah}</td>
+                      <td className="p-4 text-sm text-center text-slate-600">{item.satuan}</td>
+                      <td className="p-4 text-sm text-right font-bold text-emerald-600 font-sans">{fmt(parseFloat(item.total))}</td>
+                      <td className="p-4 text-center"><span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${getItemStatusBadge(item.status_item)}`}>{item.status_item || 'Menunggu'}</span></td>
+                    </tr>
+                  ))}
+                </>}
+                {kelItems.length > 0 && <>
+                  <tr><td colSpan={7} className="px-4 py-1.5 bg-red-50 border-b border-red-100 border-t border-t-slate-200 text-[10px] font-bold text-red-700">↓ PENGELUARAN ({kelItems.length} item)</td></tr>
+                  {kelItems.map((item: any, idx: number) => (
+                    <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50">
+                      <td className="p-4 pl-6 text-sm font-semibold text-slate-800">{idx + 1}. {item.uraian}
+                        <p className="text-xs font-normal text-slate-400">{item.deskripsi}</p>
+                      </td>
+                      <td className="p-4 text-xs text-slate-500">{item.kode_akun} — {item.nama_akun}</td>
+                      <td className="p-4"><span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${['Pusat','Plafon Pusat'].includes(item.sumber_dana) ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : ['Swadaya','Kas Pusat'].includes(item.sumber_dana) ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>{item.sumber_dana}</span></td>
+                      <td className="p-4 text-sm text-center">{item.jumlah}</td>
+                      <td className="p-4 text-sm text-center text-slate-600">{item.satuan}</td>
+                      <td className="p-4 text-sm text-right font-bold text-slate-800 font-sans">{fmt(parseFloat(item.total))}</td>
+                      <td className="p-4 text-center"><span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${getItemStatusBadge(item.status_item)}`}>{item.status_item || 'Menunggu'}</span></td>
+                    </tr>
+                  ))}
+                </>}
+              </tbody>
+            </table>
+          </div>
+          {/* Footer total */}
+          <div className="px-5 py-3 bg-slate-900 flex justify-end gap-6">
+            {[['Penerimaan', fmt(totalP), 'text-emerald-400'], ['Pengeluaran', `(${fmt(totalK)})`, 'text-red-400'], ['Total RA', fmt(totalP - totalK), totalP - totalK >= 0 ? 'text-emerald-400' : 'text-red-400']].map(([label, value, cls]) => (
+              <div key={label} className="flex flex-col text-right">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{label}</span>
+                <span className={`text-sm font-bold font-sans ${cls}`}>{value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Decision Summary Bar + Review Table — only for Majelis reviewer when 'Menunggu Review' */}
       {isReviewer && isReviewable && (<>
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center gap-4">
@@ -558,38 +626,42 @@ export default function ReviewAnggaranPage({ params }: { params: Promise<{ id: s
                 <span className="material-icons-round text-[18px] text-amber-500">info</span>
                 Selesaikan keputusan untuk {undecidedCount} item tersisa.
               </div>
-            ) : revisiCount > 0 ? (
-              <button
-                onClick={() => setConfirmAction('minta_revisi')}
-                className="px-5 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm flex items-center gap-2 transition-colors shadow-sm"
-              >
-                <span className="material-icons-round text-[18px]">rate_review</span>Minta Revisi
-              </button>
-            ) : accCount === items.length && !hasCut ? (
-              // Semua item ACC, tidak ada yang dipotong → Setujui Penuh
-              <button
-                onClick={() => setConfirmAction('setujui_penuh')}
-                className="px-5 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm flex items-center gap-2 transition-colors shadow-sm"
-              >
-                <span className="material-icons-round text-[18px]">check_circle</span>Setujui Penuh
-              </button>
-            ) : tolakCount === items.length ? (
-              // Semua item Ditolak
-              <button
-                onClick={() => setConfirmAction('tolak')}
-                className="px-5 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-sm flex items-center gap-2 transition-colors shadow-sm"
-              >
-                <span className="material-icons-round text-[18px]">cancel</span>Tolak Seluruhnya
-              </button>
             ) : (
-              // Mix (ada cut / ada tolak / semua cut) → Setujui Sebagian
-              <button
-                onClick={() => setConfirmAction('setujui_sebagian')}
-                className="px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm flex items-center gap-2 transition-colors shadow-sm"
-              >
-                <span className="material-icons-round text-[18px]">published_with_changes</span>
-                Setujui Sebagian ({accCount} ACC{hasCut ? ', ada dipotong' : ''})
-              </button>
+              <>
+                {/* Minta Revisi — selalu tersedia saat semua item sudah diputuskan */}
+                <button
+                  onClick={() => setConfirmAction('minta_revisi')}
+                  className="px-5 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm flex items-center gap-2 transition-colors shadow-sm"
+                >
+                  <span className="material-icons-round text-[18px]">rate_review</span>Minta Revisi
+                </button>
+
+                {/* Aksi Utama tergantung kondisi item */}
+                {accCount === items.length && !hasCut ? (
+                  <button
+                    onClick={() => setConfirmAction('setujui_penuh')}
+                    className="px-5 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm flex items-center gap-2 transition-colors shadow-sm"
+                  >
+                    <span className="material-icons-round text-[18px]">check_circle</span>Setujui Penuh
+                  </button>
+                ) : tolakCount === items.length ? (
+                  <button
+                    onClick={() => setConfirmAction('tolak')}
+                    className="px-5 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-sm flex items-center gap-2 transition-colors shadow-sm"
+                  >
+                    <span className="material-icons-round text-[18px]">cancel</span>Tolak Seluruhnya
+                  </button>
+                ) : accCount > 0 && revisiCount === 0 ? (
+                  // Ada ACC + Ditolak → Setujui Sebagian
+                  <button
+                    onClick={() => setConfirmAction('setujui_sebagian')}
+                    className="px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm flex items-center gap-2 transition-colors shadow-sm"
+                  >
+                    <span className="material-icons-round text-[18px]">published_with_changes</span>
+                    Setujui Sebagian ({accCount} ACC{hasCut ? ', ada dipotong' : ''})
+                  </button>
+                ) : null /* jika ada item Revisi, cukup gunakan tombol Minta Revisi di atas */}
+              </>
             )}
           </div>
           <div className="flex gap-5 overflow-x-auto">

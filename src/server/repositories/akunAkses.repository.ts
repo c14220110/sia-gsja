@@ -77,7 +77,7 @@ export class AkunAksesRepository {
     const res = await pool.query(`
       SELECT 
         p.id, p.email, p.no_hp, p.username, p.is_active, p.last_login_at, p.jemaat_id,
-        j.nama_lengkap,
+        j.nama_lengkap, j.jemaat_id AS jemaat_id_str, j.foto_url,
         COALESCE(
           json_agg(
             json_build_object(
@@ -250,6 +250,7 @@ export class AkunAksesRepository {
   async updatePengguna(userId: number, data: {
     email?: string;
     password_hash?: string;
+    jemaat_id?: number | null; // null = hapus link, number = ganti/set link
     roles?: { role_id: number; satelit_id: number; komisi_id?: number | null; departemen_id?: number | null }[];
   }): Promise<{ success: boolean; message?: string }> {
     const client = await pool.connect();
@@ -276,6 +277,25 @@ export class AkunAksesRepository {
         updates.push(`updated_at = NOW()`);
         vals.push(userId);
         await client.query(`UPDATE pengguna SET ${updates.join(', ')} WHERE id = $${idx}`, vals);
+      }
+
+      // Update jemaat_id jika disertakan (null = hapus link, number = set link)
+      if (data.jemaat_id !== undefined) {
+        if (data.jemaat_id !== null) {
+          // Cek apakah jemaat ini sudah ditautkan ke akun lain
+          const existing = await client.query(
+            `SELECT id FROM pengguna WHERE jemaat_id = $1 AND id != $2`,
+            [data.jemaat_id, userId]
+          );
+          if (existing.rows.length > 0) {
+            await client.query('ROLLBACK');
+            return { success: false, message: 'Jemaat ini sudah ditautkan ke akun pengguna lain.' };
+          }
+        }
+        await client.query(
+          `UPDATE pengguna SET jemaat_id = $1, updated_at = NOW() WHERE id = $2`,
+          [data.jemaat_id, userId]
+        );
       }
 
       // Update roles jika diberikan
