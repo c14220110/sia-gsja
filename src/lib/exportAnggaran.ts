@@ -96,8 +96,8 @@ export async function exportToExcel(data: any, tahun: string, satelitName: strin
     row.getCell(4).alignment = { horizontal: 'right' };
     row.getCell(4).font = { bold: true, size: 10, name: 'Calibri' };
   };
-  addDanaRow('Plafon Pusat (Kas Gereja)', s.sumber_dana.plafon_pusat);
-  addDanaRow('Kas Mandiri (Swadaya)', s.sumber_dana.kas_mandiri);
+  addDanaRow('Pusat', s.sumber_dana.plafon_pusat);
+  addDanaRow('Swadaya / Eksternal', s.sumber_dana.kas_mandiri);
 
   ws.addRow([]);
 
@@ -333,7 +333,7 @@ export async function exportToPDF(data: any, tahun: string, satelitName: string)
   doc.text('Proporsi Sumber Dana', infoX, infoY);
   infoY += 5;
 
-  [['Plafon Pusat (Kas Gereja)', s.sumber_dana.plafon_pusat], ['Kas Mandiri (Swadaya)', s.sumber_dana.kas_mandiri]].forEach(([label, val]) => {
+  [['Pusat', s.sumber_dana.plafon_pusat], ['Swadaya / Eksternal', s.sumber_dana.kas_mandiri]].forEach(([label, val]) => {
     doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(100, 116, 139);

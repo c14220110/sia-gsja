@@ -281,7 +281,7 @@ export default function KonsolidasiAnggaranPage() {
                    <div className="flex flex-col gap-3">
                      <div>
                        <div className="flex justify-between text-xs font-bold mb-1">
-                         <span className="text-slate-600">Plafon Pusat (Kas Gereja)</span>
+                         <span className="text-slate-600">Pusat</span>
                          <span className="text-slate-800">{formatRupiah(data.summary.sumber_dana.plafon_pusat)}</span>
                        </div>
                        <div className="w-full bg-slate-100 rounded-full h-2">

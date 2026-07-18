@@ -492,18 +492,9 @@ export default function InputAnggaranBaruPage() {
             <div>
               <label className={labelCls}>Sumber Dana</label>
               <select value={form.sumber_dana} onChange={e=>setForm(p=>({...p,sumber_dana:e.target.value}))} className={selectCls}>
-                {isPusat ? (
-                  // Pusat tidak minta subsidi ke dirinya sendiri
-                  <option value="Kas Pusat">Kas Pusat (Gereja)</option>
-                ) : (
-                  // Satelit/Komisi: bisa dari kas sendiri atau minta subsidi ke pusat
-                  <>
-                    <option value="Kas Mandiri">Kas Satelit/Komisi</option>
-                    <option value="Plafon Pusat">Plafon Pusat (Subsidi)</option>
-                  </>
-                )}
-                <option value="Kontribusi Peserta">Kontribusi Peserta / Jemaat</option>
-                <option value="Sponsor / Donatur">Sponsor / Donatur Eksternal</option>
+                <option value="Pusat">Pusat</option>
+                <option value="Swadaya">Swadaya</option>
+                <option value="Kontribusi peserta">Kontribusi peserta</option>
               </select>
             </div>
           </div>
@@ -615,7 +606,7 @@ export default function InputAnggaranBaruPage() {
                         <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50 group">
                           <td className="p-4 pl-6 text-sm font-semibold text-slate-800">{idx + 1}. {item.uraian}<p className="text-xs font-normal text-slate-400">{item.deskripsi}</p></td>
                           <td className="p-4 text-xs font-sans text-slate-500">{item.coa}</td>
-                          <td className="p-4"><span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${item.sumber_dana === 'Plafon Pusat' ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : item.sumber_dana === 'Kas Pusat' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-emerald-50 text-emerald-600 border-emerald-200'}`}>{item.sumber_dana}</span></td>
+                          <td className="p-4"><span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${['Pusat', 'Plafon Pusat'].includes(item.sumber_dana) ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : ['Swadaya', 'Kas Pusat', 'Kas Satelit'].includes(item.sumber_dana) ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>{item.sumber_dana}</span></td>
                           <td className="p-4 text-sm text-center font-medium">{item.jumlah}</td><td className="p-4 text-sm text-center text-slate-600">{item.satuan}</td>
                           <td className="p-4 text-sm text-right font-sans text-slate-700">{fmt(item.harga)}</td>
                           <td className="p-4 text-sm text-right font-bold font-sans text-emerald-600">{fmt(item.total)}</td>
@@ -661,7 +652,7 @@ export default function InputAnggaranBaruPage() {
                         <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50 group">
                           <td className="p-4 pl-6 text-sm font-semibold text-slate-800">{idx + 1}. {item.uraian}<p className="text-xs font-normal text-slate-400">{item.deskripsi}</p></td>
                           <td className="p-4 text-xs font-sans text-slate-500">{item.coa}</td>
-                          <td className="p-4"><span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${item.sumber_dana === 'Plafon Pusat' ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : item.sumber_dana === 'Kas Pusat' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-emerald-50 text-emerald-600 border-emerald-200'}`}>{item.sumber_dana}</span></td>
+                          <td className="p-4"><span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${['Pusat', 'Plafon Pusat'].includes(item.sumber_dana) ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : ['Swadaya', 'Kas Pusat', 'Kas Satelit'].includes(item.sumber_dana) ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>{item.sumber_dana}</span></td>
                           <td className="p-4 text-sm text-center font-medium">{item.jumlah}</td><td className="p-4 text-sm text-center text-slate-600">{item.satuan}</td>
                           <td className="p-4 text-sm text-right font-sans text-slate-700">{fmt(item.harga)}</td>
                           <td className="p-4 text-sm text-right font-bold font-sans text-slate-800">{fmt(item.total)}</td>

@@ -413,18 +413,9 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
             <div>
               <label className={labelCls}>Sumber Dana</label>
               <select value={form.sumber_dana} onChange={e=>setForm(p=>({...p,sumber_dana:e.target.value}))} className={selectCls}>
-                {isPusat ? (
-                  // Pusat tidak minta subsidi ke dirinya sendiri
-                  <option value="Kas Pusat">Kas Pusat (Gereja)</option>
-                ) : (
-                  // Satelit/Komisi: bisa dari kas sendiri atau minta subsidi ke pusat
-                  <>
-                    <option value="Kas Mandiri">Kas Satelit/Komisi</option>
-                    <option value="Plafon Pusat">Plafon Pusat (Subsidi)</option>
-                  </>
-                )}
-                <option value="Kontribusi Peserta">Kontribusi Peserta / Jemaat</option>
-                <option value="Sponsor / Donatur">Sponsor / Donatur Eksternal</option>
+                <option value="Pusat">Pusat</option>
+                <option value="Swadaya">Swadaya</option>
+                <option value="Kontribusi peserta">Kontribusi peserta</option>
               </select>
             </div>
           </div>
