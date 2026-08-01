@@ -10,9 +10,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
     }
 
-    // Izin: cuma SEKRETARIS_PUSAT (sama SUPER_ADMIN) yang dikasih wewenang buat nge-assign
+    // Izin: cuma SEKRETARIS_PUSAT / VOLUNTEER_SEKRETARIS (sama SUPER_ADMIN) yang dikasih wewenang buat nge-assign
     const callerRole = (caller.role_name || '').toUpperCase();
-    if (!['SEKRETARIS_PUSAT', 'SUPER_ADMIN'].includes(callerRole)) {
+    if (!['SEKRETARIS_PUSAT', 'VOLUNTEER_SEKRETARIS', 'SUPER_ADMIN'].includes(callerRole)) {
       return NextResponse.json({ success: false, message: 'Hanya Sekretaris Pusat yang dapat menugaskan penanggung jawab.' }, { status: 403 });
     }
 

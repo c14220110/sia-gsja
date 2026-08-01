@@ -209,7 +209,7 @@ export default function AdminPastoralDetailPage() {
   };
 
   const isFinalStatus = data.status_permohonan === 'Selesai' || data.status_permohonan === 'Dibatalkan';
-  const isSekretaris = ['SEKRETARIS_PUSAT', 'SUPER_ADMIN'].includes(callerRole);
+  const isSekretaris = ['SEKRETARIS_PUSAT', 'VOLUNTEER_SEKRETARIS', 'SUPER_ADMIN'].includes(callerRole);
   const isMajelisOrGembala = ['MAJELIS', 'GEMBALA_SIDANG', 'KETUA_SATELIT'].includes(callerRole);
   // isCurrentPJ: di-set dari server (is_current_pj), bukan dihitung di client
 

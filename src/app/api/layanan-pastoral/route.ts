@@ -97,7 +97,7 @@ export async function POST(request: Request) {
         FROM public.pengguna p
         JOIN public.user_role ur ON ur.user_id = p.id AND ur.is_active = true
         JOIN public.role r ON r.id = ur.role_id
-        WHERE r.nama_role = 'SEKRETARIS_PUSAT'
+        WHERE r.nama_role IN ('SEKRETARIS_PUSAT', 'VOLUNTEER_SEKRETARIS')
         AND p.is_active = true
         AND p.email IS NOT NULL AND p.email != ''
       `).then(sekRes => {

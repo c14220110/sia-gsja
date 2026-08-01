@@ -399,7 +399,7 @@ export default function AdminPastoralPage() {
                           </Link>
                           
                           {/* Tindakan Cepat */}
-                          {ticket.status_permohonan === 'Menunggu' && ['SEKRETARIS_PUSAT', 'SUPER_ADMIN'].includes(callerRole) && (
+                          {ticket.status_permohonan === 'Menunggu' && ['SEKRETARIS_PUSAT', 'VOLUNTEER_SEKRETARIS', 'SUPER_ADMIN'].includes(callerRole) && (
                              <button 
                                onClick={() => {
                                  setSelectedTicketId(ticket.id);
