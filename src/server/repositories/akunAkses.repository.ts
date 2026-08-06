@@ -75,27 +75,63 @@ export class AkunAksesRepository {
    */
   async getPenggunaList(): Promise<any[]> {
     const res = await pool.query(`
+      WITH user_roles_combined AS (
+        -- Role dari tabel user_role
+        SELECT 
+          ur.user_id,
+          r.id AS role_id,
+          s.id AS satelit_id,
+          r.nama_role AS role_name,
+          s.nama_satelit AS satelit_name,
+          ur.tanggal_mulai,
+          ur.tanggal_selesai
+        FROM user_role ur
+        JOIN role r ON ur.role_id = r.id
+        JOIN satelit s ON ur.satelit_id = s.id
+        WHERE ur.is_active = true
+
+        UNION
+
+        -- Fallback: role JEMAAT dari tautan jemaat_id (jika belum ada di user_role)
+        SELECT 
+          p.id AS user_id,
+          (SELECT id FROM role WHERE UPPER(nama_role) = 'JEMAAT') AS role_id,
+          j.satelit_id,
+          'JEMAAT' AS role_name,
+          s.nama_satelit AS satelit_name,
+          NULL::timestamp AS tanggal_mulai,
+          NULL::timestamp AS tanggal_selesai
+        FROM pengguna p
+        JOIN jemaat j ON p.jemaat_id = j.id
+        LEFT JOIN satelit s ON j.satelit_id = s.id
+        WHERE p.jemaat_id IS NOT NULL
+          AND NOT EXISTS (
+            SELECT 1 FROM user_role ur2
+            JOIN role r2 ON ur2.role_id = r2.id
+            WHERE ur2.user_id = p.id
+              AND UPPER(r2.nama_role) = 'JEMAAT'
+              AND ur2.is_active = true
+          )
+      )
       SELECT 
         p.id, p.email, p.no_hp, p.username, p.is_active, p.last_login_at, p.jemaat_id,
         j.nama_lengkap, j.jemaat_id AS jemaat_id_str, j.foto_url,
         COALESCE(
           json_agg(
             json_build_object(
-              'role_id', r.id,
-              'satelit_id', s.id,
-              'role_name', r.nama_role,
-              'satelit_name', s.nama_satelit,
-              'tanggal_mulai', ur.tanggal_mulai,
-              'tanggal_selesai', ur.tanggal_selesai
+              'role_id', urc.role_id,
+              'satelit_id', urc.satelit_id,
+              'role_name', urc.role_name,
+              'satelit_name', urc.satelit_name,
+              'tanggal_mulai', urc.tanggal_mulai,
+              'tanggal_selesai', urc.tanggal_selesai
             )
-          ) FILTER (WHERE r.id IS NOT NULL),
+          ) FILTER (WHERE urc.role_id IS NOT NULL),
           '[]'
         ) AS roles
       FROM pengguna p
       LEFT JOIN jemaat j ON p.jemaat_id = j.id
-      LEFT JOIN user_role ur ON p.id = ur.user_id AND ur.is_active = true
-      LEFT JOIN role r ON ur.role_id = r.id
-      LEFT JOIN satelit s ON ur.satelit_id = s.id
+      LEFT JOIN user_roles_combined urc ON p.id = urc.user_id
       GROUP BY p.id, j.id
       ORDER BY p.created_at DESC
     `);
@@ -300,9 +336,22 @@ export class AkunAksesRepository {
 
       // Update roles jika diberikan
       if (data.roles !== undefined) {
-        // Hapus semua permanent roles (bukan panitia sementara)
-        await client.query(`DELETE FROM user_role WHERE user_id = $1 AND tanggal_selesai IS NULL`, [userId]);
-        // Insert roles baru
+        // Ambil ID role JEMAAT untuk dikecualikan dari penghapusan
+        const jemaatRoleRow = await client.query(`SELECT id FROM role WHERE UPPER(nama_role) = 'JEMAAT' LIMIT 1`);
+        const jemaatRoleId = jemaatRoleRow.rowCount && jemaatRoleRow.rowCount > 0 ? jemaatRoleRow.rows[0].id : null;
+
+        // Hapus semua permanent roles KECUALI JEMAAT (role JEMAAT dikelola otomatis via tautan jemaat)
+        if (jemaatRoleId) {
+          await client.query(
+            `DELETE FROM user_role WHERE user_id = $1 AND tanggal_selesai IS NULL AND role_id != $2`,
+            [userId, jemaatRoleId]
+          );
+        } else {
+          // Fallback jika role JEMAAT tidak ditemukan
+          await client.query(`DELETE FROM user_role WHERE user_id = $1 AND tanggal_selesai IS NULL`, [userId]);
+        }
+
+        // Insert roles baru (non-JEMAAT dari form)
         for (const role of data.roles) {
           await client.query(`
             INSERT INTO user_role (user_id, role_id, satelit_id, komisi_id, departemen_id)
@@ -312,6 +361,33 @@ export class AkunAksesRepository {
                   komisi_id = EXCLUDED.komisi_id,
                   departemen_id = EXCLUDED.departemen_id
           `, [userId, role.role_id, role.satelit_id, role.komisi_id ?? null, role.departemen_id ?? null]);
+        }
+      }
+
+      // Sinkronisasi role JEMAAT berdasarkan tautan jemaat_id
+      // Jika user ditautkan ke jemaat → pastikan ada role JEMAAT
+      // Jika tautan dihapus → hapus role JEMAAT
+      const currentUser = await client.query(`SELECT jemaat_id FROM pengguna WHERE id = $1`, [userId]);
+      const currentJemaatId = currentUser.rows[0]?.jemaat_id;
+      const jemaatRoleSync = await client.query(`SELECT id FROM role WHERE UPPER(nama_role) = 'JEMAAT' LIMIT 1`);
+      const syncRoleId = jemaatRoleSync.rowCount && jemaatRoleSync.rowCount > 0 ? jemaatRoleSync.rows[0].id : null;
+
+      if (syncRoleId) {
+        if (currentJemaatId) {
+          // User tertaut ke jemaat → pastikan role JEMAAT ada
+          const jemaatSatelit = await client.query(`SELECT satelit_id FROM jemaat WHERE id = $1`, [currentJemaatId]);
+          const satelitId = jemaatSatelit.rows[0]?.satelit_id || null;
+          await client.query(`
+            INSERT INTO user_role (user_id, role_id, satelit_id)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (user_id, role_id, satelit_id) DO UPDATE SET is_active = true
+          `, [userId, syncRoleId, satelitId]);
+        } else {
+          // User tidak tertaut ke jemaat → hapus role JEMAAT
+          await client.query(
+            `DELETE FROM user_role WHERE user_id = $1 AND role_id = $2`,
+            [userId, syncRoleId]
+          );
         }
       }
 
@@ -363,9 +439,12 @@ export class AkunAksesRepository {
     password_hash: string;
     jemaat_id: number;
     satelit_id: number;
-  }[]): Promise<{ success: boolean; createdCount: number; message?: string }> {
+    nama_lengkap?: string;
+  }[]): Promise<{ success: boolean; createdCount: number; noIdentifierCount?: number; skippedList?: { nama: string; alasan: string }[]; message?: string }> {
     const client = await pool.connect();
     let createdCount = 0;
+    let noIdentifierCount = 0;
+    const skippedList: { nama: string; alasan: string }[] = [];
     try {
       await client.query('BEGIN');
       
@@ -374,10 +453,53 @@ export class AkunAksesRepository {
       const roleJemaatId = roleRow.rowCount && roleRow.rowCount > 0 ? roleRow.rows[0].id : null;
 
       for (const data of dataList) {
-        // Cek apakah jemaat sudah ada, atau identifier (email/no_hp) sudah terpakai
-        const existUser = await client.query(`SELECT id FROM pengguna WHERE jemaat_id = $1 OR (email IS NOT NULL AND email = $2) OR (no_hp IS NOT NULL AND no_hp = $3)`, [data.jemaat_id, data.email || null, data.no_hp || null]);
-        if (existUser.rowCount && existUser.rowCount > 0) {
-          continue; // Skip jika sudah ada
+        // 1. Cek apakah jemaat INI sudah punya akun → skip permanen
+        const existByJemaat = await client.query(
+          `SELECT id FROM pengguna WHERE jemaat_id = $1`,
+          [data.jemaat_id]
+        );
+        if (existByJemaat.rowCount && existByJemaat.rowCount > 0) {
+          continue; // Jemaat ini sudah punya akun, lewati
+        }
+
+        // 2. Cek apakah email/no_hp sudah dipakai user LAIN → null-kan yang konflik saja
+        let emailToInsert = data.email || null;
+        let noHpToInsert = data.no_hp || null;
+        const konflikAlasan: string[] = [];
+
+        if (emailToInsert) {
+          const emailConflict = await client.query(
+            `SELECT j.nama_lengkap FROM pengguna p JOIN jemaat j ON p.jemaat_id = j.id WHERE p.email IS NOT NULL AND p.email = $1 LIMIT 1`,
+            [emailToInsert]
+          );
+          if (emailConflict.rowCount && emailConflict.rowCount > 0) {
+            const namaKonflik = emailConflict.rows[0].nama_lengkap || 'jemaat lain';
+            konflikAlasan.push(`email sudah dipakai oleh ${namaKonflik}`);
+            emailToInsert = null;
+          }
+        }
+
+        if (noHpToInsert) {
+          const noHpConflict = await client.query(
+            `SELECT j.nama_lengkap FROM pengguna p JOIN jemaat j ON p.jemaat_id = j.id WHERE p.no_hp IS NOT NULL AND p.no_hp = $1 LIMIT 1`,
+            [noHpToInsert]
+          );
+          if (noHpConflict.rowCount && noHpConflict.rowCount > 0) {
+            const namaKonflik = noHpConflict.rows[0].nama_lengkap || 'jemaat lain';
+            konflikAlasan.push(`no HP sudah dipakai oleh ${namaKonflik}`);
+            noHpToInsert = null;
+          }
+        }
+
+        // 3. Jika setelah deduplikasi tidak ada identifier → lewati dengan keterangan
+        if (!emailToInsert && !noHpToInsert) {
+          noIdentifierCount++;
+          const namaJemaat = data.nama_lengkap || `jemaat_id: ${data.jemaat_id}`;
+          const alasan = konflikAlasan.length > 0
+            ? konflikAlasan.join(', ')
+            : 'tidak memiliki email/no. handphone';
+          skippedList.push({ nama: namaJemaat, alasan });
+          continue;
         }
 
         // Insert ke pengguna
@@ -385,7 +507,7 @@ export class AkunAksesRepository {
           INSERT INTO pengguna (email, no_hp, password_hash, jemaat_id, requires_password_change)
           VALUES ($1, $2, $3, $4, true)
           RETURNING id
-        `, [data.email || null, data.no_hp || null, data.password_hash, data.jemaat_id]);
+        `, [emailToInsert, noHpToInsert, data.password_hash, data.jemaat_id]);
         
         const userId = insUser.rows[0].id;
 
@@ -402,7 +524,7 @@ export class AkunAksesRepository {
       }
 
       await client.query('COMMIT');
-      return { success: true, createdCount };
+      return { success: true, createdCount, noIdentifierCount, skippedList };
     } catch (error: any) {
       try { await client.query('ROLLBACK'); } catch (e) {}
       console.error('Error bulkCreatePengguna:', error);

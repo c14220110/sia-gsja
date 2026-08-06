@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
 
     // Tarik sejelas-jelasnya data detail Jemaat mengacu ID dari seberang
     const jemaatQuery = `
-      SELECT id, email, no_hp, tanggal_lahir, satelit_id
+      SELECT id, nama_lengkap, email, no_hp, tanggal_lahir, satelit_id
       FROM jemaat
       WHERE id = ANY($1::int[]) AND is_deleted = false
     `;
@@ -99,10 +99,11 @@ export async function POST(req: NextRequest) {
       // Login API (findByIdentifier) sudah mendukung: WHERE email = $1 OR no_hp = $1
       dataToInsert.push({
         email: hasEmail ? j.email.trim() : null,
-        no_hp: hasNoHp ? j.no_hp.trim() : null,   // ← simpan keduanya, bukan hanya fallback
+        no_hp: hasNoHp ? j.no_hp.trim() : null,
         password_hash,
         jemaat_id: j.id,
-        satelit_id: j.satelit_id
+        satelit_id: j.satelit_id,
+        nama_lengkap: j.nama_lengkap
       });
     }
 
@@ -116,11 +117,14 @@ export async function POST(req: NextRequest) {
     const result = await akunAksesRepository.bulkCreatePengguna(dataToInsert);
 
     if (result.success) {
+      const skipped = result.noIdentifierCount ?? 0;
+      const skippedList = result.skippedList ?? [];
       return NextResponse.json({ 
         success: true, 
-        message: 'Berhasil membuat ' + result.createdCount + ' akun. ' + (noIdentifierCount > 0 ? noIdentifierCount + ' jemaat dilewati karena tidak memiliki email/no. handphone.' : ''),
+        message: 'Berhasil membuat ' + result.createdCount + ' akun.' + (skipped > 0 ? ' ' + skipped + ' jemaat dilewati.' : ''),
         createdCount: result.createdCount,
-        noIdentifierCount
+        noIdentifierCount: skipped,
+        skippedList
       });
     } else {
       return NextResponse.json({ success: false, message: result.message }, { status: 500 });
