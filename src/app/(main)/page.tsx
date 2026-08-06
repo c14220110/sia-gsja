@@ -379,7 +379,7 @@ function SatelitComparisonChart({ data }: { data: any[] }) {
   );
 }
 
-// ── BSC Perspektif Score Computation ────────────────────────────────────────
+// ── BSC Perspektif Score Computationn ────────────────────────────────────────
 // Ubah pencapaian tiap KPI jadi 0-100% terus dirata-rata
 // per perspektif. Weighted overall: Jemaat 35%, Keuangan 25%, Proses 25%, Pembelajaran 15%.
 const BSC_PERSPEKTIF_DEF = {
