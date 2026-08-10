@@ -16,15 +16,16 @@ export async function GET(request: NextRequest) {
 
     const ALLOWED_TABLES: Record<string, { query: string; orderBy: string }> = {
       wilayah: {
-        query: `SELECT id, kode_wilayah, nama_wilayah, created_at FROM wilayah`,
-        orderBy: 'kode_wilayah',
+        query: `SELECT w.id, w.kode_wilayah, w.nama_wilayah, w.satelit_id, w.is_active, w.created_at, s.nama_satelit
+                FROM wilayah w
+                LEFT JOIN satelit s ON w.satelit_id = s.id`,
+        orderBy: 'w.kode_wilayah',
       },
       satelit: {
         query: `
           SELECT s.id, s.kode_satelit, s.nama_satelit, s.alamat, s.kota, s.kontak_satelit, s.is_active,
-                 w.nama_wilayah
+                 (SELECT COUNT(*) FROM wilayah w WHERE w.satelit_id = s.id AND w.is_active = true) AS jumlah_wilayah
           FROM satelit s
-          LEFT JOIN wilayah w ON s.wilayah_id = w.id
         `,
         orderBy: 's.kode_satelit',
       },
@@ -76,7 +77,7 @@ export async function GET(request: NextRequest) {
 
     const { query, orderBy } = ALLOWED_TABLES[table];
     const searchCols: Record<string, string> = {
-      wilayah: 'nama_wilayah',
+      wilayah: 'w.nama_wilayah',
       satelit: 's.nama_satelit',
       departemen: 'nama_departemen',
       komisi: 'k.nama_komisi',
@@ -102,6 +103,14 @@ export async function GET(request: NextRequest) {
       const satelit_id = searchParams.get('satelit_id');
       if (satelit_id) {
         whereClauses.push(`k.satelit_id = $${values.length + 1}`);
+        values.push(satelit_id);
+      }
+    }
+
+    if (table === 'wilayah') {
+      const satelit_id = searchParams.get('satelit_id');
+      if (satelit_id) {
+        whereClauses.push(`w.satelit_id = $${values.length + 1}`);
         values.push(satelit_id);
       }
     }
@@ -143,12 +152,12 @@ export async function POST(request: NextRequest) {
 
     switch (table) {
       case 'wilayah':
-        query = `INSERT INTO wilayah (kode_wilayah, nama_wilayah) VALUES ($1, $2) RETURNING id`;
-        values = [data.kode_wilayah, data.nama_wilayah];
+        query = `INSERT INTO wilayah (kode_wilayah, nama_wilayah, satelit_id) VALUES ($1, $2, $3) RETURNING id`;
+        values = [data.kode_wilayah, data.nama_wilayah, data.satelit_id];
         break;
       case 'satelit':
-        query = `INSERT INTO satelit (kode_satelit, nama_satelit, alamat, kota, kontak_satelit, wilayah_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`;
-        values = [data.kode_satelit, data.nama_satelit, data.alamat || null, data.kota || null, data.kontak_satelit || null, data.wilayah_id || null];
+        query = `INSERT INTO satelit (kode_satelit, nama_satelit, alamat, kota, kontak_satelit) VALUES ($1, $2, $3, $4, $5) RETURNING id`;
+        values = [data.kode_satelit, data.nama_satelit, data.alamat || null, data.kota || null, data.kontak_satelit || null];
         break;
       case 'departemen':
         query = `INSERT INTO departemen (nama_departemen) VALUES ($1) RETURNING id`;
@@ -205,7 +214,7 @@ export async function DELETE(request: NextRequest) {
     const table = searchParams.get('table');
     const id = searchParams.get('id');
 
-    const DELETABLE = ['jenis_kegiatan', 'wilayah'];
+    const DELETABLE = ['jenis_kegiatan'];
     if (!table || !id || !DELETABLE.includes(table)) {
       return NextResponse.json({ success: false, message: 'Tabel tidak dapat dihapus atau ID tidak valid' }, { status: 400 });
     }
@@ -242,7 +251,7 @@ export async function PATCH(request: NextRequest) {
 
     // Toggle status mode
     if (typeof is_active === 'boolean') {
-      const TOGGLEABLE = ['satelit', 'departemen', 'komisi', 'periode_kepengurusan', 'pekerjaan_master', 'role_pelayan', 'jabatan'];
+      const TOGGLEABLE = ['satelit', 'departemen', 'komisi', 'periode_kepengurusan', 'pekerjaan_master', 'role_pelayan', 'jabatan', 'wilayah'];
       if (!TOGGLEABLE.includes(table)) {
         return NextResponse.json({ success: false, message: 'Parameter tidak valid untuk tabel ini' }, { status: 400 });
       }
@@ -256,12 +265,12 @@ export async function PATCH(request: NextRequest) {
 
     switch (table) {
       case 'wilayah':
-        query = `UPDATE wilayah SET kode_wilayah = $1, nama_wilayah = $2 WHERE id = $3`;
-        values = [data.kode_wilayah, data.nama_wilayah, id];
+        query = `UPDATE wilayah SET kode_wilayah = $1, nama_wilayah = $2, satelit_id = $3 WHERE id = $4`;
+        values = [data.kode_wilayah, data.nama_wilayah, data.satelit_id, id];
         break;
       case 'satelit':
-        query = `UPDATE satelit SET kode_satelit = $1, nama_satelit = $2, alamat = $3, kota = $4, kontak_satelit = $5, wilayah_id = $6 WHERE id = $7`;
-        values = [data.kode_satelit, data.nama_satelit, data.alamat || null, data.kota || null, data.kontak_satelit || null, data.wilayah_id || null, id];
+        query = `UPDATE satelit SET kode_satelit = $1, nama_satelit = $2, alamat = $3, kota = $4, kontak_satelit = $5 WHERE id = $6`;
+        values = [data.kode_satelit, data.nama_satelit, data.alamat || null, data.kota || null, data.kontak_satelit || null, id];
         break;
       case 'departemen':
         query = `UPDATE departemen SET nama_departemen = $1 WHERE id = $2`;

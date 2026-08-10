@@ -6,6 +6,7 @@ import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
 import { AlertModal } from '@/components/ui/AlertModal';
 import { MasterKomponenGaji } from './MasterKomponenGaji';
 import { MasterTemplateSurvei } from './MasterTemplateSurvei';
+import { MasterWilayah } from './MasterWilayah';
 
 /* ── Tab Config ─────────────────────────────────────────────────────────────── */
 type TabKey =
@@ -28,23 +29,31 @@ interface TabConfig {
 const TABS: Record<TabKey, TabConfig> = {
   wilayah: {
     label: 'Wilayah', icon: 'map', group: 'Organisasi & Lokasi', groupColor: 'sky',
-    columns: [{ key: 'kode_wilayah', label: 'Kode', width: 'w-28' }, { key: 'nama_wilayah', label: 'Nama Wilayah' }],
-    formFields: [{ key: 'kode_wilayah', label: 'Kode Wilayah (mis: W01)' }, { key: 'nama_wilayah', label: 'Nama Wilayah' }],
-    hasDel: true,
+    columns: [
+      { key: 'kode_wilayah', label: 'Kode', width: 'w-28' },
+      { key: 'nama_wilayah', label: 'Nama Wilayah' },
+      { key: 'nama_satelit', label: 'Satelit', width: 'w-40' },
+      { key: 'is_active', label: 'Status', width: 'w-28' },
+    ],
+    formFields: [
+      { key: 'kode_wilayah', label: 'Kode Wilayah (mis: UT-1)' },
+      { key: 'nama_wilayah', label: 'Nama Wilayah' },
+      { key: 'satelit_id', label: 'Satelit', type: 'select', optionsKey: 'satelit' },
+    ],
+    hasToggle: true,
   },
   satelit: {
     label: 'Satelit', icon: 'church', group: 'Organisasi & Lokasi', groupColor: 'sky',
     columns: [
       { key: 'kode_satelit', label: 'Kode', width: 'w-20' },
       { key: 'nama_satelit', label: 'Nama Satelit' },
-      { key: 'nama_wilayah', label: 'Wilayah', width: 'w-36' },
+      { key: 'jumlah_wilayah', label: 'Jml. Wilayah', width: 'w-32' },
       { key: 'kota', label: 'Kota', width: 'w-32' },
       { key: 'is_active', label: 'Status', width: 'w-28' },
     ],
     formFields: [
       { key: 'kode_satelit', label: 'Kode Satelit (mis: 11)' },
       { key: 'nama_satelit', label: 'Nama Satelit' },
-      { key: 'wilayah_id', label: 'Wilayah', type: 'select', optionsKey: 'wilayah' },
       { key: 'alamat', label: 'Alamat', optional: true },
       { key: 'kota', label: 'Kota', optional: true },
       { key: 'kontak_satelit', label: 'Kontak', optional: true },
@@ -395,7 +404,7 @@ export default function MasterDataPage() {
 
   /* ── Fetch table data (inline spinner, no lottie overlay) ── */
   const fetchData = useCallback(async () => {
-    if (activeTab === 'komponen_gaji' || activeTab === 'template_survei') return; // Custom components handle their own data
+    if (activeTab === 'komponen_gaji' || activeTab === 'template_survei' || activeTab === 'wilayah') return; // Custom components handle their own data
     setLoadingTable(true);
     try {
       const params = new URLSearchParams({ table: activeTab });
@@ -491,7 +500,7 @@ export default function MasterDataPage() {
   }));
 
   return (
-    <div className="flex flex-col gap-0 w-full min-h-0">
+    <div id="printable-area" className="flex flex-col gap-0 w-full min-h-0">
 
       <SubmitOverlay
         status={submitState.status}
@@ -532,7 +541,7 @@ export default function MasterDataPage() {
       />
 
       {/* Header */}
-      <div className="flex flex-col gap-1 pb-5">
+      <div className="flex flex-col gap-1 pb-5 print:hidden">
         <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Master Data</h1>
         <p className="text-slate-500 text-base font-medium font-sans leading-6">Kelola semua tabel referensi dan parameter sistem dalam satu tempat</p>
       </div>
@@ -541,7 +550,7 @@ export default function MasterDataPage() {
       <div className="flex gap-5 items-start">
 
         {/* ── Left Nav ── */}
-        <div className="w-52 shrink-0 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden sticky top-4">
+        <div className="w-52 shrink-0 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden sticky top-4 print:hidden">
           {groups.map(g => {
             const gs2 = GS[g.color];
             return (
@@ -575,7 +584,7 @@ export default function MasterDataPage() {
         <div className="flex-1 min-w-0 flex flex-col gap-4">
 
           {/* Header band */}
-          {activeTab !== 'komponen_gaji' && activeTab !== 'template_survei' && (
+          {activeTab !== 'komponen_gaji' && activeTab !== 'template_survei' && activeTab !== 'wilayah' && (
           <div className={`${gs.activeBg} rounded-xl px-5 py-4 flex items-center justify-between gap-4`}>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
@@ -588,19 +597,34 @@ export default function MasterDataPage() {
                 </div>
               </div>
             </div>
-            <button
-              onClick={() => setModalState({ open: true, mode: 'add' })}
-              className="flex items-center gap-1.5 px-4 py-2 bg-white/20 hover:bg-white/30 text-white text-sm font-semibold rounded-lg transition-colors font-sans shrink-0 border border-white/30"
-            >
-              <span className="material-icons-round text-[18px]">add</span>
-              Tambah {tab.label}
-            </button>
+            <div className="flex items-center gap-2 shrink-0 print:hidden">
+              <button
+                onClick={() => window.print()}
+                className="flex items-center gap-1.5 px-4 py-2 bg-white/10 hover:bg-white/20 text-white/80 hover:text-white text-sm font-semibold rounded-lg transition-colors font-sans border border-white/20"
+              >
+                <span className="material-icons-round text-[18px]">print</span>
+                Cetak / PDF
+              </button>
+              <button
+                onClick={() => setModalState({ open: true, mode: 'add' })}
+                className="flex items-center gap-1.5 px-4 py-2 bg-white/20 hover:bg-white/30 text-white text-sm font-semibold rounded-lg transition-colors font-sans border border-white/30"
+              >
+                <span className="material-icons-round text-[18px]">add</span>
+                Tambah {tab.label}
+              </button>
+            </div>
           </div>
           )}
 
+          {/* Print-only header (hidden on screen, shown on print) */}
+          <div className="hidden print:block mb-4">
+            <h1 className="text-xl font-black text-slate-900 font-sans">Master Data — {tab.label}</h1>
+            <p className="text-xs text-slate-500 font-sans">Dicetak pada {new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+          </div>
+
           {/* Filters Area */}
-          {activeTab !== 'komponen_gaji' && activeTab !== 'template_survei' && (
-          <div className="flex flex-col sm:flex-row gap-3">
+          {activeTab !== 'komponen_gaji' && activeTab !== 'template_survei' && activeTab !== 'wilayah' && (
+          <div className="flex flex-col sm:flex-row gap-3 print:hidden">
             <div className="relative flex-1">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 material-icons-round text-slate-400 text-[20px]">search</span>
               <input
@@ -640,6 +664,8 @@ export default function MasterDataPage() {
             <MasterKomponenGaji />
           ) : activeTab === 'template_survei' ? (
             <MasterTemplateSurvei />
+          ) : activeTab === 'wilayah' ? (
+            <MasterWilayah />
           ) : (
           <div className="w-full bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col">
             <div className="w-full overflow-x-auto">
@@ -652,7 +678,7 @@ export default function MasterDataPage() {
                       </th>
                     ))}
                     {(tab.hasToggle || tab.hasDel) && (
-                      <th className="w-16 px-5 py-3.5 text-right text-slate-500 text-xs font-bold uppercase tracking-wider font-sans">Aksi</th>
+                      <th className="w-16 px-5 py-3.5 text-right text-slate-500 text-xs font-bold uppercase tracking-wider font-sans print:hidden">Aksi</th>
                     )}
                   </tr>
                 </thead>
@@ -702,7 +728,7 @@ export default function MasterDataPage() {
                             </td>
                           ))}
                           {(tab.hasToggle || tab.hasDel) && (
-                            <td className="w-16 px-5 py-3.5">
+                            <td className="w-16 px-5 py-3.5 print:hidden">
                               <div className="flex justify-end">
                                 <ActionMenu
                                   row={row}
@@ -722,7 +748,7 @@ export default function MasterDataPage() {
                 </tbody>
               </table>
             </div>
-            <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/50">
+            <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/50 print:hidden">
               <span className="text-slate-400 text-xs font-sans">
                 {loadingTable ? 'Memuat...' : `${data.length} entri`}
               </span>
@@ -745,6 +771,22 @@ export default function MasterDataPage() {
           selectOptions={selectOptions}
         />
       )}
+
+      {/* Print CSS */}
+      <style>{`
+        @media print {
+          @page { size: A4 portrait; margin: 12mm 15mm; }
+          body * { visibility: hidden; }
+          #printable-area, #printable-area * { visibility: visible !important; }
+          #printable-area { position: absolute; left: 0; top: 0; width: 100%; }
+          .print\\:hidden { display: none !important; }
+          table { width: 100% !important; min-width: unset !important; font-size: 9pt !important; border-collapse: collapse !important; }
+          th, td { padding: 4pt 8pt !important; word-break: break-word !important; border: 0.5pt solid #cbd5e1 !important; }
+          th { background-color: #f1f5f9 !important; font-weight: bold !important; }
+          .rounded-xl, .shadow-sm { border-radius: 0 !important; box-shadow: none !important; }
+          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        }
+      `}</style>
     </div>
   );
 }

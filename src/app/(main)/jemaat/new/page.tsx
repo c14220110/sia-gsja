@@ -117,6 +117,7 @@ export default function NewJemaatPage() {
   
   // Options State
   const [satelitOptions, setSatelitOptions] = useState<any[]>([]);
+  const [wilayahList, setWilayahList] = useState<any[]>([]);
   const [komisiOptions, setKomisiOptions] = useState<any[]>([]);
   const [departemenOptions, setDepartemenOptions] = useState<any[]>([]);
   const [pekerjaanOptions, setPekerjaanOptions] = useState<any[]>([]);
@@ -140,6 +141,7 @@ export default function NewJemaatPage() {
     email: '',
     pekerjaan: '',
     satelit_id: '',
+    wilayah_id: '',
     komisi_ids: [] as string[],
     status_baptis: 'Belum',
     tanggal_baptis: '',
@@ -210,6 +212,31 @@ export default function NewJemaatPage() {
     };
     fetchOptionsAndUser();
   }, []);
+
+  useEffect(() => {
+    if (formData.satelit_id) {
+      fetch(`/api/options?type=wilayah&satelit_id=${formData.satelit_id}`)
+        .then(r => r.json())
+        .then(d => {
+          if (d.success) {
+            setWilayahList(d.data);
+            setFormData(prev => {
+              if (prev.wilayah_id && d.data.find((w:any) => w.id.toString() === prev.wilayah_id)) {
+                return prev;
+              }
+              if (d.data.length === 1) {
+                return { ...prev, wilayah_id: d.data[0].id.toString() };
+              }
+              return { ...prev, wilayah_id: '' };
+            });
+          }
+        })
+        .catch(() => setWilayahList([]));
+    } else {
+      setWilayahList([]);
+      setFormData(prev => ({ ...prev, wilayah_id: '' }));
+    }
+  }, [formData.satelit_id]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -849,6 +876,23 @@ export default function NewJemaatPage() {
                         ))}
                       </select>
                     </div>
+
+                    {wilayahList.length > 0 && (
+                      <div className="w-full flex-col gap-1 flex">
+                        <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Wilayah</label>
+                        <select
+                          name="wilayah_id"
+                          value={formData.wilayah_id}
+                          onChange={handleInputChange}
+                          className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all"
+                        >
+                          <option value="">— Pilih Wilayah (opsional) —</option>
+                          {wilayahList.map((w: any) => (
+                            <option key={w.id} value={w.id}>{w.nama_wilayah}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                     
                     {/* Pertanyaan Toggle Komisi/Dept */}
                     <div className="w-full flex-col gap-2 flex border-t border-slate-100 pt-6 mt-2">

@@ -270,14 +270,14 @@ export class JemaatRepository {
           status_pernikahan, status_baptis, tanggal_baptis, status_jemaat, pekerjaan, pekerjaan_id, satelit_id,
           ayah_id, ayah_nama, gereja_asal_ayah,
           ibu_id, ibu_nama, gereja_asal_ibu,
-          pasangan_id, pasangan_nama, gereja_asal_pasangan, foto_url
+          pasangan_id, pasangan_nama, gereja_asal_pasangan, foto_url, wilayah_id
         ) VALUES (
           $1, $2, $3, $4, $5, 
           $6, $7, $8, $9, $10, $11, $12, 
           $13, $14, $15, $16, $17, $18, $19,
           $20, $21, $22,
           $23, $24, $25,
-          $26, $27, $28, $29
+          $26, $27, $28, $29, $30
         ) RETURNING id
       `;
       
@@ -312,7 +312,8 @@ export class JemaatRepository {
         data.pasangan_id ? parseInt(data.pasangan_id, 10) : null, // $26
         data.pasangan_nama || null, // $27
         data.gereja_asal_pasangan || null, // $28
-        data.foto_url || null // $29
+        data.foto_url || null, // $29
+        data.wilayah_id ? parseInt(data.wilayah_id, 10) : null // $30
       ];
 
       const res = await client.query(insertJemaatQuery, jemaatValues);
@@ -482,19 +483,21 @@ export class JemaatRepository {
     const query = `
       SELECT 
         j.*,
+        w.nama_wilayah,
         a.jemaat_id AS ayah_jemaat_id,
         i.jemaat_id AS ibu_jemaat_id,
         p.jemaat_id AS pasangan_jemaat_id,
         ARRAY_REMOVE(ARRAY_AGG(DISTINCT jk.komisi_id), NULL) as komisi_ids,
         ARRAY_REMOVE(ARRAY_AGG(DISTINCT jd.departemen_id), NULL) as departemen_ids
       FROM jemaat j
+      LEFT JOIN wilayah w ON j.wilayah_id = w.id
       LEFT JOIN jemaat a ON j.ayah_id = a.id
       LEFT JOIN jemaat i ON j.ibu_id = i.id
       LEFT JOIN jemaat p ON j.pasangan_id = p.id
       LEFT JOIN jemaat_komisi jk ON j.id = jk.jemaat_id
       LEFT JOIN jemaat_departemen jd ON j.id = jd.jemaat_id
       WHERE j.id::text = $1 AND j.is_deleted = false
-      GROUP BY j.id, a.jemaat_id, i.jemaat_id, p.jemaat_id
+      GROUP BY j.id, w.nama_wilayah, a.jemaat_id, i.jemaat_id, p.jemaat_id
     `;
     const res = await pool.query(query, [id]);
     if (res.rows.length === 0) return null;
@@ -631,7 +634,7 @@ export class JemaatRepository {
         newJemaatId = `${idPrefix}${nextNum.toString().padStart(2, '0')}`;
       }
 
-      const jemaatIdSet = newJemaatId ? ', jemaat_id = $30' : '';
+      const jemaatIdSet = newJemaatId ? ', jemaat_id = $31' : '';
       const updateQuery = `
         UPDATE jemaat SET
           nama_lengkap = $1, jenis_kelamin = $2, tempat_lahir = $3, tanggal_lahir = $4,
@@ -639,8 +642,8 @@ export class JemaatRepository {
           status_pernikahan = $12, status_baptis = $13, tanggal_baptis = $14, status_jemaat = $15, pekerjaan = $16, pekerjaan_id = $17, satelit_id = $18,
           ayah_id = $19, ayah_nama = $20, gereja_asal_ayah = $21,
           ibu_id = $22, ibu_nama = $23, gereja_asal_ibu = $24,
-          pasangan_id = $25, pasangan_nama = $26, gereja_asal_pasangan = $27, foto_url = $28${jemaatIdSet}
-        WHERE id::text = $29
+          pasangan_id = $25, pasangan_nama = $26, gereja_asal_pasangan = $27, foto_url = $28, wilayah_id = $29${jemaatIdSet}
+        WHERE id::text = $30
         RETURNING id
       `;
 
@@ -673,9 +676,10 @@ export class JemaatRepository {
         data.pasangan_nama || null,                                                // $26
         data.gereja_asal_pasangan || null,                                         // $27
         data.foto_url || null,                                                     // $28
-        jemaatId,                                                                  // $29
+        data.wilayah_id ? parseInt(data.wilayah_id, 10) : null,                   // $29
+        jemaatId,                                                                  // $30
       ];
-      if (newJemaatId) jemaatValues.push(newJemaatId);                            // $30 (optional)
+      if (newJemaatId) jemaatValues.push(newJemaatId);                            // $31 (optional)
 
       const res = await client.query(updateQuery, jemaatValues);
       

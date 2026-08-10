@@ -158,6 +158,7 @@ export default function EditJemaatPage() {
   
   // Options State
   const [satelitOptions, setSatelitOptions] = useState<any[]>([]);
+  const [wilayahList, setWilayahList] = useState<any[]>([]);
   const [komisiOptions, setKomisiOptions] = useState<any[]>([]);
   const [departemenOptions, setDepartemenOptions] = useState<any[]>([]);
   const [pekerjaanOptions, setPekerjaanOptions] = useState<any[]>([]);
@@ -176,14 +177,15 @@ export default function EditJemaatPage() {
     no_hp: '',
     email: '',
     pekerjaan: '',
+    pekerjaan_id: '',
     satelit_id: '',
+    wilayah_id: '',
     komisi_ids: [] as string[],
     status_baptis: 'Belum',
     tanggal_baptis: '',
     status_pernikahan: 'Lajang',
     status_jemaat: 'Aktif',
     foto_url: '',
-    pekerjaan_id: '',
     departemen_ids: [] as string[],
     
     // Family
@@ -268,6 +270,7 @@ export default function EditJemaatPage() {
                 pekerjaan: d.pekerjaan || '',
                 pekerjaan_id: d.pekerjaan_id ? d.pekerjaan_id.toString() : '',
                 satelit_id: d.satelit_id ? d.satelit_id.toString() : '',
+                wilayah_id: d.wilayah_id ? d.wilayah_id.toString() : '',
                 komisi_ids: d.komisi_ids || [],
                 departemen_ids: d.departemen_ids || [],
                 status_baptis: d.status_baptis ? 'Sudah' : 'Belum',
@@ -321,6 +324,31 @@ export default function EditJemaatPage() {
     };
     fetchInitData();
   }, [jemaatId]);
+
+  useEffect(() => {
+    if (formData.satelit_id) {
+      fetch(`/api/options?type=wilayah&satelit_id=${formData.satelit_id}`)
+        .then(r => r.json())
+        .then(d => {
+          if (d.success) {
+            setWilayahList(d.data);
+            setFormData(prev => {
+              if (prev.wilayah_id && d.data.find((w:any) => w.id.toString() === prev.wilayah_id)) {
+                return prev;
+              }
+              if (d.data.length === 1) {
+                return { ...prev, wilayah_id: d.data[0].id.toString() };
+              }
+              return { ...prev, wilayah_id: '' };
+            });
+          }
+        })
+        .catch(() => setWilayahList([]));
+    } else {
+      setWilayahList([]);
+      setFormData(prev => ({ ...prev, wilayah_id: '' }));
+    }
+  }, [formData.satelit_id]);
 
   // Load family tree when switching to family_tree tab
   useEffect(() => {
@@ -1105,6 +1133,23 @@ export default function EditJemaatPage() {
                         ))}
                       </select>
                     </div>
+
+                    {wilayahList.length > 0 && (
+                      <div className="w-full flex-col gap-1 flex">
+                        <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Wilayah</label>
+                        <select
+                          name="wilayah_id"
+                          value={formData.wilayah_id}
+                          onChange={handleInputChange}
+                          className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all"
+                        >
+                          <option value="">— Pilih Wilayah (opsional) —</option>
+                          {wilayahList.map((w: any) => (
+                            <option key={w.id} value={w.id}>{w.nama_wilayah}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                     
                     {!isReadOnly && (
                       <div className="w-full flex-col gap-2 flex border-t border-slate-100 pt-6 mt-2">

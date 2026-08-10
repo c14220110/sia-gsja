@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { MasterRepository } from '@/server/repositories/master.repository';
 import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
+import pool from '@/lib/db';
 
 const masterRepository = new MasterRepository();
 
@@ -21,6 +22,17 @@ export async function GET(request: Request) {
 
     if (type === 'satelit') {
       data = await masterRepository.getAllSatelit();
+    } else if (type === 'wilayah') {
+      const satelit_id = searchParams.get('satelit_id');
+      let query = 'SELECT id, nama_wilayah, kode_wilayah, satelit_id FROM wilayah WHERE is_active = true';
+      const values: any[] = [];
+      if (satelit_id) {
+        query += ' AND satelit_id = $1';
+        values.push(satelit_id);
+      }
+      query += ' ORDER BY kode_wilayah';
+      const res = await pool.query(query, values);
+      data = res.rows;
     } else if (type === 'komisi') {
       const satelitIdStr = searchParams.get('satelit_id') || undefined;
       if (satelitIdStr) {
