@@ -165,6 +165,8 @@ export default function NewJemaatPage() {
 
   const [inputPekerjaanManual, setInputPekerjaanManual] = useState(false);
   const [hasKomisiDept, setHasKomisiDept] = useState(false);
+  const [tidakPunyaKontak, setTidakPunyaKontak] = useState(false);
+  const [usernameInput, setUsernameInput] = useState('');
 
   useEffect(() => {
     const fetchOptionsAndUser = async () => {
@@ -340,8 +342,12 @@ export default function NewJemaatPage() {
       setSubmitState({ status: 'error', message: 'Kota wajib diisi.' });
       return;
     }
-    if (!formData.no_hp && !formData.email) {
+    if (!tidakPunyaKontak && !formData.no_hp && !formData.email) {
       setSubmitState({ status: 'error', message: 'Harap isi minimal No. Telepon atau Alamat Email.' });
+      return;
+    }
+    if (tidakPunyaKontak && !usernameInput.trim()) {
+      setSubmitState({ status: 'error', message: 'Harap isi Username untuk jemaat yang tidak memiliki Email/No. Telepon.' });
       return;
     }
     try {
@@ -366,7 +372,7 @@ export default function NewJemaatPage() {
         }
       }
 
-      const payload = { ...formData, foto_url: finalFotoUrl || null };
+      const payload = { ...formData, foto_url: finalFotoUrl || null, tidak_punya_kontak: tidakPunyaKontak, username: tidakPunyaKontak ? usernameInput.trim() : undefined };
 
       const res = await fetch('/api/members', {
         method: 'POST',
@@ -735,19 +741,45 @@ export default function NewJemaatPage() {
                     </div>
                     
                     <div className="w-full p-3 bg-blue-50 rounded-lg border border-blue-100">
-                      <p className="text-blue-700 text-xs font-semibold font-sans mb-2">Kontak <span className="text-red-500">*</span> — Isi minimal salah satu</p>
-                      <div className="w-full flex gap-4">
-                        <div className="flex-1 flex-col gap-1 flex">
-                          <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">No Telepon / WA</label>
-                          <div className="relative w-full">
-                            <input type="text" name="no_hp" value={formData.no_hp} onChange={handleInputChange} placeholder="08..." className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" />
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-blue-700 text-xs font-semibold font-sans">{tidakPunyaKontak ? 'Login via Username' : 'Kontak'} <span className="text-red-500">*</span>{!tidakPunyaKontak && ' — Isi minimal salah satu'}</p>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={tidakPunyaKontak}
+                            onChange={(e) => {
+                              setTidakPunyaKontak(e.target.checked);
+                              if (e.target.checked) {
+                                setFormData(prev => ({ ...prev, no_hp: '', email: '' }));
+                              } else {
+                                setUsernameInput('');
+                              }
+                            }}
+                            className="w-4 h-4 text-blue-600 bg-slate-100 border-slate-300 rounded focus:ring-blue-500"
+                          />
+                          <span className="text-slate-500 text-xs font-sans">Tidak punya Email / No. Telepon</span>
+                        </label>
+                      </div>
+                      {tidakPunyaKontak ? (
+                        <div className="w-full flex-col gap-1 flex">
+                          <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Username <span className="text-red-500">*</span></label>
+                          <input type="text" value={usernameInput} onChange={(e) => setUsernameInput(e.target.value)} placeholder="Masukkan username untuk login..." className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" />
+                          <p className="text-slate-400 text-[11px] font-sans mt-1"><span className="material-icons-round text-[12px] align-middle">info</span> Akun login akan otomatis dibuat. Password default: tanggal lahir (DD/MM/YYYY).</p>
+                        </div>
+                      ) : (
+                        <div className="w-full flex gap-4">
+                          <div className="flex-1 flex-col gap-1 flex">
+                            <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">No Telepon / WA</label>
+                            <div className="relative w-full">
+                              <input type="text" name="no_hp" value={formData.no_hp} onChange={handleInputChange} placeholder="08..." className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" />
+                            </div>
+                          </div>
+                          <div className="flex-1 flex-col gap-1 flex">
+                            <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Alamat Email</label>
+                            <input type="email" name="email" value={formData.email} onChange={handleInputChange} placeholder="" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" />
                           </div>
                         </div>
-                        <div className="flex-1 flex-col gap-1 flex">
-                          <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Alamat Email</label>
-                          <input type="email" name="email" value={formData.email} onChange={handleInputChange} placeholder="" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" />
-                        </div>
-                      </div>
+                      )}
                     </div>
                   </div>
                 </div>

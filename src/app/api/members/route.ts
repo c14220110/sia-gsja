@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { JemaatRepository, JemaatFilterParams } from '@/server/repositories/jemaat.repository';
 import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 import { auditLogRepository } from '@/server/repositories/auditLog.repository';
+import bcrypt from 'bcryptjs';
+import pool from '@/lib/db';
 
 const jemaatRepository = new JemaatRepository();
 
@@ -91,7 +93,69 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
+    // Validasi username unik SEBELUM membuat data jemaat (hindari orphan data)
+    if (body.tidak_punya_kontak && body.username) {
+      const username = body.username.trim();
+      if (!username) {
+        return NextResponse.json({
+          success: false,
+          message: 'Username wajib diisi jika tidak memiliki Email/No. Telepon.',
+        }, { status: 400 });
+      }
+      const existingUser = await pool.query(
+        `SELECT id FROM pengguna WHERE username = $1`,
+        [username]
+      );
+      if (existingUser.rowCount && existingUser.rowCount > 0) {
+        return NextResponse.json({
+          success: false,
+          message: `Username "${username}" sudah digunakan. Silakan gunakan username lain.`,
+        }, { status: 400 });
+      }
+    }
+
     const newId = await jemaatRepository.createJemaat(body);
+
+    // Otomatis buatkan akun login jika jemaat tidak punya email/no HP (login via username)
+    if (body.tidak_punya_kontak && body.username) {
+      const username = body.username.trim();
+      
+      // Generate password dari tanggal lahir (format DD/MM/YYYY) — sama seperti bulk-generate
+      let defaultPassword = 'gsja' + new Date().getFullYear();
+      if (body.tanggal_lahir) {
+        // Parse tanggal lahir dengan benar (hindari timezone shift)
+        const parts = body.tanggal_lahir.split('-'); // format YYYY-MM-DD dari input date
+        if (parts.length === 3) {
+          const day = parts[2];
+          const month = parts[1];
+          const year = parts[0];
+          defaultPassword = `${day}/${month}/${year}`;
+        }
+      }
+      
+      const password_hash = await bcrypt.hash(defaultPassword, 10);
+      
+      // Insert pengguna (username sudah dicek unik di atas)
+      const insUser = await pool.query(`
+        INSERT INTO pengguna (username, password_hash, jemaat_id, requires_password_change)
+        VALUES ($1, $2, $3, true)
+        RETURNING id
+      `, [username, password_hash, newId]);
+      
+      const userId = insUser.rows[0].id;
+      
+      // Assign role JEMAAT otomatis
+      const roleRow = await pool.query(`SELECT id FROM role WHERE UPPER(nama_role) = 'JEMAAT' LIMIT 1`);
+      if (roleRow.rowCount && roleRow.rowCount > 0) {
+        const roleJemaatId = roleRow.rows[0].id;
+        const satelitId = parseInt(body.satelit_id);
+        await pool.query(`
+          INSERT INTO user_role (user_id, role_id, satelit_id)
+          VALUES ($1, $2, $3)
+          ON CONFLICT DO NOTHING
+        `, [userId, roleJemaatId, satelitId]);
+      }
+    }
 
     // Catat riwayat audit untuk aksi pembuatan
     if (caller) {

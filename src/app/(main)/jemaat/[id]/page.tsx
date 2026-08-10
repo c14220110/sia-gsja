@@ -137,6 +137,9 @@ export default function EditJemaatPage() {
     searchParams.get('tab') === 'family_tree' ? 'family_tree' : 'data_jemaat'
   );
 
+  const [tidakPunyaKontak, setTidakPunyaKontak] = useState(false);
+  const [usernameLogin, setUsernameLogin] = useState('');
+
   // Family tree state
   const [treeNodes, setTreeNodes]     = useState<any[]>([]);
   const [treeEdges, setTreeEdges]     = useState<any[]>([]);
@@ -302,6 +305,10 @@ export default function EditJemaatPage() {
 
               if (d.foto_url) {
                 setImagePreview(d.foto_url);
+              }
+
+              if (!d.no_hp && !d.email) {
+                setTidakPunyaKontak(true);
               }
             }
           }
@@ -473,7 +480,7 @@ export default function EditJemaatPage() {
         setSubmitState({ status: 'error', message: 'Kota wajib diisi.' });
         return;
       }
-      if (!formData.no_hp && !formData.email) {
+      if (!tidakPunyaKontak && !formData.no_hp && !formData.email) {
         setSubmitState({ status: 'error', message: 'Harap isi minimal No. Telepon atau Alamat Email.' });
         return;
       }
@@ -992,31 +999,50 @@ export default function EditJemaatPage() {
                     </div>
                     
                     {isReadOnly ? (
-                      <div className="w-full flex gap-4">
-                        <div className="flex-1 flex-col gap-1 flex">
-                          <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">No Telepon / WA</label>
-                          <div className="text-slate-900 text-sm font-semibold">{formData.no_hp || '-'}</div>
+                      tidakPunyaKontak ? (
+                        <div className="w-full flex gap-4">
+                          <div className="flex-1 flex-col gap-1 flex">
+                            <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Username (Login)</label>
+                            <div className="text-slate-900 text-sm font-semibold">{usernameLogin || '-'}</div>
+                          </div>
                         </div>
-                        <div className="flex-1 flex-col gap-1 flex">
-                          <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Alamat Email</label>
-                          <div className="text-slate-900 text-sm font-semibold">{formData.email || '-'}</div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="w-full p-3 bg-blue-50 rounded-lg border border-blue-100">
-                        <p className="text-blue-700 text-xs font-semibold font-sans mb-2">Kontak <span className="text-red-500">*</span> — Isi minimal salah satu</p>
+                      ) : (
                         <div className="w-full flex gap-4">
                           <div className="flex-1 flex-col gap-1 flex">
                             <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">No Telepon / WA</label>
-                            <div className="relative w-full">
-                              <input type="text" name="no_hp" value={formData.no_hp} onChange={handleInputChange} placeholder="08..." className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" />
-                            </div>
+                            <div className="text-slate-900 text-sm font-semibold">{formData.no_hp || '-'}</div>
                           </div>
                           <div className="flex-1 flex-col gap-1 flex">
                             <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Alamat Email</label>
-                            <input type="email" name="email" value={formData.email} onChange={handleInputChange} placeholder="" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" />
+                            <div className="text-slate-900 text-sm font-semibold">{formData.email || '-'}</div>
                           </div>
                         </div>
+                      )
+                    ) : (
+                      <div className="w-full p-3 bg-blue-50 rounded-lg border border-blue-100">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-blue-700 text-xs font-semibold font-sans">{tidakPunyaKontak ? 'Login via Username' : 'Kontak'} <span className="text-red-500">*</span>{!tidakPunyaKontak && ' — Isi minimal salah satu'}</p>
+                        </div>
+                        {tidakPunyaKontak ? (
+                          <div className="w-full flex-col gap-1 flex">
+                            <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Username (Login)</label>
+                            <div className="px-3 py-2 bg-slate-100 rounded-lg border border-slate-200 text-slate-700 text-sm font-sans font-semibold">{usernameLogin || '-'}</div>
+                            <p className="text-slate-400 text-[11px] font-sans mt-1"><span className="material-icons-round text-[12px] align-middle">info</span> Jemaat ini login menggunakan username. Kelola di halaman Akun & Hak Akses.</p>
+                          </div>
+                        ) : (
+                          <div className="w-full flex gap-4">
+                            <div className="flex-1 flex-col gap-1 flex">
+                              <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">No Telepon / WA</label>
+                              <div className="relative w-full">
+                                <input type="text" name="no_hp" value={formData.no_hp} onChange={handleInputChange} placeholder="08..." className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" />
+                              </div>
+                            </div>
+                            <div className="flex-1 flex-col gap-1 flex">
+                              <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Alamat Email</label>
+                              <input type="email" name="email" value={formData.email} onChange={handleInputChange} placeholder="" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" />
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
