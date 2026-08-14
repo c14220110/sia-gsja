@@ -4,7 +4,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
-import heic2any from 'heic2any';
+// heic2any dimuat secara dinamis agar tidak crash di browser lama
+// Library ini menginisialisasi Worker di level module, yang tidak didukung semua browser
 
 // Helper component for Jemaat Autocomplete
 const JemaatAutocomplete = ({ 
@@ -255,6 +256,9 @@ export default function NewJemaatPage() {
         // Konversi otomatis HEIC -> JPEG untuk dukungan Browser
         if (file.type === 'image/heic' || file.name.toLowerCase().endsWith('.heic')) {
           setSubmitState({ status: 'loading', message: 'Mengkonversi format HEIC...' });
+          // Dynamic import — hanya diload saat dibutuhkan, tidak saat halaman dibuka
+          // Mencegah crash di browser lama akibat Worker initialization di module level
+          const heic2any = (await import('heic2any')).default;
           const convertedBlob = await heic2any({
             blob: file,
             toType: 'image/jpeg',
