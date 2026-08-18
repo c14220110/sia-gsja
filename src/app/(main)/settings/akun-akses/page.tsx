@@ -188,8 +188,15 @@ export default function AkunAksesPage() {
   }, [filterBulkStatus]);
 
   const filteredUsers = dataUsers.filter(u => {
-    // Search
-    if (userSearchQuery && !u.nama_lengkap?.toLowerCase().includes(userSearchQuery.toLowerCase()) && !u.email?.toLowerCase().includes(userSearchQuery.toLowerCase())) return false;
+    // Search — cek nama, email, no_hp, DAN username
+    if (userSearchQuery) {
+      const q = userSearchQuery.toLowerCase();
+      const matchNama     = u.nama_lengkap?.toLowerCase().includes(q);
+      const matchEmail    = u.email?.toLowerCase().includes(q);
+      const matchNoHp     = u.no_hp?.toLowerCase().includes(q);
+      const matchUsername = u.username?.toLowerCase().includes(q);
+      if (!matchNama && !matchEmail && !matchNoHp && !matchUsername) return false;
+    }
     
     // Status
     if (filterUserStatus === 'Aktif' && !u.is_active) return false;
@@ -607,7 +614,7 @@ export default function AkunAksesPage() {
             <div className="w-full px-4 py-4 bg-white rounded-xl border border-slate-200 flex flex-wrap items-center gap-4 shadow-sm">
               <div className="flex-1 min-w-[300px] relative flex items-center">
                 <span className="material-icons-round absolute left-4 text-slate-400 text-[20px]">search</span>
-                <input type="text" placeholder="Cari nama pengguna atau email..." 
+                <input type="text" placeholder="Cari nama, email, no. HP, atau username..." 
                   className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm font-sans"
                   value={userSearchQuery} onChange={e => setUserSearchQuery(e.target.value)} />
               </div>

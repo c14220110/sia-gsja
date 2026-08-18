@@ -26,17 +26,19 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { email, password, jemaat_id, roles, komisi_id, departemen_id } = body;
+    const { email, password, jemaat_id, roles } = body;
 
-    if (!email || !password || !roles) {
-      return NextResponse.json({ success: false, message: 'Mohon lengkapi semua field yang diwajibkan (Email, Password)' }, { status: 400 });
+    // `email` di sini adalah field identifier — bisa berisi email, no_hp, atau username
+    const identifier = (email || '').trim();
+    if (!identifier || !password || !roles || !Array.isArray(roles) || roles.length === 0) {
+      return NextResponse.json({ success: false, message: 'Mohon lengkapi semua field yang diwajibkan (Identifier Login, Password, minimal 1 Role)' }, { status: 400 });
     }
 
     const saltRounds = 10;
     const password_hash = await bcrypt.hash(password, saltRounds);
 
     const result = await akunAksesRepository.createPenggunaMultiRole({
-      email,
+      email: identifier,
       password_hash,
       jemaat_id: jemaat_id || null,
       roles,

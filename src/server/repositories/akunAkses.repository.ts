@@ -208,13 +208,11 @@ export class AkunAksesRepository {
     try {
       await client.query('BEGIN');
 
-      let existUser;
-      
       const input = data.email.trim();
       let isEmail = false;
       let isPhone = false;
       let isUsername = false;
-      
+
       if (input.includes('@')) {
         isEmail = true;
       } else if (/^\d+$/.test(input)) {
@@ -223,25 +221,38 @@ export class AkunAksesRepository {
         isUsername = true;
       }
 
+      // Cek duplikat identifier — SELALU tolak jika sudah dipakai (oleh siapapun)
+      const identifierCheck = await client.query(
+        `SELECT id FROM pengguna WHERE email = $1 OR no_hp = $1 OR username = $1`,
+        [input]
+      );
+      if (identifierCheck.rowCount && identifierCheck.rowCount > 0) {
+        await client.query('ROLLBACK');
+        const type = isEmail ? 'Email' : isPhone ? 'No. HP' : 'Username';
+        return { success: false, message: `${type} ini sudah terdaftar di sistem. Gunakan identifier lain atau edit akun yang sudah ada.` };
+      }
+
+      // Cek duplikat jemaat_id jika diberikan
       if (data.jemaat_id) {
-        existUser = await client.query(`SELECT id FROM pengguna WHERE jemaat_id = $1 OR email = $2 OR no_hp = $2 OR username = $2`, [data.jemaat_id, input]);
-      } else {
-        existUser = await client.query(`SELECT id FROM pengguna WHERE email = $1 OR no_hp = $1 OR username = $1`, [input]);
-      }
-      let userId;
-
-      if (existUser.rowCount && existUser.rowCount > 0) {
-        userId = existUser.rows[0].id;
-      } else {
-        const insUser = await client.query(`
-          INSERT INTO pengguna (email, no_hp, username, password_hash, jemaat_id, requires_password_change)
-          VALUES ($1, $2, $3, $4, $5, false)
-          RETURNING id
-        `, [isEmail ? input : null, isPhone ? input : null, isUsername ? input : null, data.password_hash, data.jemaat_id]);
-        userId = insUser.rows[0].id;
+        const jemaatCheck = await client.query(
+          `SELECT id FROM pengguna WHERE jemaat_id = $1`,
+          [data.jemaat_id]
+        );
+        if (jemaatCheck.rowCount && jemaatCheck.rowCount > 0) {
+          await client.query('ROLLBACK');
+          return { success: false, message: 'Jemaat ini sudah memiliki akun login di sistem.' };
+        }
       }
 
-      // Insert all roles — komisi_id/departemen_id diambil per role row, bukan dari level atas
+      // Insert pengguna baru
+      const insUser = await client.query(`
+        INSERT INTO pengguna (email, no_hp, username, password_hash, jemaat_id, requires_password_change)
+        VALUES ($1, $2, $3, $4, $5, false)
+        RETURNING id
+      `, [isEmail ? input : null, isPhone ? input : null, isUsername ? input : null, data.password_hash, data.jemaat_id]);
+      const userId = insUser.rows[0].id;
+
+      // Insert all roles
       for (const role of data.roles) {
         await client.query(`
           INSERT INTO user_role (user_id, role_id, satelit_id, komisi_id, departemen_id)
@@ -257,15 +268,16 @@ export class AkunAksesRepository {
       return { success: true };
     } catch (error: any) {
       try { await client.query('ROLLBACK'); } catch (e) {}
-      console.error('Error createPenggunaMultiRole:', error);
+      console.error('[AkunAksesRepository] createPenggunaMultiRole error:', error);
       if (error.code === '23505') {
-        return { success: false, message: 'Identifier (Email/No HP/Username) atau Jemaat ini sudah memiliki akun di sistem' };
+        return { success: false, message: 'Identifier (Email/No HP/Username) atau Jemaat ini sudah memiliki akun di sistem.' };
       }
       return { success: false, message: error.message };
     } finally {
       client.release();
     }
   }
+
 
   /**
    * Toggle status aktif/nonaktif pengguna
