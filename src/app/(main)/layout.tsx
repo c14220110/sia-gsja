@@ -424,18 +424,16 @@ export default function DashboardLayout({
               </div>
               ) */}
 
-              {/* hasPermission('buku_besar_manage') && (
-              <div className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer">
-                <div className="flex justify-start items-center gap-4">
-                  <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
-                    <span className="material-icons-round text-slate-300 text-[20px]">inventory_2</span>
-                  </div>
-                  <div className="flex flex-col justify-start items-start opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 w-auto md:w-0 md:group-hover:w-auto overflow-hidden whitespace-nowrap">
-                    <div className="h-5 justify-center text-slate-200 text-sm font-medium font-sans leading-5 pr-4">Perlengkapan / Aset Tetap</div>
-                  </div>
+              {hasPermission('inventaris_view') && (
+              <Link href="/inventaris" onClick={() => setIsMobileMenuOpen(false)} className="w-full px-4 py-3 rounded-lg flex justify-start items-center gap-4 hover:bg-white/5 cursor-pointer text-inherit no-underline">
+                <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
+                  <span className="material-icons-round text-slate-300 text-[20px]">inventory_2</span>
                 </div>
-              </div>
-              ) */}
+                <div className="flex flex-col justify-start items-start opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 w-auto md:w-0 md:group-hover:w-auto overflow-hidden whitespace-nowrap">
+                  <div className="h-5 justify-center text-slate-200 text-sm font-medium font-sans leading-5 pr-4">Inventaris</div>
+                </div>
+              </Link>
+              )}
 
               {/* hasPermission('buku_besar_view') && (
               <div className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer">
