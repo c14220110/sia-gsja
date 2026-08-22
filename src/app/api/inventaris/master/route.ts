@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   if (!caller) {
     return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
   }
-  if (!caller.permissions.includes('inventaris_view')) {
+  if (!caller.is_super_admin && !caller.permissions.includes('inventaris_view')) {
     return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
   }
 
