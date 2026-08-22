@@ -40,7 +40,6 @@ export default function InventarisPage() {
   const [filterAktivaTetap, setFilterAktivaTetap] = useState('');
 
   useEffect(() => {
-    let active = true;
     const fetchOptionsAndUser = async () => {
       showLoader();
       try {
@@ -53,24 +52,21 @@ export default function InventarisPage() {
         const satelitData = await resSatelit.json();
         const authData = resUser.ok ? await resUser.json() : null;
 
-        if (active) {
-          if (kategoriData.success) setKategoriOptions(kategoriData.data);
-          if (satelitData.success) setSatelitOptions(satelitData.data);
-          if (authData) {
-            setUserData(authData);
-            if (authData.role_name?.toUpperCase().includes('SATELIT')) {
-              setFilterSatelit(authData.satelit_id?.toString() || '');
-            }
+        if (kategoriData.success) setKategoriOptions(kategoriData.data);
+        if (satelitData.success) setSatelitOptions(satelitData.data);
+        if (authData) {
+          setUserData(authData);
+          if (authData.role_name?.toUpperCase().includes('SATELIT')) {
+            setFilterSatelit(authData.satelit_id?.toString() || '');
           }
         }
       } catch (error) {
         console.error('Failed to fetch initial data', error);
       } finally {
-        if (active) hideLoader();
+        hideLoader();
       }
     };
     fetchOptionsAndUser();
-    return () => { active = false; };
   }, []);
 
   const hasPermission = (perm: string) => {
@@ -85,12 +81,13 @@ export default function InventarisPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Fetch data — depends only on stable filter values + page
+  // Reset ke halaman 1 saat filter berubah
   useEffect(() => {
-    // Don't fetch until initial options load is done (userData set or null-checked)
-    if (kategoriOptions.length === 0 && satelitOptions.length === 0) return;
+    setCurrentPage(1);
+  }, [debouncedSearch, filterKategori, filterSatelit, filterKondisi, filterStatus, filterAktivaTetap]);
 
-    let active = true;
+  // Fetch data utama
+  useEffect(() => {
     const fetchData = async () => {
       showLoader();
       try {
@@ -108,21 +105,19 @@ export default function InventarisPage() {
         const res = await fetch(`/api/inventaris?${queryParams.toString()}`);
         const result = await res.json();
         
-        if (result.success && active) {
+        if (result.success) {
           setData(result.data);
           setTotalItems(result.meta.total);
         }
       } catch (error) {
         console.error('Failed to fetch data', error);
       } finally {
-        if (active) hideLoader();
+        hideLoader();
       }
     };
 
     fetchData();
-    return () => { active = false; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, filterKategori, filterSatelit, filterKondisi, filterStatus, filterAktivaTetap, currentPage, kategoriOptions.length, satelitOptions.length]);
+  }, [debouncedSearch, filterKategori, filterSatelit, filterKondisi, filterStatus, filterAktivaTetap, currentPage]);
 
   const confirmDelete = async () => {
     const { id } = alertState;
