@@ -385,4 +385,188 @@ export class InventarisRepository {
     );
     return (result.rowCount ?? 0) > 0;
   }
+
+  // ── Stok Opname ──────────────────────────────────────────
+
+  async getStokOpnamePagination(params: {
+    satelit_id?: string; status?: string; limit?: number; offset?: number;
+  }): Promise<{ data: any[], total: number }> {
+    const { satelit_id, status, limit = 10, offset = 0 } = params;
+    const conditions: string[] = [];
+    const values: any[] = [];
+    let idx = 1;
+
+    if (satelit_id) {
+      conditions.push(`so.satelit_id = $${idx++}`);
+      values.push(parseInt(satelit_id, 10));
+    }
+    if (status) {
+      conditions.push(`so.status = $${idx++}`);
+      values.push(status);
+    }
+
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const countRes = await pool.query(
+      `SELECT COUNT(*) as total FROM stok_opname so ${where}`,
+      values
+    );
+    const total = parseInt(countRes.rows[0].total, 10);
+
+    const dataQuery = `
+      SELECT so.*, s.nama_satelit,
+        p.id AS creator_id,
+        j.nama_lengkap AS created_by_name,
+        pv.id AS verifier_id,
+        jv.nama_lengkap AS verified_by_name,
+        (SELECT COUNT(*) FROM stok_opname_detail sod WHERE sod.stok_opname_id = so.id) AS total_items,
+        (SELECT COUNT(*) FROM stok_opname_detail sod WHERE sod.stok_opname_id = so.id AND sod.jumlah_fisik IS NOT NULL) AS items_checked
+      FROM stok_opname so
+      JOIN satelit s ON so.satelit_id = s.id
+      LEFT JOIN pengguna p ON so.created_by = p.id
+      LEFT JOIN jemaat j ON p.jemaat_id = j.id
+      LEFT JOIN pengguna pv ON so.verified_by = pv.id
+      LEFT JOIN jemaat jv ON pv.jemaat_id = jv.id
+      ${where}
+      ORDER BY so.created_at DESC
+      LIMIT $${idx++} OFFSET $${idx++}
+    `;
+    values.push(limit, offset);
+    const result = await pool.query(dataQuery, values);
+    return { data: result.rows, total };
+  }
+
+  async getStokOpnameById(id: number): Promise<any | null> {
+    const sessionRes = await pool.query(
+      `SELECT so.*, s.nama_satelit,
+        p.id AS creator_id,
+        j.nama_lengkap AS created_by_name,
+        pv.id AS verifier_id,
+        jv.nama_lengkap AS verified_by_name
+       FROM stok_opname so
+       JOIN satelit s ON so.satelit_id = s.id
+       LEFT JOIN pengguna p ON so.created_by = p.id
+       LEFT JOIN jemaat j ON p.jemaat_id = j.id
+       LEFT JOIN pengguna pv ON so.verified_by = pv.id
+       LEFT JOIN jemaat jv ON pv.jemaat_id = jv.id
+       WHERE so.id = $1`,
+      [id]
+    );
+    if (sessionRes.rows.length === 0) return null;
+
+    const detailRes = await pool.query(
+      `SELECT sod.*,
+        b.kode_barang, b.nama AS nama_barang, b.jumlah AS jumlah_sistem,
+        mk.nama AS nama_kategori,
+        ms.nama AS nama_sublokasi,
+        pc.id AS checker_id,
+        jc.nama_lengkap AS checked_by_name
+       FROM stok_opname_detail sod
+       JOIN barang b ON sod.barang_id = b.id
+       JOIN master_kategori_barang mk ON b.kategori_id = mk.id
+       LEFT JOIN master_sublokasi ms ON b.lokasi_sublokasi_id = ms.id
+       LEFT JOIN pengguna pc ON sod.checked_by = pc.id
+       LEFT JOIN jemaat jc ON pc.jemaat_id = jc.id
+       WHERE sod.stok_opname_id = $1
+       ORDER BY mk.nama, b.nama`,
+      [id]
+    );
+
+    return { ...sessionRes.rows[0], detail: detailRes.rows };
+  }
+
+  async createStokOpname(params: {
+    satelit_id: number; judul: string; tanggal: string;
+    periode?: string; catatan?: string; created_by: number;
+  }): Promise<number> {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Buat session stok opname
+      const sessionRes = await client.query(
+        `INSERT INTO stok_opname (satelit_id, judul, tanggal, periode, catatan, created_by, status)
+         VALUES ($1, $2, $3, $4, $5, $6, 'Draft')
+         RETURNING id`,
+        [params.satelit_id, params.judul, params.tanggal, params.periode || null, params.catatan || null, params.created_by]
+      );
+      const sessionId = sessionRes.rows[0].id;
+
+      // Auto-populate detail: semua barang aktif di satelit ini
+      const barangRes = await client.query(
+        `SELECT id, jumlah FROM barang
+         WHERE lokasi_satelit_id = $1 AND is_deleted = false AND status = 'Aktif'`,
+        [params.satelit_id]
+      );
+
+      if (barangRes.rows.length > 0) {
+        const values: string[] = [];
+        const args: any[] = [];
+        let argIdx = 1;
+        for (const b of barangRes.rows) {
+          values.push(`($${argIdx++}, $${argIdx++}, $${argIdx++})`);
+          args.push(sessionId, b.id, b.jumlah);
+        }
+        await client.query(
+          `INSERT INTO stok_opname_detail (stok_opname_id, barang_id, jumlah_tercatat)
+           VALUES ${values.join(', ')}`,
+          args
+        );
+      }
+
+      await client.query('COMMIT');
+      return sessionId;
+    } catch (e) {
+      await client.query('ROLLBACK');
+      throw e;
+    } finally {
+      client.release();
+    }
+  }
+
+  async startStokOpname(id: number): Promise<boolean> {
+    const result = await pool.query(
+      `UPDATE stok_opname SET status = 'Berjalan', updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1 AND status = 'Draft'
+       RETURNING id`,
+      [id]
+    );
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async updateStokOpnameDetail(params: {
+    detail_id: number; jumlah_fisik: number; kondisi_fisik?: string;
+    keterangan?: string; foto_bukti?: string; checked_by: number;
+  }): Promise<boolean> {
+    // Hitung selisih: jumlah_fisik - jumlah_tercatat
+    const detailRes = await pool.query(
+      `SELECT jumlah_tercatat FROM stok_opname_detail WHERE id = $1`,
+      [params.detail_id]
+    );
+    if (detailRes.rows.length === 0) return false;
+    const selisih = params.jumlah_fisik - detailRes.rows[0].jumlah_tercatat;
+
+    const result = await pool.query(
+      `UPDATE stok_opname_detail
+       SET jumlah_fisik = $1, kondisi_fisik = $2, keterangan = $3,
+           foto_bukti = $4, selisih = $5, checked_by = $6, checked_at = CURRENT_TIMESTAMP
+       WHERE id = $7
+       RETURNING id`,
+      [params.jumlah_fisik, params.kondisi_fisik || null, params.keterangan || null,
+       params.foto_bukti || null, selisih, params.checked_by, params.detail_id]
+    );
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async verifyStokOpname(id: number, verifiedBy: number): Promise<boolean> {
+    const result = await pool.query(
+      `UPDATE stok_opname
+       SET status = 'Selesai', verified_by = $1, verified_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $2 AND status = 'Berjalan'
+       RETURNING id`,
+      [verifiedBy, id]
+    );
+    return (result.rowCount ?? 0) > 0;
+  }
 }
+
