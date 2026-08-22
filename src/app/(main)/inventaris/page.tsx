@@ -79,16 +79,17 @@ export default function InventarisPage() {
     return userData.permissions?.includes?.(perm);
   };
 
+  // debounce search
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchQuery), 500);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  // Fetch data — depends only on stable filter values + page
   useEffect(() => {
-    setCurrentPage(1);
-  }, [debouncedSearch, filterKategori, filterSatelit, filterKondisi, filterStatus, filterAktivaTetap]);
+    // Don't fetch until initial options load is done (userData set or null-checked)
+    if (kategoriOptions.length === 0 && satelitOptions.length === 0) return;
 
-  useEffect(() => {
     let active = true;
     const fetchData = async () => {
       showLoader();
@@ -120,7 +121,8 @@ export default function InventarisPage() {
 
     fetchData();
     return () => { active = false; };
-  }, [debouncedSearch, filterKategori, filterSatelit, filterKondisi, filterStatus, filterAktivaTetap, currentPage]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch, filterKategori, filterSatelit, filterKondisi, filterStatus, filterAktivaTetap, currentPage, kategoriOptions.length, satelitOptions.length]);
 
   const confirmDelete = async () => {
     const { id } = alertState;
@@ -186,7 +188,7 @@ export default function InventarisPage() {
         <div className="relative min-w-[200px]">
           <select 
             value={filterKategori}
-            onChange={(e) => setFilterKategori(e.target.value)}
+            onChange={(e) => { setFilterKategori(e.target.value); setCurrentPage(1); }}
             className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
           >
             <option value="">Semua Kategori</option>
@@ -201,7 +203,7 @@ export default function InventarisPage() {
         <div className="relative min-w-[200px]">
           <select 
             value={filterSatelit}
-            onChange={(e) => setFilterSatelit(e.target.value)}
+            onChange={(e) => { setFilterSatelit(e.target.value); setCurrentPage(1); }}
             disabled={userData?.role_name?.toUpperCase().includes('SATELIT')}
             className={`appearance-none w-full pl-4 pr-10 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm ${
               userData?.role_name?.toUpperCase().includes('SATELIT') ? 'bg-slate-200 cursor-not-allowed opacity-70' : 'bg-slate-50 cursor-pointer'
@@ -234,7 +236,7 @@ export default function InventarisPage() {
             <div className="relative">
               <select 
                 value={filterKondisi}
-                onChange={(e) => setFilterKondisi(e.target.value)}
+                onChange={(e) => { setFilterKondisi(e.target.value); setCurrentPage(1); }}
                 className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
               >
                 <option value="Semua">Semua</option>
@@ -251,7 +253,7 @@ export default function InventarisPage() {
             <div className="relative">
               <select 
                 value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
+                onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}
                 className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
               >
                 <option value="Semua">Semua</option>
@@ -270,7 +272,7 @@ export default function InventarisPage() {
             <div className="relative">
               <select 
                 value={filterAktivaTetap}
-                onChange={(e) => setFilterAktivaTetap(e.target.value)}
+                onChange={(e) => { setFilterAktivaTetap(e.target.value); setCurrentPage(1); }}
                 className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
               >
                 <option value="">Semua</option>
