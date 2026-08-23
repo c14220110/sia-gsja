@@ -570,59 +570,53 @@ export default function DashboardLayout({
                 onMouseEnter={() => { if (submenuTimeout.current) clearTimeout(submenuTimeout.current) }}
                 onMouseLeave={handleMouseLeaveMenu}
               >
-                <div className="w-[620px] p-6 bg-white rounded-xl outline outline-1 outline-offset-[-1px] outline-slate-200 shadow-2xl flex flex-col justify-start items-start gap-4">
+                <div className="w-[500px] p-6 bg-white rounded-xl outline outline-1 outline-offset-[-1px] outline-slate-200 shadow-2xl flex flex-col justify-start items-start gap-4">
                   <div className="self-stretch pb-2 border-b border-slate-100 flex flex-col justify-start items-start">
                     <div className="justify-center text-slate-800 text-lg font-bold font-sans leading-7">Inventaris</div>
                   </div>
-                  <div className="self-stretch flex flex-wrap justify-start items-start gap-4">
-                    {/* Daftar Barang — sudah live */}
+                  <div className="self-stretch grid grid-cols-3 gap-4">
                     {hasPermission('inventaris_view') && (
-                      <Link href="/inventaris" onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-slate-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-slate-200 flex flex-col justify-center items-center cursor-pointer hover:bg-slate-100 transition-colors text-inherit no-underline min-w-[160px]">
+                      <Link href="/inventaris" onClick={() => setActiveSubmenu(null)} className="h-32 p-4 bg-slate-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-slate-200 flex flex-col justify-center items-center cursor-pointer hover:bg-slate-100 transition-colors text-inherit no-underline">
                         <div className="pb-2 flex flex-col justify-start items-center">
                           <span className="material-icons-round text-slate-600 text-[32px]">inventory_2</span>
                         </div>
                         <div className="text-center text-slate-900 text-sm font-bold font-sans leading-5">Daftar Barang</div>
                       </Link>
                     )}
-                    {/* Stok Opname — sudah live */}
                     {hasPermission('inventaris_view') && (
-                      <Link href="/inventaris/stok-opname" onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-blue-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-blue-200 flex flex-col justify-center items-center cursor-pointer hover:bg-blue-100 transition-colors text-inherit no-underline min-w-[160px]">
+                      <Link href="/inventaris/stok-opname" onClick={() => setActiveSubmenu(null)} className="h-32 p-4 bg-blue-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-blue-200 flex flex-col justify-center items-center cursor-pointer hover:bg-blue-100 transition-colors text-inherit no-underline">
                         <div className="pb-2 flex flex-col justify-start items-center">
                           <span className="material-icons-round text-blue-600 text-[32px]">assignment_turned_in</span>
                         </div>
                         <div className="text-center text-blue-900 text-sm font-bold font-sans leading-5">Stok Opname</div>
                       </Link>
                     )}
-                    {/* Mutasi Barang — placeholder */}
                     {hasPermission('inventaris_view') && (
-                      <Link href="/inventaris/mutasi" onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-amber-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-amber-200 flex flex-col justify-center items-center cursor-pointer hover:bg-amber-100 transition-colors text-inherit no-underline min-w-[160px]">
+                      <Link href="/inventaris/mutasi" onClick={() => setActiveSubmenu(null)} className="h-32 p-4 bg-amber-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-amber-200 flex flex-col justify-center items-center cursor-pointer hover:bg-amber-100 transition-colors text-inherit no-underline">
                         <div className="pb-2 flex flex-col justify-start items-center">
                           <span className="material-icons-round text-amber-600 text-[32px]">swap_horiz</span>
                         </div>
                         <div className="text-center text-amber-900 text-sm font-bold font-sans leading-5">Mutasi Barang</div>
                       </Link>
                     )}
-                    {/* Peminjaman — placeholder */}
                     {hasPermission('inventaris_view') && (
-                      <Link href="/inventaris/peminjaman" onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-purple-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-purple-200 flex flex-col justify-center items-center cursor-pointer hover:bg-purple-100 transition-colors text-inherit no-underline min-w-[160px]">
+                      <Link href="/inventaris/peminjaman" onClick={() => setActiveSubmenu(null)} className="h-32 p-4 bg-purple-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-purple-200 flex flex-col justify-center items-center cursor-pointer hover:bg-purple-100 transition-colors text-inherit no-underline">
                         <div className="pb-2 flex flex-col justify-start items-center">
                           <span className="material-icons-round text-purple-600 text-[32px]">assignment_return</span>
                         </div>
                         <div className="text-center text-purple-900 text-sm font-bold font-sans leading-5">Peminjaman</div>
                       </Link>
                     )}
-                    {/* Dispose — placeholder */}
                     {hasPermission('inventaris_view') && (
-                      <Link href="/inventaris/dispose" onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-red-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-red-200 flex flex-col justify-center items-center cursor-pointer hover:bg-red-100 transition-colors text-inherit no-underline min-w-[160px]">
+                      <Link href="/inventaris/dispose" onClick={() => setActiveSubmenu(null)} className="h-32 p-4 bg-red-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-red-200 flex flex-col justify-center items-center cursor-pointer hover:bg-red-100 transition-colors text-inherit no-underline">
                         <div className="pb-2 flex flex-col justify-start items-center">
                           <span className="material-icons-round text-red-600 text-[32px]">delete_sweep</span>
                         </div>
                         <div className="text-center text-red-900 text-sm font-bold font-sans leading-5">Dispose Barang</div>
                       </Link>
                     )}
-                    {/* Master Data — placeholder */}
                     {hasPermission('inventaris_view') && (
-                      <Link href="/inventaris/master-data" onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-emerald-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-emerald-200 flex flex-col justify-center items-center cursor-pointer hover:bg-emerald-100 transition-colors text-inherit no-underline min-w-[160px]">
+                      <Link href="/inventaris/master-data" onClick={() => setActiveSubmenu(null)} className="h-32 p-4 bg-emerald-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-emerald-200 flex flex-col justify-center items-center cursor-pointer hover:bg-emerald-100 transition-colors text-inherit no-underline">
                         <div className="pb-2 flex flex-col justify-start items-center">
                           <span className="material-icons-round text-emerald-600 text-[32px]">category</span>
                         </div>
