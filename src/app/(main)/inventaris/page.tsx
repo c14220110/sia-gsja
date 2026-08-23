@@ -319,13 +319,24 @@ export default function InventarisPage() {
                       {/* Thumbnail */}
                       <td className="px-4 py-3">
                         {item.foto_url ? (
-                          <img
-                            src={item.foto_url}
-                            alt={item.nama}
-                            className="w-10 h-10 rounded-lg object-cover border border-slate-200 bg-slate-50"
-                          />
+                          <div className="relative w-10 h-10 flex-shrink-0">
+                            <img
+                              src={item.foto_url}
+                              alt={item.nama}
+                              className="w-10 h-10 rounded-lg object-cover border border-slate-200 bg-slate-50"
+                              onError={(e) => {
+                                console.warn('[Inventaris] Image load failed:', item.foto_url, e.currentTarget.src);
+                                e.currentTarget.style.display = 'none';
+                                const fb = e.currentTarget.nextElementSibling as HTMLElement | null;
+                                if (fb) fb.style.display = 'flex';
+                              }}
+                            />
+                            <div style={{ display: 'none' }} className="absolute inset-0 w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 items-center justify-center">
+                              <span className="material-icons-round text-slate-300 text-[18px]">inventory_2</span>
+                            </div>
+                          </div>
                         ) : (
-                          <div className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center">
+                          <div className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center flex-shrink-0">
                             <span className="material-icons-round text-slate-300 text-[18px]">inventory_2</span>
                           </div>
                         )}
