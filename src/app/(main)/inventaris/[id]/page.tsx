@@ -7,6 +7,15 @@ import { useRouter } from 'next/navigation';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
 import { AlertModal } from '@/components/ui/AlertModal';
 
+function fotoUrlToProxy(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    const key = new URL(url).pathname.slice(1);
+    if (!key.startsWith('inventaris/')) return null;
+    return `/api/inventaris/image?key=${encodeURIComponent(key)}`;
+  } catch { return null; }
+}
+
 export default function DetailBarangPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { showLoader, hideLoader } = useLoader();
@@ -151,10 +160,10 @@ export default function DetailBarangPage({ params }: { params: Promise<{ id: str
       </div>
 
       {/* Foto */}
-      {data.foto_url && (
+      {fotoUrlToProxy(data.foto_url) && (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <h2 className="text-slate-800 text-lg font-bold mb-4">Foto</h2>
-          <img src={data.foto_url} alt={data.nama} className="max-w-md rounded-lg border border-slate-200" />
+          <img src={fotoUrlToProxy(data.foto_url)!} alt={data.nama} className="max-w-md rounded-lg border border-slate-200" />
         </div>
       )}
     </div>

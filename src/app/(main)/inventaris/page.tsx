@@ -7,8 +7,19 @@ import { useRouter } from 'next/navigation';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
 import { AlertModal } from '@/components/ui/AlertModal';
 
+/** Converts stored R2 public URL to our authenticated proxy URL */
+function fotoUrlToProxy(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    const key = new URL(url).pathname.slice(1);
+    if (!key.startsWith('inventaris/')) return null;
+    return `/api/inventaris/image?key=${encodeURIComponent(key)}`;
+  } catch { return null; }
+}
+
 export default function InventarisPage() {
   const { showLoader, hideLoader } = useLoader();
+
 
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -318,14 +329,13 @@ export default function InventarisPage() {
                     >
                       {/* Thumbnail */}
                       <td className="px-4 py-3">
-                        {item.foto_url ? (
+                        {fotoUrlToProxy(item.foto_url) ? (
                           <div className="relative w-10 h-10 flex-shrink-0">
                             <img
-                              src={item.foto_url}
+                              src={fotoUrlToProxy(item.foto_url)!}
                               alt={item.nama}
                               className="w-10 h-10 rounded-lg object-cover border border-slate-200 bg-slate-50"
                               onError={(e) => {
-                                console.warn('[Inventaris] Image load failed:', item.foto_url, e.currentTarget.src);
                                 e.currentTarget.style.display = 'none';
                                 const fb = e.currentTarget.nextElementSibling as HTMLElement | null;
                                 if (fb) fb.style.display = 'flex';

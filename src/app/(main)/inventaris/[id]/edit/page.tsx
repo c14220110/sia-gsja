@@ -6,6 +6,15 @@ import { useRouter } from 'next/navigation';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
 import Link from 'next/link';
 
+function fotoUrlToProxy(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    const key = new URL(url).pathname.slice(1);
+    if (!key.startsWith('inventaris/')) return null;
+    return `/api/inventaris/image?key=${encodeURIComponent(key)}`;
+  } catch { return null; }
+}
+
 export default function EditInventarisPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { showLoader, hideLoader } = useLoader();
@@ -74,7 +83,7 @@ export default function EditInventarisPage({ params }: { params: Promise<{ id: s
             lokasi_sublokasi_id: d.lokasi_sublokasi_id?.toString() || '',
             foto_url: d.foto_url || ''
           });
-          if (d.foto_url) setPreviewFoto(d.foto_url);
+          if (d.foto_url) setPreviewFoto(fotoUrlToProxy(d.foto_url));
           setIsLoaded(true);
         }
       } catch (error) {
