@@ -95,7 +95,7 @@ export default function TambahInventarisPage() {
     formDataUpload.append('file', selectedFile);
     formDataUpload.append('bucket', 'inventaris-photos');
     
-    const res = await fetch('/api/upload', {
+    const res = await fetch('/api/inventaris/upload', {
       method: 'POST',
       body: formDataUpload
     });

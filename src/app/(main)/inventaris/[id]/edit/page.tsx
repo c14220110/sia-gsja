@@ -126,7 +126,7 @@ export default function EditInventarisPage({ params }: { params: Promise<{ id: s
       formDataUpload.append('old_url', formData.foto_url);
     }
     
-    const res = await fetch('/api/upload', {
+    const res = await fetch('/api/inventaris/upload', {
       method: 'POST',
       body: formDataUpload
     });
