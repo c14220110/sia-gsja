@@ -32,6 +32,7 @@ export interface BarangData {
   no_seri: string | null;
   jumlah: number;
   kondisi: string;
+  tipe_barang: string;
   tahun_perolehan: number | null;
   nilai_perolehan: number;
   is_aktiva_tetap: boolean;
@@ -58,6 +59,7 @@ export interface BarangFilterParams {
   kondisi?: string;
   status?: string;
   is_aktiva_tetap?: string;
+  tipe_barang?: string;
   limit?: number;
   offset?: number;
 }
@@ -70,6 +72,7 @@ export interface CreateBarangParams {
   no_seri?: string;
   jumlah: number;
   kondisi?: string;
+  tipe_barang?: string;
   tahun_perolehan?: number;
   nilai_perolehan?: number;
   foto_url?: string;
@@ -81,6 +84,7 @@ export interface CreateBarangParams {
   lokasi_sublokasi_id?: number;
   created_by: number;
 }
+
 
 // ─── Repository Class ──────────────────────────────────────
 
@@ -221,7 +225,7 @@ export class InventarisRepository {
         b.id, b.kode_barang, b.nama, b.kategori_id,
         mk.nama AS nama_kategori, mk.kode AS kode_kategori,
         b.deskripsi, b.merk, b.no_seri, b.jumlah, b.kondisi,
-        b.tahun_perolehan, b.nilai_perolehan, b.is_aktiva_tetap, b.foto_url,
+        b.tahun_perolehan, b.nilai_perolehan, b.is_aktiva_tetap, b.foto_url, b.tipe_barang,
         b.pemilik_tipe, b.pemilik_satelit_id,
         COALESCE(sp.nama_satelit, j.nama_lengkap, b.pemilik_nama_lain) AS pemilik_nama,
         b.pemilik_jemaat_id, b.pemilik_nama_lain,
@@ -283,35 +287,36 @@ export class InventarisRepository {
           kode_barang, nama, kategori_id, deskripsi, merk, no_seri,
           jumlah, kondisi, tahun_perolehan, nilai_perolehan, is_aktiva_tetap, foto_url,
           pemilik_tipe, pemilik_satelit_id, pemilik_jemaat_id, pemilik_nama_lain,
-          lokasi_satelit_id, lokasi_sublokasi_id,
+          lokasi_satelit_id, lokasi_sublokasi_id, tipe_barang,
           created_by, updated_by
         ) VALUES (
           $1, $2, $3, $4, $5, $6,
           $7, $8, $9, $10, $11, $12,
           $13, $14, $15, $16,
-          $17, $18,
-          $19, $19
+          $17, $18, $19,
+          $20, $20
         ) RETURNING id`,
         [
           kodeBarang,                                  // $1
           params.nama,                                 // $2
           params.kategori_id,                          // $3
-          params.deskripsi || null,                     // $4
-          params.merk || null,                          // $5
-          params.no_seri || null,                       // $6
-          params.jumlah || 1,                           // $7
-          params.kondisi || 'Baik',                     // $8
-          params.tahun_perolehan || null,                // $9
-          params.nilai_perolehan || 0,                   // $10
+          params.deskripsi || null,                    // $4
+          params.merk || null,                         // $5
+          params.no_seri || null,                      // $6
+          params.tipe_barang === 'satuan' ? 1 : (params.jumlah || 1), // $7
+          params.kondisi || 'Baik',                    // $8
+          params.tahun_perolehan || null,              // $9
+          params.nilai_perolehan || 0,                 // $10
           isAktivaTetap,                               // $11
-          params.foto_url || null,                      // $12
-          params.pemilik_tipe,                          // $13
-          params.pemilik_satelit_id || null,             // $14
-          params.pemilik_jemaat_id || null,              // $15
-          params.pemilik_nama_lain || null,              // $16
-          params.lokasi_satelit_id || null,              // $17
-          params.lokasi_sublokasi_id || null,            // $18
-          params.created_by,                            // $19
+          params.foto_url || null,                     // $12
+          params.pemilik_tipe,                         // $13
+          params.pemilik_satelit_id || null,           // $14
+          params.pemilik_jemaat_id || null,            // $15
+          params.pemilik_nama_lain || null,            // $16
+          params.lokasi_satelit_id || null,            // $17
+          params.lokasi_sublokasi_id || null,          // $18
+          params.tipe_barang || 'massal',              // $19
+          params.created_by,                           // $20
         ]
       );
 
@@ -347,30 +352,32 @@ export class InventarisRepository {
         pemilik_nama_lain = $15,
         lokasi_satelit_id = $16,
         lokasi_sublokasi_id = $17,
-        updated_by = $18,
+        tipe_barang = COALESCE($18, tipe_barang),
+        updated_by = $19,
         updated_at = CURRENT_TIMESTAMP
-      WHERE id = $19 AND is_deleted = false
+      WHERE id = $20 AND is_deleted = false
       RETURNING id`,
       [
         params.nama,                                  // $1
         params.kategori_id,                           // $2
-        params.deskripsi ?? null,                      // $3
-        params.merk ?? null,                           // $4
-        params.no_seri ?? null,                        // $5
-        params.jumlah,                                // $6
+        params.deskripsi ?? null,                     // $3
+        params.merk ?? null,                          // $4
+        params.no_seri ?? null,                       // $5
+        params.tipe_barang === 'satuan' ? 1 : params.jumlah, // $6
         params.kondisi,                               // $7
-        params.tahun_perolehan ?? null,                // $8
-        params.nilai_perolehan,                        // $9
+        params.tahun_perolehan ?? null,               // $8
+        params.nilai_perolehan,                       // $9
         isAktivaTetap,                                // $10
-        params.foto_url ?? null,                       // $11
-        params.pemilik_tipe,                           // $12
-        params.pemilik_satelit_id ?? null,              // $13
-        params.pemilik_jemaat_id ?? null,               // $14
-        params.pemilik_nama_lain ?? null,               // $15
-        params.lokasi_satelit_id ?? null,               // $16
-        params.lokasi_sublokasi_id ?? null,             // $17
-        params.updated_by,                             // $18
-        id,                                           // $19
+        params.foto_url ?? null,                      // $11
+        params.pemilik_tipe,                          // $12
+        params.pemilik_satelit_id ?? null,            // $13
+        params.pemilik_jemaat_id ?? null,             // $14
+        params.pemilik_nama_lain ?? null,             // $15
+        params.lokasi_satelit_id ?? null,             // $16
+        params.lokasi_sublokasi_id ?? null,           // $17
+        params.tipe_barang ?? null,                   // $18
+        params.updated_by,                            // $19
+        id,                                           // $20
       ]
     );
     return (result.rowCount ?? 0) > 0;

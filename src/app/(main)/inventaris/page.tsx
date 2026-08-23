@@ -332,7 +332,16 @@ export default function InventarisPage() {
                       {/* Kode + Nama (stacked) */}
                       <td className="px-4 py-3">
                         <div className="font-semibold text-slate-800 text-sm truncate max-w-[220px]">{item.nama}</div>
-                        <div className="text-xs text-slate-400 font-mono mt-0.5">{item.kode_barang}</div>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <div className="text-xs text-slate-400 font-mono">{item.kode_barang}</div>
+                          <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-bold leading-none ${
+                            item.tipe_barang === 'satuan'
+                              ? 'bg-indigo-50 text-indigo-600 border border-indigo-200'
+                              : 'bg-slate-50 text-slate-500 border border-slate-200'
+                          }`}>
+                            {item.tipe_barang === 'satuan' ? 'SATUAN' : 'MASSAL'}
+                          </span>
+                        </div>
                       </td>
                       {/* Kategori */}
                       <td className="px-4 py-3 text-slate-600 text-sm truncate max-w-[140px]">{item.nama_kategori || '-'}</td>

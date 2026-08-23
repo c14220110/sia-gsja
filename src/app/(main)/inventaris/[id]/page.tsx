@@ -122,6 +122,16 @@ export default function DetailBarangPage({ params }: { params: Promise<{ id: str
             <InfoRow label="Jumlah" value={data.jumlah?.toString()} />
             <InfoRow label="Kondisi" value={data.kondisi} />
             <InfoRow label="Status" value={data.status} />
+            <div className="flex justify-between items-center py-1.5">
+              <span className="text-slate-500 text-sm font-medium">Tipe</span>
+              <span className={`px-2.5 py-1 rounded-md text-xs font-bold ${
+                data.tipe_barang === 'satuan'
+                  ? 'bg-indigo-50 text-indigo-600 border border-indigo-200'
+                  : 'bg-slate-50 text-slate-500 border border-slate-200'
+              }`}>
+                {data.tipe_barang === 'satuan' ? '🏷️ Aset Satuan' : '📦 Stok Massal'}
+              </span>
+            </div>
           </div>
         </div>
 

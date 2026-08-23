@@ -17,6 +17,7 @@ export default function TambahInventarisPage() {
   const [sublokasiOptions, setSublokasiOptions] = useState<any[]>([]);
 
   const [formData, setFormData] = useState({
+    tipe_barang: 'massal' as 'massal' | 'satuan',
     nama: '',
     kategori_id: '',
     merk: '',
@@ -93,7 +94,6 @@ export default function TambahInventarisPage() {
     
     const formDataUpload = new FormData();
     formDataUpload.append('file', selectedFile);
-    formDataUpload.append('bucket', 'inventaris-photos');
     
     const res = await fetch('/api/inventaris/upload', {
       method: 'POST',
@@ -119,7 +119,8 @@ export default function TambahInventarisPage() {
       
       const payload = {
         ...formData,
-        foto_url: fotoUrl
+        foto_url: fotoUrl,
+        jumlah: formData.tipe_barang === 'satuan' ? '1' : formData.jumlah,
       };
       
       if (payload.pemilik_tipe === 'satelit') {
@@ -149,6 +150,8 @@ export default function TambahInventarisPage() {
     }
   };
 
+  const isSatuan = formData.tipe_barang === 'satuan';
+
   return (
     <div className="w-full flex flex-col gap-8 pb-10">
       
@@ -165,6 +168,49 @@ export default function TambahInventarisPage() {
 
       <form onSubmit={handleSubmit} className="w-full bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         
+        {/* Tipe Barang Selector */}
+        <div className="px-6 pt-6 pb-2">
+          <label className="text-slate-700 text-sm font-bold font-sans block mb-3">Tipe Barang <span className="text-rose-500">*</span></label>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setFormData(prev => ({ ...prev, tipe_barang: 'massal' }))}
+              className={`p-4 rounded-xl border-2 text-left transition-all ${
+                !isSatuan
+                  ? 'border-slate-700 bg-slate-700 text-white'
+                  : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+              }`}
+            >
+              <div className="text-2xl mb-1">📦</div>
+              <div className="font-bold text-sm">Stok Massal</div>
+              <div className={`text-xs mt-0.5 ${!isSatuan ? 'text-slate-300' : 'text-slate-400'}`}>
+                Kursi, meja, kabel dll — jumlah banyak
+              </div>
+            </button>
+            <button
+              type="button"
+              onClick={() => setFormData(prev => ({ ...prev, tipe_barang: 'satuan', jumlah: '1' }))}
+              className={`p-4 rounded-xl border-2 text-left transition-all ${
+                isSatuan
+                  ? 'border-slate-700 bg-slate-700 text-white'
+                  : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+              }`}
+            >
+              <div className="text-2xl mb-1">🏷️</div>
+              <div className="font-bold text-sm">Aset Satuan</div>
+              <div className={`text-xs mt-0.5 ${isSatuan ? 'text-slate-300' : 'text-slate-400'}`}>
+                Proyektor, laptop, AC — 1 unit unik
+              </div>
+            </button>
+          </div>
+          {isSatuan && (
+            <div className="mt-2 px-3 py-2 bg-indigo-50 border border-indigo-100 rounded-lg text-indigo-700 text-xs font-medium flex items-center gap-2">
+              <span className="material-icons-round text-[14px]">info</span>
+              Aset Satuan selalu dicatat sebagai 1 unit dengan nomor seri unik. Untuk 3 laptop, tambahkan 3 kali.
+            </div>
+          )}
+        </div>
+
         {/* Form Sections */}
         <div className="p-6 flex flex-col gap-8">
           
@@ -174,7 +220,7 @@ export default function TambahInventarisPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="flex flex-col gap-2">
                 <label className="text-slate-700 text-sm font-bold font-sans">Nama Barang <span className="text-rose-500">*</span></label>
-                <input type="text" name="nama" required value={formData.nama} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm" placeholder="Contoh: Kursi Lipat" />
+                <input type="text" name="nama" required value={formData.nama} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm" placeholder={isSatuan ? 'Contoh: Proyektor Epson EB-X41' : 'Contoh: Kursi Lipat'} />
               </div>
               <div className="flex flex-col gap-2">
                 <label className="text-slate-700 text-sm font-bold font-sans">Kategori <span className="text-rose-500">*</span></label>
@@ -188,13 +234,38 @@ export default function TambahInventarisPage() {
                 <input type="text" name="merk" value={formData.merk} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm" placeholder="Contoh: Yamaha" />
               </div>
               <div className="flex flex-col gap-2">
-                <label className="text-slate-700 text-sm font-bold font-sans">No. Seri</label>
-                <input type="text" name="no_seri" value={formData.no_seri} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm" placeholder="Contoh: SN-123456789" />
+                <label className="text-slate-700 text-sm font-bold font-sans">
+                  {isSatuan ? 'No. Seri / Kode Unit' : 'No. Seri'}
+                  {isSatuan && <span className="text-rose-500 ml-1">*</span>}
+                  {isSatuan && <span className="ml-2 text-xs font-normal text-slate-400">(wajib untuk Aset Satuan)</span>}
+                </label>
+                <input
+                  type="text"
+                  name="no_seri"
+                  required={isSatuan}
+                  value={formData.no_seri}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm"
+                  placeholder={isSatuan ? 'Contoh: SN-EPSON-2024-001' : 'Contoh: SN-123456 (opsional)'}
+                />
               </div>
-              <div className="flex flex-col gap-2">
-                <label className="text-slate-700 text-sm font-bold font-sans">Jumlah</label>
-                <input type="number" name="jumlah" required min="1" value={formData.jumlah} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm" />
-              </div>
+
+              {/* Jumlah — hanya untuk Stok Massal */}
+              {!isSatuan ? (
+                <div className="flex flex-col gap-2">
+                  <label className="text-slate-700 text-sm font-bold font-sans">Jumlah</label>
+                  <input type="number" name="jumlah" required min="1" value={formData.jumlah} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm" />
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <label className="text-slate-700 text-sm font-bold font-sans">Jumlah</label>
+                  <div className="px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-lg text-slate-500 text-sm flex items-center gap-2">
+                    <span className="material-icons-round text-[16px] text-slate-400">lock</span>
+                    1 unit (otomatis untuk Aset Satuan)
+                  </div>
+                </div>
+              )}
+
               <div className="flex flex-col gap-2">
                 <label className="text-slate-700 text-sm font-bold font-sans">Kondisi</label>
                 <select name="kondisi" required value={formData.kondisi} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm">
