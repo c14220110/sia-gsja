@@ -18,7 +18,6 @@ export default function DetailBarangPage({ params }: { params: Promise<{ id: str
   const [userData, setUserData] = useState<any>(null);
 
   useEffect(() => {
-    let active = true;
     const fetchData = async () => {
       showLoader();
       try {
@@ -28,18 +27,16 @@ export default function DetailBarangPage({ params }: { params: Promise<{ id: str
         ]);
         const barangData = await resBarang.json();
         const authData = resUser.ok ? await resUser.json() : null;
-        if (!active) return;
         if (barangData.success) setData(barangData.data);
         if (authData) setUserData(authData);
       } catch (error) {
         console.error('Failed to fetch barang detail', error);
       } finally {
-        if (active) hideLoader();
+        hideLoader();
       }
     };
     fetchData();
-    return () => { active = false; };
-  }, [id]);
+  }, [id]); // TRIGGER: id
 
   const hasPermission = (perm: string) => {
     if (!userData) return false;

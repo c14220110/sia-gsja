@@ -37,7 +37,6 @@ export default function TambahInventarisPage() {
   const [previewFoto, setPreviewFoto] = useState<string | null>(null);
 
   useEffect(() => {
-    let active = true;
     const fetchOptions = async () => {
       showLoader();
       try {
@@ -48,22 +47,18 @@ export default function TambahInventarisPage() {
         const kategoriData = await resKategori.json();
         const satelitData = await resSatelit.json();
 
-        if (active) {
-          if (kategoriData.success) setKategoriOptions(kategoriData.data);
-          if (satelitData.success) setSatelitOptions(satelitData.data);
-        }
+        if (kategoriData.success) setKategoriOptions(kategoriData.data);
+        if (satelitData.success) setSatelitOptions(satelitData.data);
       } catch (error) {
         console.error('Failed to fetch options', error);
       } finally {
-        if (active) hideLoader();
+        hideLoader();
       }
     };
     fetchOptions();
-    return () => { active = false; };
-  }, []);
+  }, []); // TRIGGER KOSONG
 
   useEffect(() => {
-    let active = true;
     if (!formData.lokasi_satelit_id) {
       setSublokasiOptions([]);
       return;
@@ -72,15 +67,12 @@ export default function TambahInventarisPage() {
       try {
         const res = await fetch(`/api/inventaris/master?type=sublokasi&satelit_id=${formData.lokasi_satelit_id}`);
         const data = await res.json();
-        if (active && data.success) {
-          setSublokasiOptions(data.data);
-        }
+        if (data.success) setSublokasiOptions(data.data);
       } catch (error) {
         console.error('Failed to fetch sublokasi', error);
       }
     };
     fetchSublokasi();
-    return () => { active = false; };
   }, [formData.lokasi_satelit_id]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {

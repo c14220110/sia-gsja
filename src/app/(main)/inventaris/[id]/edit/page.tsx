@@ -40,7 +40,6 @@ export default function EditInventarisPage({ params }: { params: Promise<{ id: s
 
   // Fetch options + existing data
   useEffect(() => {
-    let active = true;
     const fetchAll = async () => {
       showLoader();
       try {
@@ -52,8 +51,6 @@ export default function EditInventarisPage({ params }: { params: Promise<{ id: s
         const kategoriData = await resKategori.json();
         const satelitData = await resSatelit.json();
         const barangData = await resBarang.json();
-
-        if (!active) return;
 
         if (kategoriData.success) setKategoriOptions(kategoriData.data);
         if (satelitData.success) setSatelitOptions(satelitData.data);
@@ -82,16 +79,14 @@ export default function EditInventarisPage({ params }: { params: Promise<{ id: s
       } catch (error) {
         console.error('Failed to fetch data', error);
       } finally {
-        if (active) hideLoader();
+        hideLoader();
       }
     };
     fetchAll();
-    return () => { active = false; };
-  }, [id]);
+  }, [id]); // TRIGGER: id
 
   // Load sublokasi when lokasi_satelit_id changes
   useEffect(() => {
-    let active = true;
     if (!formData.lokasi_satelit_id) {
       setSublokasiOptions([]);
       return;
@@ -100,15 +95,12 @@ export default function EditInventarisPage({ params }: { params: Promise<{ id: s
       try {
         const res = await fetch(`/api/inventaris/master?type=sublokasi&satelit_id=${formData.lokasi_satelit_id}`);
         const data = await res.json();
-        if (active && data.success) {
-          setSublokasiOptions(data.data);
-        }
+        if (data.success) setSublokasiOptions(data.data);
       } catch (error) {
         console.error('Failed to fetch sublokasi', error);
       }
     };
     fetchSublokasi();
-    return () => { active = false; };
   }, [formData.lokasi_satelit_id]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {

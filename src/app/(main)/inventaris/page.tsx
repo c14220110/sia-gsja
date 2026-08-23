@@ -164,7 +164,24 @@ export default function InventarisPage() {
           </div>
         </div>
 
-      {/* Filter Options */}
+      {/* Sub-modul Navigation */}
+      <div className="flex flex-wrap gap-3">
+        <Link
+          href="/inventaris/stok-opname"
+          className="flex items-center gap-3 bg-white border border-slate-200 rounded-xl px-4 py-3 hover:border-slate-300 hover:shadow-sm transition-all group"
+        >
+          <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition-colors">
+            <span className="material-icons-round text-blue-600 text-[20px]">assignment_turned_in</span>
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-slate-700">Stok Opname</p>
+            <p className="text-xs text-slate-400">Penghitungan fisik aset</p>
+          </div>
+          <span className="material-icons-round text-slate-300 text-[16px] ml-1">chevron_right</span>
+        </Link>
+      </div>
+
+
       <div className="w-full px-4 py-4 bg-white rounded-xl border border-slate-200 flex flex-wrap items-center gap-4 shadow-sm">
         
         {/* Search Bar */}
