@@ -15,6 +15,7 @@ export default function InventarisPage() {
   
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; right: number }>({ top: 0, right: 0 });
   const [submitState, setSubmitState] = useState<{ status: 'idle'|'loading'|'success'|'error', message: string, errors?: any }>({ status: 'idle', message: '' });
   const router = useRouter();
 
@@ -283,8 +284,8 @@ export default function InventarisPage() {
       )}
 
       {/* Data Table */}
-      <div className="w-full bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col relative z-0">
-        <div className="w-full overflow-x-auto">
+      <div className="w-full bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col">
+        <div className="w-full overflow-x-auto overflow-y-visible">
           <table className="w-full min-w-[700px]">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50">
@@ -381,9 +382,16 @@ export default function InventarisPage() {
                         </span>
                       </td>
                       {/* Aksi */}
-                      <td className="px-4 py-3 text-right relative">
+                      <td className="px-4 py-3 text-right">
                         <button
-                          onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === item.id ? null : item.id); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (openMenuId !== item.id) {
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              setMenuPosition({ top: rect.bottom + 4, right: window.innerWidth - rect.right + rect.width / 2 });
+                            }
+                            setOpenMenuId(openMenuId === item.id ? null : item.id);
+                          }}
                           className="hover:text-slate-700 hover:bg-slate-100 p-1.5 rounded transition-colors text-slate-400"
                         >
                           <span className="material-icons-round text-[22px]">more_horiz</span>
@@ -391,7 +399,10 @@ export default function InventarisPage() {
                         {openMenuId === item.id && (
                           <>
                             <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); }} />
-                            <div className={`absolute right-4 ${isLastRows ? 'bottom-full mb-1' : 'top-full mt-1'} w-40 bg-white rounded-lg shadow-lg border border-slate-200 z-50 py-1`}>
+                            <div
+                              className="fixed w-40 bg-white rounded-lg shadow-[0_4px_20px_-4px_rgba(0,0,0,0.15)] border border-slate-200 z-50 py-1"
+                              style={{ top: menuPosition.top, right: menuPosition.right }}
+                            >
                               <Link href={`/inventaris/${item.id}`} onClick={(e) => e.stopPropagation()} className="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center gap-3 text-sm text-slate-700 font-sans">
                                 <span className="material-icons-round text-[18px] text-slate-400">visibility</span> Detail
                               </Link>
