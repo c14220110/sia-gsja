@@ -396,9 +396,9 @@ export class InventarisRepository {
   // ── Stok Opname ──────────────────────────────────────────
 
   async getStokOpnamePagination(params: {
-    satelit_id?: string; status?: string; limit?: number; offset?: number;
+    satelit_id?: string; status?: string; search?: string; limit?: number; offset?: number;
   }): Promise<{ data: any[], total: number }> {
-    const { satelit_id, status, limit = 10, offset = 0 } = params;
+    const { satelit_id, status, search, limit = 10, offset = 0 } = params;
     const conditions: string[] = [];
     const values: any[] = [];
     let idx = 1;
@@ -410,6 +410,10 @@ export class InventarisRepository {
     if (status) {
       conditions.push(`so.status = $${idx++}`);
       values.push(status);
+    }
+    if (search) {
+      conditions.push(`so.judul ILIKE $${idx++}`);
+      values.push(`%${search}%`);
     }
 
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -566,14 +570,44 @@ export class InventarisRepository {
   }
 
   async verifyStokOpname(id: number, verifiedBy: number): Promise<boolean> {
-    const result = await pool.query(
-      `UPDATE stok_opname
-       SET status = 'Selesai', verified_by = $1, verified_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $2 AND status = 'Berjalan'
-       RETURNING id`,
-      [verifiedBy, id]
-    );
-    return (result.rowCount ?? 0) > 0;
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // 1. Mark sesi sebagai Selesai
+      const result = await client.query(
+        `UPDATE stok_opname
+         SET status = 'Selesai', verified_by = $1, verified_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+         WHERE id = $2 AND status = 'Berjalan'
+         RETURNING id`,
+        [verifiedBy, id]
+      );
+
+      if ((result.rowCount ?? 0) === 0) {
+        await client.query('ROLLBACK');
+        return false;
+      }
+
+      // 2. Auto-update kondisi barang berdasarkan kondisi_fisik yang dicatat
+      await client.query(
+        `UPDATE barang b
+         SET kondisi = sod.kondisi_fisik, updated_at = CURRENT_TIMESTAMP
+         FROM stok_opname_detail sod
+         WHERE sod.stok_opname_id = $1
+           AND sod.kondisi_fisik IS NOT NULL
+           AND sod.kondisi_fisik != ''
+           AND sod.kondisi_fisik != 'Tidak Ditemukan'
+           AND b.id = sod.barang_id`,
+        [id]
+      );
+
+      await client.query('COMMIT');
+      return true;
+    } catch (e) {
+      await client.query('ROLLBACK');
+      throw e;
+    } finally {
+      client.release();
+    }
   }
 }
-

@@ -83,6 +83,7 @@ export default function StokOpnamePage() {
         const queryParams = new URLSearchParams();
         if (filterSatelit) queryParams.append('satelit_id', filterSatelit);
         if (filterStatus) queryParams.append('status', filterStatus);
+        if (debouncedSearch) queryParams.append('search', debouncedSearch);
         queryParams.append('limit', limit.toString());
         queryParams.append('offset', ((currentPage - 1) * limit).toString());
 

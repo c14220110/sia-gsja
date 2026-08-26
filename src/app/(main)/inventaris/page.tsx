@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
 import { AlertModal } from '@/components/ui/AlertModal';
 import QRCodeModal from '@/components/ui/QRCodeModal';
+import { exportInventarisToExcel } from '@/lib/exportInventaris';
 
 /** Converts stored R2 public URL to our authenticated proxy URL */
 function fotoUrlToProxy(url: string | null | undefined): string | null {
@@ -58,6 +59,39 @@ export default function InventarisPage() {
   const [filterKondisi, setFilterKondisi] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterAktivaTetap, setFilterAktivaTetap] = useState('');
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportExcel = async () => {
+    setIsExporting(true);
+    try {
+      const queryParams = new URLSearchParams();
+      if (debouncedSearch) queryParams.append('search', debouncedSearch);
+      if (filterKategori) queryParams.append('kategori_id', filterKategori);
+      if (filterSatelit) queryParams.append('lokasi_satelit_id', filterSatelit);
+      if (filterKondisi && filterKondisi !== 'Semua') queryParams.append('kondisi', filterKondisi);
+      if (filterStatus && filterStatus !== 'Semua') queryParams.append('status', filterStatus);
+      if (filterAktivaTetap) queryParams.append('is_aktiva_tetap', filterAktivaTetap);
+      queryParams.append('export', 'true');
+
+      const res = await fetch(`/api/inventaris?${queryParams.toString()}`);
+      const result = await res.json();
+      if (result.success) {
+        // Build filter label for Excel header
+        const parts: string[] = [];
+        if (debouncedSearch) parts.push(`Pencarian: "${debouncedSearch}"`);
+        if (filterKategori) parts.push(`Kategori: ${kategoriOptions.find((k: any) => k.id.toString() === filterKategori)?.nama || filterKategori}`);
+        if (filterSatelit) parts.push(`Satelit: ${satelitOptions.find((s: any) => s.id.toString() === filterSatelit)?.nama_satelit || filterSatelit}`);
+        if (filterKondisi && filterKondisi !== 'Semua') parts.push(`Kondisi: ${filterKondisi}`);
+        if (filterStatus && filterStatus !== 'Semua') parts.push(`Status: ${filterStatus}`);
+        const filterLabel = parts.length > 0 ? parts.join(', ') : 'Semua Data';
+        await exportInventarisToExcel(result.data, filterLabel);
+      }
+    } catch (error) {
+      console.error('Export failed', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   useEffect(() => {
     const fetchOptionsAndUser = async () => {
@@ -175,6 +209,21 @@ export default function InventarisPage() {
             <div className="text-slate-500 text-base font-medium font-sans leading-6">Sistem Manajemen Aset & Perlengkapan</div>
           </div>
           <div className="flex items-center gap-3">
+            {hasPermission('inventaris_view') && (
+              <button
+                onClick={handleExportExcel}
+                disabled={isExporting}
+                className="px-4 py-2.5 bg-white border border-slate-200 rounded-lg flex justify-start items-center gap-2 hover:bg-emerald-50 hover:border-emerald-300 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {isExporting
+                  ? <span className="material-icons-round text-emerald-600 text-[20px] animate-spin">sync</span>
+                  : <span className="material-icons-round text-emerald-600 text-[20px]">table_view</span>
+                }
+                <span className="text-slate-700 text-sm font-bold font-sans leading-5">
+                  {isExporting ? 'Mengekspor...' : 'Export Excel'}
+                </span>
+              </button>
+            )}
             {hasPermission('inventaris_manage') && (
               <Link href="/inventaris/tambah" className="px-5 py-2.5 bg-slate-700 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none">
                 <span className="material-icons-round text-white text-[20px]">add</span>

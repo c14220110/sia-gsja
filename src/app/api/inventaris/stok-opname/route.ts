@@ -20,10 +20,11 @@ export async function GET(request: NextRequest) {
       ? (searchParams.get('satelit_id') || undefined)
       : caller.satelit_id.toString();
     const status = searchParams.get('status') || undefined;
+    const search = searchParams.get('search') || undefined;
     const limit = parseInt(searchParams.get('limit') || '10', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
 
-    const { data, total } = await repo.getStokOpnamePagination({ satelit_id, status, limit, offset });
+    const { data, total } = await repo.getStokOpnamePagination({ satelit_id, status, search, limit, offset });
     return NextResponse.json({
       success: true,
       data,

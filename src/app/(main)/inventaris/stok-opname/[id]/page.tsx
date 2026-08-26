@@ -5,6 +5,8 @@ import { useLoader } from '@/components/ui/GlobalLoader';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
+import { AlertModal } from '@/components/ui/AlertModal';
+import { exportStokOpnameToExcel } from '@/lib/exportInventaris';
 
 export default function StokOpnameDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -14,6 +16,8 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
   const [userData, setUserData] = useState<any>(null);
   const [data, setData] = useState<any>(null);
   const [submitState, setSubmitState] = useState<{ status: 'idle'|'loading'|'success'|'error', message: string }>({ status: 'idle', message: '' });
+  const [isExporting, setIsExporting] = useState(false);
+  const [verifyAlertOpen, setVerifyAlertOpen] = useState(false);
 
   // State inline edit per baris
   const [editingDetailId, setEditingDetailId] = useState<number | null>(null);
@@ -90,6 +94,18 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
     setEditingDetailId(null);
   };
 
+  const handleExportExcel = async () => {
+    if (!data) return;
+    setIsExporting(true);
+    try {
+      await exportStokOpnameToExcel(data);
+    } catch (error) {
+      console.error('Export failed', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   if (!data) {
     return (
       <div className="p-8 flex items-center justify-center min-h-[60vh]">
@@ -139,30 +155,45 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
         </div>
 
         {/* Tombol aksi sesuai status */}
-        {canEdit && (
-          <div className="flex gap-2">
-            {data.status === 'Draft' && (
-              <button
-                onClick={() => handleAction('start')}
-                className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-xl font-medium text-sm hover:bg-blue-700 transition-colors"
-              >
-                <span className="material-icons-round text-[18px]">play_arrow</span>
-                Mulai Opname
-              </button>
-            )}
-            {data.status === 'Berjalan' && (
-              <button
-                onClick={() => handleAction('verify')}
-                disabled={itemsChecked < totalItems}
-                title={itemsChecked < totalItems ? 'Selesaikan semua item dulu' : ''}
-                className="flex items-center gap-2 bg-green-600 text-white px-4 py-2.5 rounded-xl font-medium text-sm hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <span className="material-icons-round text-[18px]">verified</span>
-                Selesaikan & Verifikasi
-              </button>
-            )}
-          </div>
-        )}
+        <div className="flex gap-2 flex-wrap">
+          {/* Export Excel — selalu tampil */}
+          <button
+            onClick={handleExportExcel}
+            disabled={isExporting}
+            className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-4 py-2.5 rounded-xl font-medium text-sm hover:bg-emerald-50 hover:border-emerald-300 transition-colors disabled:opacity-60"
+          >
+            {isExporting
+              ? <span className="material-icons-round text-emerald-600 text-[18px] animate-spin">sync</span>
+              : <span className="material-icons-round text-emerald-600 text-[18px]">table_view</span>
+            }
+            {isExporting ? 'Mengekspor...' : 'Export Excel'}
+          </button>
+
+          {canEdit && (
+            <>
+              {data.status === 'Draft' && (
+                <button
+                  onClick={() => handleAction('start')}
+                  className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-xl font-medium text-sm hover:bg-blue-700 transition-colors"
+                >
+                  <span className="material-icons-round text-[18px]">play_arrow</span>
+                  Mulai Opname
+                </button>
+              )}
+              {data.status === 'Berjalan' && (
+                <button
+                  onClick={() => setVerifyAlertOpen(true)}
+                  disabled={itemsChecked < totalItems}
+                  title={itemsChecked < totalItems ? `Masih ada ${totalItems - itemsChecked} item belum dicek` : ''}
+                  className="flex items-center gap-2 bg-green-600 text-white px-4 py-2.5 rounded-xl font-medium text-sm hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span className="material-icons-round text-[18px]">verified</span>
+                  Selesaikan & Verifikasi
+                </button>
+              )}
+            </>
+          )}
+        </div>
       </div>
 
       {/* Info cards */}
@@ -340,6 +371,55 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
           <span>Tanggal: <strong>{new Date(data.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</strong></span>
         )}
       </div>
+
+      {/* AlertModal — Konfirmasi Verifikasi */}
+      {(() => {
+        const kondisiAkanUpdate = (data.detail || []).filter((d: any) => d.kondisi_fisik && d.kondisi_fisik !== '').length;
+        const selisihMinus = (data.detail || []).filter((d: any) => d.selisih !== null && d.selisih < 0).length;
+        const selisihPlus  = (data.detail || []).filter((d: any) => d.selisih !== null && d.selisih > 0).length;
+        return (
+          <AlertModal
+            isOpen={verifyAlertOpen}
+            title="Selesaikan & Verifikasi Stok Opname?"
+            message={
+              <div className="flex flex-col gap-3 text-sm text-slate-700">
+                <p>Tindakan ini akan melakukan hal berikut:</p>
+                <ul className="space-y-1.5">
+                  <li className="flex items-center gap-2">
+                    <span className="material-icons-round text-green-500 text-[16px]">check_circle</span>
+                    Sesi ditandai sebagai <strong>Selesai</strong>
+                  </li>
+                  {kondisiAkanUpdate > 0 && (
+                    <li className="flex items-center gap-2">
+                      <span className="material-icons-round text-blue-500 text-[16px]">update</span>
+                      <strong>{kondisiAkanUpdate} kondisi barang</strong> akan diperbarui di database
+                    </li>
+                  )}
+                  {selisihMinus > 0 && (
+                    <li className="flex items-center gap-2">
+                      <span className="material-icons-round text-red-500 text-[16px]">trending_down</span>
+                      <strong>{selisihMinus} barang</strong> memiliki jumlah fisik lebih sedikit dari sistem
+                    </li>
+                  )}
+                  {selisihPlus > 0 && (
+                    <li className="flex items-center gap-2">
+                      <span className="material-icons-round text-emerald-500 text-[16px]">trending_up</span>
+                      <strong>{selisihPlus} barang</strong> memiliki jumlah fisik lebih banyak dari sistem
+                    </li>
+                  )}
+                </ul>
+                <p className="text-xs text-slate-500 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  ⚠️ Tindakan ini <strong>tidak dapat dibatalkan</strong> setelah dikonfirmasi.
+                </p>
+              </div>
+            }
+            confirmText="Ya, Verifikasi & Selesaikan"
+            cancelText="Batal"
+            onConfirm={() => { setVerifyAlertOpen(false); handleAction('verify'); }}
+            onCancel={() => setVerifyAlertOpen(false)}
+          />
+        );
+      })()}
     </div>
   );
 }
