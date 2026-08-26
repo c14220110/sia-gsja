@@ -133,7 +133,7 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
   const kondisiOptions = ['Baik', 'Rusak Ringan', 'Rusak Berat', 'Tidak Ditemukan'];
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto">
+    <div className="w-full flex flex-col gap-6 pb-10">
       {submitState.status === 'loading' && <SubmitOverlay status="loading" message="Menyimpan..." />}
 
       {/* Header */}

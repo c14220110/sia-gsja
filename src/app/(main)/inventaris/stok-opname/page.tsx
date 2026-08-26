@@ -142,27 +142,27 @@ export default function StokOpnamePage() {
   };
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto">
+    <div className="w-full flex flex-col gap-6 pb-10">
       {submitState.status === 'loading' && <SubmitOverlay status="loading" message="Menyimpan..." />}
 
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800 font-sans">Stok Opname</h1>
-          <p className="text-slate-500 text-sm mt-1">Penghitungan fisik dan rekonsiliasi aset</p>
+      <div className="flex items-start justify-between flex-wrap gap-3">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Stok Opname</h1>
+          <div className="text-slate-500 text-base font-medium font-sans leading-6">Penghitungan fisik dan rekonsiliasi aset</div>
         </div>
         {hasPermission('inventaris_stok_opname') && (
           <button
             onClick={() => { setShowModal(true); setSubmitState({ status: 'idle', message: '' }); }}
-            className="flex items-center gap-2 bg-slate-800 text-white px-4 py-2.5 rounded-xl font-medium text-sm hover:bg-slate-700 transition-colors"
+            className="px-5 py-2.5 bg-slate-700 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm"
           >
-            <span className="material-icons-round text-[18px]">add</span>
-            Buat Opname Baru
+            <span className="material-icons-round text-white text-[20px]">add</span>
+            <span className="text-white text-sm font-bold font-sans leading-5">Buat Opname Baru</span>
           </button>
         )}
       </div>
 
       {/* Filter bar */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-4 flex flex-wrap gap-3 items-center">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-wrap gap-3 items-center">
         <div className="flex-1 min-w-[200px] relative">
           <span className="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
           <input
