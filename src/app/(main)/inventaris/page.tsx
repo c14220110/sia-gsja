@@ -328,7 +328,6 @@ export default function InventarisPage() {
                 </tr>
               ) : (
                 data.map((item, idx) => {
-                  const isLastRows = data.length > 2 && idx >= data.length - 2;
                   return (
                     <tr
                       key={item.id || idx}
