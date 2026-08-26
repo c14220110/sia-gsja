@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
 import { AlertModal } from '@/components/ui/AlertModal';
+import QRCodeModal from '@/components/ui/QRCodeModal';
 
 function fotoUrlToProxy(url: string | null | undefined): string | null {
   if (!url) return null;
@@ -25,6 +26,12 @@ export default function DetailBarangPage({ params }: { params: Promise<{ id: str
   const [submitState, setSubmitState] = useState<{ status: 'idle'|'loading'|'success'|'error', message: string }>({ status: 'idle', message: '' });
   const [alertState, setAlertState] = useState<{ isOpen: boolean }>({ isOpen: false });
   const [userData, setUserData] = useState<any>(null);
+
+  // Photo lightbox (persis jemaat)
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
+
+  // QR Code modal
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -77,6 +84,8 @@ export default function DetailBarangPage({ params }: { params: Promise<{ id: str
 
   if (!data) return null;
 
+  const proxyFoto = fotoUrlToProxy(data.foto_url);
+
   return (
     <div className="w-full flex flex-col gap-8 pb-10">
       <SubmitOverlay status={submitState.status} message={submitState.message} onClose={() => setSubmitState({ status: 'idle', message: '' })} />
@@ -96,11 +105,19 @@ export default function DetailBarangPage({ params }: { params: Promise<{ id: str
           <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Detail Barang</h1>
           <div className="text-slate-500 text-base font-medium font-sans leading-6">{data.kode_barang}</div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap justify-end">
           <Link href="/inventaris" className="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-lg flex justify-center items-center gap-2 hover:bg-slate-50 transition-colors shadow-sm">
             <span className="material-icons-round text-slate-500 text-[20px]">arrow_back</span>
             <span className="text-sm font-bold font-sans leading-5">Kembali</span>
           </Link>
+          {/* Tombol QR Code — selalu tampil */}
+          <button
+            onClick={() => setIsQrModalOpen(true)}
+            className="px-5 py-2.5 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-lg flex justify-center items-center gap-2 hover:bg-indigo-100 transition-colors shadow-sm"
+          >
+            <span className="material-icons-round text-indigo-500 text-[20px]">qr_code_2</span>
+            <span className="text-sm font-bold font-sans leading-5">QR Code</span>
+          </button>
           {hasPermission('inventaris_manage') && (
             <>
               <Link href={`/inventaris/${id}/edit`} className="px-5 py-2.5 bg-blue-600 rounded-lg flex justify-start items-center gap-2 hover:bg-blue-700 transition-colors shadow-sm">
@@ -116,7 +133,7 @@ export default function DetailBarangPage({ params }: { params: Promise<{ id: str
         </div>
       </div>
 
-      {/* Info Card */}
+      {/* Info Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Informasi Umum */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
@@ -144,7 +161,7 @@ export default function DetailBarangPage({ params }: { params: Promise<{ id: str
           </div>
         </div>
 
-        {/* Informasi Keuangan & Kepemilikan */}
+        {/* Keuangan & Kepemilikan */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <h2 className="text-slate-800 text-lg font-bold mb-4">Keuangan & Kepemilikan</h2>
           <div className="flex flex-col gap-3">
@@ -159,13 +176,55 @@ export default function DetailBarangPage({ params }: { params: Promise<{ id: str
         </div>
       </div>
 
-      {/* Foto */}
-      {fotoUrlToProxy(data.foto_url) && (
+      {/* Foto — click to zoom (persis jemaat) */}
+      {proxyFoto && (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <h2 className="text-slate-800 text-lg font-bold mb-4">Foto</h2>
-          <img src={fotoUrlToProxy(data.foto_url)!} alt={data.nama} className="max-w-md rounded-lg border border-slate-200" />
+          <img
+            src={proxyFoto}
+            alt={data.nama}
+            className="max-w-md rounded-lg border border-slate-200 cursor-pointer hover:opacity-90 transition-opacity"
+            onClick={() => setIsPhotoModalOpen(true)}
+            title="Klik untuk perbesar"
+          />
+          <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
+            <span className="material-icons-round text-[14px]">zoom_in</span>
+            Klik foto untuk memperbesar
+          </p>
         </div>
       )}
+
+      {/* Photo Preview Modal — persis jemaat */}
+      {isPhotoModalOpen && proxyFoto && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => setIsPhotoModalOpen(false)}
+        >
+          <div className="relative max-w-2xl w-full p-4 flex flex-col items-center">
+            <button
+              className="absolute top-0 right-0 m-4 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex justify-center items-center text-white transition-colors"
+              onClick={(e) => { e.stopPropagation(); setIsPhotoModalOpen(false); }}
+            >
+              <span className="material-icons-round">close</span>
+            </button>
+            <img
+              src={proxyFoto}
+              alt={data.nama}
+              className="max-h-[85vh] w-auto object-contain rounded-xl shadow-2xl border border-white/20 bg-white"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* QR Code Modal */}
+      <QRCodeModal
+        isOpen={isQrModalOpen}
+        onClose={() => setIsQrModalOpen(false)}
+        title={data.nama}
+        qrValue={data.kode_barang}
+        subtitle={data.nama_kategori}
+      />
     </div>
   );
 }

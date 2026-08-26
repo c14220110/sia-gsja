@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
 import { AlertModal } from '@/components/ui/AlertModal';
+import QRCodeModal from '@/components/ui/QRCodeModal';
 
 /** Converts stored R2 public URL to our authenticated proxy URL */
 function fotoUrlToProxy(url: string | null | undefined): string | null {
@@ -28,6 +29,13 @@ export default function InventarisPage() {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [menuPosition, setMenuPosition] = useState<{ top: number; right: number }>({ top: 0, right: 0 });
   const [submitState, setSubmitState] = useState<{ status: 'idle'|'loading'|'success'|'error', message: string, errors?: any }>({ status: 'idle', message: '' });
+
+  // QR Code modal
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+  const [qrItem, setQrItem] = useState<{ nama: string; kode_barang: string; nama_kategori: string } | null>(null);
+
+  // Photo lightbox
+  const [photoModalUrl, setPhotoModalUrl] = useState<string | null>(null);
   const router = useRouter();
 
   const [alertState, setAlertState] = useState<{ isOpen: boolean; id: number | null; }>({
@@ -327,14 +335,15 @@ export default function InventarisPage() {
                       onClick={() => router.push(`/inventaris/${item.id}`)}
                       className={`hover:bg-slate-50 transition-colors cursor-pointer relative ${openMenuId === item.id ? 'z-50' : ''}`}
                     >
-                      {/* Thumbnail */}
+                      {/* Thumbnail — klik untuk perbesar */}
                       <td className="px-4 py-3">
                         {fotoUrlToProxy(item.foto_url) ? (
                           <div className="relative w-10 h-10 flex-shrink-0">
                             <img
                               src={fotoUrlToProxy(item.foto_url)!}
                               alt={item.nama}
-                              className="w-10 h-10 rounded-lg object-cover border border-slate-200 bg-slate-50"
+                              className="w-10 h-10 rounded-lg object-cover border border-slate-200 bg-slate-50 cursor-pointer hover:opacity-80 transition-opacity"
+                              onClick={(e) => { e.stopPropagation(); setPhotoModalUrl(fotoUrlToProxy(item.foto_url)); }}
                               onError={(e) => {
                                 e.currentTarget.style.display = 'none';
                                 const fb = e.currentTarget.nextElementSibling as HTMLElement | null;
@@ -421,19 +430,30 @@ export default function InventarisPage() {
                           <>
                             <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); }} />
                             <div
-                              className="fixed w-40 bg-white rounded-lg shadow-[0_4px_20px_-4px_rgba(0,0,0,0.15)] border border-slate-200 z-50 py-1"
+                              className="fixed w-48 bg-white rounded-lg shadow-[0_4px_20px_-4px_rgba(0,0,0,0.15)] border border-slate-200 z-50 py-1 overflow-visible"
                               style={{ top: menuPosition.top, right: menuPosition.right }}
                             >
-                              <Link href={`/inventaris/${item.id}`} onClick={(e) => e.stopPropagation()} className="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center gap-3 text-sm text-slate-700 font-sans">
-                                <span className="material-icons-round text-[18px] text-slate-400">visibility</span> Detail
+                              <Link href={`/inventaris/${item.id}`} onClick={(e) => e.stopPropagation()} className="w-full text-left px-4 py-2 hover:bg-slate-50 transition-colors flex items-center gap-3 text-sm text-slate-700 font-sans">
+                                <span className="material-icons-round text-[18px] text-slate-400">visibility</span> Lihat Detail
                               </Link>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setQrItem({ nama: item.nama, kode_barang: item.kode_barang, nama_kategori: item.nama_kategori });
+                                  setIsQrModalOpen(true);
+                                  setOpenMenuId(null);
+                                }}
+                                className="w-full text-left px-4 py-2 hover:bg-indigo-50 hover:text-indigo-700 transition-colors flex items-center gap-3 text-sm text-indigo-600 font-sans"
+                              >
+                                <span className="material-icons-round text-[18px] text-indigo-400">qr_code_2</span> QR Code
+                              </button>
                               {hasPermission('inventaris_manage') && (
                                 <>
-                                  <Link href={`/inventaris/${item.id}/edit`} onClick={(e) => e.stopPropagation()} className="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center gap-3 text-sm text-slate-700 font-sans">
-                                    <span className="material-icons-round text-[18px] text-slate-400">edit</span> Edit
+                                  <Link href={`/inventaris/${item.id}/edit`} onClick={(e) => e.stopPropagation()} className="w-full text-left px-4 py-2 hover:bg-slate-50 transition-colors flex items-center gap-3 text-sm text-slate-700 font-sans">
+                                    <span className="material-icons-round text-[18px] text-slate-400">edit</span> Edit Data
                                   </Link>
                                   <div className="h-px bg-slate-100 my-1" />
-                                  <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); setAlertState({ isOpen: true, id: item.id }); }} className="w-full text-left px-4 py-2 hover:bg-rose-50 hover:text-rose-700 flex items-center gap-3 text-sm text-rose-600 font-sans">
+                                  <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); setAlertState({ isOpen: true, id: item.id }); }} className="w-full text-left px-4 py-2 hover:bg-rose-50 hover:text-rose-700 transition-colors flex items-center gap-3 text-sm text-rose-600 font-sans">
                                     <span className="material-icons-round text-[18px] text-rose-400">delete</span> Hapus
                                   </button>
                                 </>
@@ -490,6 +510,40 @@ export default function InventarisPage() {
         errors={submitState.errors} 
         onClose={() => setSubmitState({ status: 'idle', message: '' })} 
       />
+
+      {/* Photo lightbox modal — persis jemaat */}
+      {photoModalUrl && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => setPhotoModalUrl(null)}
+        >
+          <div className="relative max-w-2xl w-full p-4 flex flex-col items-center">
+            <button
+              className="absolute top-0 right-0 m-4 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex justify-center items-center text-white transition-colors"
+              onClick={(e) => { e.stopPropagation(); setPhotoModalUrl(null); }}
+            >
+              <span className="material-icons-round">close</span>
+            </button>
+            <img
+              src={photoModalUrl}
+              alt="Preview Foto Barang"
+              className="max-h-[85vh] w-auto object-contain rounded-xl shadow-2xl border border-white/20 bg-white"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* QR Code Modal */}
+      {qrItem && (
+        <QRCodeModal
+          isOpen={isQrModalOpen}
+          onClose={() => { setIsQrModalOpen(false); setQrItem(null); }}
+          title={qrItem.nama}
+          qrValue={qrItem.kode_barang}
+          subtitle={qrItem.nama_kategori}
+        />
+      )}
     </div>
   );
 }
