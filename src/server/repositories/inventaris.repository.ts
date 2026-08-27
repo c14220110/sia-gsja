@@ -124,6 +124,83 @@ export class InventarisRepository {
     return result.rows;
   }
 
+  async getKategoriAll(): Promise<KategoriBarang[]> {
+    const result = await pool.query(
+      `SELECT id, kode, nama, keterangan, is_active FROM master_kategori_barang ORDER BY kode ASC`
+    );
+    return result.rows;
+  }
+
+  async updateKategori(id: number, params: { keterangan?: string; is_active?: boolean }): Promise<boolean> {
+    const sets: string[] = [];
+    const values: any[] = [];
+    let idx = 1;
+    if (params.keterangan !== undefined) { sets.push(`keterangan = $${idx++}`); values.push(params.keterangan); }
+    if (params.is_active !== undefined) { sets.push(`is_active = $${idx++}`); values.push(params.is_active); }
+    if (sets.length === 0) return false;
+    sets.push(`updated_at = CURRENT_TIMESTAMP`);
+    values.push(id);
+    const result = await pool.query(
+      `UPDATE master_kategori_barang SET ${sets.join(', ')} WHERE id = $${idx}`,
+      values
+    );
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async getSublokasiAll(satelitId?: number): Promise<any[]> {
+    const conditions: string[] = [];
+    const values: any[] = [];
+    let idx = 1;
+    if (satelitId) { conditions.push(`sl.satelit_id = $${idx++}`); values.push(satelitId); }
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    const result = await pool.query(
+      `SELECT sl.id, sl.satelit_id, s.nama_satelit, sl.kode, sl.nama, sl.is_active, sl.created_at
+       FROM master_sublokasi sl
+       JOIN satelit s ON sl.satelit_id = s.id
+       ${where}
+       ORDER BY s.nama_satelit, sl.nama ASC`,
+      values
+    );
+    return result.rows;
+  }
+
+  async createSublokasi(params: { satelit_id: number; kode: string; nama: string }): Promise<number> {
+    const result = await pool.query(
+      `INSERT INTO master_sublokasi (satelit_id, kode, nama) VALUES ($1, $2, $3) RETURNING id`,
+      [params.satelit_id, params.kode.toUpperCase().trim(), params.nama.trim()]
+    );
+    return result.rows[0].id;
+  }
+
+  async updateSublokasi(id: number, params: { kode?: string; nama?: string; is_active?: boolean }): Promise<boolean> {
+    const sets: string[] = [];
+    const values: any[] = [];
+    let idx = 1;
+    if (params.kode !== undefined) { sets.push(`kode = $${idx++}`); values.push(params.kode.toUpperCase().trim()); }
+    if (params.nama !== undefined) { sets.push(`nama = $${idx++}`); values.push(params.nama.trim()); }
+    if (params.is_active !== undefined) { sets.push(`is_active = $${idx++}`); values.push(params.is_active); }
+    if (sets.length === 0) return false;
+    sets.push(`updated_at = CURRENT_TIMESTAMP`);
+    values.push(id);
+    const result = await pool.query(
+      `UPDATE master_sublokasi SET ${sets.join(', ')} WHERE id = $${idx}`,
+      values
+    );
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async deleteSublokasi(id: number): Promise<{ ok: boolean; reason?: string }> {
+    const check = await pool.query(
+      `SELECT COUNT(*) AS cnt FROM barang WHERE lokasi_sublokasi_id = $1 AND is_deleted = false`,
+      [id]
+    );
+    if (parseInt(check.rows[0].cnt, 10) > 0) {
+      return { ok: false, reason: 'Sub-lokasi masih digunakan oleh barang aktif.' };
+    }
+    const result = await pool.query(`DELETE FROM master_sublokasi WHERE id = $1`, [id]);
+    return { ok: (result.rowCount ?? 0) > 0 };
+  }
+
   // ── Generate Kode Barang (ATOMIC via counter table) ───────
   // Format: INV-{tahun}-{kode_kategori}-{nomor_urut_4digit}
   // Nomor urut GLOBAL per kategori per tahun
