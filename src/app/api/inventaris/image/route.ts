@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
+import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 
 // Reuse same R2 client as upload route
 const r2Client = new S3Client({
@@ -13,14 +14,19 @@ const r2Client = new S3Client({
 
 /**
  * GET /api/inventaris/image?key=inventaris/xxx.png
- * Proxies R2 objects so public access on bucket is not needed.
+ * Proxies R2 objects — requires valid login session.
  * Only serves files under the inventaris/ prefix.
  */
 export async function GET(request: NextRequest) {
+  const caller = getCallerFromRequest(request);
+  if (!caller) {
+    return new NextResponse('Unauthorized', { status: 401 });
+  }
+
   const { searchParams } = new URL(request.url);
   const key = searchParams.get('key');
 
-  // Validate key — only allow inventaris/ prefix
+  // Validate key — only allow inventaris/ prefix, no path traversal
   if (!key || !key.startsWith('inventaris/') || key.includes('..')) {
     return new NextResponse('Not found', { status: 404 });
   }
@@ -37,10 +43,10 @@ export async function GET(request: NextRequest) {
       return new NextResponse('Not found', { status: 404 });
     }
 
-    // Stream response back to browser with long-lived cache
+    // private: browser caches but CDN/shared proxies cannot cache authenticated responses
     const headers: Record<string, string> = {
       'Content-Type': r2Response.ContentType || 'image/jpeg',
-      'Cache-Control': 'public, max-age=31536000, immutable',
+      'Cache-Control': 'private, max-age=86400',
     };
     if (r2Response.ContentLength) {
       headers['Content-Length'] = r2Response.ContentLength.toString();

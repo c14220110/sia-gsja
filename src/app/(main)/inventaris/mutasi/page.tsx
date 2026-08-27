@@ -8,7 +8,7 @@ const pages = [
 
 export default function MutasiComingSoon() {
   return (
-    <div className="p-8 max-w-2xl mx-auto flex flex-col items-center justify-center min-h-[60vh] text-center">
+    <div className="w-full flex flex-col items-center justify-center min-h-[60vh] text-center">
       <div className="w-20 h-20 rounded-full bg-amber-50 flex items-center justify-center mb-6">
         <span className="material-icons-round text-amber-500 text-[40px]">swap_horiz</span>
       </div>

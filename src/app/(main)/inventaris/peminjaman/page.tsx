@@ -3,7 +3,7 @@ import Link from 'next/link';
 
 export default function PeminjamanComingSoon() {
   return (
-    <div className="p-8 max-w-2xl mx-auto flex flex-col items-center justify-center min-h-[60vh] text-center">
+    <div className="w-full flex flex-col items-center justify-center min-h-[60vh] text-center">
       <div className="w-20 h-20 rounded-full bg-purple-50 flex items-center justify-center mb-6">
         <span className="material-icons-round text-purple-500 text-[40px]">assignment_return</span>
       </div>
