@@ -63,7 +63,13 @@ export default function InventarisPage() {
   const [filterKondisi, setFilterKondisi] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterAktivaTetap, setFilterAktivaTetap] = useState('');
-  const [stats, setStats] = useState<{ total: number; kondisi_baik: number; perlu_perhatian: number; total_nilai: number } | null>(null);
+  const [stats, setStats] = useState<{
+    total: number;
+    kondisi_baik: number;
+    perlu_perhatian: number;
+    total_nilai: number;
+    per_kategori: Array<{ kategori_id: number; count: number }>;
+  } | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
   const [exportModal, setExportModal] = useState<{
     open: boolean;
@@ -371,24 +377,36 @@ export default function InventarisPage() {
 
       {/* ── Category Icon Chip Bar ───────────────────────────────────────── */}
       {(() => {
-        const VISUAL: Record<string, { icon: string; color: string; bg: string; activeBg: string; activeText: string }> = {
-          '01': { icon: 'landscape',          color: 'text-stone-600',  bg: 'bg-stone-50  border-stone-200',  activeBg: 'bg-stone-600',  activeText: 'text-white' },
-          '02': { icon: 'local_parking',      color: 'text-zinc-600',   bg: 'bg-zinc-50   border-zinc-200',   activeBg: 'bg-zinc-600',   activeText: 'text-white' },
-          '03': { icon: 'church',             color: 'text-slate-600',  bg: 'bg-slate-50  border-slate-200',  activeBg: 'bg-slate-700',  activeText: 'text-white' },
-          '04': { icon: 'directions_car',     color: 'text-sky-700',    bg: 'bg-sky-50    border-sky-200',    activeBg: 'bg-sky-600',    activeText: 'text-white' },
-          '05': { icon: 'speaker',            color: 'text-blue-700',   bg: 'bg-blue-50   border-blue-200',   activeBg: 'bg-blue-600',   activeText: 'text-white' },
-          '06': { icon: 'music_note',         color: 'text-pink-700',   bg: 'bg-pink-50   border-pink-200',   activeBg: 'bg-pink-600',   activeText: 'text-white' },
-          '07': { icon: 'volunteer_activism', color: 'text-purple-700', bg: 'bg-purple-50 border-purple-200', activeBg: 'bg-purple-600', activeText: 'text-white' },
-          '08': { icon: 'bolt',              color: 'text-amber-700',  bg: 'bg-amber-50  border-amber-200',  activeBg: 'bg-amber-500',  activeText: 'text-white' },
-          '09': { icon: 'computer',           color: 'text-indigo-700', bg: 'bg-indigo-50 border-indigo-200', activeBg: 'bg-indigo-600', activeText: 'text-white' },
-          '10': { icon: 'business_center',    color: 'text-teal-700',   bg: 'bg-teal-50   border-teal-200',   activeBg: 'bg-teal-600',   activeText: 'text-white' },
-          '11': { icon: 'chair',             color: 'text-orange-700', bg: 'bg-orange-50 border-orange-200', activeBg: 'bg-orange-600', activeText: 'text-white' },
-          '12': { icon: 'kitchen',           color: 'text-green-700',  bg: 'bg-green-50  border-green-200',  activeBg: 'bg-green-600',  activeText: 'text-white' },
+        const VISUAL: Record<string, { icon: string; color: string; activeBg: string; activeText: string }> = {
+          '01': { icon: 'landscape',          color: 'text-stone-600',  activeBg: 'bg-stone-600',  activeText: 'text-white' },
+          '02': { icon: 'local_parking',      color: 'text-zinc-600',   activeBg: 'bg-zinc-600',   activeText: 'text-white' },
+          '03': { icon: 'church',             color: 'text-slate-600',  activeBg: 'bg-slate-700',  activeText: 'text-white' },
+          '04': { icon: 'directions_car',     color: 'text-sky-700',    activeBg: 'bg-sky-600',    activeText: 'text-white' },
+          '05': { icon: 'speaker',            color: 'text-blue-700',   activeBg: 'bg-blue-600',   activeText: 'text-white' },
+          '06': { icon: 'music_note',         color: 'text-pink-700',   activeBg: 'bg-pink-600',   activeText: 'text-white' },
+          '07': { icon: 'volunteer_activism', color: 'text-purple-700', activeBg: 'bg-purple-600', activeText: 'text-white' },
+          '08': { icon: 'bolt',              color: 'text-amber-700',  activeBg: 'bg-amber-500',  activeText: 'text-white' },
+          '09': { icon: 'computer',           color: 'text-indigo-700', activeBg: 'bg-indigo-600', activeText: 'text-white' },
+          '10': { icon: 'business_center',    color: 'text-teal-700',   activeBg: 'bg-teal-600',   activeText: 'text-white' },
+          '11': { icon: 'chair',             color: 'text-orange-700', activeBg: 'bg-orange-600', activeText: 'text-white' },
+          '12': { icon: 'kitchen',           color: 'text-green-700',  activeBg: 'bg-green-600',  activeText: 'text-white' },
         };
+
+        // Build count map dari stats.per_kategori
+        const countMap: Record<number, number> = {};
+        stats?.per_kategori?.forEach(({ kategori_id, count }) => { countMap[kategori_id] = count; });
+
+        // Sort kategoriOptions by count desc (Semua always first)
+        const sortedKategori = [...kategoriOptions].sort((a: any, b: any) =>
+          (countMap[b.id] ?? 0) - (countMap[a.id] ?? 0)
+        );
+
         const isAllActive = !filterKategori;
+        const totalCount = stats?.total ?? 0;
+
         return (
           <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {/* Semua chip */}
+            {/* Semua chip — always leftmost */}
             <button
               onClick={() => { setFilterKategori(''); setCurrentPage(1); }}
               className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full border text-xs font-bold transition-all duration-150 ${
@@ -399,24 +417,42 @@ export default function InventarisPage() {
             >
               <span className="material-icons-round text-[14px]">grid_view</span>
               <span>Semua</span>
+              {!statsLoading && (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${isAllActive ? 'bg-white/20' : 'bg-slate-100'}`}>
+                  {totalCount}
+                </span>
+              )}
             </button>
-            {/* 12 kategori chips */}
-            {kategoriOptions.map((kat: any) => {
+            {/* Kategori chips sorted by count desc */}
+            {sortedKategori.map((kat: any) => {
               const v = VISUAL[kat.kode] ?? VISUAL['01'];
               const isActive = filterKategori === kat.id.toString();
+              const cnt = countMap[kat.id] ?? 0;
+              const isEmpty = !statsLoading && cnt === 0;
               return (
                 <button
                   key={kat.id}
                   onClick={() => { setFilterKategori(isActive ? '' : kat.id.toString()); setCurrentPage(1); }}
-                  title={kat.nama}
+                  title={`${kat.nama} (${cnt} barang)`}
                   className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full border text-xs font-bold transition-all duration-150 ${
                     isActive
                       ? `${v.activeBg} border-transparent ${v.activeText} shadow-md scale-105`
-                      : `bg-white border-slate-200 ${v.color} hover:border-current`
+                      : isEmpty
+                        ? 'bg-white border-slate-100 text-slate-300 cursor-default'
+                        : `bg-white border-slate-200 ${v.color} hover:border-current`
                   }`}
                 >
                   <span className="material-icons-round text-[14px]">{v.icon}</span>
-                  <span className="max-w-[80px] truncate">{kat.nama.replace('Peralatan ', '').replace('Meubel & Furnitur ', 'Meubel ').replace(' & Rumah Tangga', '')}</span>
+                  <span className="max-w-[72px] truncate">
+                    {kat.nama.replace('Peralatan ', '').replace('Meubel & Furnitur ', 'Meubel ').replace(' & Rumah Tangga', '')}
+                  </span>
+                  {!statsLoading && (
+                    <span className={`text-[10px] px-1 py-0.5 rounded-full font-black min-w-[16px] text-center ${
+                      isActive ? 'bg-white/25' : isEmpty ? 'bg-slate-50 text-slate-300' : 'bg-slate-100 text-slate-500'
+                    }`}>
+                      {cnt}
+                    </span>
+                  )}
                 </button>
               );
             })}

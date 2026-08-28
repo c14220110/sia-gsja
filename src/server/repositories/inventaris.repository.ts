@@ -210,7 +210,10 @@ export class InventarisRepository {
   async getInventarisStats(params: {
     lokasi_satelit_id?: string;
     kategori_id?: string;
-  }): Promise<{ total: number; kondisi_baik: number; perlu_perhatian: number; total_nilai: number }> {
+  }): Promise<{
+    total: number; kondisi_baik: number; perlu_perhatian: number; total_nilai: number;
+    per_kategori: Array<{ kategori_id: number; count: number }>;
+  }> {
     const conditions: string[] = ['b.is_deleted = false', "b.status != 'Disposed'"];
     const values: any[] = [];
     let idx = 1;
@@ -225,22 +228,45 @@ export class InventarisRepository {
     }
 
     const where = conditions.join(' AND ');
-    const sql = `
+
+    // KPI totals
+    const kpiSql = `
       SELECT
-        COUNT(*)                                                          AS total,
-        COUNT(*) FILTER (WHERE b.kondisi = 'Baik')                       AS kondisi_baik,
+        COUNT(*)                                                            AS total,
+        COUNT(*) FILTER (WHERE b.kondisi = 'Baik')                         AS kondisi_baik,
         COUNT(*) FILTER (WHERE b.kondisi IN ('Rusak Ringan','Rusak Berat')) AS perlu_perhatian,
-        COALESCE(SUM(b.nilai_perolehan), 0)                              AS total_nilai
+        COALESCE(SUM(b.nilai_perolehan), 0)                                AS total_nilai
       FROM barang b
       WHERE ${where}
     `;
-    const res = await pool.query(sql, values);
-    const row = res.rows[0];
+    const kpiRes = await pool.query(kpiSql, values);
+    const row = kpiRes.rows[0];
+
+    // Per-kategori counts (always without kategori_id filter so all chips are visible)
+    const catConditions = ['b.is_deleted = false', "b.status != 'Disposed'"];
+    const catValues: any[] = [];
+    if (params.lokasi_satelit_id) {
+      catConditions.push(`b.lokasi_satelit_id = $1`);
+      catValues.push(parseInt(params.lokasi_satelit_id, 10));
+    }
+    const catSql = `
+      SELECT b.kategori_id, COUNT(*) AS cnt
+      FROM barang b
+      WHERE ${catConditions.join(' AND ')}
+      GROUP BY b.kategori_id
+    `;
+    const catRes = await pool.query(catSql, catValues);
+    const per_kategori: Array<{ kategori_id: number; count: number }> = catRes.rows.map((r) => ({
+      kategori_id: parseInt(r.kategori_id, 10),
+      count: parseInt(r.cnt, 10),
+    }));
+
     return {
-      total:            parseInt(row.total, 10),
-      kondisi_baik:     parseInt(row.kondisi_baik, 10),
-      perlu_perhatian:  parseInt(row.perlu_perhatian, 10),
-      total_nilai:      parseFloat(row.total_nilai),
+      total:           parseInt(row.total, 10),
+      kondisi_baik:    parseInt(row.kondisi_baik, 10),
+      perlu_perhatian: parseInt(row.perlu_perhatian, 10),
+      total_nilai:     parseFloat(row.total_nilai),
+      per_kategori,
     };
   }
 
