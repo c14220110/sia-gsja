@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
 import { AlertModal } from '@/components/ui/AlertModal';
 import QRCodeModal from '@/components/ui/QRCodeModal';
+import BarcodeScannerModal from '@/components/ui/BarcodeScannerModal';
 import { exportInventarisToExcel, DEFAULT_EXPORT_COLUMNS } from '@/lib/exportInventaris';
 
 /** Converts stored R2 public URL to our authenticated proxy URL */
@@ -34,6 +35,9 @@ export default function InventarisPage() {
   // QR Code modal
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [qrItem, setQrItem] = useState<{ nama: string; kode_barang: string; nama_kategori: string } | null>(null);
+
+  // Barcode scanner
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
 
   // Photo lightbox
   const [photoModalUrl, setPhotoModalUrl] = useState<string | null>(null);
@@ -423,16 +427,26 @@ export default function InventarisPage() {
       <div className="w-full px-4 py-4 bg-white rounded-xl border border-slate-200 flex flex-wrap items-center gap-4 shadow-sm">
 
         
-        {/* Search Bar */}
-        <div className="flex-1 min-w-[300px] relative flex items-center">
-          <span className="material-icons-round absolute left-4 text-slate-400 text-[20px]">search</span>
-          <input 
-            type="text" 
-            placeholder="Cari berdasarkan nama, kode, merk, no seri..."
-            className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+        {/* Search Bar + Scan Button */}
+        <div className="flex-1 min-w-[260px] flex items-center gap-2">
+          <div className="flex-1 relative flex items-center">
+            <span className="material-icons-round absolute left-4 text-slate-400 text-[20px]">search</span>
+            <input 
+              type="text" 
+              placeholder="Cari nama, kode, merk, no seri..."
+              className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          {/* Scan barcode button */}
+          <button
+            onClick={() => setIsScannerOpen(true)}
+            title="Scan Barcode Barang"
+            className="flex-shrink-0 p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-600 hover:bg-amber-100 hover:border-amber-300 transition-colors"
+          >
+            <span className="material-icons-round text-[20px]">photo_camera</span>
+          </button>
         </div>
 
         {/* Kategori Dropdown */}
@@ -771,7 +785,7 @@ export default function InventarisPage() {
         </div>
       )}
 
-      {/* QR Code Modal */}
+      {/* Barcode Label Modal (menggantikan QR code persegi) */}
       {qrItem && (
         <QRCodeModal
           isOpen={isQrModalOpen}
@@ -781,6 +795,19 @@ export default function InventarisPage() {
           subtitle={qrItem.nama_kategori}
         />
       )}
+
+      {/* Barcode Scanner Modal (scan → isi searchbar) */}
+      <BarcodeScannerModal
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onScanSuccess={(scanned) => {
+          setSearchQuery(scanned.trim());
+          setCurrentPage(1);
+          setIsScannerOpen(false);
+        }}
+        title="Scan Barcode Barang"
+        hint="Arahkan kamera ke barcode pada label aset. Kode akan masuk otomatis ke pencarian."
+      />
 
       {/* ═══ Export Excel Modal ════════════════════════════════════════════════ */}
       {exportModal.open && (

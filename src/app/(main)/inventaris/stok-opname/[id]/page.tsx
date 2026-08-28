@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, use, useRef } from 'react';
 import { useLoader } from '@/components/ui/GlobalLoader';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
 import { AlertModal } from '@/components/ui/AlertModal';
 import { exportStokOpnameToExcel } from '@/lib/exportInventaris';
+import BarcodeScannerModal from '@/components/ui/BarcodeScannerModal';
 
 export default function StokOpnameDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -22,6 +23,33 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
   // State inline edit per baris
   const [editingDetailId, setEditingDetailId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState({ jumlah_fisik: '', kondisi_fisik: '', keterangan: '' });
+
+  // Barcode scanner
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [highlightedDetailId, setHighlightedDetailId] = useState<number | null>(null);
+  const rowRefs = useRef<Record<number, HTMLTableRowElement | null>>({});
+
+  const handleScanResult = (scanned: string) => {
+    if (!data?.detail) return;
+    const code = scanned.trim();
+    const found = data.detail.find((item: any) =>
+      item.kode_barang === code || item.kode_barang?.toLowerCase() === code.toLowerCase()
+    );
+    if (!found) {
+      // Not found — beri visual feedback saja
+      setHighlightedDetailId(-1);
+      setTimeout(() => setHighlightedDetailId(null), 2000);
+      return;
+    }
+    // Scroll to row & open edit
+    setHighlightedDetailId(found.id);
+    setEditingDetailId(found.id);
+    setEditForm({ jumlah_fisik: found.jumlah_fisik?.toString() ?? '', kondisi_fisik: found.kondisi_fisik ?? '', keterangan: found.keterangan ?? '' });
+    setTimeout(() => {
+      rowRefs.current[found.id]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+    setTimeout(() => setHighlightedDetailId(null), 3000);
+  };
 
   // Ambil data awal + session detail
   useEffect(() => {
@@ -237,9 +265,27 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
 
       {/* Tabel detail items */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-100">
+        <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
           <h2 className="font-semibold text-slate-700">Daftar Barang</h2>
+          {canEdit && data.status === 'Berjalan' && (
+            <button
+              onClick={() => setIsScannerOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-xs font-bold hover:bg-amber-100 transition-colors"
+            >
+              <span className="material-icons-round text-[16px]">photo_camera</span>
+              Scan Barcode
+            </button>
+          )}
         </div>
+
+        {/* Not found feedback */}
+        {highlightedDetailId === -1 && (
+          <div className="mx-4 mt-3 px-3 py-2 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
+            <span className="material-icons-round text-red-500 text-[16px]">search_off</span>
+            <span className="text-xs text-red-600 font-medium">Kode barang tidak ditemukan dalam sesi ini.</span>
+          </div>
+        )}
+
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -259,9 +305,18 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
                 const isEditing = editingDetailId === item.id;
                 const hasData = item.jumlah_fisik !== null;
                 const selisih = hasData ? (item.jumlah_fisik - item.jumlah_tercatat) : null;
+                const isHighlighted = highlightedDetailId === item.id;
 
                 return (
-                  <tr key={item.id} className={`hover:bg-slate-50 transition-colors ${hasData ? '' : 'bg-amber-50/30'}`}>
+                  <tr
+                    key={item.id}
+                    ref={(el) => { rowRefs.current[item.id] = el; }}
+                    className={`transition-colors duration-300 ${
+                      isHighlighted
+                        ? 'bg-amber-100 ring-2 ring-amber-400 ring-inset'
+                        : hasData ? 'hover:bg-slate-50' : 'bg-amber-50/30 hover:bg-amber-50/60'
+                    }`}
+                  >
                     <td className="px-4 py-3 font-mono text-xs text-slate-500">{item.kode_barang}</td>
                     <td className="px-4 py-3 font-medium text-slate-800">{item.nama_barang}</td>
                     <td className="px-4 py-3 text-slate-500 text-xs">{item.nama_kategori}</td>
@@ -420,6 +475,18 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
           />
         );
       })()}
+
+      {/* Barcode Scanner — scan kode barang → scroll & buka edit baris */}
+      <BarcodeScannerModal
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onScanSuccess={(scanned) => {
+          setIsScannerOpen(false);
+          handleScanResult(scanned);
+        }}
+        title="Scan Barcode Stok Opname"
+        hint="Scan barcode pada barang untuk langsung membuka baris editnya di sesi ini."
+      />
     </div>
   );
 }
