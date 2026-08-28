@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     if (type === 'sublokasi') {
       // Satellite lock: satelit role hanya bisa lihat sublokasi miliknya
       const rawSatelitId = searchParams.get('satelit_id');
-      const satelitId = caller.satelit_id
+      const satelitId = (!caller.is_super_admin && caller.satelit_id)
         ? caller.satelit_id
         : (rawSatelitId ? parseInt(rawSatelitId, 10) : undefined);
       const data = canManageMaster(caller) && all

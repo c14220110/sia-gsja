@@ -25,8 +25,8 @@ export async function GET(request: NextRequest) {
     const limit               = isExport ? 5000 : Math.min(parseInt(searchParams.get('limit') ?? '10'), 100);
     const offset              = isExport ? 0 : parseInt(searchParams.get('offset') ?? '0');
 
-    // Satellite lock: jika caller punya satelit_id (role satelit), paksa filter ke satelitnya
-    const lokasi_satelit_id = caller.satelit_id
+    // Satellite lock: hanya untuk non-super-admin yang punya satelit_id
+    const lokasi_satelit_id = (!caller.is_super_admin && caller.satelit_id)
       ? caller.satelit_id.toString()
       : (searchParams.get('lokasi_satelit_id') || undefined);
     const pemilik_satelit_id = searchParams.get('pemilik_satelit_id') || undefined;

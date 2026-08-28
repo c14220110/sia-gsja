@@ -14,8 +14,8 @@ export async function GET(request: NextRequest) {
 
   try {
     const { searchParams } = new URL(request.url);
-    // Satellite lock
-    const lokasi_satelit_id = caller.satelit_id
+    // Satellite lock: hanya untuk non-super-admin yang punya satelit_id
+    const lokasi_satelit_id = (!caller.is_super_admin && caller.satelit_id)
       ? caller.satelit_id.toString()
       : (searchParams.get('lokasi_satelit_id') || undefined);
     const kategori_id = searchParams.get('kategori_id') || undefined;
