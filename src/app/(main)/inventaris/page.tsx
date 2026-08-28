@@ -59,6 +59,8 @@ export default function InventarisPage() {
   const [filterKondisi, setFilterKondisi] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterAktivaTetap, setFilterAktivaTetap] = useState('');
+  const [stats, setStats] = useState<{ total: number; kondisi_baik: number; perlu_perhatian: number; total_nilai: number } | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
   const [exportModal, setExportModal] = useState<{
     open: boolean;
     satelit: string; kategori: string; kondisi: string; status: string; aktivaTetap: string;
@@ -162,8 +164,9 @@ export default function InventarisPage() {
         if (satelitData.success) setSatelitOptions(satelitData.data);
         if (authData) {
           setUserData(authData);
-          if (authData.role_name?.toUpperCase().includes('SATELIT')) {
-            setFilterSatelit(authData.satelit_id?.toString() || '');
+          // Satellite lock: jika user punya satelit_id, auto-set filter ke satelit mereka
+          if (authData.satelit_id) {
+            setFilterSatelit(authData.satelit_id.toString());
           }
         }
       } catch (error) {
@@ -225,6 +228,24 @@ export default function InventarisPage() {
     fetchData();
   }, [debouncedSearch, filterKategori, filterSatelit, filterKondisi, filterStatus, filterAktivaTetap, currentPage]);
 
+  // Fetch stats untuk KPI cards (hanya saat satelit/kategori berubah)
+  useEffect(() => {
+    if (!userData) return;
+    const fetchStats = async () => {
+      setStatsLoading(true);
+      try {
+        const q = new URLSearchParams();
+        if (filterSatelit) q.append('lokasi_satelit_id', filterSatelit);
+        if (filterKategori) q.append('kategori_id', filterKategori);
+        const res = await fetch(`/api/inventaris/stats?${q.toString()}`);
+        const result = await res.json();
+        if (result.success) setStats(result.data);
+      } catch { /* silent fail — cards show skeleton */ }
+      setStatsLoading(false);
+    };
+    fetchStats();
+  }, [userData, filterSatelit, filterKategori]);
+
   const confirmDelete = async () => {
     const { id } = alertState;
     if (!id) return;
@@ -280,6 +301,125 @@ export default function InventarisPage() {
         </div>
 
 
+      {/* ── KPI Dashboard Cards ─────────────────────────────────────────── */}
+      {hasPermission('inventaris_view') && (() => {
+        const fmt = (n: number) => {
+          if (n >= 1_000_000_000) return `Rp ${(n / 1_000_000_000).toFixed(1)} M`;
+          if (n >= 1_000_000) return `Rp ${(n / 1_000_000).toFixed(1)} Jt`;
+          return `Rp ${n.toLocaleString('id-ID')}`;
+        };
+        const pctBaik = stats && stats.total > 0
+          ? Math.round((stats.kondisi_baik / stats.total) * 100)
+          : null;
+        const cards = [
+          {
+            label: 'Total Barang',
+            value: statsLoading ? '—' : (stats?.total.toLocaleString('id-ID') ?? '—'),
+            sub: filterSatelit
+              ? (satelitOptions.find((s: any) => s.id.toString() === filterSatelit)?.nama_satelit || 'Satelit Terpilih')
+              : 'Semua Satelit',
+            icon: 'inventory_2',
+            iconBg: 'bg-slate-100', iconColor: 'text-slate-600',
+            accent: 'border-l-slate-400',
+          },
+          {
+            label: 'Kondisi Baik',
+            value: statsLoading ? '—' : (stats?.kondisi_baik.toLocaleString('id-ID') ?? '—'),
+            sub: pctBaik !== null ? `${pctBaik}% dari total` : '',
+            icon: 'check_circle',
+            iconBg: 'bg-emerald-100', iconColor: 'text-emerald-600',
+            accent: 'border-l-emerald-400',
+          },
+          {
+            label: 'Perlu Perhatian',
+            value: statsLoading ? '—' : (stats?.perlu_perhatian.toLocaleString('id-ID') ?? '—'),
+            sub: 'Rusak Ringan & Rusak Berat',
+            icon: 'warning',
+            iconBg: 'bg-amber-100', iconColor: 'text-amber-600',
+            accent: 'border-l-amber-400',
+          },
+          {
+            label: 'Total Nilai Aset',
+            value: statsLoading ? '—' : (stats ? fmt(stats.total_nilai) : '—'),
+            sub: 'Akumulasi nilai perolehan',
+            icon: 'payments',
+            iconBg: 'bg-indigo-100', iconColor: 'text-indigo-600',
+            accent: 'border-l-indigo-400',
+          },
+        ];
+        return (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {cards.map((c) => (
+              <div key={c.label} className={`bg-white rounded-xl border border-slate-200 border-l-4 ${c.accent} shadow-sm px-4 py-4 flex items-center gap-3`}>
+                <div className={`w-10 h-10 rounded-lg ${c.iconBg} flex items-center justify-center flex-shrink-0`}>
+                  <span className={`material-icons-round ${c.iconColor} text-[22px]`}>{c.icon}</span>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide leading-none mb-1">{c.label}</p>
+                  <p className={`text-2xl font-black text-slate-800 leading-none ${statsLoading ? 'animate-pulse text-slate-300' : ''}`}>{c.value}</p>
+                  {c.sub && <p className="text-[11px] text-slate-400 mt-0.5 truncate">{c.sub}</p>}
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+
+      {/* ── Category Icon Chip Bar ───────────────────────────────────────── */}
+      {(() => {
+        const VISUAL: Record<string, { icon: string; color: string; bg: string; activeBg: string; activeText: string }> = {
+          '01': { icon: 'landscape',          color: 'text-stone-600',  bg: 'bg-stone-50  border-stone-200',  activeBg: 'bg-stone-600',  activeText: 'text-white' },
+          '02': { icon: 'local_parking',      color: 'text-zinc-600',   bg: 'bg-zinc-50   border-zinc-200',   activeBg: 'bg-zinc-600',   activeText: 'text-white' },
+          '03': { icon: 'church',             color: 'text-slate-600',  bg: 'bg-slate-50  border-slate-200',  activeBg: 'bg-slate-700',  activeText: 'text-white' },
+          '04': { icon: 'directions_car',     color: 'text-sky-700',    bg: 'bg-sky-50    border-sky-200',    activeBg: 'bg-sky-600',    activeText: 'text-white' },
+          '05': { icon: 'speaker',            color: 'text-blue-700',   bg: 'bg-blue-50   border-blue-200',   activeBg: 'bg-blue-600',   activeText: 'text-white' },
+          '06': { icon: 'music_note',         color: 'text-pink-700',   bg: 'bg-pink-50   border-pink-200',   activeBg: 'bg-pink-600',   activeText: 'text-white' },
+          '07': { icon: 'volunteer_activism', color: 'text-purple-700', bg: 'bg-purple-50 border-purple-200', activeBg: 'bg-purple-600', activeText: 'text-white' },
+          '08': { icon: 'bolt',              color: 'text-amber-700',  bg: 'bg-amber-50  border-amber-200',  activeBg: 'bg-amber-500',  activeText: 'text-white' },
+          '09': { icon: 'computer',           color: 'text-indigo-700', bg: 'bg-indigo-50 border-indigo-200', activeBg: 'bg-indigo-600', activeText: 'text-white' },
+          '10': { icon: 'business_center',    color: 'text-teal-700',   bg: 'bg-teal-50   border-teal-200',   activeBg: 'bg-teal-600',   activeText: 'text-white' },
+          '11': { icon: 'chair',             color: 'text-orange-700', bg: 'bg-orange-50 border-orange-200', activeBg: 'bg-orange-600', activeText: 'text-white' },
+          '12': { icon: 'kitchen',           color: 'text-green-700',  bg: 'bg-green-50  border-green-200',  activeBg: 'bg-green-600',  activeText: 'text-white' },
+        };
+        const isAllActive = !filterKategori;
+        return (
+          <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {/* Semua chip */}
+            <button
+              onClick={() => { setFilterKategori(''); setCurrentPage(1); }}
+              className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full border text-xs font-bold transition-all duration-150 ${
+                isAllActive
+                  ? 'bg-emerald-600 border-emerald-600 text-white shadow-md scale-105'
+                  : 'bg-white border-slate-200 text-slate-600 hover:border-emerald-400 hover:text-emerald-700'
+              }`}
+            >
+              <span className="material-icons-round text-[14px]">grid_view</span>
+              <span>Semua</span>
+            </button>
+            {/* 12 kategori chips */}
+            {kategoriOptions.map((kat: any) => {
+              const v = VISUAL[kat.kode] ?? VISUAL['01'];
+              const isActive = filterKategori === kat.id.toString();
+              return (
+                <button
+                  key={kat.id}
+                  onClick={() => { setFilterKategori(isActive ? '' : kat.id.toString()); setCurrentPage(1); }}
+                  title={kat.nama}
+                  className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full border text-xs font-bold transition-all duration-150 ${
+                    isActive
+                      ? `${v.activeBg} border-transparent ${v.activeText} shadow-md scale-105`
+                      : `bg-white border-slate-200 ${v.color} hover:border-current`
+                  }`}
+                >
+                  <span className="material-icons-round text-[14px]">{v.icon}</span>
+                  <span className="max-w-[80px] truncate">{kat.nama.replace('Peralatan ', '').replace('Meubel & Furnitur ', 'Meubel ').replace(' & Rumah Tangga', '')}</span>
+                </button>
+              );
+            })}
+          </div>
+        );
+      })()}
+
       <div className="w-full px-4 py-4 bg-white rounded-xl border border-slate-200 flex flex-wrap items-center gap-4 shadow-sm">
 
         
@@ -312,16 +452,19 @@ export default function InventarisPage() {
 
         {/* Satelit Dropdown */}
         <div className="relative min-w-[200px]">
+          {userData?.satelit_id && (
+            <span className="material-icons-round absolute left-3 top-2.5 text-slate-400 text-[16px] pointer-events-none z-10">lock</span>
+          )}
           <select 
             value={filterSatelit}
             onChange={(e) => { setFilterSatelit(e.target.value); setCurrentPage(1); }}
-            disabled={userData?.role_name?.toUpperCase().includes('SATELIT')}
-            className={`appearance-none w-full pl-4 pr-10 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm ${
-              userData?.role_name?.toUpperCase().includes('SATELIT') ? 'bg-slate-200 cursor-not-allowed opacity-70' : 'bg-slate-50 cursor-pointer'
+            disabled={!!userData?.satelit_id}
+            className={`appearance-none w-full pr-10 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm ${
+              userData?.satelit_id ? 'bg-slate-100 cursor-not-allowed opacity-80 pl-9' : 'bg-slate-50 cursor-pointer pl-4'
             }`}
           >
-            {!userData?.role_name?.toUpperCase().includes('SATELIT') && <option value="">Semua Satelit (Lokasi)</option>}
-            {satelitOptions.map((satelit) => (
+            {!userData?.satelit_id && <option value="">Semua Satelit (Lokasi)</option>}
+            {satelitOptions.map((satelit: any) => (
               <option key={satelit.id} value={satelit.id}>{satelit.nama_satelit}</option>
             ))}
           </select>

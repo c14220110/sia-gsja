@@ -201,6 +201,49 @@ export class InventarisRepository {
     return { ok: (result.rowCount ?? 0) > 0 };
   }
 
+  async getSublokasiById(id: number): Promise<{ id: number; satelit_id: number; nama: string } | null> {
+    const res = await pool.query(`SELECT id, satelit_id, nama FROM master_sublokasi WHERE id = $1`, [id]);
+    return res.rows[0] ?? null;
+  }
+
+  /** Stats untuk KPI cards — filter-aware */
+  async getInventarisStats(params: {
+    lokasi_satelit_id?: string;
+    kategori_id?: string;
+  }): Promise<{ total: number; kondisi_baik: number; perlu_perhatian: number; total_nilai: number }> {
+    const conditions: string[] = ['b.is_deleted = false', "b.status != 'Disposed'"];
+    const values: any[] = [];
+    let idx = 1;
+
+    if (params.lokasi_satelit_id) {
+      conditions.push(`b.lokasi_satelit_id = $${idx++}`);
+      values.push(parseInt(params.lokasi_satelit_id, 10));
+    }
+    if (params.kategori_id) {
+      conditions.push(`b.kategori_id = $${idx++}`);
+      values.push(parseInt(params.kategori_id, 10));
+    }
+
+    const where = conditions.join(' AND ');
+    const sql = `
+      SELECT
+        COUNT(*)                                                          AS total,
+        COUNT(*) FILTER (WHERE b.kondisi = 'Baik')                       AS kondisi_baik,
+        COUNT(*) FILTER (WHERE b.kondisi IN ('Rusak Ringan','Rusak Berat')) AS perlu_perhatian,
+        COALESCE(SUM(b.nilai_perolehan), 0)                              AS total_nilai
+      FROM barang b
+      WHERE ${where}
+    `;
+    const res = await pool.query(sql, values);
+    const row = res.rows[0];
+    return {
+      total:            parseInt(row.total, 10),
+      kondisi_baik:     parseInt(row.kondisi_baik, 10),
+      perlu_perhatian:  parseInt(row.perlu_perhatian, 10),
+      total_nilai:      parseFloat(row.total_nilai),
+    };
+  }
+
   // ── Generate Kode Barang (ATOMIC via counter table) ───────
   // Format: INV-{tahun}-{kode_kategori}-{nomor_urut_4digit}
   // Nomor urut GLOBAL per kategori per tahun

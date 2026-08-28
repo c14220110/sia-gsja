@@ -15,17 +15,21 @@ export async function GET(request: NextRequest) {
 
   try {
     const { searchParams } = new URL(request.url);
-    const search          = searchParams.get('search') || undefined;
-    const kategori_id     = searchParams.get('kategori_id') || undefined;
-    const lokasi_satelit_id = searchParams.get('lokasi_satelit_id') || undefined;
+    const search              = searchParams.get('search') || undefined;
+    const kategori_id         = searchParams.get('kategori_id') || undefined;
     const lokasi_sublokasi_id = searchParams.get('lokasi_sublokasi_id') || undefined;
+    const kondisi             = searchParams.get('kondisi') || undefined;
+    const status              = searchParams.get('status') || undefined;
+    const is_aktiva_tetap     = searchParams.get('is_aktiva_tetap') || undefined;
+    const isExport            = searchParams.get('export') === 'true';
+    const limit               = isExport ? 5000 : Math.min(parseInt(searchParams.get('limit') ?? '10'), 100);
+    const offset              = isExport ? 0 : parseInt(searchParams.get('offset') ?? '0');
+
+    // Satellite lock: jika caller punya satelit_id (role satelit), paksa filter ke satelitnya
+    const lokasi_satelit_id = caller.satelit_id
+      ? caller.satelit_id.toString()
+      : (searchParams.get('lokasi_satelit_id') || undefined);
     const pemilik_satelit_id = searchParams.get('pemilik_satelit_id') || undefined;
-    const kondisi         = searchParams.get('kondisi') || undefined;
-    const status          = searchParams.get('status') || undefined;
-    const is_aktiva_tetap = searchParams.get('is_aktiva_tetap') || undefined;
-    const isExport        = searchParams.get('export') === 'true';
-    const limit           = isExport ? 5000 : Math.min(parseInt(searchParams.get('limit') ?? '10'), 100);
-    const offset          = isExport ? 0 : parseInt(searchParams.get('offset') ?? '0');
 
     const { data, total } = await inventarisRepository.getBarangPagination({
       search, kategori_id, lokasi_satelit_id, lokasi_sublokasi_id,
