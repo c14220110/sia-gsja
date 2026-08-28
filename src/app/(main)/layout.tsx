@@ -428,23 +428,37 @@ export default function DashboardLayout({
               ) */}
 
               {hasPermission('inventaris_view') && (
-              <div
-                className={`w-full px-4 py-3 rounded-lg flex justify-between items-center cursor-pointer transition-colors ${
-                  pathname.includes('/inventaris') ? 'bg-white/10' : 'hover:bg-white/5'
-                }`}
-                onMouseEnter={(e) => handleMouseEnterMenu('inventaris', e)}
-                onMouseLeave={handleMouseLeaveMenu}
-              >
-                <div className="flex justify-start items-center gap-4">
-                  <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
-                    <span className={`material-icons-round text-[20px] ${pathname.includes('/inventaris') ? 'text-white' : 'text-slate-300'}`}>inventory_2</span>
+              <div className="w-full">
+                <div
+                  className={`w-full px-4 py-3 rounded-lg flex justify-between items-center cursor-pointer transition-colors ${
+                    pathname.includes('/inventaris') ? 'bg-white/10' : 'hover:bg-white/5'
+                  }`}
+                  onMouseEnter={(e) => handleMouseEnterMenu('inventaris', e)}
+                  onMouseLeave={handleMouseLeaveMenu}
+                  onClick={() => toggleMobileMenu('inventaris')}
+                >
+                  <div className="flex justify-start items-center gap-4">
+                    <div className="w-6 flex flex-col justify-center items-center flex-shrink-0">
+                      <span className={`material-icons-round text-[20px] ${pathname.includes('/inventaris') ? 'text-white' : 'text-slate-300'}`}>inventory_2</span>
+                    </div>
+                    <div className="flex flex-col justify-start items-start opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 w-auto md:w-0 md:group-hover:w-auto overflow-hidden whitespace-nowrap">
+                      <div className={`h-5 justify-center text-sm font-sans leading-5 ${pathname.includes('/inventaris') ? 'text-white font-semibold' : 'text-slate-200 font-medium'}`}>Inventaris</div>
+                    </div>
                   </div>
-                  <div className="flex flex-col justify-start items-start opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 w-auto md:w-0 md:group-hover:w-auto overflow-hidden whitespace-nowrap">
-                    <div className={`h-5 justify-center text-sm font-sans leading-5 ${pathname.includes('/inventaris') ? 'text-white font-semibold' : 'text-slate-200 font-medium'}`}>Inventaris</div>
+                  <div className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">
+                    <span className="material-icons-round text-slate-400 text-[16px]">chevron_right</span>
                   </div>
                 </div>
-                <div className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">
-                  <span className="material-icons-round text-slate-400 text-[16px]">chevron_right</span>
+                {/* Mobile Accordion */}
+                <div className={`md:hidden overflow-hidden transition-all duration-300 ${mobileExpandedMenus['inventaris'] ? 'max-h-96 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
+                  <div className="pl-14 pr-4 py-2 flex flex-col gap-4">
+                    <Link href="/inventaris" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Daftar Barang</Link>
+                    {hasPermission('inventaris_stok_opname') && <Link href="/inventaris/stok-opname" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Stok Opname</Link>}
+                    {hasPermission('inventaris_manage') && <Link href="/inventaris/master-data" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Master Data</Link>}
+                    {hasPermission('inventaris_mutasi') && <Link href="/inventaris/mutasi" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Mutasi Barang</Link>}
+                    {hasPermission('inventaris_peminjaman') && <Link href="/inventaris/peminjaman" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Peminjaman Barang</Link>}
+                    {hasPermission('inventaris_dispose') && <Link href="/inventaris/dispose" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Dispose Barang</Link>}
+                  </div>
                 </div>
               </div>
               )}
