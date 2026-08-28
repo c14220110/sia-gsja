@@ -62,6 +62,19 @@ export async function PUT(
       if (detail_id === undefined || jumlah_fisik === undefined) {
         return NextResponse.json({ success: false, message: 'detail_id dan jumlah_fisik wajib diisi' }, { status: 400 });
       }
+
+      // ── Lock check: hanya bisa edit saat sesi Berjalan ──
+      const session = await repo.getStokOpnameById(sessionId);
+      if (!session) {
+        return NextResponse.json({ success: false, message: 'Sesi tidak ditemukan' }, { status: 404 });
+      }
+      if (session.status !== 'Berjalan') {
+        return NextResponse.json({
+          success: false,
+          message: `Sesi sudah ${session.status}. Tidak dapat mengubah data yang sudah diverifikasi.`
+        }, { status: 403 });
+      }
+
       const ok = await repo.updateStokOpnameDetail({
         detail_id: parseInt(detail_id, 10),
         jumlah_fisik: parseInt(jumlah_fisik, 10),

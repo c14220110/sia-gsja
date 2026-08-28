@@ -263,6 +263,20 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
         </div>
       )}
 
+      {/* Status info banners */}
+      {data.status === 'Berjalan' && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-700">
+          <span className="material-icons-round text-[18px] flex-shrink-0">info</span>
+          <span>Sesi ini <strong>dapat dilanjutkan kapan saja</strong>. Progress tersimpan otomatis — tutup halaman dan kembali lagi besok, data tetap aman.</span>
+        </div>
+      )}
+      {data.status === 'Selesai' && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl text-sm text-slate-600">
+          <span className="material-icons-round text-[18px] flex-shrink-0">lock</span>
+          <span>Sesi ini sudah <strong>diverifikasi dan dikunci</strong>. Data tidak dapat diubah. Buat sesi baru jika perlu opname ulang.</span>
+        </div>
+      )}
+
       {/* Tabel detail items */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
