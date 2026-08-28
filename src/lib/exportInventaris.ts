@@ -32,8 +32,35 @@ function downloadBuffer(buf: ArrayBuffer, filename: string) {
   URL.revokeObjectURL(url);
 }
 
+// ─── Column definitions for Inventaris export ─────────────────────────────────
+const COL_DEFS = [
+  { key: 'kode',     header: 'Kode Barang',     width: 22, getValue: (i: any) => i.kode_barang, align: 'left' },
+  { key: 'nama',     header: 'Nama Barang',      width: 35, getValue: (i: any) => i.nama, align: 'left' },
+  { key: 'kategori', header: 'Kategori',          width: 20, getValue: (i: any) => i.nama_kategori || '-', align: 'left' },
+  { key: 'tipe',     header: 'Tipe',              width: 13, getValue: (i: any) => i.tipe_barang === 'satuan' ? 'Aset Satuan' : 'Stok Massal', align: 'center' },
+  { key: 'merk_seri',header: 'Merk / No. Seri',  width: 20, getValue: (i: any) => [i.merk, i.no_seri].filter(Boolean).join(' / ') || '-', align: 'left' },
+  { key: 'jumlah',   header: 'Jml',               width: 8,  getValue: (i: any) => i.jumlah, align: 'center' },
+  { key: 'kondisi',  header: 'Kondisi',            width: 14, getValue: (i: any) => i.kondisi, align: 'center',
+    colorFn: (i: any) => i.kondisi === 'Baik' ? GREEN : i.kondisi === 'Rusak Ringan' ? AMBER : RED },
+  { key: 'status',   header: 'Status',             width: 13, getValue: (i: any) => i.status, align: 'center',
+    colorFn: (i: any) => i.status === 'Aktif' ? BLUE : i.status === 'Dipinjam' ? INDIGO : i.status === 'Disposed' ? RED : SLATE_500 },
+  { key: 'lokasi',   header: 'Lokasi',             width: 25, getValue: (i: any) => [i.lokasi_nama_satelit, i.lokasi_nama_sublokasi].filter(Boolean).join(' › ') || '-', align: 'left' },
+  { key: 'pemilik',  header: 'Pemilik',            width: 20, getValue: (i: any) => i.pemilik_nama || '-', align: 'left' },
+  { key: 'nilai',    header: 'Nilai Perolehan',    width: 18, getValue: (i: any) => i.nilai_perolehan || 0, align: 'right', numFmt: '"Rp "#,##0' },
+  { key: 'tahun',    header: 'Tahun Perolehan',    width: 14, getValue: (i: any) => i.tahun_perolehan || '-', align: 'center' },
+];
+
+export const DEFAULT_EXPORT_COLUMNS = ['kode','nama','kategori','tipe','merk_seri','jumlah','kondisi','status','lokasi','pemilik','nilai'];
+
 // ─── EXPORT: Daftar Inventaris Barang ─────────────────────────────────────────
-export async function exportInventarisToExcel(data: any[], filterLabel = 'Semua Data') {
+export async function exportInventarisToExcel(
+  data: any[],
+  filterLabel = 'Semua Data',
+  options?: { columns?: string[]; fileName?: string }
+) {
+  const activeCols = COL_DEFS.filter(c => !options?.columns || options.columns.includes(c.key));
+  const colCount = activeCols.length + 1; // +1 for No. column
+
   const ExcelJS = (await import('exceljs')).default;
   const wb = new ExcelJS.Workbook();
   wb.creator = 'SIM GSJA';
@@ -43,10 +70,11 @@ export async function exportInventarisToExcel(data: any[], filterLabel = 'Semua 
     pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true }
   });
 
-  // Column widths: No | Kode | Nama | Kategori | Tipe | Merk | Jml | Kondisi | Status | Lokasi | Pemilik | Nilai
-  [5, 22, 35, 20, 12, 18, 8, 14, 12, 22, 20, 18].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+  // Dynamic column widths: No. + each active col
+  ws.getColumn(1).width = 5;
+  activeCols.forEach((col, i) => { ws.getColumn(i + 2).width = col.width; });
 
-  const cell = (addr: string) => ws.getCell(addr);
+  const lastCol = String.fromCharCode(64 + colCount); // A=65
   const fill = (c: any, bg: string, fc: string, bold = true, sz = 11) => {
     c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
     c.font  = { bold, color: { argb: fc }, size: sz, name: 'Calibri' };
@@ -60,49 +88,30 @@ export async function exportInventarisToExcel(data: any[], filterLabel = 'Semua 
   };
 
   // ── Title ──
-  ws.mergeCells('A1:L1');
-  fill(cell('A1'), SLATE, WHITE, true, 16);
-  cell('A1').value = 'DAFTAR INVENTARIS BARANG — GSJA';
+  ws.mergeCells(`A1:${lastCol}1`);
+  fill(ws.getCell('A1'), SLATE, WHITE, true, 16);
+  ws.getCell('A1').value = 'DAFTAR INVENTARIS BARANG — GSJA';
   ws.getRow(1).height = 36;
 
-  ws.mergeCells('A2:L2');
-  fill(cell('A2'), INDIGO, WHITE, false, 11);
-  cell('A2').value = `Filter: ${filterLabel}   |   Diekspor: ${dateStr()}   |   Total: ${data.length} barang`;
+  ws.mergeCells(`A2:${lastCol}2`);
+  fill(ws.getCell('A2'), INDIGO, WHITE, false, 11);
+  ws.getCell('A2').value = `Filter: ${filterLabel}   |   Diekspor: ${dateStr()}   |   Total: ${data.length} barang`;
   ws.getRow(2).height = 22;
 
   ws.addRow([]); // spacer row 3
 
   // ── Header row ──
-  const HEADERS = ['No', 'Kode Barang', 'Nama Barang', 'Kategori', 'Tipe', 'Merk / No. Seri', 'Jml', 'Kondisi', 'Status', 'Lokasi', 'Pemilik', 'Nilai Perolehan'];
-  const hRow = ws.addRow(HEADERS);
+  const hRow = ws.addRow(['No', ...activeCols.map(c => c.header)]);
   hRow.height = 26;
   hRow.eachCell((c) => fill(c, SLATE, WHITE, true, 10));
 
   // ── Data rows ──
   data.forEach((item, idx) => {
-    const isOdd = idx % 2 === 0;
-    const rowBg = isOdd ? 'f8fafc' : 'ffffff';
-
-    const lokasi = [item.lokasi_nama_satelit, item.lokasi_nama_sublokasi].filter(Boolean).join(' › ');
-    const merk = [item.merk, item.no_seri].filter(Boolean).join(' / ') || '-';
-    const tipe = item.tipe_barang === 'satuan' ? 'Aset Satuan' : 'Stok Massal';
-
-    const row = ws.addRow([
-      idx + 1,
-      item.kode_barang,
-      item.nama,
-      item.nama_kategori || '-',
-      tipe,
-      merk,
-      item.jumlah,
-      item.kondisi,
-      item.status,
-      lokasi || '-',
-      item.pemilik_nama || '-',
-      item.nilai_perolehan || 0,
-    ]);
-
+    const rowBg = idx % 2 === 0 ? 'f8fafc' : 'ffffff';
+    const rowData = [idx + 1, ...activeCols.map(c => c.getValue(item))];
+    const row = ws.addRow(rowData);
     row.height = 20;
+
     row.eachCell((c, colNum) => {
       c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowBg } };
       c.font = { name: 'Calibri', size: 10, color: { argb: SLATE } };
@@ -112,26 +121,20 @@ export async function exportInventarisToExcel(data: any[], filterLabel = 'Semua 
         left: { style: 'thin', color: { argb: 'e2e8f0' } },
         right: { style: 'thin', color: { argb: 'e2e8f0' } },
       };
-      c.alignment = { vertical: 'middle', wrapText: false };
 
-      if (colNum === 1) c.alignment = { horizontal: 'center', vertical: 'middle' };
-      if (colNum === 7) c.alignment = { horizontal: 'center', vertical: 'middle' };
-
-      if (colNum === 12) {
-        c.numFmt = '"Rp "#,##0';
-        c.alignment = { horizontal: 'right', vertical: 'middle' };
+      if (colNum === 1) {
+        c.alignment = { horizontal: 'center', vertical: 'middle' };
+        return;
       }
 
-      // Status badge color
-      if (colNum === 9) {
-        const color = item.status === 'Aktif' ? BLUE : item.status === 'Dipinjam' ? INDIGO : item.status === 'Disposed' ? RED : SLATE_500;
-        c.font = { name: 'Calibri', size: 10, color: { argb: color }, bold: true };
-      }
+      const colDef = activeCols[colNum - 2];
+      if (!colDef) return;
 
-      // Kondisi color
-      if (colNum === 8) {
-        const color = item.kondisi === 'Baik' ? GREEN : item.kondisi === 'Rusak Ringan' ? AMBER : RED;
-        c.font = { name: 'Calibri', size: 10, color: { argb: color }, bold: true };
+      c.alignment = { vertical: 'middle', horizontal: (colDef.align as any) || 'left', wrapText: false };
+      if (colDef.numFmt) c.numFmt = colDef.numFmt;
+      if (colDef.colorFn) {
+        const clr = colDef.colorFn(item);
+        c.font = { name: 'Calibri', size: 10, color: { argb: clr }, bold: true };
       }
     });
   });
@@ -139,11 +142,15 @@ export async function exportInventarisToExcel(data: any[], filterLabel = 'Semua 
   // ── Footer ──
   ws.addRow([]);
   const footerRow = ws.addRow([`Diekspor dari SIM GSJA — ${dateStr()}`]);
-  ws.mergeCells(`A${footerRow.number}:L${footerRow.number}`);
+  ws.mergeCells(`A${footerRow.number}:${lastCol}${footerRow.number}`);
   footerRow.getCell(1).font = { name: 'Calibri', size: 9, color: { argb: SLATE_500 }, italic: true };
 
+  const fileName = options?.fileName
+    ? (options.fileName.endsWith('.xlsx') ? options.fileName : `${options.fileName}.xlsx`)
+    : `Inventaris_GSJA_${fileDate()}.xlsx`;
+
   const buf = await wb.xlsx.writeBuffer();
-  downloadBuffer(buf, `Inventaris_GSJA_${fileDate()}.xlsx`);
+  downloadBuffer(buf, fileName);
 }
 
 // ─── EXPORT: Hasil Stok Opname ────────────────────────────────────────────────

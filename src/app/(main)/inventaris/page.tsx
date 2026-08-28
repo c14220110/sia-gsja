@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
 import { AlertModal } from '@/components/ui/AlertModal';
 import QRCodeModal from '@/components/ui/QRCodeModal';
-import { exportInventarisToExcel } from '@/lib/exportInventaris';
+import { exportInventarisToExcel, DEFAULT_EXPORT_COLUMNS } from '@/lib/exportInventaris';
 
 /** Converts stored R2 public URL to our authenticated proxy URL */
 function fotoUrlToProxy(url: string | null | undefined): string | null {
@@ -59,38 +59,90 @@ export default function InventarisPage() {
   const [filterKondisi, setFilterKondisi] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterAktivaTetap, setFilterAktivaTetap] = useState('');
-  const [isExporting, setIsExporting] = useState(false);
+  const [exportModal, setExportModal] = useState<{
+    open: boolean;
+    satelit: string; kategori: string; kondisi: string; status: string; aktivaTetap: string;
+    columns: string[]; fileName: string;
+    previewCount: number | null; previewLoading: boolean; isExporting: boolean;
+  }>({
+    open: false, satelit: '', kategori: '', kondisi: '', status: '', aktivaTetap: '',
+    columns: [...DEFAULT_EXPORT_COLUMNS],
+    fileName: `Inventaris_GSJA_${new Date().toISOString().split('T')[0]}`,
+    previewCount: null, previewLoading: false, isExporting: false,
+  });
 
-  const handleExportExcel = async () => {
-    setIsExporting(true);
+  const openExportModal = () => {
+    // Pre-fill with current page filters
+    setExportModal(prev => ({
+      ...prev,
+      open: true,
+      satelit: filterSatelit,
+      kategori: filterKategori,
+      kondisi: filterKondisi === 'Semua' ? '' : filterKondisi,
+      status: filterStatus === 'Semua' ? '' : filterStatus,
+      aktivaTetap: filterAktivaTetap,
+      previewCount: null, previewLoading: false, isExporting: false,
+    }));
+  };
+
+  const fetchExportPreview = async (modal: typeof exportModal) => {
+    setExportModal(prev => ({ ...prev, previewLoading: true }));
     try {
-      const queryParams = new URLSearchParams();
-      if (debouncedSearch) queryParams.append('search', debouncedSearch);
-      if (filterKategori) queryParams.append('kategori_id', filterKategori);
-      if (filterSatelit) queryParams.append('lokasi_satelit_id', filterSatelit);
-      if (filterKondisi && filterKondisi !== 'Semua') queryParams.append('kondisi', filterKondisi);
-      if (filterStatus && filterStatus !== 'Semua') queryParams.append('status', filterStatus);
-      if (filterAktivaTetap) queryParams.append('is_aktiva_tetap', filterAktivaTetap);
-      queryParams.append('export', 'true');
-
-      const res = await fetch(`/api/inventaris?${queryParams.toString()}`);
+      const q = new URLSearchParams({ limit: '1', offset: '0' });
+      if (modal.satelit) q.append('lokasi_satelit_id', modal.satelit);
+      if (modal.kategori) q.append('kategori_id', modal.kategori);
+      if (modal.kondisi) q.append('kondisi', modal.kondisi);
+      if (modal.status) q.append('status', modal.status);
+      if (modal.aktivaTetap) q.append('is_aktiva_tetap', modal.aktivaTetap);
+      const res = await fetch(`/api/inventaris?${q.toString()}`);
       const result = await res.json();
-      if (result.success) {
-        // Build filter label for Excel header
-        const parts: string[] = [];
-        if (debouncedSearch) parts.push(`Pencarian: "${debouncedSearch}"`);
-        if (filterKategori) parts.push(`Kategori: ${kategoriOptions.find((k: any) => k.id.toString() === filterKategori)?.nama || filterKategori}`);
-        if (filterSatelit) parts.push(`Satelit: ${satelitOptions.find((s: any) => s.id.toString() === filterSatelit)?.nama_satelit || filterSatelit}`);
-        if (filterKondisi && filterKondisi !== 'Semua') parts.push(`Kondisi: ${filterKondisi}`);
-        if (filterStatus && filterStatus !== 'Semua') parts.push(`Status: ${filterStatus}`);
-        const filterLabel = parts.length > 0 ? parts.join(', ') : 'Semua Data';
-        await exportInventarisToExcel(result.data, filterLabel);
-      }
+      setExportModal(prev => ({ ...prev, previewCount: result.success ? result.meta.total : null, previewLoading: false }));
+    } catch {
+      setExportModal(prev => ({ ...prev, previewCount: null, previewLoading: false }));
+    }
+  };
+
+  const doExport = async () => {
+    setExportModal(prev => ({ ...prev, isExporting: true }));
+    try {
+      const q = new URLSearchParams({ export: 'true' });
+      if (exportModal.satelit) q.append('lokasi_satelit_id', exportModal.satelit);
+      if (exportModal.kategori) q.append('kategori_id', exportModal.kategori);
+      if (exportModal.kondisi) q.append('kondisi', exportModal.kondisi);
+      if (exportModal.status) q.append('status', exportModal.status);
+      if (exportModal.aktivaTetap) q.append('is_aktiva_tetap', exportModal.aktivaTetap);
+
+      const res = await fetch(`/api/inventaris?${q.toString()}`);
+      const result = await res.json();
+      if (!result.success) throw new Error(result.message);
+
+      const parts: string[] = [];
+      if (exportModal.satelit) parts.push(satelitOptions.find((s: any) => s.id.toString() === exportModal.satelit)?.nama_satelit || 'Satelit');
+      if (exportModal.kategori) parts.push(kategoriOptions.find((k: any) => k.id.toString() === exportModal.kategori)?.nama || 'Kategori');
+      if (exportModal.kondisi) parts.push(`Kondisi: ${exportModal.kondisi}`);
+      if (exportModal.status) parts.push(`Status: ${exportModal.status}`);
+      if (exportModal.aktivaTetap === 'true') parts.push('Aktiva Tetap');
+      else if (exportModal.aktivaTetap === 'false') parts.push('Non-Aktiva');
+      const filterLabel = parts.length > 0 ? parts.join(' · ') : 'Semua Data';
+
+      await exportInventarisToExcel(result.data, filterLabel, {
+        columns: exportModal.columns,
+        fileName: exportModal.fileName,
+      });
+      setExportModal(prev => ({ ...prev, open: false, isExporting: false }));
     } catch (error) {
       console.error('Export failed', error);
-    } finally {
-      setIsExporting(false);
+      setExportModal(prev => ({ ...prev, isExporting: false }));
     }
+  };
+
+  const toggleExportColumn = (key: string) => {
+    setExportModal(prev => ({
+      ...prev,
+      columns: prev.columns.includes(key)
+        ? prev.columns.filter(c => c !== key)
+        : [...prev.columns, key],
+    }));
   };
 
   useEffect(() => {
@@ -211,17 +263,11 @@ export default function InventarisPage() {
           <div className="flex items-center gap-3">
             {hasPermission('inventaris_view') && (
               <button
-                onClick={handleExportExcel}
-                disabled={isExporting}
-                className="px-4 py-2.5 bg-white border border-slate-200 rounded-lg flex justify-start items-center gap-2 hover:bg-emerald-50 hover:border-emerald-300 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                onClick={openExportModal}
+                className="px-4 py-2.5 bg-white border border-slate-200 rounded-lg flex justify-start items-center gap-2 hover:bg-emerald-50 hover:border-emerald-300 transition-colors shadow-sm"
               >
-                {isExporting
-                  ? <span className="material-icons-round text-emerald-600 text-[20px] animate-spin">sync</span>
-                  : <span className="material-icons-round text-emerald-600 text-[20px]">table_view</span>
-                }
-                <span className="text-slate-700 text-sm font-bold font-sans leading-5">
-                  {isExporting ? 'Mengekspor...' : 'Export Excel'}
-                </span>
+                <span className="material-icons-round text-emerald-600 text-[20px]">table_view</span>
+                <span className="text-slate-700 text-sm font-bold font-sans leading-5">Export Excel</span>
               </button>
             )}
             {hasPermission('inventaris_manage') && (
@@ -591,6 +637,190 @@ export default function InventarisPage() {
           qrValue={qrItem.kode_barang}
           subtitle={qrItem.nama_kategori}
         />
+      )}
+
+      {/* ═══ Export Excel Modal ════════════════════════════════════════════════ */}
+      {exportModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setExportModal(p => ({ ...p, open: false }))}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 bg-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <span className="material-icons-round text-emerald-600 text-[20px]">table_view</span>
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-800">Export Data Inventaris</h3>
+                  <p className="text-xs text-slate-400">Atur filter dan pilih kolom sebelum mengunduh</p>
+                </div>
+              </div>
+              <button onClick={() => setExportModal(p => ({ ...p, open: false }))} className="text-slate-400 hover:text-slate-600 transition-colors">
+                <span className="material-icons-round">close</span>
+              </button>
+            </div>
+
+            {/* Scrollable body */}
+            <div className="overflow-y-auto flex-1 px-6 py-5 flex flex-col gap-5">
+
+              {/* Section 1: Filter */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="material-icons-round text-slate-400 text-[16px]">filter_list</span>
+                  <h4 className="text-sm font-bold text-slate-700">Filter Data</h4>
+                  <span className="text-xs text-slate-400">(kosong = semua data)</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Satelit / Lokasi</label>
+                    <div className="relative">
+                      <select value={exportModal.satelit} onChange={e => setExportModal(p => ({ ...p, satelit: e.target.value, previewCount: null }))}
+                        className="w-full appearance-none pl-3 pr-8 py-2 text-sm border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white">
+                        <option value="">Semua Satelit</option>
+                        {satelitOptions.map((s: any) => <option key={s.id} value={s.id}>{s.nama_satelit}</option>)}
+                      </select>
+                      <span className="material-icons-round absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-[14px] pointer-events-none">expand_more</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Kategori</label>
+                    <div className="relative">
+                      <select value={exportModal.kategori} onChange={e => setExportModal(p => ({ ...p, kategori: e.target.value, previewCount: null }))}
+                        className="w-full appearance-none pl-3 pr-8 py-2 text-sm border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white">
+                        <option value="">Semua Kategori</option>
+                        {kategoriOptions.map((k: any) => <option key={k.id} value={k.id}>{k.nama}</option>)}
+                      </select>
+                      <span className="material-icons-round absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-[14px] pointer-events-none">expand_more</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Kondisi</label>
+                    <div className="relative">
+                      <select value={exportModal.kondisi} onChange={e => setExportModal(p => ({ ...p, kondisi: e.target.value, previewCount: null }))}
+                        className="w-full appearance-none pl-3 pr-8 py-2 text-sm border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white">
+                        <option value="">Semua Kondisi</option>
+                        <option value="Baik">Baik</option>
+                        <option value="Rusak Ringan">Rusak Ringan</option>
+                        <option value="Rusak Berat">Rusak Berat</option>
+                      </select>
+                      <span className="material-icons-round absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-[14px] pointer-events-none">expand_more</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Status</label>
+                    <div className="relative">
+                      <select value={exportModal.status} onChange={e => setExportModal(p => ({ ...p, status: e.target.value, previewCount: null }))}
+                        className="w-full appearance-none pl-3 pr-8 py-2 text-sm border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white">
+                        <option value="">Semua Status</option>
+                        <option value="Aktif">Aktif</option>
+                        <option value="Dipinjam">Dipinjam</option>
+                        <option value="Dimutasi">Dimutasi</option>
+                        <option value="Disposed">Disposed</option>
+                        <option value="Nonaktif">Nonaktif</option>
+                      </select>
+                      <span className="material-icons-round absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-[14px] pointer-events-none">expand_more</span>
+                    </div>
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-xs font-semibold text-slate-600 mb-2">Jenis Aset</label>
+                    <div className="flex flex-wrap gap-4">
+                      {[{ v: '', l: 'Semua' }, { v: 'true', l: 'Aktiva Tetap (nilai ≥ Rp 3 juta)' }, { v: 'false', l: 'Non-Aktiva Tetap' }].map(opt => (
+                        <label key={opt.v} className="flex items-center gap-2 cursor-pointer">
+                          <input type="radio" name="exportAktivaTetap" value={opt.v} checked={exportModal.aktivaTetap === opt.v}
+                            onChange={e => setExportModal(p => ({ ...p, aktivaTetap: e.target.value, previewCount: null }))} className="accent-emerald-600" />
+                          <span className="text-sm text-slate-700">{opt.l}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t border-slate-100" />
+
+              {/* Section 2: Kolom */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="material-icons-round text-slate-400 text-[16px]">view_column</span>
+                    <h4 className="text-sm font-bold text-slate-700">Kolom yang Disertakan</h4>
+                    <span className="text-xs bg-emerald-100 text-emerald-700 rounded-full px-2 py-0.5">{exportModal.columns.length} kolom</span>
+                  </div>
+                  <div className="flex gap-3 text-xs">
+                    <button onClick={() => setExportModal(p => ({ ...p, columns: [...DEFAULT_EXPORT_COLUMNS] }))} className="text-emerald-600 hover:text-emerald-800 font-semibold">Reset</button>
+                    <button onClick={() => setExportModal(p => ({ ...p, columns: ['kode','nama','kategori','tipe','merk_seri','jumlah','kondisi','status','lokasi','pemilik','nilai','tahun'] }))} className="text-slate-500 hover:text-slate-700 font-semibold">Semua</button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {([
+                    { key: 'kode',      label: 'Kode Barang' },
+                    { key: 'nama',      label: 'Nama Barang' },
+                    { key: 'kategori',  label: 'Kategori' },
+                    { key: 'tipe',      label: 'Tipe Barang' },
+                    { key: 'merk_seri', label: 'Merk / No. Seri' },
+                    { key: 'jumlah',    label: 'Jumlah' },
+                    { key: 'kondisi',   label: 'Kondisi' },
+                    { key: 'status',    label: 'Status' },
+                    { key: 'lokasi',    label: 'Lokasi' },
+                    { key: 'pemilik',   label: 'Pemilik' },
+                    { key: 'nilai',     label: 'Nilai Perolehan' },
+                    { key: 'tahun',     label: 'Tahun Perolehan' },
+                  ] as const).map(col => (
+                    <label key={col.key} className={`flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg border text-xs font-medium transition-colors ${exportModal.columns.includes(col.key) ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
+                      <input type="checkbox" checked={exportModal.columns.includes(col.key)} onChange={() => toggleExportColumn(col.key)} className="accent-emerald-600 flex-shrink-0" />
+                      {col.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="border-t border-slate-100" />
+
+              {/* Section 3: Nama file */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">Nama File</label>
+                <div className="flex items-center gap-2">
+                  <input type="text" value={exportModal.fileName} onChange={e => setExportModal(p => ({ ...p, fileName: e.target.value }))}
+                    className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 text-slate-800 font-mono"
+                    placeholder="Inventaris_GSJA_2026-08-28" />
+                  <span className="text-sm text-slate-400 font-mono whitespace-nowrap">.xlsx</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl flex items-center justify-between gap-4 flex-shrink-0">
+              <div className="flex items-center gap-2 min-h-[28px]">
+                {exportModal.previewCount !== null ? (
+                  <span className="flex items-center gap-1.5 text-sm text-slate-700">
+                    <span className="material-icons-round text-emerald-600 text-[16px]">inventory_2</span>
+                    <strong>{exportModal.previewCount.toLocaleString('id-ID')}</strong> barang
+                  </span>
+                ) : (
+                  <button onClick={() => fetchExportPreview(exportModal)} disabled={exportModal.previewLoading}
+                    className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-emerald-600 disabled:opacity-60 transition-colors">
+                    {exportModal.previewLoading
+                      ? <span className="material-icons-round text-[14px] animate-spin">sync</span>
+                      : <span className="material-icons-round text-[14px]">preview</span>}
+                    {exportModal.previewLoading ? 'Menghitung...' : 'Cek jumlah data'}
+                  </button>
+                )}
+              </div>
+              <div className="flex gap-3">
+                <button onClick={() => setExportModal(p => ({ ...p, open: false }))}
+                  className="px-4 py-2 border border-slate-200 text-slate-600 text-sm font-medium rounded-lg hover:bg-slate-100 transition-colors">
+                  Batal
+                </button>
+                <button onClick={doExport} disabled={exportModal.isExporting || exportModal.columns.length === 0}
+                  className="px-5 py-2 bg-emerald-600 text-white text-sm font-bold rounded-lg hover:bg-emerald-700 disabled:opacity-60 flex items-center gap-2 transition-colors">
+                  {exportModal.isExporting
+                    ? <><span className="material-icons-round text-[16px] animate-spin">sync</span>Mengekspor...</>
+                    : <><span className="material-icons-round text-[16px]">download</span>Export Excel</>}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
