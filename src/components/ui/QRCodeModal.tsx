@@ -133,7 +133,7 @@ export default function QRCodeModal({ isOpen, onClose, title, qrValue, subtitle 
       <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-lg overflow-hidden text-center" onClick={(e) => e.stopPropagation()}>
         <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
           <div className="flex items-center gap-2">
-            <span className="material-icons-round text-slate-600 text-[20px]">barcode_reader</span>
+            <span className="material-icons-round text-slate-600 text-[20px]">qr_code_scanner</span>
             <h3 className="font-bold text-slate-900 text-base">Barcode Label Aset</h3>
           </div>
           <button onClick={onClose} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors">
