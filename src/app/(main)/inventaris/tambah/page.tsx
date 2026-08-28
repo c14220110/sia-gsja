@@ -89,22 +89,34 @@ export default function TambahInventarisPage() {
     }
   };
 
-  const uploadFoto = async () => {
+  const uploadFoto = async (): Promise<string> => {
     if (!selectedFile) return formData.foto_url;
-    
+
     const formDataUpload = new FormData();
     formDataUpload.append('file', selectedFile);
-    
+
     const res = await fetch('/api/inventaris/upload', {
       method: 'POST',
-      body: formDataUpload
+      body: formDataUpload,
     });
-    
-    const data = await res.json();
-    if (data.success) {
-      return data.url;
+
+    // Cek status dulu sebelum parse JSON — hindari crash jika server return plain text
+    if (!res.ok) {
+      let msg = `Upload gagal (${res.status} ${res.statusText})`;
+      try {
+        const d = await res.json();
+        msg = d.message || msg;
+      } catch {
+        // Response bukan JSON (misal 413 "Request Entity Too Large")
+        const text = await res.text().catch(() => '');
+        if (text) msg = `Upload gagal: ${text.slice(0, 100)}`;
+      }
+      throw new Error(msg);
     }
-    throw new Error('Gagal mengupload foto');
+
+    const data = await res.json();
+    if (data.success) return data.url;
+    throw new Error(data.message || 'Gagal mengupload foto');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

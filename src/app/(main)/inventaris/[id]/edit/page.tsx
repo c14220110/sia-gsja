@@ -125,14 +125,22 @@ export default function EditInventarisPage({ params }: { params: Promise<{ id: s
     }
   };
 
-  const uploadFoto = async () => {
+  const uploadFoto = async (): Promise<string> => {
     if (!selectedFile) return formData.foto_url;
     const formDataUpload = new FormData();
     formDataUpload.append('file', selectedFile);
     const res = await fetch('/api/inventaris/upload', { method: 'POST', body: formDataUpload });
+
+    if (!res.ok) {
+      let msg = `Upload gagal (${res.status} ${res.statusText})`;
+      try { const d = await res.json(); msg = d.message || msg; }
+      catch { const t = await res.text().catch(() => ''); if (t) msg = `Upload gagal: ${t.slice(0, 100)}`; }
+      throw new Error(msg);
+    }
+
     const data = await res.json();
     if (data.success) return data.url;
-    throw new Error('Gagal mengupload foto');
+    throw new Error(data.message || 'Gagal mengupload foto');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

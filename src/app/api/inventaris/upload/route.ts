@@ -18,8 +18,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
   }
 
-  // Hanya user dengan permission inventaris yang boleh upload
-  if (!caller.is_super_admin && !caller.permissions.includes('inventaris_create') && !caller.permissions.includes('inventaris_edit')) {
+  // inventaris_manage = bisa tambah/edit barang, termasuk upload foto
+  if (!caller.is_super_admin && !caller.permissions.includes('inventaris_manage')) {
     return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
   }
 
