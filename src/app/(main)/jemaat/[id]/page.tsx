@@ -138,7 +138,10 @@ export default function EditJemaatPage() {
   );
 
   const [tidakPunyaKontak, setTidakPunyaKontak] = useState(false);
-  const [usernameLogin, setUsernameLogin] = useState('');
+  const [usernameLogin, setUsernameLogin] = useState('');       // username yang tersimpan di DB
+  const [usernameEdit, setUsernameEdit] = useState('');         // nilai editable di form
+  const [usernameCheckMsg, setUsernameCheckMsg] = useState(''); // pesan validasi realtime
+
 
   // Family tree state
   const [treeNodes, setTreeNodes]     = useState<any[]>([]);
@@ -313,6 +316,23 @@ export default function EditJemaatPage() {
               if (!d.no_hp && !d.email) {
                 setTidakPunyaKontak(true);
               }
+
+              // Fetch username dari tabel pengguna (fix bug: usernameLogin selalu kosong)
+              try {
+                const usernameRes = await fetch(`/api/members/${jemaatId}/username`);
+                const usernameData = await usernameRes.json();
+                if (usernameData.success && usernameData.username) {
+                  setUsernameLogin(usernameData.username);
+                  setUsernameEdit(usernameData.username);
+                  // Jika tidak punya kontak, otomatis masuk mode tidakPunyaKontak
+                  if (!d.no_hp && !d.email) {
+                    setTidakPunyaKontak(true);
+                  }
+                }
+              } catch (e) {
+                // Tidak kritis, lanjutkan
+              }
+
             }
           }
         }
@@ -508,10 +528,22 @@ export default function EditJemaatPage() {
         setSubmitState({ status: 'error', message: 'Kota wajib diisi.' });
         return;
       }
-      if (!tidakPunyaKontak && !formData.no_hp && !formData.email) {
-        setSubmitState({ status: 'error', message: 'Harap isi minimal No. Telepon atau Alamat Email.' });
+      // Validasi kontak: hanya jika jemaat sudah punya akun pengguna
+      // (jemaat yang diimport massal belum tentu punya akun, tidak perlu paksa isi kontak)
+      if (usernameLogin) {
+        // Jemaat punya akun → minimal 1 identifier harus terisi
+        if (!formData.no_hp && !formData.email && !usernameEdit.trim()) {
+          setSubmitState({ status: 'error', message: 'Harap isi minimal No. Telepon, Email, atau Username untuk akun login.' });
+          return;
+        }
+      }
+      // Blokir save jika ada error validasi username yang belum diselesaikan
+      if (usernameCheckMsg && !usernameCheckMsg.startsWith('✓')) {
+        setSubmitState({ status: 'error', message: 'Periksa kembali username sebelum menyimpan.' });
         return;
       }
+
+
     }
     try {
       setIsSubmitting(true);
@@ -540,7 +572,16 @@ export default function EditJemaatPage() {
         }
       }
 
-      const payload = { ...formData, foto_url: finalFotoUrl || null };
+      // Hanya sertakan username dalam payload jika jemaat sudah punya akun login
+      // Jika tidak, jangan kirim field username sama sekali (agar API tidak sync yang tidak perlu)
+      const payload: any = { 
+        ...formData, 
+        foto_url: finalFotoUrl || null,
+      };
+      if (usernameLogin) {
+        payload.username = usernameEdit.trim() || null;
+      }
+
 
       const res = await fetch(`/api/members/${jemaatId}`, {
         method: 'PUT',
@@ -1027,14 +1068,15 @@ export default function EditJemaatPage() {
                     </div>
                     
                     {isReadOnly ? (
-                      tidakPunyaKontak ? (
-                        <div className="w-full flex gap-4">
+                      <div className="w-full flex flex-col gap-3">
+                        {/* View mode: tampilkan username jika ada */}
+                        {usernameLogin && (
                           <div className="flex-1 flex-col gap-1 flex">
                             <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Username (Login)</label>
-                            <div className="text-slate-900 text-sm font-semibold">{usernameLogin || '-'}</div>
+                            <div className="text-slate-900 text-sm font-semibold">{usernameLogin}</div>
                           </div>
-                        </div>
-                      ) : (
+                        )}
+                        {/* View mode: no_hp dan email */}
                         <div className="w-full flex gap-4">
                           <div className="flex-1 flex-col gap-1 flex">
                             <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">No Telepon / WA</label>
@@ -1045,34 +1087,70 @@ export default function EditJemaatPage() {
                             <div className="text-slate-900 text-sm font-semibold">{formData.email || '-'}</div>
                           </div>
                         </div>
-                      )
+                      </div>
                     ) : (
-                      <div className="w-full p-3 bg-blue-50 rounded-lg border border-blue-100">
-                        <div className="flex items-center justify-between mb-2">
-                          <p className="text-blue-700 text-xs font-semibold font-sans">{tidakPunyaKontak ? 'Login via Username' : 'Kontak'} <span className="text-red-500">*</span>{!tidakPunyaKontak && ' — Isi minimal salah satu'}</p>
+                      <div className="w-full p-3 bg-blue-50 rounded-lg border border-blue-100 flex flex-col gap-3">
+                        <p className="text-blue-700 text-xs font-semibold font-sans">Kontak <span className="text-red-500">*</span> — Isi minimal salah satu</p>
+
+                        {/* No HP dan Email — selalu tampil di edit mode */}
+                        <div className="w-full flex gap-4">
+                          <div className="flex-1 flex-col gap-1 flex">
+                            <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">No Telepon / WA</label>
+                            <input type="text" name="no_hp" value={formData.no_hp} onChange={handleInputChange} placeholder="08..." className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" />
+                          </div>
+                          <div className="flex-1 flex-col gap-1 flex">
+                            <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Alamat Email</label>
+                            <input type="email" name="email" value={formData.email} onChange={handleInputChange} placeholder="" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" />
+                          </div>
                         </div>
-                        {tidakPunyaKontak ? (
+
+                        {/* Username — tampil jika jemaat sudah punya akun dengan username */}
+                        {usernameLogin && (
                           <div className="w-full flex-col gap-1 flex">
                             <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Username (Login)</label>
-                            <div className="px-3 py-2 bg-slate-100 rounded-lg border border-slate-200 text-slate-700 text-sm font-sans font-semibold">{usernameLogin || '-'}</div>
-                            <p className="text-slate-400 text-[11px] font-sans mt-1"><span className="material-icons-round text-[12px] align-middle">info</span> Jemaat ini login menggunakan username. Kelola di halaman Akun & Hak Akses.</p>
-                          </div>
-                        ) : (
-                          <div className="w-full flex gap-4">
-                            <div className="flex-1 flex-col gap-1 flex">
-                              <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">No Telepon / WA</label>
-                              <div className="relative w-full">
-                                <input type="text" name="no_hp" value={formData.no_hp} onChange={handleInputChange} placeholder="08..." className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" />
-                              </div>
-                            </div>
-                            <div className="flex-1 flex-col gap-1 flex">
-                              <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Alamat Email</label>
-                              <input type="email" name="email" value={formData.email} onChange={handleInputChange} placeholder="" className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all" />
-                            </div>
+                            <input
+                              type="text"
+                              value={usernameEdit}
+                              onChange={(e) => {
+                                setUsernameEdit(e.target.value);
+                                setUsernameCheckMsg('');
+                              }}
+                              onBlur={async (e) => {
+                                const val = e.target.value.trim();
+                                if (!val || val === usernameLogin) { setUsernameCheckMsg(''); return; }
+                                // Validasi format: min 4 karakter, hanya huruf/angka/underscore, tidak boleh angka semua
+                                if (!/^(?!\d+$)[a-zA-Z0-9_]{4,50}$/.test(val)) {
+                                  setUsernameCheckMsg('Username minimal 4 karakter, hanya huruf/angka/underscore, tidak boleh angka semua.');
+                                  return;
+                                }
+                                // Cek uniqueness ke API
+                                try {
+                                  const res = await fetch(`/api/members/${jemaatId}/username?check=${encodeURIComponent(val)}`);
+                                  const data = await res.json();
+                                  if (data.available === false) {
+                                    setUsernameCheckMsg('Username sudah digunakan oleh pengguna lain.');
+                                  } else {
+                                    setUsernameCheckMsg('✓ Username tersedia');
+                                  }
+                                } catch { setUsernameCheckMsg(''); }
+                              }}
+                              placeholder="username_login"
+                              className={`px-3 py-2 bg-white rounded-lg border ${usernameCheckMsg.startsWith('✓') ? 'border-green-400' : usernameCheckMsg ? 'border-red-400' : 'border-slate-200'} focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all`}
+                            />
+                            {usernameCheckMsg && (
+                              <p className={`text-[11px] font-sans mt-0.5 ${usernameCheckMsg.startsWith('✓') ? 'text-green-600' : 'text-red-500'}`}>
+                                {usernameCheckMsg}
+                              </p>
+                            )}
+                            <p className="text-slate-400 text-[11px] font-sans">
+                              <span className="material-icons-round text-[12px] align-middle">info</span>{' '}
+                              Jemaat bisa login dengan username, no HP, <em>atau</em> email — fleksibel seperti Instagram.
+                            </p>
                           </div>
                         )}
                       </div>
                     )}
+
                   </div>
                 </div>
 

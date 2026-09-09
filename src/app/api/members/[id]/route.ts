@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { JemaatRepository } from '@/server/repositories/jemaat.repository';
-
+import pool from '@/lib/db';
 import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 import { auditLogRepository } from '@/server/repositories/auditLog.repository';
 
@@ -46,10 +46,106 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ success: false, message: 'Nama lengkap wajib diisi' }, { status: 400 });
     }
 
+    // ── Cek uniqueness SEBELUM update ───────────────────────────────────────
+    // Cari akun pengguna yang terhubung ke jemaat ini
+    const penggunaRes = await pool.query(
+      'SELECT id, email, no_hp, username FROM pengguna WHERE jemaat_id = $1 LIMIT 1',
+      [parseInt(id)]
+    );
+    const penggunaRow = penggunaRes.rows[0] ?? null;
+
+    if (penggunaRow) {
+      // Cek email baru sudah dipakai orang lain?
+      const newEmail = body.email?.trim() || null;
+      if (newEmail && newEmail !== penggunaRow.email) {
+        const emailCheck = await pool.query(
+          'SELECT id FROM pengguna WHERE email = $1 AND id != $2',
+          [newEmail, penggunaRow.id]
+        );
+        if (emailCheck.rowCount && emailCheck.rowCount > 0) {
+          return NextResponse.json({ success: false, message: `Email "${newEmail}" sudah digunakan oleh jemaat lain.` }, { status: 400 });
+        }
+      }
+
+      // Cek no_hp baru sudah dipakai orang lain?
+      const newNoHp = body.no_hp?.trim() || null;
+      if (newNoHp && newNoHp !== penggunaRow.no_hp) {
+        const hpCheck = await pool.query(
+          'SELECT id FROM pengguna WHERE no_hp = $1 AND id != $2',
+          [newNoHp, penggunaRow.id]
+        );
+        if (hpCheck.rowCount && hpCheck.rowCount > 0) {
+          return NextResponse.json({ success: false, message: `No. HP "${newNoHp}" sudah terdaftar sebagai akun login jemaat lain.` }, { status: 400 });
+        }
+      }
+
+      // Cek username baru sudah dipakai orang lain?
+      // Hanya proses jika field 'username' benar-benar dikirim dalam payload
+      if ('username' in body) {
+        const newUsername = typeof body.username === 'string' ? body.username.trim() || null : null;
+        if (newUsername !== penggunaRow.username) {
+          if (newUsername) {
+            const usernameCheck = await pool.query(
+              'SELECT id FROM pengguna WHERE username = $1 AND id != $2',
+              [newUsername, penggunaRow.id]
+            );
+            if (usernameCheck.rowCount && usernameCheck.rowCount > 0) {
+              return NextResponse.json({ success: false, message: `Username "${newUsername}" sudah digunakan oleh pengguna lain.` }, { status: 400 });
+            }
+          }
+          // Jaga constraint chk_min_satu_identifier: setelah save, min 1 harus terisi
+          // afterEmail = nilai baru jika email dikirim, else nilai lama di pengguna
+          const afterEmail = ('email' in body) ? (body.email?.trim() || null) : penggunaRow.email;
+          const afterHp    = ('no_hp' in body) ? (body.no_hp?.trim() || null) : penggunaRow.no_hp;
+          if (!newUsername && !afterEmail && !afterHp) {
+            return NextResponse.json({ success: false, message: 'Tidak bisa menghapus username karena jemaat ini tidak punya email atau no HP.' }, { status: 400 });
+          }
+        }
+      }
+    }
+
+
+    // ── Update tabel jemaat ─────────────────────────────────────────────────
     const updated = await jemaatRepository.updateJemaat(id, body);
     
     if (!updated) {
       return NextResponse.json({ success: false, message: 'Jemaat tidak ditemukan atau gagal diupdate' }, { status: 404 });
+    }
+
+    // ── Sync ke tabel pengguna jika ada akun login ──────────────────────────
+    if (penggunaRow) {
+      const syncUpdates: string[] = [];
+      const syncVals: any[] = [];
+      let idx = 1;
+
+      const syncEmail = body.email?.trim() || null;
+      const syncNoHp = body.no_hp?.trim() || null;
+      // Hanya sync username jika benar-benar dikirim dalam payload
+      const syncUsername = 'username' in body
+        ? (typeof body.username === 'string' ? body.username.trim() || null : null)
+        : undefined;
+
+      if (syncEmail !== penggunaRow.email) {
+        syncUpdates.push(`email = $${idx++}`);
+        syncVals.push(syncEmail);
+      }
+      if (syncNoHp !== penggunaRow.no_hp) {
+        syncUpdates.push(`no_hp = $${idx++}`);
+        syncVals.push(syncNoHp);
+      }
+      if (syncUsername !== undefined && syncUsername !== penggunaRow.username) {
+        syncUpdates.push(`username = $${idx++}`);
+        syncVals.push(syncUsername);
+      }
+
+      if (syncUpdates.length > 0) {
+        syncUpdates.push(`updated_at = CURRENT_TIMESTAMP`);
+        syncVals.push(penggunaRow.id);
+        await pool.query(
+          `UPDATE pengguna SET ${syncUpdates.join(', ')} WHERE id = $${idx}`,
+          syncVals
+        );
+      }
     }
 
     // Catat riwayat audit untuk aksi ubah — jalankan di background agar tidak memperlambat respons
@@ -70,6 +166,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ success: false, message: 'Internal Server Error' }, { status: 500 });
   }
 }
+
 
 // PATCH /api/members/:id → Untuk mengubah status jemaat (Nonaktifkan/Aktifkan)
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
