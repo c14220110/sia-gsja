@@ -46,7 +46,24 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ success: false, message: 'Nama lengkap wajib diisi' }, { status: 400 });
     }
 
-    // ── Cek uniqueness SEBELUM update ───────────────────────────────────────
+    // ── Ambil state jemaat saat ini untuk deteksi perubahan yang akurat ─────
+    // Jemaat.email dan pengguna.email bisa BERBEDA (tidak selalu sinkron).
+    // Baseline perbandingan harus dari jemaat, bukan dari pengguna, agar tidak
+    // false-positive saat admin tidak mengubah email/no_hp sama sekali.
+    const currentJemaatRes = await pool.query(
+      'SELECT email, no_hp FROM jemaat WHERE id = $1 LIMIT 1',
+      [parseInt(id)]
+    );
+    const currentJemaatEmail = currentJemaatRes.rows[0]?.email?.trim() || null;
+    const currentJemaatNoHp  = currentJemaatRes.rows[0]?.no_hp?.trim()  || null;
+
+    const newEmail    = body.email?.trim()  || null;
+    const newNoHp     = body.no_hp?.trim()  || null;
+
+    // Apakah benar-benar berubah dari nilai di jemaat sekarang?
+    const emailChanged = newEmail !== currentJemaatEmail;
+    const noHpChanged  = newNoHp  !== currentJemaatNoHp;
+
     // Cari akun pengguna yang terhubung ke jemaat ini
     const penggunaRes = await pool.query(
       'SELECT id, email, no_hp, username FROM pengguna WHERE jemaat_id = $1 LIMIT 1',
@@ -55,9 +72,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const penggunaRow = penggunaRes.rows[0] ?? null;
 
     if (penggunaRow) {
-      // Cek email baru sudah dipakai orang lain?
-      const newEmail = body.email?.trim() || null;
-      if (newEmail && newEmail !== penggunaRow.email) {
+
+      // Cek email: hanya jika email BENAR-BENAR berubah, baru perlu cek duplikat
+      if (emailChanged && newEmail && newEmail !== penggunaRow.email) {
         const emailCheck = await pool.query(
           'SELECT id FROM pengguna WHERE email = $1 AND id != $2',
           [newEmail, penggunaRow.id]
@@ -67,9 +84,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         }
       }
 
-      // Cek no_hp baru sudah dipakai orang lain?
-      const newNoHp = body.no_hp?.trim() || null;
-      if (newNoHp && newNoHp !== penggunaRow.no_hp) {
+      // Cek no_hp: hanya jika no_hp BENAR-BENAR berubah
+      if (noHpChanged && newNoHp && newNoHp !== penggunaRow.no_hp) {
         const hpCheck = await pool.query(
           'SELECT id FROM pengguna WHERE no_hp = $1 AND id != $2',
           [newNoHp, penggunaRow.id]
@@ -79,8 +95,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         }
       }
 
-      // Cek username baru sudah dipakai orang lain?
-      // Hanya proses jika field 'username' benar-benar dikirim dalam payload
+      // Cek username: hanya jika field dikirim dalam payload
       if ('username' in body) {
         const newUsername = typeof body.username === 'string' ? body.username.trim() || null : null;
         if (newUsername !== penggunaRow.username) {
@@ -94,9 +109,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
             }
           }
           // Jaga constraint chk_min_satu_identifier: setelah save, min 1 harus terisi
-          // afterEmail = nilai baru jika email dikirim, else nilai lama di pengguna
-          const afterEmail = ('email' in body) ? (body.email?.trim() || null) : penggunaRow.email;
-          const afterHp    = ('no_hp' in body) ? (body.no_hp?.trim() || null) : penggunaRow.no_hp;
+          const afterEmail = ('email' in body) ? newEmail : penggunaRow.email;
+          const afterHp    = ('no_hp' in body) ? newNoHp  : penggunaRow.no_hp;
           if (!newUsername && !afterEmail && !afterHp) {
             return NextResponse.json({ success: false, message: 'Tidak bisa menghapus username karena jemaat ini tidak punya email atau no HP.' }, { status: 400 });
           }
@@ -113,26 +127,28 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     // ── Sync ke tabel pengguna jika ada akun login ──────────────────────────
+    // Hanya sync field yang BENAR-BENAR berubah dari nilai jemaat sekarang.
     if (penggunaRow) {
       const syncUpdates: string[] = [];
       const syncVals: any[] = [];
       let idx = 1;
 
-      const syncEmail = body.email?.trim() || null;
-      const syncNoHp = body.no_hp?.trim() || null;
-      // Hanya sync username jika benar-benar dikirim dalam payload
+      // Sync username jika benar-benar dikirim dan berbeda
       const syncUsername = 'username' in body
         ? (typeof body.username === 'string' ? body.username.trim() || null : null)
         : undefined;
 
-      if (syncEmail !== penggunaRow.email) {
+      // Email: sync jika berubah dari jemaat DAN berbeda dari pengguna saat ini
+      if (emailChanged && newEmail !== penggunaRow.email) {
         syncUpdates.push(`email = $${idx++}`);
-        syncVals.push(syncEmail);
+        syncVals.push(newEmail);
       }
-      if (syncNoHp !== penggunaRow.no_hp) {
+      // No HP: sync jika berubah dari jemaat DAN berbeda dari pengguna saat ini
+      if (noHpChanged && newNoHp !== penggunaRow.no_hp) {
         syncUpdates.push(`no_hp = $${idx++}`);
-        syncVals.push(syncNoHp);
+        syncVals.push(newNoHp);
       }
+      // Username: sync jika field dikirim dan nilainya berbeda
       if (syncUsername !== undefined && syncUsername !== penggunaRow.username) {
         syncUpdates.push(`username = $${idx++}`);
         syncVals.push(syncUsername);
@@ -147,6 +163,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         );
       }
     }
+
 
     // Catat riwayat audit untuk aksi ubah — jalankan di background agar tidak memperlambat respons
     if (caller) {
