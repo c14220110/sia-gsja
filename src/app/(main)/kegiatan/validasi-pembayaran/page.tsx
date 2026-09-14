@@ -8,6 +8,7 @@ export default function ValidasiPembayaranPage() {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [verifyingId, setVerifyingId] = useState<number | null>(null);
+  const [filteredSatelit, setFilteredSatelit] = useState(false); // true jika data sudah difilter per satelit user
 
   const fetchData = async () => {
     setLoading(true);
@@ -16,6 +17,7 @@ export default function ValidasiPembayaranPage() {
       const json = await res.json();
       if (json.success) {
         setData(json.data);
+        setFilteredSatelit(!!json.filtered_satelit);
       }
     } catch (error) {
       console.error('Error fetching validasi pembayaran:', error);
@@ -23,6 +25,7 @@ export default function ValidasiPembayaranPage() {
       setLoading(false);
     }
   };
+
 
   useEffect(() => {
     fetchData();
@@ -84,8 +87,15 @@ export default function ValidasiPembayaranPage() {
         <div className="flex flex-col gap-1">
           <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Validasi Pembayaran</h1>
           <div className="text-slate-500 text-base font-medium font-sans leading-6">Verifikasi antrean bukti transfer pendaftaran acara</div>
+          {!loading && filteredSatelit && (
+            <div className="flex items-center gap-1.5 mt-1 text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-full px-3 py-1 w-fit">
+              <span className="material-icons-round text-[14px]">filter_alt</span>
+              Menampilkan pembayaran dari satelit Anda
+            </div>
+          )}
         </div>
       </div>
+
 
       {/* Statistic Cards */}
       <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-6">
