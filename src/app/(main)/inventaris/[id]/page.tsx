@@ -33,6 +33,49 @@ export default function DetailBarangPage({ params }: { params: Promise<{ id: str
   // QR Code modal
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
 
+  const [showAddUnit, setShowAddUnit] = useState(false);
+  const [addUnitForm, setAddUnitForm] = useState({ no_seri: '', kondisi: 'Baik' });
+  const [addUnitState, setAddUnitState] = useState<{ status: 'idle'|'loading'|'success'|'error'; message: string }>({ status: 'idle', message: '' });
+
+  const handleAddUnit = async () => {
+    if (!data) return;
+    setAddUnitState({ status: 'loading', message: '' });
+    try {
+      const payload = {
+        tipe_barang: 'satuan',
+        nama: data.nama,
+        kategori_id: data.kategori_id,
+        merk: data.merk || '',
+        no_seri: addUnitForm.no_seri,
+        jumlah: '1',
+        kondisi: addUnitForm.kondisi,
+        tahun_perolehan: data.tahun_perolehan || '',
+        nilai_perolehan: data.nilai_perolehan || '',
+        pemilik_tipe: data.pemilik_satelit_id ? 'satelit' : 'individu',
+        pemilik_satelit_id: data.pemilik_satelit_id?.toString() || '',
+        pemilik_nama_lain: data.pemilik_nama_lain || '',
+        lokasi_satelit_id: data.lokasi_satelit_id?.toString() || '',
+        lokasi_sublokasi_id: data.lokasi_sublokasi_id?.toString() || '',
+        foto_url: '',
+      };
+      const res = await fetch('/api/inventaris', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const result = await res.json();
+      if (result.success) {
+        setAddUnitState({ status: 'success', message: `Unit baru (${result.data?.kode_barang || 'baru'}) berhasil ditambahkan` });
+        setAddUnitForm({ no_seri: '', kondisi: 'Baik' });
+        setTimeout(() => { setShowAddUnit(false); setAddUnitState({ status: 'idle', message: '' }); }, 2000);
+      } else {
+        setAddUnitState({ status: 'error', message: result.message || 'Gagal menambahkan unit' });
+      }
+    } catch (err: any) {
+      setAddUnitState({ status: 'error', message: err.message || 'Koneksi error' });
+    }
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       showLoader();
@@ -124,6 +167,15 @@ export default function DetailBarangPage({ params }: { params: Promise<{ id: str
                 <span className="material-icons-round text-white text-[20px]">edit</span>
                 <span className="text-white text-sm font-bold font-sans leading-5">Edit</span>
               </Link>
+              {data?.tipe_barang === 'satuan' && (
+                <button
+                  onClick={() => setShowAddUnit(true)}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-indigo-700 transition-colors"
+                >
+                  <span className="material-icons-round text-[18px]">add_circle</span>
+                  Tambah Unit Serupa
+                </button>
+              )}
               <button onClick={() => setAlertState({ isOpen: true })} className="px-5 py-2.5 bg-red-600 rounded-lg flex justify-start items-center gap-2 hover:bg-red-700 transition-colors shadow-sm">
                 <span className="material-icons-round text-white text-[20px]">delete</span>
                 <span className="text-white text-sm font-bold font-sans leading-5">Hapus</span>
@@ -225,6 +277,98 @@ export default function DetailBarangPage({ params }: { params: Promise<{ id: str
         qrValue={data.kode_barang}
         subtitle={data.nama_kategori}
       />
+      {/* Tambah Unit Serupa Modal */}
+      {showAddUnit && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-slate-900">Tambah Unit Serupa</h3>
+                <p className="text-xs text-slate-500 mt-0.5">Data dari: <strong>{data?.nama}</strong></p>
+              </div>
+              <button onClick={() => { setShowAddUnit(false); setAddUnitState({ status: 'idle', message: '' }); setAddUnitForm({ no_seri: '', kondisi: 'Baik' }); }} className="p-2 rounded-lg hover:bg-slate-100">
+                <span className="material-icons-round text-slate-500">close</span>
+              </button>
+            </div>
+            {/* Body */}
+            <div className="px-6 py-5 flex flex-col gap-4">
+              {/* Pre-filled info */}
+              <div className="bg-slate-50 rounded-lg px-4 py-3 text-xs text-slate-500 flex flex-col gap-1">
+                <div className="flex justify-between"><span>Nama</span><span className="font-semibold text-slate-700">{data?.nama}</span></div>
+                <div className="flex justify-between"><span>Kategori</span><span className="font-semibold text-slate-700">{data?.nama_kategori}</span></div>
+                <div className="flex justify-between"><span>Lokasi</span><span className="font-semibold text-slate-700">{data?.lokasi_nama_satelit}{data?.lokasi_nama_sublokasi ? ` · ${data?.lokasi_nama_sublokasi}` : ''}</span></div>
+              </div>
+              
+              {/* No. Seri */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-bold text-slate-700">
+                  No. Seri Unit Baru
+                  <span className="ml-2 text-xs font-normal text-slate-400">(dari label fisik produk — opsional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={addUnitForm.no_seri}
+                  onChange={e => setAddUnitForm(prev => ({ ...prev, no_seri: e.target.value }))}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                  placeholder="Contoh: C02ABC123DEF"
+                  autoFocus
+                />
+              </div>
+              
+              {/* Kondisi */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-bold text-slate-700">Kondisi Unit Baru</label>
+                <select
+                  value={addUnitForm.kondisi}
+                  onChange={e => setAddUnitForm(prev => ({ ...prev, kondisi: e.target.value }))}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                >
+                  <option value="Baik">Baik</option>
+                  <option value="Rusak Ringan">Rusak Ringan</option>
+                  <option value="Rusak Berat">Rusak Berat</option>
+                </select>
+              </div>
+              
+              {/* Error/Success */}
+              {addUnitState.status === 'error' && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+                  <span className="material-icons-round text-[16px]">error</span>
+                  {addUnitState.message}
+                </div>
+              )}
+              {addUnitState.status === 'success' && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+                  <span className="material-icons-round text-[16px]">check_circle</span>
+                  {addUnitState.message}
+                </div>
+              )}
+            </div>
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3">
+              <button
+                onClick={() => { setShowAddUnit(false); setAddUnitState({ status: 'idle', message: '' }); setAddUnitForm({ no_seri: '', kondisi: 'Baik' }); }}
+                className="px-4 py-2 border border-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50"
+                disabled={addUnitState.status === 'loading'}
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleAddUnit}
+                disabled={addUnitState.status === 'loading' || addUnitState.status === 'success'}
+                className="px-5 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {addUnitState.status === 'loading' ? (
+                  <span className="material-icons-round animate-spin text-[16px]">sync</span>
+                ) : (
+                  <span className="material-icons-round text-[16px]">add_circle</span>
+                )}
+                Tambah Unit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -40,6 +40,75 @@ export default function InventarisPage() {
   const [isBulkQrOpen, setIsBulkQrOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
+  // Group view state
+  const [viewMode, setViewMode] = useState<'grouped' | 'flat'>('grouped');
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+
+  // Groups satuan items with same nama+kategori_id. Massal items are always flat.
+  // Returns array of: { type: 'group', key, nama, kategori, items[], allSelected, someSelected }
+  //                or { type: 'flat', item }
+  // Used only when viewMode === 'grouped'
+  const computeGroupedData = (items: any[]) => {
+    if (viewMode !== 'grouped') return null;
+    
+    // Build groups from satuan items, keep massal as flat
+    const groupMap = new Map<string, any[]>();
+    const flatItems: any[] = [];
+    
+    for (const item of items) {
+      if (item.tipe_barang === 'satuan') {
+        const key = `${item.nama.trim().toLowerCase()}||${item.kategori_id}`;
+        if (!groupMap.has(key)) groupMap.set(key, []);
+        groupMap.get(key)!.push(item);
+      } else {
+        flatItems.push({ type: 'flat', item });
+      }
+    }
+    
+    const rows: any[] = [];
+    
+    for (const [key, groupItems] of groupMap.entries()) {
+      if (groupItems.length === 1) {
+        // Single item: just render flat (no group row needed)
+        rows.push({ type: 'flat', item: groupItems[0] });
+      } else {
+        const isExpanded = expandedGroups.has(key);
+        const allSelected = groupItems.every(i => selectedIds.has(i.id));
+        const someSelected = groupItems.some(i => selectedIds.has(i.id));
+        rows.push({ type: 'group', key, nama: groupItems[0].nama, kategori: groupItems[0].nama_kategori, kategori_id: groupItems[0].kategori_id, items: groupItems, isExpanded, allSelected, someSelected });
+        if (isExpanded) {
+          for (const item of groupItems) {
+            rows.push({ type: 'flat', item, inGroup: true });
+          }
+        }
+      }
+    }
+    
+    // Merge massal flat items at end
+    rows.push(...flatItems);
+    
+    return rows;
+  };
+
+  const toggleGroup = (key: string) => {
+    setExpandedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
+
+  const toggleGroupSelect = (groupItems: any[]) => {
+    const allSelected = groupItems.every(i => selectedIds.has(i.id));
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      for (const item of groupItems) {
+        if (allSelected) next.delete(item.id); else next.add(item.id);
+      }
+      return next;
+    });
+  };
+
   const toggleSelect = (id: number) => {
     setSelectedIds(prev => {
       const next = new Set(prev);
@@ -289,6 +358,22 @@ export default function InventarisPage() {
     fetchStats();
   }, [userData, filterSatelit, filterKategori]);
 
+  // Auto-expand groups when searching
+  useEffect(() => {
+    if (debouncedSearch && viewMode === 'grouped') {
+      // Expand all groups when user is searching
+      const keys = data
+        .filter((i: any) => i.tipe_barang === 'satuan')
+        .reduce((acc: Map<string, boolean>, i: any) => {
+          acc.set(`${i.nama.trim().toLowerCase()}||${i.kategori_id}`, true);
+          return acc;
+        }, new Map<string, boolean>());
+      setExpandedGroups(new Set(keys.keys()));
+    } else if (!debouncedSearch) {
+      setExpandedGroups(new Set());
+    }
+  }, [debouncedSearch, viewMode, data]);
+
   const confirmDelete = async () => {
     const { id } = alertState;
     if (!id) return;
@@ -495,7 +580,30 @@ export default function InventarisPage() {
 
       <div className="w-full px-4 py-4 bg-white rounded-xl border border-slate-200 flex flex-wrap items-center gap-4 shadow-sm">
 
-        
+        {/* View mode toggle */}
+        <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm">
+          <button
+            onClick={() => setViewMode('grouped')}
+            className={`px-3 py-2 flex items-center gap-1 text-xs font-semibold transition-colors ${
+              viewMode === 'grouped' ? 'bg-slate-700 text-white' : 'text-slate-500 hover:bg-slate-50'
+            }`}
+            title="Tampilan Grouped"
+          >
+            <span className="material-icons-round text-[16px]">account_tree</span>
+            <span className="hidden sm:inline">Grouped</span>
+          </button>
+          <button
+            onClick={() => setViewMode('flat')}
+            className={`px-3 py-2 flex items-center gap-1 text-xs font-semibold transition-colors ${
+              viewMode === 'flat' ? 'bg-slate-700 text-white' : 'text-slate-500 hover:bg-slate-50'
+            }`}
+            title="Tampilan Flat"
+          >
+            <span className="material-icons-round text-[16px]">view_list</span>
+            <span className="hidden sm:inline">Flat</span>
+          </button>
+        </div>
+
         {/* Search Bar + Scan Button */}
         <div className="flex-1 min-w-[260px] flex items-center gap-2">
           <div className="flex-1 relative flex items-center">
@@ -751,17 +859,82 @@ export default function InventarisPage() {
                     })()}
                   </td>
                 </tr>
-              ) : (
-                data.map((item, idx) => {
+              ) : (() => {
+                const groupedData = computeGroupedData(data);
+                const rows = viewMode === 'grouped' && groupedData ? groupedData : data.map(item => ({ type: 'flat', item }));
+                
+                return rows.map((row: any, idx: number) => {
+                  // GROUP header row
+                  if (row.type === 'group') {
+                    return (
+                      <tr
+                        key={`group-${row.key}`}
+                        className="bg-indigo-50/60 border-y border-indigo-100 hover:bg-indigo-50 cursor-pointer"
+                        onClick={() => toggleGroup(row.key)}
+                      >
+                        <td className="px-4 py-2.5" onClick={e => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={row.allSelected}
+                            ref={el => { if (el) el.indeterminate = !row.allSelected && row.someSelected; }}
+                            onChange={() => toggleGroupSelect(row.items)}
+                            className="w-4 h-4 rounded border-slate-300 accent-indigo-600 cursor-pointer"
+                          />
+                        </td>
+                        {/* Expand icon */}
+                        <td className="px-4 py-2.5">
+                          <span className={`material-icons-round text-indigo-500 text-[18px] transition-transform duration-200 ${row.isExpanded ? 'rotate-90' : ''}`}>
+                            chevron_right
+                          </span>
+                        </td>
+                        {/* Group name + count */}
+                        <td className="px-4 py-2.5" colSpan={3}>
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-slate-800 text-sm">{row.nama}</span>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-indigo-100 text-indigo-700 border border-indigo-200">
+                              {row.items.length} unit
+                            </span>
+                            <span className="text-xs text-slate-400">🏷️ SATUAN · {row.kategori}</span>
+                          </div>
+                        </td>
+                        {/* Stats: conditions summary */}
+                        <td className="px-4 py-2.5 text-center">
+                          <span className="text-xs text-slate-500 font-medium">{row.items.length} unit</span>
+                        </td>
+                        <td className="px-4 py-2.5 text-center">
+                          {/* Condition summary */}
+                          {(() => {
+                            const baikCount = row.items.filter((i: any) => i.kondisi === 'Baik').length;
+                            if (baikCount === row.items.length) {
+                              return <span className="inline-flex px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200">Semua Baik</span>;
+                            } else {
+                              return <span className="inline-flex px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-50 text-amber-600 border border-amber-200">{baikCount}/{row.items.length} Baik</span>;
+                            }
+                          })()}
+                        </td>
+                        <td className="px-4 py-2.5 text-center">
+                          <span className="text-xs text-indigo-500 font-medium">
+                            {row.isExpanded ? 'Tutup ▲' : 'Lihat ▼'}
+                          </span>
+                        </td>
+                        <td />
+                      </tr>
+                    );
+                  }
+                  
+                  // FLAT row
+                  const item = row.item;
+                  const inGroup = row.inGroup;
                   const isSelected = selectedIds.has(item.id);
+                  
                   return (
                     <tr
                       key={item.id || idx}
                       onClick={() => router.push(`/inventaris/${item.id}`)}
-                      className={`transition-colors cursor-pointer relative ${openMenuId === item.id ? 'z-50' : ''} ${isSelected ? 'bg-indigo-50 hover:bg-indigo-100' : 'hover:bg-slate-50'}`}
+                      className={`transition-colors cursor-pointer relative ${openMenuId === item.id ? 'z-50' : ''} ${inGroup ? 'bg-white border-l-4 border-l-indigo-200' : ''} ${isSelected ? 'bg-indigo-50 hover:bg-indigo-100' : (inGroup ? 'hover:bg-indigo-50/40' : 'hover:bg-slate-50')}`}
                     >
                       {/* Checkbox */}
-                      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                      <td className={`px-4 py-3 ${inGroup ? 'pl-8' : ''}`} onClick={(e) => e.stopPropagation()}>
                         <input
                           type="checkbox"
                           checked={isSelected}
@@ -899,7 +1072,7 @@ export default function InventarisPage() {
                     </tr>
                   );
                 })
-              )}
+              })()}
             </tbody>
           </table>
         </div>
