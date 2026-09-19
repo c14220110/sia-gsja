@@ -123,82 +123,36 @@ export default function TambahInventarisPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitState({ status: 'loading', message: '' });
-    
     try {
       let fotoUrl = formData.foto_url;
       if (selectedFile) {
         fotoUrl = await uploadFoto();
       }
-      
-      const isSatuan = formData.tipe_barang === 'satuan';
-      const jumlahUnit = isSatuan ? Math.max(1, Math.min(50, parseInt(formData.jumlah_unit, 10) || 1)) : 1;
 
-      const basePayload = {
+      // Strip internal-only UI fields before sending to API
+      const { jumlah_unit: _ju, ...apiPayload } = {
         ...formData,
         foto_url: fotoUrl,
-        jumlah: isSatuan ? '1' : formData.jumlah,
-      };
-      
-      if (basePayload.pemilik_tipe === 'satelit') {
-        basePayload.pemilik_nama_lain = '';
+        jumlah: formData.tipe_barang === 'satuan' ? '1' : formData.jumlah,
+      } as any;
+
+      if (apiPayload.pemilik_tipe === 'satelit') {
+        apiPayload.pemilik_nama_lain = '';
       } else {
-        basePayload.pemilik_satelit_id = '';
+        apiPayload.pemilik_satelit_id = '';
       }
 
-      // Strip internal-only fields before sending to API
-      const { jumlah_unit: _ju, ...apiPayload } = basePayload as any;
-
-      if (jumlahUnit === 1) {
-        // Single item (massal or 1 satuan)
-        const res = await fetch('/api/inventaris', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(apiPayload),
-        });
-        const result = await res.json();
-        if (result.success) {
-          setSubmitState({ status: 'success', message: isSatuan ? '1 unit berhasil ditambahkan' : 'Data berhasil ditambahkan' });
-          setTimeout(() => router.push('/inventaris'), 1500);
-        } else {
-          setSubmitState({ status: 'error', message: result.message || 'Gagal menambahkan data' });
-        }
+      const res = await fetch('/api/inventaris', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(apiPayload),
+      });
+      const result = await res.json();
+      if (result.success) {
+        setSubmitState({ status: 'success', message: 'Barang berhasil ditambahkan' });
+        setTimeout(() => router.push('/inventaris'), 1500);
       } else {
-        // Bulk satuan: create N units sequentially
-        // Each unit gets a unique no_seri suffix to avoid UNIQUE constraint violation
-        const baseNoSeri = (apiPayload.no_seri || '').trim();
-        let successCount = 0;
-        const errors: string[] = [];
-        for (let i = 0; i < jumlahUnit; i++) {
-          const unitPayload = {
-            ...apiPayload,
-            // Auto-suffix no_seri: "SN-001" → "SN-001-01", "SN-001-02" …
-            // If no_seri is empty, leave null so DB unique constraint isn't triggered
-            no_seri: baseNoSeri
-              ? `${baseNoSeri}-${String(i + 1).padStart(2, '0')}`
-              : '',
-          };
-          try {
-            const res = await fetch('/api/inventaris', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(unitPayload),
-            });
-            const result = await res.json();
-            if (result.success) successCount++;
-            else errors.push(result.message || `Unit ${i + 1} gagal`);
-          } catch {
-            errors.push(`Unit ${i + 1}: koneksi error`);
-          }
-        }
-        if (successCount === jumlahUnit) {
-          setSubmitState({ status: 'success', message: `${successCount} unit berhasil ditambahkan` });
-          setTimeout(() => router.push('/inventaris'), 1800);
-        } else if (successCount > 0) {
-          setSubmitState({ status: 'success', message: `${successCount} dari ${jumlahUnit} unit berhasil. Error: ${errors.join('; ')}` });
-          setTimeout(() => router.push('/inventaris'), 2500);
-        } else {
-          setSubmitState({ status: 'error', message: errors.join('; ') || 'Semua unit gagal ditambahkan' });
-        }
+        setSubmitState({ status: 'error', message: result.message || 'Gagal menambahkan data' });
       }
     } catch (error: any) {
       console.error(error);
@@ -260,23 +214,13 @@ export default function TambahInventarisPage() {
             </button>
           </div>
           {isSatuan && (
-            <div className="mt-2 flex flex-col gap-2">
-              <div className="px-3 py-2 bg-indigo-50 border border-indigo-100 rounded-lg text-indigo-700 text-xs font-medium flex items-start gap-2">
-                <span className="material-icons-round text-[14px] flex-shrink-0 mt-0.5">info</span>
-                <span>Setiap unit fisik = <strong>1 data terpisah</strong> dengan kode QR unik. Kosongkan No. Seri jika tidak ada — kode barang otomatis terbuat.</span>
-              </div>
-              <div className="flex items-center gap-3 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg">
-                <label className="text-slate-700 text-xs font-bold whitespace-nowrap">Buat berapa unit sekaligus?</label>
-                <input
-                  type="number"
-                  min="1"
-                  max="50"
-                  value={formData.jumlah_unit}
-                  onChange={(e) => setFormData(prev => ({ ...prev, jumlah_unit: e.target.value }))}
-                  className="w-20 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm text-center focus:outline-none focus:ring-2 focus:ring-indigo-400 font-bold"
-                />
-                <span className="text-xs text-slate-400">unit (maks. 50) — masing-masing dapat kode unik otomatis</span>
-              </div>
+            <div className="mt-2 px-3 py-2.5 bg-indigo-50 border border-indigo-100 rounded-lg text-indigo-700 text-xs flex items-start gap-2">
+              <span className="material-icons-round text-[14px] flex-shrink-0 mt-0.5">info</span>
+              <span>
+                Setiap unit fisik didaftarkan <strong>satu per satu</strong> dengan kode QR unik masing-masing.
+                No. Seri diisi dari <strong>label fisik produk</strong> (dari pabrik) — bukan dibuat oleh sistem.
+                Untuk 2 AC Panasonic, daftarkan 2 kali dengan No. Seri yang berbeda.
+              </span>
             </div>
           )}
         </div>
@@ -303,42 +247,27 @@ export default function TambahInventarisPage() {
                 <label className="text-slate-700 text-sm font-bold font-sans">Merk</label>
                 <input type="text" name="merk" value={formData.merk} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm" placeholder="Contoh: Yamaha" />
               </div>
-              <div className="flex flex-col gap-2">
-                {(() => {
-                  const isBulk = isSatuan && parseInt(formData.jumlah_unit, 10) > 1;
-                  return (
-                    <>
-                      <label className="text-slate-700 text-sm font-bold font-sans">
-                        {isSatuan ? 'No. Seri / Kode Unit' : 'No. Seri'}
-                        {isSatuan && !isBulk && <span className="text-rose-500 ml-1">*</span>}
-                        {isSatuan && !isBulk && <span className="ml-2 text-xs font-normal text-slate-400">(wajib untuk 1 unit)</span>}
-                        {isBulk && <span className="ml-2 text-xs font-normal text-indigo-500">(opsional saat bulk — akan ditambah suffix otomatis)</span>}
-                      </label>
-                      <input
-                        type="text"
-                        name="no_seri"
-                        required={isSatuan && !isBulk}
-                        value={formData.no_seri}
-                        onChange={handleChange}
-                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm"
-                        placeholder={
-                          isBulk
-                            ? `Contoh: SN-2024 → akan jadi SN-2024-01, SN-2024-02, ... (kosongkan jika tidak ada)`
-                            : isSatuan
-                            ? 'Contoh: SN-EPSON-2024-001'
-                            : 'Contoh: SN-123456 (opsional)'
-                        }
-                      />
-                      {isBulk && formData.no_seri && (
-                        <p className="text-xs text-indigo-600 flex items-center gap-1">
-                          <span className="material-icons-round text-[12px]">auto_awesome</span>
-                          Akan dibuat: <strong>{formData.no_seri}-01</strong>, <strong>{formData.no_seri}-02</strong>, ... , <strong>{formData.no_seri}-{String(parseInt(formData.jumlah_unit, 10) || 1).padStart(2, '0')}</strong>
-                        </p>
-                      )}
-                    </>
-                  );
-                })()}
-              </div>
+              {/* No. Seri — hanya untuk Aset Satuan (dari label fisik pabrik) */}
+              {isSatuan && (
+                <div className="flex flex-col gap-2">
+                  <label className="text-slate-700 text-sm font-bold font-sans">
+                    No. Seri / Kode Unit
+                    <span className="ml-2 text-xs font-normal text-slate-400">(dari label fisik produk — opsional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="no_seri"
+                    value={formData.no_seri}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm"
+                    placeholder="Contoh: SN/C02ABC123DEF (dari stiker di bodi produk)"
+                  />
+                  <p className="text-[11px] text-slate-400 flex items-center gap-1">
+                    <span className="material-icons-round text-[12px]">info</span>
+                    Nomor seri dari pabrik (Apple, Panasonic, dll). Tiap unit punya nomor berbeda.
+                  </p>
+                </div>
+              )}
 
               {/* Jumlah — hanya untuk Stok Massal */}
               {!isSatuan ? (

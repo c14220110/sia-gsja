@@ -233,13 +233,27 @@ export default function EditInventarisPage({ params }: { params: Promise<{ id: s
                 <label className="text-slate-700 text-sm font-bold font-sans">Merk</label>
                 <input type="text" name="merk" value={formData.merk} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm" />
               </div>
-              <div className="flex flex-col gap-2">
-                <label className="text-slate-700 text-sm font-bold font-sans">
-                  {isSatuan ? 'No. Seri / Kode Unit' : 'No. Seri'}
-                  {isSatuan && <span className="text-rose-500 ml-1">*</span>}
-                </label>
-                <input type="text" name="no_seri" required={isSatuan} value={formData.no_seri} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm" placeholder={isSatuan ? 'Contoh: SN-EPSON-2024-001' : 'Opsional'} />
-              </div>
+              {/* No. Seri — hanya untuk Aset Satuan (dari label fisik pabrik, opsional) */}
+              {isSatuan && (
+                <div className="flex flex-col gap-2">
+                  <label className="text-slate-700 text-sm font-bold font-sans">
+                    No. Seri / Kode Unit
+                    <span className="ml-2 text-xs font-normal text-slate-400">(dari label fisik produk — opsional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="no_seri"
+                    value={formData.no_seri}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm"
+                    placeholder="Contoh: SN/C02ABC123DEF (dari stiker di bodi produk)"
+                  />
+                  <p className="text-[11px] text-slate-400 flex items-center gap-1">
+                    <span className="material-icons-round text-[12px]">info</span>
+                    Nomor seri dari pabrik (Apple, Panasonic, dll). Tiap unit punya nomor berbeda.
+                  </p>
+                </div>
+              )}
               {!isSatuan ? (
                 <div className="flex flex-col gap-2">
                   <label className="text-slate-700 text-sm font-bold font-sans">Jumlah</label>
