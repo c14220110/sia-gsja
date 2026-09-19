@@ -23,6 +23,7 @@ export default function TambahInventarisPage() {
     merk: '',
     no_seri: '',
     jumlah: '1',
+    jumlah_unit: '1',   // hanya untuk satuan — berapa unit yang dibuat sekaligus
     kondisi: 'Baik',
     tahun_perolehan: '',
     nilai_perolehan: '',
@@ -129,32 +130,62 @@ export default function TambahInventarisPage() {
         fotoUrl = await uploadFoto();
       }
       
-      const payload = {
+      const isSatuan = formData.tipe_barang === 'satuan';
+      const jumlahUnit = isSatuan ? Math.max(1, Math.min(50, parseInt(formData.jumlah_unit, 10) || 1)) : 1;
+
+      const basePayload = {
         ...formData,
         foto_url: fotoUrl,
-        jumlah: formData.tipe_barang === 'satuan' ? '1' : formData.jumlah,
+        jumlah: isSatuan ? '1' : formData.jumlah,
       };
       
-      if (payload.pemilik_tipe === 'satelit') {
-        payload.pemilik_nama_lain = '';
+      if (basePayload.pemilik_tipe === 'satelit') {
+        basePayload.pemilik_nama_lain = '';
       } else {
-        payload.pemilik_satelit_id = '';
+        basePayload.pemilik_satelit_id = '';
       }
-      
-      const res = await fetch('/api/inventaris', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      
-      const result = await res.json();
-      if (result.success) {
-        setSubmitState({ status: 'success', message: 'Data berhasil ditambahkan' });
-        setTimeout(() => {
-          router.push('/inventaris');
-        }, 1500);
+
+      if (jumlahUnit === 1) {
+        // Single item (massal or 1 satuan)
+        const res = await fetch('/api/inventaris', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(basePayload),
+        });
+        const result = await res.json();
+        if (result.success) {
+          setSubmitState({ status: 'success', message: isSatuan ? '1 unit berhasil ditambahkan' : 'Data berhasil ditambahkan' });
+          setTimeout(() => router.push('/inventaris'), 1500);
+        } else {
+          setSubmitState({ status: 'error', message: result.message || 'Gagal menambahkan data' });
+        }
       } else {
-        setSubmitState({ status: 'error', message: result.message || 'Gagal menambahkan data' });
+        // Bulk satuan: create N units sequentially
+        let successCount = 0;
+        const errors: string[] = [];
+        for (let i = 0; i < jumlahUnit; i++) {
+          try {
+            const res = await fetch('/api/inventaris', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(basePayload),
+            });
+            const result = await res.json();
+            if (result.success) successCount++;
+            else errors.push(result.message || `Unit ${i + 1} gagal`);
+          } catch {
+            errors.push(`Unit ${i + 1}: koneksi error`);
+          }
+        }
+        if (successCount === jumlahUnit) {
+          setSubmitState({ status: 'success', message: `${successCount} unit berhasil ditambahkan` });
+          setTimeout(() => router.push('/inventaris'), 1800);
+        } else if (successCount > 0) {
+          setSubmitState({ status: 'success', message: `${successCount} dari ${jumlahUnit} unit berhasil. Error: ${errors.join('; ')}` });
+          setTimeout(() => router.push('/inventaris'), 2500);
+        } else {
+          setSubmitState({ status: 'error', message: errors.join('; ') || 'Semua unit gagal ditambahkan' });
+        }
       }
     } catch (error: any) {
       console.error(error);
@@ -216,9 +247,23 @@ export default function TambahInventarisPage() {
             </button>
           </div>
           {isSatuan && (
-            <div className="mt-2 px-3 py-2 bg-indigo-50 border border-indigo-100 rounded-lg text-indigo-700 text-xs font-medium flex items-center gap-2">
-              <span className="material-icons-round text-[14px]">info</span>
-              Aset Satuan selalu dicatat sebagai 1 unit dengan nomor seri unik. Untuk 3 laptop, tambahkan 3 kali.
+            <div className="mt-2 flex flex-col gap-2">
+              <div className="px-3 py-2 bg-indigo-50 border border-indigo-100 rounded-lg text-indigo-700 text-xs font-medium flex items-start gap-2">
+                <span className="material-icons-round text-[14px] flex-shrink-0 mt-0.5">info</span>
+                <span>Setiap unit fisik = <strong>1 data terpisah</strong> dengan kode QR unik. Kosongkan No. Seri jika tidak ada — kode barang otomatis terbuat.</span>
+              </div>
+              <div className="flex items-center gap-3 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg">
+                <label className="text-slate-700 text-xs font-bold whitespace-nowrap">Buat berapa unit sekaligus?</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="50"
+                  value={formData.jumlah_unit}
+                  onChange={(e) => setFormData(prev => ({ ...prev, jumlah_unit: e.target.value }))}
+                  className="w-20 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm text-center focus:outline-none focus:ring-2 focus:ring-indigo-400 font-bold"
+                />
+                <span className="text-xs text-slate-400">unit (maks. 50) — masing-masing dapat kode unik otomatis</span>
+              </div>
             </div>
           )}
         </div>
@@ -368,7 +413,10 @@ export default function TambahInventarisPage() {
           </Link>
           <button type="submit" disabled={submitState.status === 'loading'} className="px-5 py-2.5 bg-slate-700 text-white rounded-lg text-sm font-bold font-sans hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500 disabled:opacity-50 flex items-center gap-2">
             {submitState.status === 'loading' ? <span className="material-icons-round animate-spin text-[18px]">sync</span> : <span className="material-icons-round text-[18px]">save</span>}
-            Simpan Barang
+            {isSatuan && parseInt(formData.jumlah_unit, 10) > 1
+              ? `Simpan ${parseInt(formData.jumlah_unit, 10)} Unit Sekaligus`
+              : 'Simpan Barang'
+            }
           </button>
         </div>
       </form>

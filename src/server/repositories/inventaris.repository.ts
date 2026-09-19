@@ -613,7 +613,7 @@ export class InventarisRepository {
 
     const detailRes = await pool.query(
       `SELECT sod.*,
-        b.kode_barang, b.nama AS nama_barang, b.jumlah AS jumlah_sistem,
+        b.kode_barang, b.nama AS nama_barang, b.jumlah AS jumlah_sistem, b.tipe_barang,
         mk.nama AS nama_kategori,
         ms.nama AS nama_sublokasi,
         pc.id AS checker_id,

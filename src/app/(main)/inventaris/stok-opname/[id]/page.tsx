@@ -34,28 +34,53 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
   const [filterStatus, setFilterStatus] = useState<'all' | 'belum' | 'sudah' | 'selisih'>('all');
   const [filterKategori, setFilterKategori] = useState('');
 
-  const handleScanResult = (scanned: string) => {
+  // ── Toast notification state ──────────────────────────────────────────────
+  const [scanToast, setScanToast] = useState<{ msg: string; type: 'success' | 'error' | 'warn' } | null>(null);
+
+  const showScanToast = (msg: string, type: 'success' | 'error' | 'warn' = 'success') => {
+    setScanToast({ msg, type });
+    setTimeout(() => setScanToast(null), 3000);
+  };
+
+  const handleScanResult = async (scanned: string) => {
     if (!data?.detail) return;
     const code = scanned.trim();
     const found = data.detail.find((item: any) =>
       item.kode_barang === code || item.kode_barang?.toLowerCase() === code.toLowerCase()
     );
     if (!found) {
+      showScanToast('Kode tidak ditemukan dalam sesi ini', 'error');
       setHighlightedDetailId(-1);
       setTimeout(() => setHighlightedDetailId(null), 2000);
       return;
     }
-    // Reset filter to show the found item
+
+    // Reset filter so the found item is visible
     setSearchQuery('');
     setFilterStatus('all');
     setFilterKategori('');
     setHighlightedDetailId(found.id);
-    setEditingDetailId(found.id);
-    setEditForm({ jumlah_fisik: found.jumlah_fisik?.toString() ?? '', kondisi_fisik: found.kondisi_fisik ?? '', keterangan: found.keterangan ?? '' });
     setTimeout(() => {
       rowRefs.current[found.id]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 100);
     setTimeout(() => setHighlightedDetailId(null), 3000);
+
+    if (found.tipe_barang === 'satuan') {
+      // AUTO-CONFIRM: langsung simpan sebagai Ditemukan (jumlah_fisik = 1)
+      try {
+        await handleAction('update_detail', {
+          detail_id: found.id,
+          jumlah_fisik: 1,
+        });
+        showScanToast(`✓ ${found.nama_barang}: DITEMUKAN`, 'success');
+      } catch {
+        showScanToast('Gagal menyimpan', 'error');
+      }
+    } else {
+      // MASSAL: buka form input qty seperti biasa
+      setEditingDetailId(found.id);
+      setEditForm({ jumlah_fisik: found.jumlah_fisik?.toString() ?? '', kondisi_fisik: found.kondisi_fisik ?? '', keterangan: found.keterangan ?? '' });
+    }
   };
 
   useEffect(() => {
@@ -328,16 +353,54 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
       )}
 
       {/* ── Info banners ──────────────────────────────────────────────────── */}
-      {data.status === 'Berjalan' && (
-        <div className="flex items-center gap-3 px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-700">
-          <span className="material-icons-round text-[18px] flex-shrink-0">info</span>
-          <span>Sesi ini <strong>dapat dilanjutkan kapan saja</strong>. Progress tersimpan otomatis — tutup halaman dan kembali lagi besok, data tetap aman.</span>
-        </div>
-      )}
+      {data.status === 'Berjalan' && (() => {
+        const hasSatuan = data.detail?.some((d: any) => d.tipe_barang === 'satuan');
+        const hasMassal = data.detail?.some((d: any) => d.tipe_barang === 'massal');
+        return (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-3 px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-700">
+              <span className="material-icons-round text-[18px] flex-shrink-0">info</span>
+              <span>Sesi ini <strong>dapat dilanjutkan kapan saja</strong>. Progress tersimpan otomatis — tutup halaman dan kembali lagi besok, data tetap aman.</span>
+            </div>
+            {(hasSatuan || hasMassal) && (
+              <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600">
+                <span className="material-icons-round text-[16px] text-slate-400 flex-shrink-0">qr_code_scanner</span>
+                <span className="font-semibold text-slate-700">Mode Scan:</span>
+                {hasSatuan && (
+                  <span className="flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 rounded-lg px-2 py-1 text-indigo-700">
+                    <span className="font-bold">🏷️ Aset Satuan</span>
+                    — scan otomatis konfirmasi <strong>DITEMUKAN</strong>
+                  </span>
+                )}
+                {hasMassal && (
+                  <span className="flex items-center gap-1.5 bg-slate-100 border border-slate-300 rounded-lg px-2 py-1 text-slate-600">
+                    <span className="font-bold">📦 Stok Massal</span>
+                    — scan buka form input jumlah fisik
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })()}
       {data.status === 'Selesai' && (
         <div className="flex items-center gap-3 px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl text-sm text-slate-600">
           <span className="material-icons-round text-[18px] flex-shrink-0">lock</span>
           <span>Sesi ini sudah <strong>diverifikasi dan dikunci</strong>. Data tidak dapat diubah. Buat sesi baru jika perlu opname ulang.</span>
+        </div>
+      )}
+
+      {/* ── Scan Toast Notification (fixed top-right) ──────────────────────── */}
+      {scanToast && (
+        <div className={`fixed top-6 right-6 z-[300] flex items-center gap-3 px-4 py-3 rounded-2xl shadow-2xl text-sm font-semibold animate-in slide-in-from-top-2 fade-in duration-200 ${
+          scanToast.type === 'success' ? 'bg-green-600 text-white'
+          : scanToast.type === 'error' ? 'bg-red-600 text-white'
+          : 'bg-amber-500 text-white'
+        }`}>
+          <span className="material-icons-round text-[18px]">
+            {scanToast.type === 'success' ? 'check_circle' : scanToast.type === 'error' ? 'error' : 'warning'}
+          </span>
+          {scanToast.msg}
         </div>
       )}
 
@@ -483,6 +546,7 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
                   const hasData = item.jumlah_fisik !== null;
                   const selisih = hasData ? (item.jumlah_fisik - item.jumlah_tercatat) : null;
                   const isHighlighted = highlightedDetailId === item.id;
+                  const isSatuan = item.tipe_barang === 'satuan';
 
                   return (
                     <tr
@@ -496,8 +560,17 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
                     >
                       {/* Kode + Nama (merged, always visible) */}
                       <td className="px-4 py-3">
-                        <p className="font-medium text-slate-800 text-sm">{item.nama_barang}</p>
-                        <p className="font-mono text-[11px] text-slate-400 mt-0.5">{item.kode_barang}</p>
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <p className="font-medium text-slate-800 text-sm">{item.nama_barang}</p>
+                          <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold leading-none ${
+                            isSatuan
+                              ? 'bg-indigo-50 text-indigo-600 border border-indigo-200'
+                              : 'bg-slate-50 text-slate-500 border border-slate-200'
+                          }`}>
+                            {isSatuan ? '🏷️ SATUAN' : '📦 MASSAL'}
+                          </span>
+                        </div>
+                        <p className="font-mono text-[11px] text-slate-400">{item.kode_barang}</p>
                         {/* Kategori on mobile */}
                         <p className="text-[11px] text-slate-400 mt-0.5 md:hidden">{item.nama_kategori}</p>
                       </td>
@@ -505,8 +578,10 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
                       {/* Kategori — desktop only */}
                       <td className="px-4 py-3 text-slate-500 text-xs hidden md:table-cell">{item.nama_kategori}</td>
 
-                      {/* Jumlah sistem */}
-                      <td className="px-4 py-3 text-center text-slate-700 font-medium">{item.jumlah_tercatat}</td>
+                      {/* Jumlah sistem — hidden for satuan (always 1, not meaningful) */}
+                      <td className="px-4 py-3 text-center text-slate-700 font-medium">
+                        {isSatuan ? <span className="text-slate-300 text-xs">—</span> : item.jumlah_tercatat}
+                      </td>
 
                       {isEditing ? (
                         <>
@@ -574,15 +649,29 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
                         </>
                       ) : (
                         <>
-                          {/* Jumlah fisik view */}
+                          {/* Jumlah fisik view — satuan: chip, massal: number */}
                           <td className="px-4 py-3 text-center">
-                            {hasData ? (
-                              <span className="font-bold text-slate-800">{item.jumlah_fisik}</span>
+                            {isSatuan ? (
+                              hasData ? (
+                                item.jumlah_fisik === 1
+                                  ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-green-50 text-green-700 border border-green-200">
+                                      <span className="material-icons-round text-[12px]">check_circle</span>
+                                      Ditemukan
+                                    </span>
+                                  : <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-50 text-red-700 border border-red-200">
+                                      <span className="material-icons-round text-[12px]">cancel</span>
+                                      Tidak Ditemukan
+                                    </span>
+                              ) : (
+                                <span className="text-slate-300 text-xs">Belum dicek</span>
+                              )
                             ) : (
-                              <span className="text-slate-300 text-xs">–</span>
+                              hasData
+                                ? <span className="font-bold text-slate-800">{item.jumlah_fisik}</span>
+                                : <span className="text-slate-300 text-xs">–</span>
                             )}
                           </td>
-                          {/* Selisih badge */}
+                          {/* Selisih badge — satuan: Sesuai/Hilang, massal: angka */}
                           <td className="px-4 py-3 text-center">
                             {selisih !== null ? (
                               <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold border ${
@@ -592,7 +681,10 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
                                   ? 'bg-red-50 text-red-700 border-red-200'
                                   : 'bg-amber-50 text-amber-700 border-amber-200'
                               }`}>
-                                {selisih === 0 ? 'Sesuai' : selisih > 0 ? `+${selisih}` : `${selisih}`}
+                                {isSatuan
+                                  ? (selisih === 0 ? 'Sesuai' : 'Hilang')
+                                  : (selisih === 0 ? 'Sesuai' : selisih > 0 ? `+${selisih}` : `${selisih}`)
+                                }
                               </span>
                             ) : (
                               <span className="text-slate-300 text-xs">–</span>
@@ -615,28 +707,72 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
                               <span className="text-slate-300 text-xs">–</span>
                             )}
                           </td>
-                          {/* Edit button */}
+                          {/* Action buttons */}
                           <td className="px-4 py-3">
                             {canEdit && data.status === 'Berjalan' && (
-                              <button
-                                onClick={() => {
-                                  setEditingDetailId(item.id);
-                                  setEditForm({
-                                    jumlah_fisik: item.jumlah_fisik !== null ? String(item.jumlah_fisik) : '',
-                                    kondisi_fisik: item.kondisi_fisik || '',
-                                    keterangan: item.keterangan || '',
-                                  });
-                                  setSubmitState({ status: 'idle', message: '' });
-                                }}
-                                className={`inline-flex items-center gap-1 text-xs font-medium border rounded-lg px-2.5 py-1 transition-colors ${
-                                  hasData
-                                    ? 'text-slate-600 border-slate-200 hover:border-slate-400 hover:text-slate-800'
-                                    : 'text-blue-600 border-blue-200 hover:border-blue-400 hover:text-blue-800'
-                                }`}
-                              >
-                                <span className="material-icons-round text-[13px]">{hasData ? 'edit' : 'add'}</span>
-                                {hasData ? 'Edit' : 'Input'}
-                              </button>
+                              isSatuan ? (
+                                // Satuan: Ditemukan ✓ / Tidak Ditemukan ✗ / Edit catatan
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    onClick={() => handleAction('update_detail', { detail_id: item.id, jumlah_fisik: 1 })}
+                                    title="Tandai Ditemukan"
+                                    className={`p-1.5 rounded-lg transition-colors ${
+                                      hasData && item.jumlah_fisik === 1
+                                        ? 'bg-green-100 text-green-700 border border-green-300'
+                                        : 'bg-white border border-slate-200 text-slate-400 hover:border-green-300 hover:text-green-600'
+                                    }`}
+                                  >
+                                    <span className="material-icons-round text-[14px]">check_circle</span>
+                                  </button>
+                                  <button
+                                    onClick={() => handleAction('update_detail', { detail_id: item.id, jumlah_fisik: 0 })}
+                                    title="Tandai Tidak Ditemukan"
+                                    className={`p-1.5 rounded-lg transition-colors ${
+                                      hasData && item.jumlah_fisik === 0
+                                        ? 'bg-red-100 text-red-700 border border-red-300'
+                                        : 'bg-white border border-slate-200 text-slate-400 hover:border-red-300 hover:text-red-600'
+                                    }`}
+                                  >
+                                    <span className="material-icons-round text-[14px]">cancel</span>
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setEditingDetailId(item.id);
+                                      setEditForm({
+                                        jumlah_fisik: item.jumlah_fisik !== null ? String(item.jumlah_fisik) : '1',
+                                        kondisi_fisik: item.kondisi_fisik || '',
+                                        keterangan: item.keterangan || '',
+                                      });
+                                      setSubmitState({ status: 'idle', message: '' });
+                                    }}
+                                    title="Tambah catatan kondisi"
+                                    className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-400 hover:border-slate-400 hover:text-slate-600 transition-colors"
+                                  >
+                                    <span className="material-icons-round text-[14px]">edit_note</span>
+                                  </button>
+                                </div>
+                              ) : (
+                                // Massal: existing edit button
+                                <button
+                                  onClick={() => {
+                                    setEditingDetailId(item.id);
+                                    setEditForm({
+                                      jumlah_fisik: item.jumlah_fisik !== null ? String(item.jumlah_fisik) : '',
+                                      kondisi_fisik: item.kondisi_fisik || '',
+                                      keterangan: item.keterangan || '',
+                                    });
+                                    setSubmitState({ status: 'idle', message: '' });
+                                  }}
+                                  className={`inline-flex items-center gap-1 text-xs font-medium border rounded-lg px-2.5 py-1 transition-colors ${
+                                    hasData
+                                      ? 'text-slate-600 border-slate-200 hover:border-slate-400 hover:text-slate-800'
+                                      : 'text-blue-600 border-blue-200 hover:border-blue-400 hover:text-blue-800'
+                                  }`}
+                                >
+                                  <span className="material-icons-round text-[13px]">{hasData ? 'edit' : 'add'}</span>
+                                  {hasData ? 'Edit' : 'Input'}
+                                </button>
+                              )
                             )}
                           </td>
                         </>
