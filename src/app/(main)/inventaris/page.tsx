@@ -881,11 +881,26 @@ export default function InventarisPage() {
                             className="w-4 h-4 rounded border-slate-300 accent-indigo-600 cursor-pointer"
                           />
                         </td>
-                        {/* Expand icon */}
+                        {/* Thumbnail of first item + chevron overlay */}
                         <td className="px-4 py-2.5">
-                          <span className={`material-icons-round text-indigo-500 text-[18px] transition-transform duration-200 ${row.isExpanded ? 'rotate-90' : ''}`}>
-                            chevron_right
-                          </span>
+                          <div className="relative w-10 h-10 flex-shrink-0">
+                            {fotoUrlToProxy(row.items[0]?.foto_url) ? (
+                              <img
+                                src={fotoUrlToProxy(row.items[0].foto_url)!}
+                                alt={row.nama}
+                                className="w-10 h-10 rounded-lg object-cover border border-indigo-200 bg-slate-50"
+                                onError={(e) => { e.currentTarget.style.display = 'none'; (e.currentTarget.nextElementSibling as HTMLElement | null)?.style && ((e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex'); }}
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded-lg bg-indigo-50 border border-indigo-200 flex items-center justify-center">
+                                <span className="material-icons-round text-indigo-300 text-[18px]">inventory_2</span>
+                              </div>
+                            )}
+                            {/* Chevron overlay bottom-right */}
+                            <span className={`absolute -bottom-1 -right-1 w-4 h-4 bg-indigo-500 rounded-full flex items-center justify-center shadow-sm transition-transform duration-200 ${row.isExpanded ? 'rotate-90' : ''}`}>
+                              <span className="material-icons-round text-white text-[11px]">chevron_right</span>
+                            </span>
+                          </div>
                         </td>
                         {/* Group name + count */}
                         <td className="px-4 py-2.5" colSpan={3}>

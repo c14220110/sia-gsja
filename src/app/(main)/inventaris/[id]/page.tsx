@@ -34,8 +34,43 @@ export default function DetailBarangPage({ params }: { params: Promise<{ id: str
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
 
   const [showAddUnit, setShowAddUnit] = useState(false);
-  const [addUnitForm, setAddUnitForm] = useState({ no_seri: '', kondisi: 'Baik' });
+  const [addUnitForm, setAddUnitForm] = useState({
+    no_seri: '',
+    kondisi: 'Baik',
+    lokasi_satelit_id: '',
+    lokasi_sublokasi_id: '',
+  });
   const [addUnitState, setAddUnitState] = useState<{ status: 'idle'|'loading'|'success'|'error'; message: string }>({ status: 'idle', message: '' });
+  const [satelitOptions, setSatelitOptions] = useState<any[]>([]);
+  const [sublokasiOptions, setSublokasiOptions] = useState<any[]>([]);
+
+  // Load satelit options once
+  useEffect(() => {
+    fetch('/api/options?type=satelit')
+      .then(r => r.json())
+      .then(d => { if (d.success) setSatelitOptions(d.data); })
+      .catch(() => {});
+  }, []);
+
+  // Load sublokasi when satelit changes in addUnitForm
+  useEffect(() => {
+    if (!addUnitForm.lokasi_satelit_id) { setSublokasiOptions([]); return; }
+    fetch(`/api/options?type=sublokasi&satelit_id=${addUnitForm.lokasi_satelit_id}`)
+      .then(r => r.json())
+      .then(d => { if (d.success) setSublokasiOptions(d.data); })
+      .catch(() => {});
+  }, [addUnitForm.lokasi_satelit_id]);
+
+  // When modal opens, pre-fill lokasi from current item
+  useEffect(() => {
+    if (showAddUnit && data) {
+      setAddUnitForm(prev => ({
+        ...prev,
+        lokasi_satelit_id: data.lokasi_satelit_id?.toString() || '',
+        lokasi_sublokasi_id: data.lokasi_sublokasi_id?.toString() || '',
+      }));
+    }
+  }, [showAddUnit]);
 
   const handleAddUnit = async () => {
     if (!data) return;
@@ -54,8 +89,9 @@ export default function DetailBarangPage({ params }: { params: Promise<{ id: str
         pemilik_tipe: data.pemilik_satelit_id ? 'satelit' : 'individu',
         pemilik_satelit_id: data.pemilik_satelit_id?.toString() || '',
         pemilik_nama_lain: data.pemilik_nama_lain || '',
-        lokasi_satelit_id: data.lokasi_satelit_id?.toString() || '',
-        lokasi_sublokasi_id: data.lokasi_sublokasi_id?.toString() || '',
+        // Lokasi from form (user can change per unit)
+        lokasi_satelit_id: addUnitForm.lokasi_satelit_id,
+        lokasi_sublokasi_id: addUnitForm.lokasi_sublokasi_id,
         foto_url: '',
       };
       const res = await fetch('/api/inventaris', {
@@ -66,7 +102,7 @@ export default function DetailBarangPage({ params }: { params: Promise<{ id: str
       const result = await res.json();
       if (result.success) {
         setAddUnitState({ status: 'success', message: `Unit baru (${result.data?.kode_barang || 'baru'}) berhasil ditambahkan` });
-        setAddUnitForm({ no_seri: '', kondisi: 'Baik' });
+        setAddUnitForm({ no_seri: '', kondisi: 'Baik', lokasi_satelit_id: data.lokasi_satelit_id?.toString() || '', lokasi_sublokasi_id: data.lokasi_sublokasi_id?.toString() || '' });
         setTimeout(() => { setShowAddUnit(false); setAddUnitState({ status: 'idle', message: '' }); }, 2000);
       } else {
         setAddUnitState({ status: 'error', message: result.message || 'Gagal menambahkan unit' });
@@ -287,19 +323,18 @@ export default function DetailBarangPage({ params }: { params: Promise<{ id: str
                 <h3 className="font-bold text-slate-900">Tambah Unit Serupa</h3>
                 <p className="text-xs text-slate-500 mt-0.5">Data dari: <strong>{data?.nama}</strong></p>
               </div>
-              <button onClick={() => { setShowAddUnit(false); setAddUnitState({ status: 'idle', message: '' }); setAddUnitForm({ no_seri: '', kondisi: 'Baik' }); }} className="p-2 rounded-lg hover:bg-slate-100">
+              <button onClick={() => { setShowAddUnit(false); setAddUnitState({ status: 'idle', message: '' }); setAddUnitForm({ no_seri: '', kondisi: 'Baik', lokasi_satelit_id: '', lokasi_sublokasi_id: '' }); }} className="p-2 rounded-lg hover:bg-slate-100">
                 <span className="material-icons-round text-slate-500">close</span>
               </button>
             </div>
             {/* Body */}
             <div className="px-6 py-5 flex flex-col gap-4">
-              {/* Pre-filled info */}
+              {/* Pre-filled info (nama + kategori only — lokasi is editable below) */}
               <div className="bg-slate-50 rounded-lg px-4 py-3 text-xs text-slate-500 flex flex-col gap-1">
                 <div className="flex justify-between"><span>Nama</span><span className="font-semibold text-slate-700">{data?.nama}</span></div>
                 <div className="flex justify-between"><span>Kategori</span><span className="font-semibold text-slate-700">{data?.nama_kategori}</span></div>
-                <div className="flex justify-between"><span>Lokasi</span><span className="font-semibold text-slate-700">{data?.lokasi_nama_satelit}{data?.lokasi_nama_sublokasi ? ` · ${data?.lokasi_nama_sublokasi}` : ''}</span></div>
               </div>
-              
+
               {/* No. Seri */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-bold text-slate-700">
@@ -315,7 +350,7 @@ export default function DetailBarangPage({ params }: { params: Promise<{ id: str
                   autoFocus
                 />
               </div>
-              
+
               {/* Kondisi */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-bold text-slate-700">Kondisi Unit Baru</label>
@@ -329,7 +364,42 @@ export default function DetailBarangPage({ params }: { params: Promise<{ id: str
                   <option value="Rusak Berat">Rusak Berat</option>
                 </select>
               </div>
-              
+
+              {/* Lokasi Satelit */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-bold text-slate-700">
+                  Lokasi Satelit
+                  <span className="ml-2 text-xs font-normal text-slate-400">(bisa berbeda dari unit sebelumnya)</span>
+                </label>
+                <select
+                  value={addUnitForm.lokasi_satelit_id}
+                  onChange={e => setAddUnitForm(prev => ({ ...prev, lokasi_satelit_id: e.target.value, lokasi_sublokasi_id: '' }))}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                >
+                  <option value="">-- Pilih Satelit --</option>
+                  {satelitOptions.map((s: any) => (
+                    <option key={s.id} value={s.id}>{s.nama_satelit}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Sub-Lokasi */}
+              {addUnitForm.lokasi_satelit_id && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-bold text-slate-700">Sub-Lokasi / Ruangan</label>
+                  <select
+                    value={addUnitForm.lokasi_sublokasi_id}
+                    onChange={e => setAddUnitForm(prev => ({ ...prev, lokasi_sublokasi_id: e.target.value }))}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                  >
+                    <option value="">-- Pilih Ruangan (opsional) --</option>
+                    {sublokasiOptions.map((s: any) => (
+                      <option key={s.id} value={s.id}>{s.nama}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               {/* Error/Success */}
               {addUnitState.status === 'error' && (
                 <div className="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
@@ -347,7 +417,7 @@ export default function DetailBarangPage({ params }: { params: Promise<{ id: str
             {/* Footer */}
             <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3">
               <button
-                onClick={() => { setShowAddUnit(false); setAddUnitState({ status: 'idle', message: '' }); setAddUnitForm({ no_seri: '', kondisi: 'Baik' }); }}
+                onClick={() => { setShowAddUnit(false); setAddUnitState({ status: 'idle', message: '' }); setAddUnitForm({ no_seri: '', kondisi: 'Baik', lokasi_satelit_id: '', lokasi_sublokasi_id: '' }); }}
                 className="px-4 py-2 border border-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50"
                 disabled={addUnitState.status === 'loading'}
               >
