@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
 import { AlertModal } from '@/components/ui/AlertModal';
 import QRCodeModal from '@/components/ui/QRCodeModal';
+import BulkQRPrintModal, { type BulkQRItem } from '@/components/ui/BulkQRPrintModal';
 import BarcodeScannerModal from '@/components/ui/BarcodeScannerModal';
 import { exportInventarisToExcel, DEFAULT_EXPORT_COLUMNS } from '@/lib/exportInventaris';
 
@@ -23,7 +24,6 @@ function fotoUrlToProxy(url: string | null | undefined): string | null {
 export default function InventarisPage() {
   const { showLoader, hideLoader } = useLoader();
 
-
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   
@@ -32,9 +32,31 @@ export default function InventarisPage() {
   const [menuPosition, setMenuPosition] = useState<{ top: number; right: number }>({ top: 0, right: 0 });
   const [submitState, setSubmitState] = useState<{ status: 'idle'|'loading'|'success'|'error', message: string, errors?: any }>({ status: 'idle', message: '' });
 
-  // QR Code modal
+  // QR Code modal (single item)
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [qrItem, setQrItem] = useState<{ nama: string; kode_barang: string; nama_kategori: string } | null>(null);
+
+  // Bulk QR print modal
+  const [isBulkQrOpen, setIsBulkQrOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === data.length && data.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(data.map((d: any) => d.id)));
+    }
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
 
   // Barcode scanner
   const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -57,7 +79,18 @@ export default function InventarisPage() {
   const [totalItems, setTotalItems] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const limit = 10;
-  
+
+  // selectedItems must be computed AFTER data is declared
+  const selectedItems: BulkQRItem[] = data
+    .filter((d: any) => selectedIds.has(d.id))
+    .map((d: any) => ({
+      id: d.id,
+      nama: d.nama,
+      kode_barang: d.kode_barang,
+      nama_kategori: d.nama_kategori,
+      copies: 1,
+    }));
+
   const [filterKategori, setFilterKategori] = useState('');
   const [filterSatelit, setFilterSatelit] = useState('');
   const [filterKondisi, setFilterKondisi] = useState('');
@@ -475,13 +508,13 @@ export default function InventarisPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          {/* Scan barcode button */}
+          {/* Scan QR button */}
           <button
             onClick={() => setIsScannerOpen(true)}
-            title="Scan Barcode Barang"
+            title="Scan QR / Barcode Barang"
             className="flex-shrink-0 p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-600 hover:bg-amber-100 hover:border-amber-300 transition-colors"
           >
-            <span className="material-icons-round text-[20px]">photo_camera</span>
+            <span className="material-icons-round text-[20px]">qr_code_scanner</span>
           </button>
         </div>
 
@@ -521,13 +554,13 @@ export default function InventarisPage() {
           <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
         </div>
 
-        {/* More Filters Toggle */}
+        {/* Filter Lanjutan Toggle */}
         <button 
           onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
           className={`px-4 py-2.5 border rounded-lg flex items-center gap-2 transition-colors group ${showAdvancedFilters ? 'bg-slate-100 border-slate-300' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
         >
           <span className={`material-icons-round text-[20px] transition-colors ${showAdvancedFilters ? 'text-slate-800' : 'text-slate-500 group-hover:text-slate-700'}`}>tune</span>
-          <span className={`text-sm font-medium font-sans transition-colors ${showAdvancedFilters ? 'text-slate-900' : 'text-slate-600 group-hover:text-slate-800'}`}>More Filters</span>
+          <span className={`text-sm font-medium font-sans transition-colors ${showAdvancedFilters ? 'text-slate-900' : 'text-slate-600 group-hover:text-slate-800'}`}>Filter Lanjutan</span>
         </button>
       </div>
 
@@ -590,14 +623,86 @@ export default function InventarisPage() {
         </div>
       )}
 
+      {/* ── Active Filter Pills + Result Count ──────────────────────────────── */}
+      {(() => {
+        const activePills: { label: string; onRemove: () => void }[] = [];
+        if (debouncedSearch) activePills.push({ label: `Cari: "${debouncedSearch}"`, onRemove: () => { setSearchQuery(''); } });
+        if (filterKategori) {
+          const kat = kategoriOptions.find((k: any) => k.id.toString() === filterKategori);
+          if (kat) activePills.push({ label: kat.nama, onRemove: () => { setFilterKategori(''); setCurrentPage(1); } });
+        }
+        if (filterSatelit && userData?.is_super_admin) {
+          const sat = satelitOptions.find((s: any) => s.id.toString() === filterSatelit);
+          if (sat) activePills.push({ label: sat.nama_satelit, onRemove: () => { setFilterSatelit(''); setCurrentPage(1); } });
+        }
+        if (filterKondisi && filterKondisi !== 'Semua') activePills.push({ label: `Kondisi: ${filterKondisi}`, onRemove: () => { setFilterKondisi(''); setCurrentPage(1); } });
+        if (filterStatus && filterStatus !== 'Semua') activePills.push({ label: `Status: ${filterStatus}`, onRemove: () => { setFilterStatus(''); setCurrentPage(1); } });
+        if (filterAktivaTetap === 'true') activePills.push({ label: 'Aktiva Tetap', onRemove: () => { setFilterAktivaTetap(''); setCurrentPage(1); } });
+        if (filterAktivaTetap === 'false') activePills.push({ label: 'Non-Aktiva', onRemove: () => { setFilterAktivaTetap(''); setCurrentPage(1); } });
+
+        const clearAll = () => {
+          setSearchQuery('');
+          setFilterKategori('');
+          if (userData?.is_super_admin) setFilterSatelit('');
+          setFilterKondisi('');
+          setFilterStatus('');
+          setFilterAktivaTetap('');
+          setCurrentPage(1);
+        };
+
+        return (
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            {/* Result count */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold text-slate-700">
+                {totalItems.toLocaleString('id-ID')} barang ditemukan
+              </span>
+              {activePills.length > 0 && (
+                <span className="text-xs text-slate-400">· difilter dari total {stats?.total.toLocaleString('id-ID') ?? '...'}</span>
+              )}
+            </div>
+            {/* Active filter pills */}
+            {activePills.length > 0 && (
+              <div className="flex items-center gap-2 flex-wrap">
+                {activePills.map((pill) => (
+                  <span key={pill.label} className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-full text-xs font-semibold">
+                    {pill.label}
+                    <button onClick={pill.onRemove} className="ml-0.5 hover:text-indigo-900 transition-colors">
+                      <span className="material-icons-round text-[13px]">close</span>
+                    </button>
+                  </span>
+                ))}
+                <button
+                  onClick={clearAll}
+                  className="text-xs text-slate-500 hover:text-rose-600 font-semibold flex items-center gap-0.5 transition-colors"
+                >
+                  <span className="material-icons-round text-[13px]">filter_list_off</span>
+                  Hapus Semua
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       {/* Data Table */}
       <div className="w-full bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col">
         <div className="w-full overflow-x-auto overflow-y-visible">
           <table className="w-full min-w-[700px]">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50">
+                <th className="px-4 py-3 w-10">
+                  <input
+                    type="checkbox"
+                    checked={data.length > 0 && selectedIds.size === data.length}
+                    ref={(el) => { if (el) el.indeterminate = selectedIds.size > 0 && selectedIds.size < data.length; }}
+                    onChange={toggleSelectAll}
+                    className="w-4 h-4 rounded border-slate-300 accent-indigo-600 cursor-pointer"
+                    title="Pilih semua di halaman ini"
+                  />
+                </th>
                 <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider w-12"></th>
-                <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Kode & Nama</th>
+                <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Kode &amp; Nama</th>
                 <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider w-36">Kategori</th>
                 <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Lokasi</th>
                 <th className="text-center px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider w-16">Jml</th>
@@ -609,19 +714,61 @@ export default function InventarisPage() {
             <tbody className="divide-y divide-slate-100">
               {data.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-16 text-center">
-                    <span className="material-icons-round text-5xl text-slate-200 block mb-2">search_off</span>
-                    <span className="text-sm text-slate-400 font-sans">Tidak ada data barang yang ditemukan.</span>
+                  <td colSpan={9} className="py-20 text-center">
+                    {(() => {
+                      const hasActiveFilter = debouncedSearch || filterKategori || filterKondisi || (filterStatus && filterStatus !== 'Semua') || filterAktivaTetap;
+                      return (
+                        <div className="flex flex-col items-center gap-3">
+                          <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center">
+                            <span className="material-icons-round text-4xl text-slate-300">
+                              {hasActiveFilter ? 'manage_search' : 'inventory_2'}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-slate-600">
+                              {hasActiveFilter ? 'Tidak ada barang yang cocok' : 'Belum ada barang'}
+                            </p>
+                            <p className="text-xs text-slate-400 mt-0.5">
+                              {hasActiveFilter ? 'Coba ubah atau hapus filter yang aktif' : 'Mulai tambahkan barang inventaris pertama'}
+                            </p>
+                          </div>
+                          {hasActiveFilter ? (
+                            <button
+                              onClick={() => { setSearchQuery(''); setFilterKategori(''); setFilterKondisi(''); setFilterStatus(''); setFilterAktivaTetap(''); setCurrentPage(1); }}
+                              className="mt-1 px-4 py-2 bg-white border border-slate-200 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-1.5"
+                            >
+                              <span className="material-icons-round text-[14px]">filter_list_off</span>
+                              Hapus Semua Filter
+                            </button>
+                          ) : hasPermission('inventaris_manage') ? (
+                            <a href="/inventaris/tambah" className="mt-1 px-4 py-2 bg-slate-700 text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition-colors flex items-center gap-1.5">
+                              <span className="material-icons-round text-[14px]">add</span>
+                              Tambah Barang
+                            </a>
+                          ) : null}
+                        </div>
+                      );
+                    })()}
                   </td>
                 </tr>
               ) : (
                 data.map((item, idx) => {
+                  const isSelected = selectedIds.has(item.id);
                   return (
                     <tr
                       key={item.id || idx}
                       onClick={() => router.push(`/inventaris/${item.id}`)}
-                      className={`hover:bg-slate-50 transition-colors cursor-pointer relative ${openMenuId === item.id ? 'z-50' : ''}`}
+                      className={`transition-colors cursor-pointer relative ${openMenuId === item.id ? 'z-50' : ''} ${isSelected ? 'bg-indigo-50 hover:bg-indigo-100' : 'hover:bg-slate-50'}`}
                     >
+                      {/* Checkbox */}
+                      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelect(item.id)}
+                          className="w-4 h-4 rounded border-slate-300 accent-indigo-600 cursor-pointer"
+                        />
+                      </td>
                       {/* Thumbnail — klik untuk perbesar */}
                       <td className="px-4 py-3">
                         {fotoUrlToProxy(item.foto_url) ? (
@@ -756,32 +903,104 @@ export default function InventarisPage() {
             </tbody>
           </table>
         </div>
-      </div>
 
-    {/* Pagination Footer */}
-    <div className="w-full px-6 py-4 bg-white border-t border-slate-200 flex flex-col md:flex-row justify-between items-center text-sm gap-4">
-          <span className="text-slate-500 font-sans">
-            Menampilkan {data.length > 0 ? ((currentPage - 1) * limit) + 1 : 0}-
-            {Math.min(currentPage * limit, totalItems)} dari {totalItems} barang
+        {/* ── Pagination Footer — INSIDE the card ─────────────────────────── */}
+        <div className="px-6 py-3.5 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-3">
+          <span className="text-xs text-slate-400 font-sans">
+            Menampilkan {data.length > 0 ? ((currentPage - 1) * limit) + 1 : 0}–{Math.min(currentPage * limit, totalItems)} dari <strong className="text-slate-600">{totalItems.toLocaleString('id-ID')}</strong> barang
           </span>
-          <div className="flex items-center gap-2">
-            <button 
+          <div className="flex items-center gap-1">
+            {/* First */}
+            <button
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              className="w-8 h-8 rounded-lg border border-slate-200 flex justify-center items-center text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-colors disabled:opacity-30 disabled:hover:bg-transparent text-xs"
+              title="Halaman pertama"
+            >
+              <span className="material-icons-round text-[16px]">first_page</span>
+            </button>
+            {/* Prev */}
+            <button
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="w-9 h-9 rounded-lg border border-slate-200 flex justify-center items-center text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-colors disabled:opacity-50 disabled:hover:bg-transparent"
+              className="w-8 h-8 rounded-lg border border-slate-200 flex justify-center items-center text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
             >
-               <span className="material-icons-round text-[18px]">chevron_left</span>
+              <span className="material-icons-round text-[16px]">chevron_left</span>
             </button>
-            <span className="px-4 text-slate-700 font-bold">Halaman {currentPage} dari {totalPages}</span>
-            <button 
+            {/* Page numbers */}
+            {(() => {
+              const pageWindow = 2;
+              const start = Math.max(1, currentPage - pageWindow);
+              const end = Math.min(totalPages, currentPage + pageWindow);
+              return Array.from({ length: end - start + 1 }, (_, i) => start + i).map(pg => (
+                <button
+                  key={pg}
+                  onClick={() => setCurrentPage(pg)}
+                  className={`w-8 h-8 rounded-lg border text-xs font-bold transition-colors ${
+                    pg === currentPage
+                      ? 'bg-slate-700 border-slate-700 text-white'
+                      : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  {pg}
+                </button>
+              ));
+            })()}
+            {/* Next */}
+            <button
               onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages || totalItems === 0}
-              className="w-9 h-9 rounded-lg border border-slate-200 flex justify-center items-center text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition-colors disabled:opacity-50 disabled:hover:bg-transparent"
+              className="w-8 h-8 rounded-lg border border-slate-200 flex justify-center items-center text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
             >
-               <span className="material-icons-round text-[18px]">chevron_right</span>
+              <span className="material-icons-round text-[16px]">chevron_right</span>
             </button>
+            {/* Last */}
+            <button
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages || totalItems === 0}
+              className="w-8 h-8 rounded-lg border border-slate-200 flex justify-center items-center text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-colors disabled:opacity-30 disabled:hover:bg-transparent text-xs"
+              title="Halaman terakhir"
+            >
+              <span className="material-icons-round text-[16px]">last_page</span>
+            </button>
+          </div>
         </div>
-      </div>
+      </div>{/* end table card */}
+
+      {/* ── Floating Bulk Action Bar ─────────────────────────────────────────── */}
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 fade-in duration-200">
+          <div className="bg-slate-900 text-white rounded-2xl shadow-2xl px-5 py-3 flex items-center gap-4 min-w-[360px]">
+            {/* Count badge */}
+            <div className="flex items-center gap-2 flex-1">
+              <div className="w-7 h-7 bg-indigo-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                <span className="material-icons-round text-white text-[14px]">check_box</span>
+              </div>
+              <span className="text-sm font-bold">
+                {selectedIds.size} barang dipilih
+              </span>
+            </div>
+
+            {/* Actions */}
+            <button
+              onClick={() => { setIsBulkQrOpen(true); }}
+              className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-bold transition-colors"
+            >
+              <span className="material-icons-round text-[16px]">print</span>
+              Cetak QR
+            </button>
+
+            {/* Clear selection */}
+            <button
+              onClick={clearSelection}
+              className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+              title="Batal pilih"
+            >
+              <span className="material-icons-round text-[18px]">close</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       <AlertModal
         isOpen={alertState.isOpen}
@@ -821,7 +1040,7 @@ export default function InventarisPage() {
         </div>
       )}
 
-      {/* Barcode Label Modal (menggantikan QR code persegi) */}
+      {/* Barcode Label Modal (single item) */}
       {qrItem && (
         <QRCodeModal
           isOpen={isQrModalOpen}
@@ -829,6 +1048,16 @@ export default function InventarisPage() {
           title={qrItem.nama}
           qrValue={qrItem.kode_barang}
           subtitle={qrItem.nama_kategori}
+        />
+      )}
+
+      {/* Bulk QR Print Modal (multi-item) */}
+      {isBulkQrOpen && selectedItems.length > 0 && (
+        <BulkQRPrintModal
+          key={Array.from(selectedIds).sort().join(',')}
+          isOpen={isBulkQrOpen}
+          onClose={() => { setIsBulkQrOpen(false); clearSelection(); }}
+          items={selectedItems}
         />
       )}
 

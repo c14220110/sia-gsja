@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import QRCode from 'react-qr-code';
+import { renderStickerCanvas, generateBulkPDF, PER_PAGE, STICKER_COLS, STICKER_ROWS } from '@/lib/renderQRSticker';
 
 interface QRCodeModalProps {
   isOpen: boolean;
@@ -16,129 +17,33 @@ const QR_CONTAINER_ID = 'qr-code-download-target';
 export default function QRCodeModal({ isOpen, onClose, title, qrValue, subtitle }: QRCodeModalProps) {
   const [copied, setCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'png' | 'pdf'>('png');
+  const [copyCount, setCopyCount] = useState(1);
 
-  const handleDownloadSticker = async () => {
+  const handleDownloadPNG = async () => {
     setDownloading(true);
     try {
-      // ── Canvas 800×800 ──────────────────────────────────────────────────────
-      const S = 800;
-      const canvas = document.createElement('canvas');
-      canvas.width = S; canvas.height = S;
-      const ctx = canvas.getContext('2d')!;
-
-      // Background abu-abu lembut — beri "napas" visual
-      ctx.fillStyle = '#f1f5f9';
-      ctx.fillRect(0, 0, S, S);
-
-      // Header strip atas (branding) — rounded top
-      ctx.fillStyle = '#1e293b';
-      ctx.beginPath();
-      ctx.roundRect(0, 0, S, 80, [16, 16, 0, 0]);
-      ctx.fill();
-      ctx.fillStyle = '#3b82f6';
-      ctx.font = 'bold 30px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('SIM GSJA', S / 2, 46);
-      ctx.fillStyle = '#94a3b8';
-      ctx.font = '13px sans-serif';
-      ctx.fillText('LABEL ASET', S / 2, 67);
-
-      // White card — QR + teks di atasnya
-      const cardMargin = 28;
-      const cardX = cardMargin;
-      const cardY = 96;
-      const cardW = S - cardMargin * 2;
-      const cardH = S - cardY - cardMargin;
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.roundRect(cardX, cardY, cardW, cardH, 16);
-      ctx.fill();
-
-      // QR Code — 420px, beri margin dari card edges
-      const qrSize = 420;
-      const qrX = (S - qrSize) / 2;
-      const qrY = cardY + 24;
-
-      const container = document.getElementById(QR_CONTAINER_ID);
-      const svgEl = container?.querySelector('svg');
-      if (svgEl) {
-        const svgStr = new XMLSerializer().serializeToString(svgEl);
-        const svgBlob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
-        const svgUrl = URL.createObjectURL(svgBlob);
-        await new Promise<void>((resolve) => {
-          const img = new Image();
-          img.onload = () => {
-            ctx.drawImage(img, qrX, qrY, qrSize, qrSize);
-            URL.revokeObjectURL(svgUrl);
-            resolve();
-          };
-          img.onerror = () => { URL.revokeObjectURL(svgUrl); resolve(); };
-          img.src = svgUrl;
-        });
-      }
-
-      // Logo GSJA di tengah QR — 28% dari qrSize, aman untuk level H (max 30%)
-      try {
-        const logoSize = qrSize * 0.28;
-        const logoX = qrX + (qrSize - logoSize) / 2;
-        const logoY = qrY + (qrSize - logoSize) / 2;
-        await new Promise<void>((resolve) => {
-          const logoImg = new Image();
-          logoImg.onload = () => {
-            ctx.fillStyle = '#ffffff';
-            const pad = 12;
-            ctx.beginPath();
-            ctx.roundRect(logoX - pad, logoY - pad, logoSize + pad * 2, logoSize + pad * 2, 12);
-            ctx.fill();
-            ctx.drawImage(logoImg, logoX, logoY, logoSize, logoSize);
-            resolve();
-          };
-          logoImg.onerror = () => resolve();
-          logoImg.src = '/assets/logo_gsja.png';
-        });
-      } catch (_) { /* logo opsional */ }
-
-      // Divider antara QR dan teks
-      const divY = qrY + qrSize + 20;
-      ctx.strokeStyle = '#e2e8f0';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(cardX + 40, divY);
-      ctx.lineTo(cardX + cardW - 40, divY);
-      ctx.stroke();
-
-      // Teks info aset
-      let curY = divY + 32;
-
-      ctx.fillStyle = '#0f172a';
-      ctx.font = 'bold 34px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(title.length > 28 ? title.slice(0, 26) + '\u2026' : title, S / 2, curY);
-      curY += 30;
-
-      if (subtitle) {
-        ctx.fillStyle = '#64748b';
-        ctx.font = '20px sans-serif';
-        ctx.fillText(subtitle, S / 2, curY);
-        curY += 28;
-      }
-
-      // Kode — beri latar biru samar agar kelihatan seperti badge
-      ctx.fillStyle = '#1e40af';
-      ctx.font = 'bold 22px monospace';
-      curY += 10;
-      ctx.fillText(qrValue, S / 2, curY);
-
-      // Footer di bawah canvas (di luar card)
-      ctx.fillStyle = '#94a3b8';
-      ctx.font = '12px sans-serif';
-      ctx.fillText('Properti Resmi GSJA \u2014 Jangan dipindahkan tanpa izin pengurus', S / 2, S - 14);
-
+      const dataUrl = await renderStickerCanvas({ title, subtitle, qrValue });
       const link = document.createElement('a');
       link.download = `STIKER_QR_${title.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${qrValue}.png`;
-      link.href = canvas.toDataURL('image/png');
+      link.href = dataUrl;
       link.click();
-    } catch (e) { console.error('Download error:', e); }
+    } catch (e) { console.error('PNG download error:', e); }
+    finally { setDownloading(false); }
+  };
+
+  const handleDownloadPDF = async () => {
+    setDownloading(true);
+    try {
+      const blob = await generateBulkPDF([{ title, subtitle, qrValue, copies: copyCount }]);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const pages = Math.ceil(copyCount / PER_PAGE);
+      link.download = `STIKER_QR_${qrValue}_${copyCount}stiker_${pages}hal.pdf`;
+      link.href = url;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (e) { console.error('PDF download error:', e); }
     finally { setDownloading(false); }
   };
 
@@ -148,12 +53,30 @@ export default function QRCodeModal({ isOpen, onClose, title, qrValue, subtitle 
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const pages = Math.ceil(copyCount / PER_PAGE);
+
+  // ── Body scroll lock — prevent page scroll when modal is open ──
+  useEffect(() => {
+    if (isOpen) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => { document.body.style.overflow = prev; };
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[200] bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-lg overflow-hidden text-center" onClick={(e) => e.stopPropagation()}>
-        <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+    <div
+      className="fixed inset-0 z-[200] bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden text-center"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* ── Header — pinned ── */}
+        <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50 flex-shrink-0">
           <div className="flex items-center gap-2">
             <span className="material-icons-round text-slate-600 text-[20px]">qr_code_2</span>
             <h3 className="font-bold text-slate-900 text-base">QR Code Label Aset</h3>
@@ -162,25 +85,15 @@ export default function QRCodeModal({ isOpen, onClose, title, qrValue, subtitle 
             <span className="material-icons-round text-[20px]">close</span>
           </button>
         </div>
-        <div className="p-6 space-y-5">
+
+        {/* ── Scrollable content ── */}
+        <div className="p-6 space-y-5 overflow-y-auto flex-1">
+          {/* ── QR Preview ── */}
           <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200/80 flex flex-col items-center space-y-4 shadow-inner">
-            {/* QR Code persegi dengan logo di modal preview */}
             <div id={QR_CONTAINER_ID} className="relative bg-white p-4 rounded-xl border border-slate-200 shadow-sm inline-flex items-center justify-center">
-              <QRCode
-                value={qrValue || ' '}
-                size={180}
-                bgColor="#ffffff"
-                fgColor="#0f172a"
-                level="H"
-              />
-              {/* Logo GSJA overlay di tengah QR */}
+              <QRCode value={qrValue || ' '} size={180} bgColor="#ffffff" fgColor="#0f172a" level="H" />
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/assets/logo_gsja.png"
-                alt="GSJA"
-                className="absolute w-14 h-14 bg-white rounded-lg p-1.5 shadow-sm"
-                style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
-              />
+              <img src="/assets/logo_gsja.png" alt="GSJA" className="absolute w-14 h-14 bg-white rounded-lg p-1.5 shadow-sm" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} />
             </div>
             <div className="w-full text-center">
               <h4 className="font-bold text-slate-900 text-base leading-tight">{title}</h4>
@@ -193,11 +106,79 @@ export default function QRCodeModal({ isOpen, onClose, title, qrValue, subtitle 
               </div>
             </div>
           </div>
+
+          {/* ── Format Selector ── */}
+          <div className="space-y-3">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wide text-left">Format Unduhan</p>
+            <div className="grid grid-cols-2 gap-2">
+              {/* PNG */}
+              <button onClick={() => setActiveTab('png')} className={`p-4 rounded-xl border-2 text-left transition-all duration-150 ${activeTab === 'png' ? 'border-blue-500 bg-blue-50 shadow-sm ring-1 ring-blue-200' : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'}`}>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${activeTab === 'png' ? 'bg-blue-100' : 'bg-slate-100'}`}>
+                    <span className={`material-icons-round text-[16px] ${activeTab === 'png' ? 'text-blue-600' : 'text-slate-400'}`}>image</span>
+                  </div>
+                  <span className={`font-bold text-sm ${activeTab === 'png' ? 'text-blue-800' : 'text-slate-700'}`}>PNG Digital</span>
+                  {activeTab === 'png' && <span className="ml-auto w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0"><span className="material-icons-round text-white text-[12px]">check</span></span>}
+                </div>
+                <p className={`text-[11px] leading-relaxed ${activeTab === 'png' ? 'text-blue-600' : 'text-slate-400'}`}>Untuk digital, WhatsApp, arsip. 1 file.</p>
+              </button>
+
+              {/* PDF */}
+              <button onClick={() => setActiveTab('pdf')} className={`p-4 rounded-xl border-2 text-left transition-all duration-150 ${activeTab === 'pdf' ? 'border-indigo-500 bg-indigo-50 shadow-sm ring-1 ring-indigo-200' : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'}`}>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${activeTab === 'pdf' ? 'bg-indigo-100' : 'bg-slate-100'}`}>
+                    <span className={`material-icons-round text-[16px] ${activeTab === 'pdf' ? 'text-indigo-600' : 'text-slate-400'}`}>print</span>
+                  </div>
+                  <span className={`font-bold text-sm ${activeTab === 'pdf' ? 'text-indigo-800' : 'text-slate-700'}`}>PDF Cetak</span>
+                  {activeTab === 'pdf' && <span className="ml-auto w-5 h-5 bg-indigo-500 rounded-full flex items-center justify-center flex-shrink-0"><span className="material-icons-round text-white text-[12px]">check</span></span>}
+                </div>
+                <p className={`text-[11px] leading-relaxed ${activeTab === 'pdf' ? 'text-indigo-600' : 'text-slate-400'}`}>Fisik 5×6.25 cm, layout A4. Cetak banyak sekaligus.</p>
+              </button>
+            </div>
+
+            {/* PDF Options Panel */}
+            {activeTab === 'pdf' && (
+              <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-xl space-y-3 animate-in fade-in slide-in-from-top-1 duration-150">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-indigo-800">Jumlah Stiker</p>
+                    <p className="text-[11px] text-indigo-400 mt-0.5">Maks 500 · {PER_PAGE} stiker/halaman A4</p>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <button onClick={() => setCopyCount(c => Math.max(1, c - 1))} className="w-8 h-8 rounded-lg bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-100 transition-colors flex items-center justify-center">
+                      <span className="material-icons-round text-[16px]">remove</span>
+                    </button>
+                    <input type="number" min={1} max={500} value={copyCount} onChange={(e) => setCopyCount(Math.max(1, Math.min(500, parseInt(e.target.value) || 1)))} className="w-16 h-8 text-center text-sm font-bold text-indigo-800 border border-indigo-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+                    <button onClick={() => setCopyCount(c => Math.min(500, c + 1))} className="w-8 h-8 rounded-lg bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-100 transition-colors flex items-center justify-center">
+                      <span className="material-icons-round text-[16px]">add</span>
+                    </button>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[11px] text-indigo-500 font-semibold">Cepat:</span>
+                  {[1, 12, 24, 50, 100].map(n => (
+                    <button key={n} onClick={() => setCopyCount(n)} className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${copyCount === n ? 'bg-indigo-600 text-white shadow-sm scale-105' : 'bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-100'}`}>{n}</button>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2 bg-white/80 px-3 py-2 rounded-lg border border-indigo-100">
+                  <span className="material-icons-round text-[14px] text-indigo-400">info</span>
+                  <span className="text-xs text-indigo-700">
+                    <strong className="text-indigo-900">{copyCount}</strong> stiker · <strong className="text-indigo-900">{pages}</strong> halaman PDF A4 · <span className="text-indigo-400">layout {STICKER_COLS}×{STICKER_ROWS}</span>
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ── Action Buttons ── */}
           <div className="space-y-2">
-            <button onClick={handleDownloadSticker} disabled={downloading}
-              className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-60 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 shadow-md transition-colors">
-              <span className="material-icons-round text-[18px]">{downloading ? 'hourglass_empty' : 'download'}</span>
-              <span>{downloading ? 'Menyiapkan\u2026' : 'Unduh Stiker QR Code (PNG Square)'}</span>
+            <button
+              onClick={activeTab === 'png' ? handleDownloadPNG : handleDownloadPDF}
+              disabled={downloading}
+              className={`w-full py-3 disabled:opacity-60 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 shadow-md transition-all active:scale-[0.98] ${activeTab === 'pdf' ? 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500' : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500'}`}
+            >
+              <span className="material-icons-round text-[18px]">{downloading ? 'hourglass_empty' : activeTab === 'pdf' ? 'print' : 'download'}</span>
+              <span>{downloading ? 'Menyiapkan\u2026' : activeTab === 'pdf' ? `Unduh PDF \u2014 ${copyCount} Stiker (${pages} Hal.)` : 'Unduh PNG Digital'}</span>
             </button>
             <button onClick={onClose} className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition-colors">Tutup</button>
           </div>
