@@ -79,6 +79,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, message: 'Sub-lokasi berhasil ditambahkan', data: { id } });
     }
 
+    if (type === 'kategori') {
+      if (!canManageMaster(caller)) {
+        return NextResponse.json({ success: false, message: 'Forbidden — hanya Super Admin yang dapat menambah kategori' }, { status: 403 });
+      }
+      const { nama, keterangan } = data;
+      if (!nama?.trim()) {
+        return NextResponse.json({ success: false, message: 'Nama kategori wajib diisi' }, { status: 400 });
+      }
+      const created = await repo.createKategori({ nama, keterangan });
+      return NextResponse.json({ success: true, message: `Kategori berhasil ditambahkan (kode: ${created.kode})`, data: created });
+    }
+
     return NextResponse.json({ success: false, message: 'type tidak dikenali' }, { status: 400 });
   } catch (error) {
     console.error('[InventarisMasterRoute] POST error:', error);

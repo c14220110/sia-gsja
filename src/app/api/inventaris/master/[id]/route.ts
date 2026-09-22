@@ -48,7 +48,7 @@ export async function PUT(
       if (!canManageMaster(caller)) {
         return NextResponse.json({ success: false, message: 'Forbidden — akses manajemen master diperlukan' }, { status: 403 });
       }
-      const ok = await repo.updateKategori(id, { keterangan: data.keterangan, is_active: data.is_active });
+      const ok = await repo.updateKategori(id, { nama: data.nama, keterangan: data.keterangan, is_active: data.is_active });
       if (!ok) return NextResponse.json({ success: false, message: 'Kategori tidak ditemukan' }, { status: 404 });
       return NextResponse.json({ success: true, message: 'Kategori berhasil diperbarui' });
     }
@@ -72,7 +72,22 @@ export async function DELETE(
   if (!caller) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
 
   try {
-    // Check sublokasi ownership before delete
+    const body = await request.json().catch(() => ({}));
+    const type = body?.type;
+
+    // Kategori delete (hanya Super Admin, dengan FK check)
+    if (type === 'kategori') {
+      if (!canManageMaster(caller)) {
+        return NextResponse.json({ success: false, message: 'Forbidden — hanya Super Admin yang dapat menghapus kategori' }, { status: 403 });
+      }
+      const result = await repo.deleteKategori(id);
+      if (!result.ok) {
+        return NextResponse.json({ success: false, message: result.reason || 'Gagal menghapus kategori' }, { status: 409 });
+      }
+      return NextResponse.json({ success: true, message: 'Kategori berhasil dihapus' });
+    }
+
+    // Sublokasi delete (existing behaviour)
     const existing = await repo.getSublokasiById?.(id);
     if (!canManageSublokasi(caller, existing?.satelit_id)) {
       return NextResponse.json({ success: false, message: 'Forbidden — tidak ada akses ke satelit ini' }, { status: 403 });

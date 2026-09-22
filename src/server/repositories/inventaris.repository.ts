@@ -131,10 +131,11 @@ export class InventarisRepository {
     return result.rows;
   }
 
-  async updateKategori(id: number, params: { keterangan?: string; is_active?: boolean }): Promise<boolean> {
+  async updateKategori(id: number, params: { keterangan?: string; is_active?: boolean; nama?: string }): Promise<boolean> {
     const sets: string[] = [];
     const values: any[] = [];
     let idx = 1;
+    if (params.nama !== undefined) { sets.push(`nama = $${idx++}`); values.push(params.nama); }
     if (params.keterangan !== undefined) { sets.push(`keterangan = $${idx++}`); values.push(params.keterangan); }
     if (params.is_active !== undefined) { sets.push(`is_active = $${idx++}`); values.push(params.is_active); }
     if (sets.length === 0) return false;
@@ -145,6 +146,36 @@ export class InventarisRepository {
       values
     );
     return (result.rowCount ?? 0) > 0;
+  }
+
+  async createKategori(params: { nama: string; keterangan?: string }): Promise<{ id: number; kode: string }> {
+    // Auto-generate kode: ambil kode tertinggi + 1, format 2 digit
+    const maxRes = await pool.query(
+      `SELECT COALESCE(MAX(CAST(kode AS INTEGER)), 0) AS max_kode FROM master_kategori_barang`
+    );
+    const nextNum = (parseInt(maxRes.rows[0].max_kode, 10) || 0) + 1;
+    const kode = String(nextNum).padStart(2, '0');
+
+    const result = await pool.query(
+      `INSERT INTO master_kategori_barang (kode, nama, keterangan, is_active)
+       VALUES ($1, $2, $3, true)
+       RETURNING id`,
+      [kode, params.nama.trim(), params.keterangan?.trim() || null]
+    );
+    return { id: result.rows[0].id, kode };
+  }
+
+  async deleteKategori(id: number): Promise<{ ok: boolean; reason?: string }> {
+    // Cek apakah ada barang aktif yang pakai kategori ini
+    const used = await pool.query(
+      `SELECT COUNT(*) AS cnt FROM barang WHERE kategori_id = $1 AND is_deleted = false`,
+      [id]
+    );
+    if (parseInt(used.rows[0].cnt, 10) > 0) {
+      return { ok: false, reason: `Kategori masih digunakan oleh ${used.rows[0].cnt} barang aktif. Pindahkan atau hapus barang tersebut terlebih dahulu.` };
+    }
+    const result = await pool.query(`DELETE FROM master_kategori_barang WHERE id = $1`, [id]);
+    return { ok: (result.rowCount ?? 0) > 0 };
   }
 
   async getSublokasiAll(satelitId?: number): Promise<any[]> {

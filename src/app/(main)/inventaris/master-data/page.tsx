@@ -30,17 +30,22 @@ export default function MasterDataInventarisPage() {
   const [activeTab, setActiveTab] = useState<'kategori'|'sublokasi'>('kategori');
   const [filterSatelit, setFilterSatelit] = useState('');
 
-  // Inline edit kategori
+  // Inline edit kategori (keterangan only)
   const [editingKategoriId, setEditingKategoriId] = useState<number | null>(null);
   const [editKeterangan, setEditKeterangan] = useState('');
+
+  // Modal kategori (tambah + edit nama)
+  const [showKategoriModal, setShowKategoriModal] = useState(false);
+  const [editingKategoriModalId, setEditingKategoriModalId] = useState<number | null>(null);
+  const [katForm, setKatForm] = useState({ nama: '', keterangan: '' });
+
+  // Delete confirm — shared for both
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; nama: string; type: 'kategori' | 'sublokasi' } | null>(null);
 
   // Modal sublokasi
   const [showSublokasiModal, setShowSublokasiModal] = useState(false);
   const [editingSublokasiId, setEditingSublokasiId] = useState<number | null>(null);
   const [subForm, setSubForm] = useState({ satelit_id: '', kode: '', nama: '' });
-
-  // Delete confirm
-  const [deleteTarget, setDeleteTarget] = useState<{ id: number; nama: string } | null>(null);
 
   // ── Fetch all ────────────────────────────────────────────
   useEffect(() => {
@@ -125,7 +130,58 @@ export default function MasterDataInventarisPage() {
     }
   };
 
-  // ── Sub-Lokasi CRUD ──────────────────────────────────────
+  // ── Kategori: tambah & edit nama via modal ───────────────
+  const openCreateKategori = () => {
+    setEditingKategoriModalId(null);
+    setKatForm({ nama: '', keterangan: '' });
+    setSubmitState({ status: 'idle', message: '' });
+    setShowKategoriModal(true);
+  };
+
+  const openEditKategoriModal = (kat: Kategori) => {
+    setEditingKategoriModalId(kat.id);
+    setKatForm({ nama: kat.nama, keterangan: kat.keterangan || '' });
+    setSubmitState({ status: 'idle', message: '' });
+    setShowKategoriModal(true);
+  };
+
+  const saveKategoriModal = async () => {
+    if (!katForm.nama.trim()) {
+      setSubmitState({ status: 'error', message: 'Nama kategori wajib diisi' });
+      return;
+    }
+    setSubmitState({ status: 'loading', message: '' });
+    try {
+      let res: Response;
+      if (editingKategoriModalId) {
+        res = await fetch(`/api/inventaris/master/${editingKategoriModalId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'kategori', nama: katForm.nama, keterangan: katForm.keterangan }),
+        });
+      } else {
+        res = await fetch('/api/inventaris/master', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'kategori', nama: katForm.nama, keterangan: katForm.keterangan }),
+        });
+      }
+      const result = await res.json();
+      if (result.success) {
+        setShowKategoriModal(false);
+        setSubmitState({ status: 'success', message: result.message });
+        // Refresh kategori list
+        const fresh = await fetch('/api/inventaris/master?type=kategori&all=true');
+        const freshData = await fresh.json();
+        if (freshData.success) setKategoriList(freshData.data);
+      } else {
+        setSubmitState({ status: 'error', message: result.message });
+      }
+    } catch {
+      setSubmitState({ status: 'error', message: 'Terjadi kesalahan jaringan' });
+    }
+  };
+
   const openCreateSublokasi = () => {
     setEditingSublokasiId(null);
     setSubForm({ satelit_id: '', kode: '', nama: '' });
@@ -202,12 +258,20 @@ export default function MasterDataInventarisPage() {
     if (!deleteTarget) return;
     setSubmitState({ status: 'loading', message: '' });
     try {
-      const res = await fetch(`/api/inventaris/master/${deleteTarget.id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/inventaris/master/${deleteTarget.id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: deleteTarget.type }),
+      });
       const result = await res.json();
       if (result.success) {
-        setSublokasiList(prev => prev.filter(s => s.id !== deleteTarget.id));
+        if (deleteTarget.type === 'kategori') {
+          setKategoriList(prev => prev.filter(k => k.id !== deleteTarget.id));
+        } else {
+          setSublokasiList(prev => prev.filter(s => s.id !== deleteTarget.id));
+        }
         setDeleteTarget(null);
-        setSubmitState({ status: 'success', message: 'Sub-lokasi berhasil dihapus' });
+        setSubmitState({ status: 'success', message: result.message });
       } else {
         setDeleteTarget(null);
         setSubmitState({ status: 'error', message: result.message });
@@ -275,12 +339,21 @@ export default function MasterDataInventarisPage() {
       {/* ═══ KATEGORI ════════════════════════════════════════ */}
       {activeTab === 'kategori' && (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between flex-wrap gap-3">
             <div>
               <h2 className="text-base font-bold text-slate-800">Kategori Barang</h2>
-              <p className="text-xs text-slate-400 mt-0.5">12 kategori standar sesuai akuntansi gereja — kode tertanam dalam kode barang (permanen)</p>
+              <p className="text-xs text-slate-400 mt-0.5">Kode kategori tertanam dalam kode barang — tambah kategori baru kapan saja</p>
             </div>
-            <span className="text-xs text-slate-400 bg-slate-100 rounded-full px-2.5 py-1">{kategoriList.length} kategori</span>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-slate-400 bg-slate-100 rounded-full px-2.5 py-1">{kategoriList.length} kategori</span>
+              {isSuperAdmin && (
+                <button onClick={openCreateKategori}
+                  className="px-4 py-2 bg-slate-700 text-white text-sm font-bold rounded-lg hover:bg-slate-800 flex items-center gap-1.5 transition-colors">
+                  <span className="material-icons-round text-[16px]">add</span>
+                  Tambah Kategori
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Format kode */}
@@ -309,7 +382,7 @@ export default function MasterDataInventarisPage() {
                   <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Nama Kategori</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Keterangan / Contoh Barang</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider w-24">Status</th>
-                  {isSuperAdmin && <th className="px-4 py-3 w-28 text-right text-xs font-semibold text-slate-400 uppercase">Aksi</th>}
+                  {isSuperAdmin && <th className="px-4 py-3 w-36 text-right text-xs font-semibold text-slate-400 uppercase">Aksi</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -349,17 +422,29 @@ export default function MasterDataInventarisPage() {
                     {isSuperAdmin && (
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1 justify-end">
+                          {/* Edit nama via modal */}
+                          <button onClick={() => openEditKategoriModal(kat)} title="Edit nama kategori"
+                            className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
+                            <span className="material-icons-round text-[16px]">edit</span>
+                          </button>
+                          {/* Edit keterangan inline */}
                           {editingKategoriId !== kat.id && (
                             <button onClick={() => startEditKategori(kat)} title="Edit keterangan"
-                              className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
-                              <span className="material-icons-round text-[16px]">edit</span>
+                              className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+                              <span className="material-icons-round text-[16px]">notes</span>
                             </button>
                           )}
+                          {/* Toggle aktif */}
                           <button
                             onClick={() => toggleKategoriActive(kat)}
                             title={kat.is_active ? 'Nonaktifkan' : 'Aktifkan'}
-                            className={`p-1.5 rounded-lg transition-colors ${kat.is_active ? 'text-slate-400 hover:text-red-500 hover:bg-red-50' : 'text-slate-400 hover:text-green-600 hover:bg-green-50'}`}>
+                            className={`p-1.5 rounded-lg transition-colors ${kat.is_active ? 'text-slate-400 hover:text-amber-600 hover:bg-amber-50' : 'text-slate-400 hover:text-green-600 hover:bg-green-50'}`}>
                             <span className="material-icons-round text-[18px]">{kat.is_active ? 'toggle_on' : 'toggle_off'}</span>
+                          </button>
+                          {/* Hapus (hanya kalau belum ada barang) */}
+                          <button onClick={() => setDeleteTarget({ id: kat.id, nama: kat.nama, type: 'kategori' })} title="Hapus kategori"
+                            className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                            <span className="material-icons-round text-[16px]">delete_outline</span>
                           </button>
                         </div>
                       </td>
@@ -370,10 +455,17 @@ export default function MasterDataInventarisPage() {
             </table>
           </div>
 
-          <div className="px-6 py-3 border-t border-slate-100 bg-slate-50">
+          <div className="px-6 py-3 border-t border-slate-100 bg-slate-50 flex items-center justify-between flex-wrap gap-2">
             <p className="text-xs text-slate-400">
-              <strong>Catatan:</strong> Kode kategori (01–12) bersifat permanen karena tertanam dalam kode barang. Hanya keterangan dan status aktif yang dapat diubah oleh Super Admin.
+              <strong>Catatan:</strong> Kode kategori (01, 02, …) bersifat permanen karena tertanam dalam kode barang. Nama dan keterangan dapat diubah kapan saja oleh Super Admin.
             </p>
+            {isSuperAdmin && (
+              <button onClick={openCreateKategori}
+                className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1">
+                <span className="material-icons-round text-[14px]">add_circle</span>
+                Tambah kategori baru
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -460,7 +552,7 @@ export default function MasterDataInventarisPage() {
                               className={`p-1.5 rounded-lg transition-colors ${sub.is_active ? 'text-slate-400 hover:text-amber-600 hover:bg-amber-50' : 'text-slate-400 hover:text-green-600 hover:bg-green-50'}`}>
                               <span className="material-icons-round text-[18px]">{sub.is_active ? 'toggle_on' : 'toggle_off'}</span>
                             </button>
-                            <button onClick={() => setDeleteTarget({ id: sub.id, nama: sub.nama })} title="Hapus"
+                            <button onClick={() => setDeleteTarget({ id: sub.id, nama: sub.nama, type: 'sublokasi' })} title="Hapus"
                               className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
                               <span className="material-icons-round text-[16px]">delete_outline</span>
                             </button>
@@ -479,6 +571,75 @@ export default function MasterDataInventarisPage() {
               <p className="text-xs text-slate-400">{filteredSublokasi.length} sub-lokasi {filterSatelit ? 'di satelit ini' : 'total'}</p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ═══ Modal Kategori ══════════════════════════════════ */}
+      {showKategoriModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => setShowKategoriModal(false)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6 animate-in slide-in-from-bottom-4 duration-200"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-lg font-bold text-slate-800">
+                {editingKategoriModalId ? 'Edit Kategori' : 'Tambah Kategori Baru'}
+              </h3>
+              <button onClick={() => setShowKategoriModal(false)} className="text-slate-400 hover:text-slate-600">
+                <span className="material-icons-round">close</span>
+              </button>
+            </div>
+
+            {submitState.status === 'error' && (
+              <div className="mb-4 flex items-center gap-2 bg-red-50 border border-red-200 text-red-600 rounded-lg px-3 py-2 text-sm">
+                <span className="material-icons-round text-[16px]">error</span>
+                {submitState.message}
+              </div>
+            )}
+
+            <div className="flex flex-col gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                  Nama Kategori <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={katForm.nama}
+                  onChange={e => setKatForm(p => ({ ...p, nama: e.target.value }))}
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                  placeholder="Contoh: Peralatan Olahraga"
+                  autoFocus
+                  onKeyDown={e => { if (e.key === 'Enter') saveKategoriModal(); }}
+                />
+                {!editingKategoriModalId && (
+                  <p className="text-xs text-slate-400 mt-1">Kode akan di-generate otomatis (lanjutan dari kode terakhir)</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Keterangan / Contoh Barang</label>
+                <input
+                  type="text"
+                  value={katForm.keterangan}
+                  onChange={e => setKatForm(p => ({ ...p, keterangan: e.target.value }))}
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                  placeholder="Contoh: Treadmill, bola, net voli"
+                />
+                <p className="text-xs text-slate-400 mt-1">Opsional · membantu pengurus saat memilih kategori</p>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setShowKategoriModal(false)}
+                className="flex-1 py-2.5 border border-slate-200 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
+                Batal
+              </button>
+              <button onClick={saveKategoriModal} disabled={submitState.status === 'loading'}
+                className="flex-1 py-2.5 bg-slate-700 text-white rounded-lg text-sm font-bold hover:bg-slate-800 disabled:opacity-60 transition-colors flex items-center justify-center gap-2">
+                {submitState.status === 'loading' && <span className="material-icons-round animate-spin text-[16px]">sync</span>}
+                {editingKategoriModalId ? 'Simpan Perubahan' : 'Tambahkan'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -553,15 +714,20 @@ export default function MasterDataInventarisPage() {
         </div>
       )}
 
-      {/* AlertModal Delete */}
+      {/* AlertModal Delete — shared kategori + sublokasi */}
       <AlertModal
         isOpen={!!deleteTarget}
-        title="Hapus Sub-Lokasi?"
+        title={deleteTarget?.type === 'kategori' ? 'Hapus Kategori?' : 'Hapus Sub-Lokasi?'}
         message={
           <div className="text-sm text-slate-600 flex flex-col gap-2">
-            <p>Sub-lokasi <strong>{deleteTarget?.nama}</strong> akan dihapus permanen.</p>
+            <p>
+              {deleteTarget?.type === 'kategori' ? 'Kategori' : 'Sub-lokasi'}{' '}
+              <strong>{deleteTarget?.nama}</strong> akan dihapus permanen.
+            </p>
             <p className="text-xs text-slate-500 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-              ⚠️ Jika masih ada barang aktif di lokasi ini, penghapusan akan dibatalkan otomatis.
+              {deleteTarget?.type === 'kategori'
+                ? '⚠️ Jika masih ada barang aktif dengan kategori ini, penghapusan akan dibatalkan otomatis.'
+                : '⚠️ Jika masih ada barang aktif di lokasi ini, penghapusan akan dibatalkan otomatis.'}
             </p>
           </div>
         }
