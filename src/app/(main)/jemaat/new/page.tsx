@@ -426,6 +426,16 @@ export default function NewJemaatPage() {
     }
   };
 
+  // Tunggu auth check selesai — jangan tampilkan form sebelum permission dikonfirmasi
+  if (hasAccess === null) {
+    return (
+      <div className="w-full py-20 flex flex-col items-center justify-center text-slate-400 gap-3">
+        <span className="material-icons-round text-4xl animate-spin">autorenew</span>
+        <p className="text-sm">Memverifikasi akses...</p>
+      </div>
+    );
+  }
+
   if (hasAccess === false) {
     return (
       <div className="w-full py-20 flex flex-col items-center justify-center text-slate-500 gap-4">
