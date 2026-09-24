@@ -20,9 +20,13 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
   const [isExporting, setIsExporting] = useState(false);
   const [verifyAlertOpen, setVerifyAlertOpen] = useState(false);
 
-  // Inline edit state
+  // Inline edit state (satuan edit_note only)
   const [editingDetailId, setEditingDetailId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState({ jumlah_fisik: '', kondisi_fisik: '', keterangan: '' });
+
+  // Quick input modal state (massal items — scan or manual)
+  const [quickInputItem, setQuickInputItem] = useState<any>(null);
+  const [quickInputForm, setQuickInputForm] = useState({ jumlah_fisik: '', kondisi_fisik: '', keterangan: '' });
 
   // Barcode scanner
   const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -77,9 +81,13 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
         showScanToast('Gagal menyimpan', 'error');
       }
     } else {
-      // MASSAL: buka form input qty seperti biasa
-      setEditingDetailId(found.id);
-      setEditForm({ jumlah_fisik: found.jumlah_fisik?.toString() ?? '', kondisi_fisik: found.kondisi_fisik ?? '', keterangan: found.keterangan ?? '' });
+      // MASSAL: buka Quick Input Modal — user ketik jumlah fisik manual
+      setQuickInputItem(found);
+      setQuickInputForm({
+        jumlah_fisik: found.jumlah_fisik !== null ? String(found.jumlah_fisik) : '',
+        kondisi_fisik: found.kondisi_fisik ?? '',
+        keterangan: found.keterangan ?? '',
+      });
     }
   };
 
@@ -150,6 +158,21 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
     });
     setEditingDetailId(null);
   };
+
+  const handleSaveQuickInput = async () => {
+    if (!quickInputItem || quickInputForm.jumlah_fisik === '') {
+      setSubmitState({ status: 'error', message: 'Jumlah fisik wajib diisi' });
+      return;
+    }
+    await handleAction('update_detail', {
+      detail_id: quickInputItem.id,
+      jumlah_fisik: parseInt(quickInputForm.jumlah_fisik, 10),
+      kondisi_fisik: quickInputForm.kondisi_fisik || undefined,
+      keterangan: quickInputForm.keterangan || undefined,
+    });
+    setQuickInputItem(null);
+  };
+
 
   const handleExportExcel = async () => {
     if (!data) return;
@@ -752,11 +775,11 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
                                   </button>
                                 </div>
                               ) : (
-                                // Massal: existing edit button
+                                // Massal: Quick Input Modal button
                                 <button
                                   onClick={() => {
-                                    setEditingDetailId(item.id);
-                                    setEditForm({
+                                    setQuickInputItem(item);
+                                    setQuickInputForm({
                                       jumlah_fisik: item.jumlah_fisik !== null ? String(item.jumlah_fisik) : '',
                                       kondisi_fisik: item.kondisi_fisik || '',
                                       keterangan: item.keterangan || '',
@@ -858,6 +881,142 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
           />
         );
       })()}
+
+      {/* ── Quick Input Modal — untuk Stok Massal ──────────────────────────── */}
+      {quickInputItem && (
+        <div
+          className="fixed inset-0 z-[250] bg-slate-950/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
+          onClick={() => setQuickInputItem(null)}
+        >
+          <div
+            className="bg-white w-full sm:max-w-sm rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="px-5 pt-5 pb-3 border-b border-slate-100">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wide mb-0.5">Input Jumlah Fisik</p>
+                  <p className="font-bold text-slate-900 text-base leading-tight truncate">{quickInputItem.nama_barang}</p>
+                  <p className="text-xs text-slate-400 font-mono mt-0.5">{quickInputItem.kode_barang}</p>
+                </div>
+                <button onClick={() => setQuickInputItem(null)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 flex-shrink-0">
+                  <span className="material-icons-round text-[20px]">close</span>
+                </button>
+              </div>
+              {/* Sistem vs fisik context */}
+              <div className="mt-3 flex items-center gap-2 text-xs text-slate-500 bg-slate-50 rounded-lg px-3 py-2">
+                <span className="material-icons-round text-[14px] text-slate-400">inventory</span>
+                <span>Jumlah sistem: <strong className="text-slate-700">{quickInputItem.jumlah_tercatat}</strong></span>
+                {quickInputItem.jumlah_fisik !== null && (
+                  <span className="ml-auto text-slate-400">Sebelumnya: <strong>{quickInputItem.jumlah_fisik}</strong></span>
+                )}
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="px-5 py-5 space-y-4">
+              {/* Big number input + +/- */}
+              <div>
+                <label className="text-sm font-bold text-slate-700 block mb-2">
+                  Jumlah Fisik <span className="text-rose-500">*</span>
+                </label>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setQuickInputForm(prev => ({ ...prev, jumlah_fisik: String(Math.max(0, (parseInt(prev.jumlah_fisik) || 0) - 1)) }))}
+                    className="w-12 h-12 rounded-xl border-2 border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 hover:border-slate-300 flex items-center justify-center transition-colors flex-shrink-0"
+                  >
+                    <span className="material-icons-round text-[22px]">remove</span>
+                  </button>
+                  <input
+                    type="number"
+                    min="0"
+                    value={quickInputForm.jumlah_fisik}
+                    onChange={(e) => setQuickInputForm(prev => ({ ...prev, jumlah_fisik: e.target.value }))}
+                    onFocus={(e) => e.target.select()}
+                    autoFocus
+                    placeholder="0"
+                    className="flex-1 h-14 text-center text-2xl font-bold text-slate-900 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setQuickInputForm(prev => ({ ...prev, jumlah_fisik: String((parseInt(prev.jumlah_fisik) || 0) + 1) }))}
+                    className="w-12 h-12 rounded-xl border-2 border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:border-blue-300 flex items-center justify-center transition-colors flex-shrink-0"
+                  >
+                    <span className="material-icons-round text-[22px]">add</span>
+                  </button>
+                </div>
+                {/* Quick set to sistem count */}
+                <button
+                  type="button"
+                  onClick={() => setQuickInputForm(prev => ({ ...prev, jumlah_fisik: String(quickInputItem.jumlah_tercatat) }))}
+                  className="mt-2 text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
+                >
+                  <span className="material-icons-round text-[13px]">sync</span>
+                  Samakan dengan sistem ({quickInputItem.jumlah_tercatat})
+                </button>
+                {/* Live selisih preview */}
+                {quickInputForm.jumlah_fisik !== '' && (() => {
+                  const diff = parseInt(quickInputForm.jumlah_fisik) - quickInputItem.jumlah_tercatat;
+                  if (isNaN(diff)) return null;
+                  return (
+                    <div className={`mt-2 flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg w-fit ${
+                      diff === 0 ? 'bg-green-50 text-green-700' : diff < 0 ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600'
+                    }`}>
+                      <span className="material-icons-round text-[14px]">{diff === 0 ? 'check_circle' : diff < 0 ? 'trending_down' : 'trending_up'}</span>
+                      Selisih: {diff > 0 ? '+' : ''}{diff} {diff === 0 ? '(Sesuai)' : diff < 0 ? '(Kurang)' : '(Lebih)'}
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Kondisi */}
+              <div>
+                <label className="text-sm font-bold text-slate-700 block mb-2">Kondisi <span className="text-slate-400 font-normal">(opsional)</span></label>
+                <select
+                  value={quickInputForm.kondisi_fisik}
+                  onChange={(e) => setQuickInputForm(prev => ({ ...prev, kondisi_fisik: e.target.value }))}
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-400 text-slate-700"
+                >
+                  <option value="">Pilih kondisi...</option>
+                  {kondisiOptions.map(k => <option key={k} value={k}>{k}</option>)}
+                </select>
+              </div>
+
+              {/* Keterangan */}
+              <div>
+                <label className="text-sm font-bold text-slate-700 block mb-2">Keterangan <span className="text-slate-400 font-normal">(opsional)</span></label>
+                <input
+                  type="text"
+                  placeholder="Misal: 2 rusak, disimpan gudang bawah..."
+                  value={quickInputForm.keterangan}
+                  onChange={(e) => setQuickInputForm(prev => ({ ...prev, keterangan: e.target.value }))}
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-400 text-slate-700"
+                />
+              </div>
+            </div>
+
+            {/* Footer buttons */}
+            <div className="px-5 pb-6 flex gap-2">
+              <button
+                onClick={() => setQuickInputItem(null)}
+                className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-700 font-bold text-sm hover:bg-slate-50 transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleSaveQuickInput}
+                disabled={quickInputForm.jumlah_fisik === '' || submitState.status === 'loading'}
+                className="flex-2 min-w-[60%] py-3 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
+              >
+                <span className="material-icons-round text-[16px]">{submitState.status === 'loading' ? 'hourglass_empty' : 'save'}</span>
+                {submitState.status === 'loading' ? 'Menyimpan...' : 'Simpan Jumlah'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Barcode Scanner ───────────────────────────────────────────────── */}
       <BarcodeScannerModal
