@@ -22,9 +22,10 @@ export const PER_PAGE = STICKER_COLS * STICKER_ROWS; // 12 per A4
 // ── Mini sticker — dikecilkan 30% (70% dari ukuran normal) ──
 export const STICKER_SM_W_MM = 35;     // 50 × 0.7 = 35mm (3.5 cm)
 export const STICKER_SM_H_MM = 43.75;  // 62.5 × 0.7 = 43.75mm (4.375 cm ≈ 4.37 cm)
-export const STICKER_SM_COLS = 5;      // 5 cols × A4 (totalW=191mm, marginX=9.5mm)
-export const STICKER_SM_ROWS = 5;      // 5 rows × A4 (totalH=234.75mm, marginY=31mm)
-export const PER_PAGE_SM = STICKER_SM_COLS * STICKER_SM_ROWS; // 25 per A4
+export const STICKER_SM_COLS = 5;      // 5 cols × A4 (totalW=187mm, marginX=11.5mm)
+export const STICKER_SM_ROWS = 6;      // 6 rows × A4 (totalH=277.5mm, marginY=9.75mm)
+export const PER_PAGE_SM = STICKER_SM_COLS * STICKER_SM_ROWS; // 30 per A4
+
 
 
 
@@ -169,8 +170,8 @@ export async function generateBulkPDF(
   const cols   = size === 'small' ? STICKER_SM_COLS  : STICKER_COLS;
   const rows   = size === 'small' ? STICKER_SM_ROWS  : STICKER_ROWS;
   const perPg  = cols * rows;
-  const colGap = size === 'small' ? 4 : 5;
-  const rowGap = size === 'small' ? 4 : 4;
+  const colGap = size === 'small' ? 3 : 5;
+  const rowGap = size === 'small' ? 3 : 4;
   const totalW = cols * sW + (cols - 1) * colGap;
   const totalH = rows * sH + (rows - 1) * rowGap;
   const marginX = (210 - totalW) / 2;
