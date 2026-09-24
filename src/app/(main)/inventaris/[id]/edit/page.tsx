@@ -195,24 +195,26 @@ export default function EditInventarisPage({ params }: { params: Promise<{ id: s
       </div>
 
       <form onSubmit={handleSubmit} className="w-full bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        {/* Tipe Barang Selector */}
+        {/* Tipe Barang — READ ONLY saat edit (tidak bisa diubah setelah dibuat) */}
         <div className="px-6 pt-6 pb-2">
-          <label className="text-slate-700 text-sm font-bold font-sans block mb-3">Tipe Barang <span className="text-rose-500">*</span></label>
-          <div className="grid grid-cols-2 gap-3">
-            <button type="button" onClick={() => setFormData(prev => ({ ...prev, tipe_barang: 'massal' }))}
-              className={`p-4 rounded-xl border-2 text-left transition-all ${!isSatuan ? 'border-slate-700 bg-slate-700 text-white' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'}`}>
-              <div className="text-2xl mb-1">📦</div>
-              <div className="font-bold text-sm">Stok Massal</div>
-              <div className={`text-xs mt-0.5 ${!isSatuan ? 'text-slate-300' : 'text-slate-400'}`}>Kursi, meja, kabel dll — jumlah banyak</div>
-            </button>
-            <button type="button" onClick={() => setFormData(prev => ({ ...prev, tipe_barang: 'satuan', jumlah: '1' }))}
-              className={`p-4 rounded-xl border-2 text-left transition-all ${isSatuan ? 'border-slate-700 bg-slate-700 text-white' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'}`}>
-              <div className="text-2xl mb-1">🏷️</div>
-              <div className="font-bold text-sm">Aset Satuan</div>
-              <div className={`text-xs mt-0.5 ${isSatuan ? 'text-slate-300' : 'text-slate-400'}`}>Proyektor, laptop, AC — 1 unit unik</div>
-            </button>
+          <label className="text-slate-700 text-sm font-bold font-sans block mb-3">Tipe Barang</label>
+          <div className={`flex items-center gap-3 p-4 rounded-xl border-2 ${!isSatuan ? 'border-slate-200 bg-slate-700 text-white' : 'border-indigo-200 bg-indigo-50 text-indigo-800'}`}>
+            <span className="text-2xl">{!isSatuan ? '📦' : '🏷️'}</span>
+            <div className="flex-1">
+              <div className="font-bold text-sm">{!isSatuan ? 'Stok Massal' : 'Aset Satuan'}</div>
+              <div className={`text-xs mt-0.5 ${!isSatuan ? 'text-slate-300' : 'text-indigo-500'}`}>{!isSatuan ? 'Kursi, meja, kabel dll — jumlah banyak' : 'Proyektor, laptop, AC — 1 unit unik'}</div>
+            </div>
+            <div className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-bold ${!isSatuan ? 'bg-slate-600 text-slate-300' : 'bg-indigo-100 text-indigo-500'}`}>
+              <span className="material-icons-round text-[13px]">lock</span>
+              Tidak dapat diubah
+            </div>
           </div>
+          <p className="text-[11px] text-slate-400 mt-2 flex items-center gap-1">
+            <span className="material-icons-round text-[12px]">info</span>
+            Tipe barang tidak dapat diubah setelah dibuat. Jika perlu mengubah tipe, hapus dan buat ulang.
+          </p>
         </div>
+
 
         <div className="p-6 flex flex-col gap-8">
           <div className="flex flex-col gap-4">
