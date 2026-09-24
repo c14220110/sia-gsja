@@ -10,16 +10,21 @@ interface QRCodeModalProps {
   title: string;
   qrValue: string;
   subtitle?: string;
+  /** Untuk Stok Massal: set defaultCopies = jumlah barang agar langsung siap cetak */
+  defaultCopies?: number;
+  /** Untuk Stok Massal: langsung buka tab PDF */
+  defaultTab?: 'png' | 'pdf';
 }
 
 const QR_CONTAINER_ID = 'qr-code-download-target';
 
-export default function QRCodeModal({ isOpen, onClose, title, qrValue, subtitle }: QRCodeModalProps) {
+export default function QRCodeModal({ isOpen, onClose, title, qrValue, subtitle, defaultCopies, defaultTab }: QRCodeModalProps) {
   const [copied, setCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'png' | 'pdf'>('png');
-  const [copyCount, setCopyCount] = useState(1);
+  const [activeTab, setActiveTab] = useState<'png' | 'pdf'>(defaultTab ?? 'png');
+  const [copyCount, setCopyCount] = useState(defaultCopies ?? 1);
   const [sizeMode, setSizeMode] = useState<'normal' | 'small'>('normal');
+
 
   const handleDownloadPNG = async () => {
     setDownloading(true);
@@ -61,6 +66,15 @@ export default function QRCodeModal({ isOpen, onClose, title, qrValue, subtitle 
   const rows    = sizeMode === 'small' ? STICKER_SM_ROWS : STICKER_ROWS;
   const pages   = Math.ceil(copyCount / perPage);
 
+
+  // ── Reset state setiap kali modal dibuka (support re-open dengan item berbeda) ──
+  useEffect(() => {
+    if (isOpen) {
+      setCopyCount(defaultCopies ?? 1);
+      setActiveTab(defaultTab ?? 'png');
+      setSizeMode('normal');
+    }
+  }, [isOpen, defaultCopies, defaultTab]);
 
   // ── Body scroll lock — prevent page scroll when modal is open ──
   useEffect(() => {

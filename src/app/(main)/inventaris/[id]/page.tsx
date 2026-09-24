@@ -312,6 +312,8 @@ export default function DetailBarangPage({ params }: { params: Promise<{ id: str
         title={data.nama}
         qrValue={data.kode_barang}
         subtitle={data.nama_kategori}
+        defaultCopies={data.tipe_barang === 'massal' ? (data.jumlah ?? 1) : 1}
+        defaultTab={data.tipe_barang === 'massal' ? 'pdf' : 'png'}
       />
       {/* Tambah Unit Serupa Modal */}
       {showAddUnit && (
