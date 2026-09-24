@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import QRCode from 'react-qr-code';
-import { renderStickerCanvas, generateBulkPDF, PER_PAGE, STICKER_COLS, STICKER_ROWS } from '@/lib/renderQRSticker';
+import { renderStickerCanvas, generateBulkPDF, PER_PAGE, STICKER_COLS, STICKER_ROWS, PER_PAGE_SM, STICKER_SM_COLS, STICKER_SM_ROWS, STICKER_SM_W_MM, STICKER_SM_H_MM } from '@/lib/renderQRSticker';
 
 interface QRCodeModalProps {
   isOpen: boolean;
@@ -19,6 +19,7 @@ export default function QRCodeModal({ isOpen, onClose, title, qrValue, subtitle 
   const [downloading, setDownloading] = useState(false);
   const [activeTab, setActiveTab] = useState<'png' | 'pdf'>('png');
   const [copyCount, setCopyCount] = useState(1);
+  const [sizeMode, setSizeMode] = useState<'normal' | 'small'>('normal');
 
   const handleDownloadPNG = async () => {
     setDownloading(true);
@@ -35,11 +36,13 @@ export default function QRCodeModal({ isOpen, onClose, title, qrValue, subtitle 
   const handleDownloadPDF = async () => {
     setDownloading(true);
     try {
-      const blob = await generateBulkPDF([{ title, subtitle, qrValue, copies: copyCount }]);
+      const blob = await generateBulkPDF([{ title, subtitle, qrValue, copies: copyCount }], sizeMode);
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      const pages = Math.ceil(copyCount / PER_PAGE);
-      link.download = `STIKER_QR_${qrValue}_${copyCount}stiker_${pages}hal.pdf`;
+      const perPage = sizeMode === 'small' ? PER_PAGE_SM : PER_PAGE;
+      const pages = Math.ceil(copyCount / perPage);
+      const sizeSuffix = sizeMode === 'small' ? '_mini' : '';
+      link.download = `STIKER_QR_${qrValue}_${copyCount}stiker_${pages}hal${sizeSuffix}.pdf`;
       link.href = url;
       link.click();
       URL.revokeObjectURL(url);
@@ -53,7 +56,11 @@ export default function QRCodeModal({ isOpen, onClose, title, qrValue, subtitle 
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const pages = Math.ceil(copyCount / PER_PAGE);
+  const perPage = sizeMode === 'small' ? PER_PAGE_SM : PER_PAGE;
+  const cols    = sizeMode === 'small' ? STICKER_SM_COLS : STICKER_COLS;
+  const rows    = sizeMode === 'small' ? STICKER_SM_ROWS : STICKER_ROWS;
+  const pages   = Math.ceil(copyCount / perPage);
+
 
   // ── Body scroll lock — prevent page scroll when modal is open ──
   useEffect(() => {
@@ -139,10 +146,36 @@ export default function QRCodeModal({ isOpen, onClose, title, qrValue, subtitle 
             {/* PDF Options Panel */}
             {activeTab === 'pdf' && (
               <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-xl space-y-3 animate-in fade-in slide-in-from-top-1 duration-150">
+
+                {/* ── Ukuran Stiker ── */}
+                <div>
+                  <p className="text-xs font-bold text-indigo-800 mb-2">Ukuran Stiker</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setSizeMode('normal')}
+                      className={`px-3 py-2 rounded-xl border-2 text-left transition-all duration-150 ${sizeMode === 'normal' ? 'border-indigo-500 bg-white shadow-sm' : 'border-indigo-100 bg-white/60 hover:bg-white'}`}
+                    >
+                      <p className={`text-xs font-bold leading-tight ${sizeMode === 'normal' ? 'text-indigo-800' : 'text-slate-500'}`}>Normal</p>
+                      <p className={`text-[10px] mt-0.5 ${sizeMode === 'normal' ? 'text-indigo-500' : 'text-slate-400'}`}>5 × 6.25 cm · {STICKER_COLS}×{STICKER_ROWS}/hal</p>
+                    </button>
+                    <button
+                      onClick={() => setSizeMode('small')}
+                      className={`px-3 py-2 rounded-xl border-2 text-left transition-all duration-150 ${sizeMode === 'small' ? 'border-indigo-500 bg-white shadow-sm' : 'border-indigo-100 bg-white/60 hover:bg-white'}`}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <p className={`text-xs font-bold leading-tight ${sizeMode === 'small' ? 'text-indigo-800' : 'text-slate-500'}`}>Kecilkan 30%</p>
+                        <span className="px-1 py-0.5 rounded text-[9px] font-bold bg-indigo-100 text-indigo-600">MINI</span>
+                      </div>
+                      <p className={`text-[10px] mt-0.5 ${sizeMode === 'small' ? 'text-indigo-500' : 'text-slate-400'}`}>{STICKER_SM_W_MM/10} × {STICKER_SM_H_MM/10} cm · {STICKER_SM_COLS}×{STICKER_SM_ROWS}/hal</p>
+                    </button>
+                  </div>
+                </div>
+
+                {/* ── Jumlah Stiker ── */}
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-bold text-indigo-800">Jumlah Stiker</p>
-                    <p className="text-[11px] text-indigo-400 mt-0.5">Maks 500 · {PER_PAGE} stiker/halaman A4</p>
+                    <p className="text-[11px] text-indigo-400 mt-0.5">Maks 500 · {perPage} stiker/halaman A4</p>
                   </div>
                   <div className="flex items-center gap-1.5 flex-shrink-0">
                     <button onClick={() => setCopyCount(c => Math.max(1, c - 1))} className="w-8 h-8 rounded-lg bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-100 transition-colors flex items-center justify-center">
@@ -163,11 +196,12 @@ export default function QRCodeModal({ isOpen, onClose, title, qrValue, subtitle 
                 <div className="flex items-center gap-2 bg-white/80 px-3 py-2 rounded-lg border border-indigo-100">
                   <span className="material-icons-round text-[14px] text-indigo-400">info</span>
                   <span className="text-xs text-indigo-700">
-                    <strong className="text-indigo-900">{copyCount}</strong> stiker · <strong className="text-indigo-900">{pages}</strong> halaman PDF A4 · <span className="text-indigo-400">layout {STICKER_COLS}×{STICKER_ROWS}</span>
+                    <strong className="text-indigo-900">{copyCount}</strong> stiker · <strong className="text-indigo-900">{pages}</strong> halaman PDF A4 · <span className="text-indigo-400">layout {cols}×{rows}</span>
                   </span>
                 </div>
               </div>
             )}
+
           </div>
 
           {/* ── Action Buttons ── */}

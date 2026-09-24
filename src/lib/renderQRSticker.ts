@@ -19,6 +19,15 @@ export const STICKER_COLS = 3;     // columns per A4 page
 export const STICKER_ROWS = 4;     // rows per A4 page
 export const PER_PAGE = STICKER_COLS * STICKER_ROWS; // 12 per A4
 
+// ── Mini sticker — dikecilkan 30% (70% dari ukuran normal) ──
+export const STICKER_SM_W_MM = 35;     // 50 × 0.7 = 35mm (3.5 cm)
+export const STICKER_SM_H_MM = 43.75;  // 62.5 × 0.7 = 43.75mm (4.375 cm ≈ 4.37 cm)
+export const STICKER_SM_COLS = 5;      // 5 cols × A4 (totalW=191mm, marginX=9.5mm)
+export const STICKER_SM_ROWS = 5;      // 5 rows × A4 (totalH=234.75mm, marginY=31mm)
+export const PER_PAGE_SM = STICKER_SM_COLS * STICKER_SM_ROWS; // 25 per A4
+
+
+
 /**
  * Renders one sticker to a canvas and returns its PNG data URL.
  * Canvas size: 600×750 px (aspect ratio 4:5 = 5cm:6.25cm)
@@ -144,38 +153,41 @@ export async function renderStickerCanvas(params: StickerParams): Promise<string
 /**
  * Generates a PDF A4 (portrait) containing stickers for multiple items.
  * Items appear in order, each with `copies` repetitions before moving to the next.
- * Layout: 3 cols × 4 rows = 12 stickers per A4 page.
  *
  * @param items   Array of sticker definitions with per-item copy count and optional progress callback
+ * @param size    'normal' = 5×6.25cm, 3×4 layout (12/page) | 'small' = 3.5×4.375cm, 5×5 layout (25/page)
  * @returns       Blob of the generated PDF
  */
 export async function generateBulkPDF(
-  items: Array<StickerParams & { copies: number; onRendered?: () => void }>
+  items: Array<StickerParams & { copies: number; onRendered?: () => void }>,
+  size: 'normal' | 'small' = 'normal',
 ): Promise<Blob> {
   const { jsPDF } = await import('jspdf');
 
-  const sW = STICKER_W_MM;
-  const sH = STICKER_H_MM;
-  const colGap = 5;
-  const rowGap = 4;
-  const totalW = STICKER_COLS * sW + (STICKER_COLS - 1) * colGap;
-  const totalH = STICKER_ROWS * sH + (STICKER_ROWS - 1) * rowGap;
+  const sW     = size === 'small' ? STICKER_SM_W_MM  : STICKER_W_MM;
+  const sH     = size === 'small' ? STICKER_SM_H_MM  : STICKER_H_MM;
+  const cols   = size === 'small' ? STICKER_SM_COLS  : STICKER_COLS;
+  const rows   = size === 'small' ? STICKER_SM_ROWS  : STICKER_ROWS;
+  const perPg  = cols * rows;
+  const colGap = size === 'small' ? 4 : 5;
+  const rowGap = size === 'small' ? 4 : 4;
+  const totalW = cols * sW + (cols - 1) * colGap;
+  const totalH = rows * sH + (rows - 1) * rowGap;
   const marginX = (210 - totalW) / 2;
   const marginY = (297 - totalH) / 2;
 
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  let stickerIndex = 0; // global position counter across all items
+  let stickerIndex = 0;
 
   for (const item of items) {
-    // Pre-render sticker canvas for this item
     const dataUrl = await renderStickerCanvas(item);
     const n = Math.max(1, item.copies);
 
     for (let c = 0; c < n; c++) {
-      if (stickerIndex > 0 && stickerIndex % PER_PAGE === 0) pdf.addPage();
-      const pos = stickerIndex % PER_PAGE;
-      const col = pos % STICKER_COLS;
-      const row = Math.floor(pos / STICKER_COLS);
+      if (stickerIndex > 0 && stickerIndex % perPg === 0) pdf.addPage();
+      const pos = stickerIndex % perPg;
+      const col = pos % cols;
+      const row = Math.floor(pos / cols);
       const x = marginX + col * (sW + colGap);
       const y = marginY + row * (sH + rowGap);
 
@@ -190,9 +202,9 @@ export async function generateBulkPDF(
 
       stickerIndex++;
     }
-    // Notify caller that this item is fully rendered
     item.onRendered?.();
   }
 
   return pdf.output('blob');
 }
+
