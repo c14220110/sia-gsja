@@ -185,6 +185,12 @@ export default function MembersPage() {
               <span className="text-sm font-bold font-sans leading-5">Ulang Tahun Jemaat</span>
             </Link>
             {hasPermission('jemaat_create') && (
+              <Link href="/jemaat/pendaftaran" className="px-5 py-2.5 bg-white border border-emerald-300 text-emerald-700 rounded-lg flex justify-center items-center gap-2 hover:bg-emerald-50 transition-colors shadow-sm focus:ring-2 focus:ring-emerald-400 focus:outline-none">
+                <span className="material-icons-round text-emerald-600 text-[20px]">how_to_reg</span>
+                <span className="text-sm font-bold font-sans leading-5">Pendaftaran Jemaat</span>
+              </Link>
+            )}
+            {hasPermission('jemaat_create') && (
               <Link href="/jemaat/new" className="px-5 py-2.5 bg-slate-700 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none">
                 <span className="material-icons-round text-white text-[20px]">add</span>
                 <span className="text-white text-sm font-bold font-sans leading-5">Tambah Jemaat Baru</span>

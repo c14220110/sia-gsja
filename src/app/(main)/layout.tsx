@@ -241,7 +241,6 @@ export default function DashboardLayout({
                       {hasPermission('master_data_manage') && <Link href="/settings/master-data" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Master Data</Link>}
                       {hasPermission('audit_log_view') && <Link href="/settings/audit-log" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Audit Log</Link>}
                       {hasPermission('pengurus_view') && <Link href="/settings/organisasi" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Bagan Organisasi</Link>}
-                      {hasPermission('jemaat_create') && <Link href="/settings/pendaftaran-jemaat" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Pendaftaran Jemaat</Link>}
                     </div>
                   </div>
                 </div>
@@ -705,18 +704,6 @@ export default function DashboardLayout({
                         </div>
                         <div className="flex flex-col justify-start items-center">
                           <div className="text-center justify-center text-sky-900 text-sm font-bold font-sans leading-5">Bagan Organisasi</div>
-                        </div>
-                      </Link>
-                    )}
-                    {hasPermission('jemaat_create') && (
-                      <Link href="/settings/pendaftaran-jemaat" onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-green-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-green-200 flex flex-col justify-center items-center cursor-pointer hover:bg-green-100 transition-colors block text-inherit no-underline">
-                        <div className="pb-2 flex flex-col justify-start items-start">
-                          <div className="flex flex-col justify-start items-center">
-                            <span className="material-icons-round text-green-600 text-[32px]">how_to_reg</span>
-                          </div>
-                        </div>
-                        <div className="flex flex-col justify-start items-center">
-                          <div className="text-center justify-center text-green-900 text-sm font-bold font-sans leading-5">Pendaftaran Jemaat</div>
                         </div>
                       </Link>
                     )}
