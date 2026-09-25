@@ -15,17 +15,28 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get('limit') || '50', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
 
-    const values: any[] = [status, limit, offset];
-    let satelitFilter = '';
+    const whereConditions: string[] = ['p.status = $1'];
+    const queryParams: any[] = [status];
 
     // Sekretaris Satelit: only see their own satelit
     // Sekretaris Pusat (satelit_id=1) and SuperAdmin: see all
     if (!caller.is_super_admin && caller.satelit_id && caller.satelit_id !== 1) {
-      satelitFilter = `AND p.satelit_id = $${values.length + 1}`;
-      values.push(caller.satelit_id);
+      queryParams.push(caller.satelit_id);
+      whereConditions.push(`p.satelit_id = $${queryParams.length}`);
     }
 
-    const query = `
+    const whereClause = whereConditions.join(' AND ');
+
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM pendaftaran_jemaat p
+      WHERE ${whereClause}
+    `;
+
+    const countParams = [...queryParams];
+
+    queryParams.push(limit, offset);
+    const dataQuery = `
       SELECT
         p.id, p.nama_lengkap, p.jenis_kelamin, p.tanggal_lahir,
         p.no_hp, p.email, p.satelit_id, s.nama_satelit,
@@ -33,22 +44,14 @@ export async function GET(request: Request) {
         p.kota, p.status_jemaat
       FROM pendaftaran_jemaat p
       LEFT JOIN satelit s ON p.satelit_id = s.id
-      WHERE p.status = $1
-      ${satelitFilter}
+      WHERE ${whereClause}
       ORDER BY p.created_at DESC
-      LIMIT $2 OFFSET $3
-    `;
-
-    const countQuery = `
-      SELECT COUNT(*) as total
-      FROM pendaftaran_jemaat p
-      WHERE p.status = $1
-      ${satelitFilter}
+      LIMIT $${queryParams.length - 1} OFFSET $${queryParams.length}
     `;
 
     const [dataRes, countRes] = await Promise.all([
-      pool.query(query, values),
-      pool.query(countQuery, values.slice(0, satelitFilter ? 2 : 1)),
+      pool.query(dataQuery, queryParams),
+      pool.query(countQuery, countParams),
     ]);
 
     return NextResponse.json({

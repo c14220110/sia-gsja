@@ -30,8 +30,8 @@ export default function proxy(request: NextRequest) {
 
   // 1. API SECURITY GUARD
   if (pathname.startsWith('/api/')) {
-    // Izinin public API routes
-    if (PUBLIC_API_ROUTES.some(route => pathname === route)) {
+    // Izinin public API routes (semua route di /api/public/ dan auth routes)
+    if (pathname.startsWith('/api/public/') || PUBLIC_API_ROUTES.some(route => pathname === route)) {
       return NextResponse.next();
     }
 
@@ -65,9 +65,10 @@ export default function proxy(request: NextRequest) {
   // 2. PAGE-LEVEL AUTH REDIRECTS
   // ═══════════════════════════════════════════════
   const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/reset-password');
+  const isPublicPage = isAuthPage || pathname.startsWith('/daftar-jemaat');
 
   // Ojo ksini ! Belokan yg blom login yang nekat pgn nembus akses yg dikunci nih ya
-  if (!token && !isAuthPage) {
+  if (!token && !isPublicPage) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 

@@ -26,7 +26,14 @@ export async function GET(
       return NextResponse.json({ success: false, message: 'Data tidak ditemukan' }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, data: res.rows[0] });
+    const row = res.rows[0];
+    if (!caller.is_super_admin && caller.satelit_id && caller.satelit_id !== 1) {
+      if (row.satelit_id !== caller.satelit_id) {
+        return NextResponse.json({ success: false, message: 'Akses ditolak: Pendaftaran ini milik satelit lain' }, { status: 403 });
+      }
+    }
+
+    return NextResponse.json({ success: true, data: row });
   } catch (error: any) {
     console.error('[pendaftaran-jemaat/id GET]', error);
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
@@ -64,6 +71,13 @@ export async function PUT(
     }
 
     const p = pending.rows[0];
+
+    // Satelit scope check
+    if (!caller.is_super_admin && caller.satelit_id && caller.satelit_id !== 1) {
+      if (p.satelit_id !== caller.satelit_id) {
+        return NextResponse.json({ success: false, message: 'Akses ditolak: Pendaftaran ini milik satelit lain' }, { status: 403 });
+      }
+    }
 
     if (p.status !== 'menunggu') {
       return NextResponse.json({ success: false, message: `Pendaftaran sudah diproses (status: ${p.status})` }, { status: 400 });
@@ -125,7 +139,7 @@ export async function PUT(
         jemaat_id, p.nama_lengkap, p.jenis_kelamin, p.tempat_lahir, p.tanggal_lahir,
         p.alamat, p.kota, p.kecamatan, p.kelurahan, p.kode_pos,
         p.no_hp || null, p.email || null, p.pekerjaan || null, p.pekerjaan_id || null, p.satelit_id, p.foto_url || null,
-        p.status_baptis, p.status_pernikahan || null, p.status_jemaat || 'Aktif',
+        p.status_baptis, p.status_pernikahan || null, 'Aktif',
         p.ayah_id || null, p.ayah_nama || null, p.gereja_asal_ayah || null,
         p.ibu_id || null, p.ibu_nama || null, p.gereja_asal_ibu || null,
         p.pasangan_id || null, p.pasangan_nama || null, p.gereja_asal_pasangan || null,

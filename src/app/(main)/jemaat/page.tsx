@@ -92,6 +92,18 @@ export default function MembersPage() {
     return userData.permissions?.includes?.(perm);
   };
 
+  const canViewPendaftaran = Boolean(
+    userData && (
+      userData.is_super_admin ||
+      ['SUPER_ADMIN', 'SEKRETARIS_PUSAT', 'SEKRETARIS_SATELIT', 'VOLUNTEER_SEKRETARIS'].includes(userData.role_name) ||
+      (hasPermission('jemaat_create') && (
+        !userData.role_name ||
+        userData.role_name.includes('SEKRETARIS') ||
+        userData.role_name.includes('ADMIN')
+      ))
+    )
+  );
+
   // debounce pas ngetik, jeda ortomatis manggil api sesuai q param sedikit jeda saat mengetik pencarian agar tidak membebani server
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchQuery), 500);
@@ -184,7 +196,7 @@ export default function MembersPage() {
               <span className="material-icons-round text-sky-600 text-[20px]">cake</span>
               <span className="text-sm font-bold font-sans leading-5">Ulang Tahun Jemaat</span>
             </Link>
-            {hasPermission('jemaat_create') && (
+            {canViewPendaftaran && (
               <Link href="/jemaat/pendaftaran" className="px-5 py-2.5 bg-white border border-emerald-300 text-emerald-700 rounded-lg flex justify-center items-center gap-2 hover:bg-emerald-50 transition-colors shadow-sm focus:ring-2 focus:ring-emerald-400 focus:outline-none">
                 <span className="material-icons-round text-emerald-600 text-[20px]">how_to_reg</span>
                 <span className="text-sm font-bold font-sans leading-5">Pendaftaran Jemaat</span>

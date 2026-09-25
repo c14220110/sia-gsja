@@ -8,14 +8,14 @@ export async function GET(request: Request) {
 
     if (type === 'satelit') {
       const res = await pool.query(
-        'SELECT id, nama_satelit FROM satelit WHERE is_active = true ORDER BY nama_satelit'
+        'SELECT id, nama_satelit FROM satelit WHERE is_active = true ORDER BY id ASC'
       );
       return NextResponse.json({ success: true, data: res.rows });
     }
 
     if (type === 'pekerjaan') {
       const res = await pool.query(
-        "SELECT id, nama_pekerjaan FROM pekerjaan_master ORDER BY id"
+        'SELECT id, nama_pekerjaan FROM pekerjaan_master WHERE is_active = true ORDER BY id ASC'
       );
       return NextResponse.json({ success: true, data: res.rows });
     }

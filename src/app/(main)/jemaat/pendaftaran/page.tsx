@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { useLoader } from '@/components/ui/GlobalLoader';
 
 export default function PendaftaranJemaatPage() {
@@ -131,6 +132,16 @@ export default function PendaftaranJemaatPage() {
 
   return (
     <div className="w-full flex flex-col gap-6 pb-10">
+      {/* Breadcrumb / Back Link */}
+      <div className="flex items-center gap-2 text-sm text-slate-500">
+        <Link href="/jemaat" className="hover:text-blue-600 flex items-center gap-1 font-medium transition-colors">
+          <span className="material-icons-round text-[18px]">arrow_back</span>
+          Database Jemaat
+        </Link>
+        <span>/</span>
+        <span className="font-semibold text-slate-700">Pendaftaran Jemaat Mandiri</span>
+      </div>
+
       {/* Header */}
       <div className="flex flex-col gap-1">
         <h1 className="text-slate-900 text-3xl font-black">Pendaftaran Jemaat Mandiri</h1>

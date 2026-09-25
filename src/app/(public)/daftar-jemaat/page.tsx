@@ -159,7 +159,8 @@ export default function DaftarJemaatPage() {
       setFormData(prev => ({ ...prev, pekerjaan_id: '', pekerjaan: '' }));
     } else {
       setInputPekerjaanManual(false);
-      setFormData(prev => ({ ...prev, pekerjaan_id: val, pekerjaan: '' }));
+      const selectedObj = pekerjaanOptions.find(p => p.id.toString() === val);
+      setFormData(prev => ({ ...prev, pekerjaan_id: val, pekerjaan: selectedObj?.nama_pekerjaan || '' }));
     }
   };
 
@@ -633,7 +634,40 @@ export default function DaftarJemaatPage() {
         status={submitState.status}
         message={submitState.message}
         errors={submitState.errors}
-        onClose={() => setSubmitState({ status: 'idle', message: '' })}
+        onClose={() => {
+          if (submitState.status === 'success') {
+            setFormData({
+              nama_lengkap: '',
+              jenis_kelamin: 'Laki-laki',
+              tempat_lahir: '',
+              tanggal_lahir: '',
+              alamat: '',
+              kota: 'Surabaya',
+              kecamatan: '',
+              kelurahan: '',
+              kode_pos: '',
+              no_hp: '',
+              email: '',
+              pekerjaan: '',
+              pekerjaan_id: '',
+              satelit_id: '',
+              status_baptis: 'Belum',
+              status_pernikahan: 'Lajang',
+              status_jemaat: 'Aktif',
+              foto_url: '',
+              ayah_id: '', ayah_nama: '', gereja_asal_ayah: '',
+              ibu_id: '', ibu_nama: '', gereja_asal_ibu: '',
+              pasangan_id: '', pasangan_nama: '', gereja_asal_pasangan: '',
+              anak: [],
+              saudara: [],
+            });
+            setImageFile(null);
+            setImagePreview(null);
+            setUsernameInput('');
+            setTidakPunyaKontak(false);
+          }
+          setSubmitState({ status: 'idle', message: '' });
+        }}
       />
     </div>
   );
