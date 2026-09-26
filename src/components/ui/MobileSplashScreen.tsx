@@ -12,6 +12,9 @@ const DotLottieReact = dynamic(
 );
 
 export default function MobileSplashScreen() {
+  // SEMENTARA DI-HIDE: Langsung masuk ke halaman tanpa loader/splash awal agar tidak lemot
+  return null;
+
   const { isAppReady } = useSplash();
 
   // Nilai awal: langsung false jika sudah pernah tampil di sesi ini
