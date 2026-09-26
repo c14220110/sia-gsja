@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useLoader } from '@/components/ui/GlobalLoader';
 
 export default function LoginPage() {
@@ -146,7 +147,7 @@ export default function LoginPage() {
                 {showForceChange ? 'Ubah Password Default' : 'Welcome Back'}
               </h1>
               <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                {showForceChange ? 'Demi keamanan, Anda diwajibkan mengganti password lahir default Anda sekarang.' : 'Please enter your credentials to access the SIM dashboard.'}
+                {showForceChange ? 'Demi keamanan, Anda diwajibkan mengganti password lahir default Anda sekarang.' : 'Please enter your credentials to access GSJA App.'}
               </p>
             </div>
             {error && (
@@ -240,8 +241,19 @@ export default function LoginPage() {
                   type="submit"
                   disabled={loading}
                 >
-                  {loading ? 'Processing...' : 'Sign In to SIM'}
+                  {loading ? 'Processing...' : 'Sign In to GSJA App'}
                 </button>
+              </div>
+              <div className="text-center pt-2">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Belum terdaftar sebagai jemaat?{' '}
+                  <Link
+                    href="/daftar-jemaat"
+                    className="font-bold text-primary hover:text-blue-800 dark:text-blue-400 underline underline-offset-4 transition-colors"
+                  >
+                    Daftar di sini
+                  </Link>
+                </p>
               </div>
               <div className="mt-6 text-center">
                 <p className="text-xs text-gray-400 dark:text-gray-500">
