@@ -14,9 +14,10 @@ interface SubmitOverlayProps {
   message: string;
   errors?: Record<string, string[]>;
   onClose?: () => void;
+  successButtonText?: string;
 }
 
-export function SubmitOverlay({ status, message, errors, onClose }: SubmitOverlayProps) {
+export function SubmitOverlay({ status, message, errors, onClose, successButtonText }: SubmitOverlayProps) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -44,7 +45,7 @@ export function SubmitOverlay({ status, message, errors, onClose }: SubmitOverla
             </div>
             <p className="mt-2 text-slate-800 font-bold text-center text-lg">{message}</p>
             <button onClick={onClose} className="mt-8 w-full py-2.5 bg-slate-800 text-white font-medium rounded-xl hover:bg-slate-700 transition-colors focus:ring-4 focus:ring-slate-200">
-              Lanjutkan
+              {successButtonText || 'Lanjutkan'}
             </button>
           </div>
         )}

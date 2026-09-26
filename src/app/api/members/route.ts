@@ -5,6 +5,23 @@ import { auditLogRepository } from '@/server/repositories/auditLog.repository';
 import bcrypt from 'bcryptjs';
 import pool from '@/lib/db';
 
+function formatDobPassword(val: any): string {
+  if (!val) return 'gsja' + new Date().getFullYear();
+  if (val instanceof Date) {
+    const day = String(val.getDate()).padStart(2, '0');
+    const month = String(val.getMonth() + 1).padStart(2, '0');
+    const year = val.getFullYear();
+    return `${day}/${month}/${year}`;
+  }
+  if (typeof val === 'string') {
+    const parts = val.split('T')[0].split('-');
+    if (parts.length === 3) {
+      return `${parts[2].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[0]}`;
+    }
+  }
+  return 'gsja' + new Date().getFullYear();
+}
+
 const jemaatRepository = new JemaatRepository();
 
 export async function GET(request: NextRequest) {
@@ -116,44 +133,63 @@ export async function POST(request: NextRequest) {
 
     const newId = await jemaatRepository.createJemaat(body);
 
-    // Otomatis buatkan akun login jika jemaat tidak punya email/no HP (login via username)
-    if (body.tidak_punya_kontak && body.username) {
-      const username = body.username.trim();
-      
-      // Generate password dari tanggal lahir (format DD/MM/YYYY) — sama seperti bulk-generate
-      let defaultPassword = 'gsja' + new Date().getFullYear();
-      if (body.tanggal_lahir) {
-        // Parse tanggal lahir dengan benar (hindari timezone shift)
-        const parts = body.tanggal_lahir.split('-'); // format YYYY-MM-DD dari input date
-        if (parts.length === 3) {
-          const day = parts[2];
-          const month = parts[1];
-          const year = parts[0];
-          defaultPassword = `${day}/${month}/${year}`;
+    // === AUTO-CREATE AKUN PENGGUNA ===
+    // Otomatis buatkan akun login untuk semua jemaat yang baru didaftarkan.
+    // Login identifier: no_hp + email (jika ada), atau username (jika tidak punya kontak).
+    // Password default: tanggal_lahir format DD/MM/YYYY, atau fallback gsja<tahun>.
+    const hasEmail = body.email && body.email.trim() !== '';
+    const hasNoHp = body.no_hp && body.no_hp.trim() !== '';
+    const hasUsername = body.tidak_punya_kontak && body.username && body.username.trim() !== '';
+
+    if (hasEmail || hasNoHp || hasUsername) {
+      // Cek apakah jemaat sudah punya akun (seharusnya belum karena baru dibuat, tapi aman untuk dicek)
+      const existCheck = await pool.query(`SELECT id FROM pengguna WHERE jemaat_id = $1`, [newId]);
+      if (!existCheck.rowCount || existCheck.rowCount === 0) {
+        // Generate password dari tanggal lahir (format DD/MM/YYYY)
+        const defaultPassword = formatDobPassword(body.tanggal_lahir);
+        const password_hash = await bcrypt.hash(defaultPassword, 10);
+
+        const emailToInsert = hasEmail ? body.email.trim() : null;
+        const noHpToInsert = hasNoHp ? body.no_hp.trim() : null;
+        const usernameToInsert = hasUsername ? body.username.trim() : null;
+
+        // Cek konflik identifier — null-kan yang konflik agar tidak gagal total
+        let finalEmail = emailToInsert;
+        let finalNoHp = noHpToInsert;
+        const finalUsername = usernameToInsert;
+
+        if (finalEmail) {
+          const emailConflict = await pool.query(`SELECT id FROM pengguna WHERE email = $1`, [finalEmail]);
+          if (emailConflict.rowCount && emailConflict.rowCount > 0) finalEmail = null;
         }
-      }
-      
-      const password_hash = await bcrypt.hash(defaultPassword, 10);
-      
-      // Insert pengguna (username sudah dicek unik di atas)
-      const insUser = await pool.query(`
-        INSERT INTO pengguna (username, password_hash, jemaat_id, requires_password_change)
-        VALUES ($1, $2, $3, true)
-        RETURNING id
-      `, [username, password_hash, newId]);
-      
-      const userId = insUser.rows[0].id;
-      
-      // Assign role JEMAAT otomatis
-      const roleRow = await pool.query(`SELECT id FROM role WHERE UPPER(nama_role) = 'JEMAAT' LIMIT 1`);
-      if (roleRow.rowCount && roleRow.rowCount > 0) {
-        const roleJemaatId = roleRow.rows[0].id;
-        const satelitId = parseInt(body.satelit_id);
-        await pool.query(`
-          INSERT INTO user_role (user_id, role_id, satelit_id)
-          VALUES ($1, $2, $3)
-          ON CONFLICT DO NOTHING
-        `, [userId, roleJemaatId, satelitId]);
+        if (finalNoHp) {
+          const noHpConflict = await pool.query(`SELECT id FROM pengguna WHERE no_hp = $1`, [finalNoHp]);
+          if (noHpConflict.rowCount && noHpConflict.rowCount > 0) finalNoHp = null;
+        }
+        // username sudah dicek unik di atas (sebelum createJemaat)
+
+        // Pastikan minimal ada 1 identifier valid setelah deduplikasi
+        if (finalEmail || finalNoHp || finalUsername) {
+          const insUser = await pool.query(`
+            INSERT INTO pengguna (email, no_hp, username, password_hash, jemaat_id, requires_password_change)
+            VALUES ($1, $2, $3, $4, $5, true)
+            RETURNING id
+          `, [finalEmail, finalNoHp, finalUsername, password_hash, newId]);
+
+          const userId = insUser.rows[0].id;
+
+          // Assign role JEMAAT otomatis
+          const roleRow = await pool.query(`SELECT id FROM role WHERE UPPER(nama_role) = 'JEMAAT' LIMIT 1`);
+          if (roleRow.rowCount && roleRow.rowCount > 0) {
+            const roleJemaatId = roleRow.rows[0].id;
+            const satelitId = parseInt(body.satelit_id);
+            await pool.query(`
+              INSERT INTO user_role (user_id, role_id, satelit_id)
+              VALUES ($1, $2, $3)
+              ON CONFLICT DO NOTHING
+            `, [userId, roleJemaatId, satelitId]);
+          }
+        }
       }
     }
 

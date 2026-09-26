@@ -1,5 +1,23 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import bcrypt from 'bcryptjs';
+
+function formatDobPassword(val: any): string {
+  if (!val) return 'gsja' + new Date().getFullYear();
+  if (val instanceof Date) {
+    const day = String(val.getDate()).padStart(2, '0');
+    const month = String(val.getMonth() + 1).padStart(2, '0');
+    const year = val.getFullYear();
+    return `${day}/${month}/${year}`;
+  }
+  if (typeof val === 'string') {
+    const parts = val.split('T')[0].split('-');
+    if (parts.length === 3) {
+      return `${parts[2].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[0]}`;
+    }
+  }
+  return 'gsja' + new Date().getFullYear();
+}
 
 export async function POST(request: Request) {
   try {
@@ -122,10 +140,60 @@ export async function POST(request: Request) {
       ]
     );
 
+    const pendaftaranId = res.rows[0].id;
+
+    // === AUTO-CREATE AKUN PENGGUNA ===
+    // Buat akun login segera setelah pendaftaran dikirim agar jemaat bisa login langsung.
+    // jemaat_id di pengguna = NULL dulu (akan diisi saat sekretaris approve).
+    // Password = tanggal_lahir format DD/MM/YYYY, atau fallback gsja<tahun>.
+    const hasIdentifier = !!(no_hp?.trim() || email?.trim() || (tidak_punya_kontak && username?.trim()));
+    if (hasIdentifier) {
+      const defaultPassword = formatDobPassword(tanggal_lahir);
+      const password_hash = await bcrypt.hash(defaultPassword, 10);
+
+      let finalEmail = email?.trim() || null;
+      let finalNoHp = no_hp?.trim() || null;
+      const finalUsername = (tidak_punya_kontak && username?.trim()) ? username.trim() : null;
+
+      // Cek konflik identifier — null-kan yang konflik, jangan gagalkan pendaftaran
+      if (finalEmail) {
+        const ec = await pool.query(`SELECT id FROM pengguna WHERE email = $1`, [finalEmail]);
+        if (ec.rowCount && ec.rowCount > 0) finalEmail = null;
+      }
+      if (finalNoHp) {
+        const nc = await pool.query(`SELECT id FROM pengguna WHERE no_hp = $1`, [finalNoHp]);
+        if (nc.rowCount && nc.rowCount > 0) finalNoHp = null;
+      }
+      let finalUsernameClean = finalUsername;
+      if (finalUsernameClean) {
+        const uc = await pool.query(`SELECT id FROM pengguna WHERE username = $1`, [finalUsernameClean]);
+        if (uc.rowCount && uc.rowCount > 0) finalUsernameClean = null; // username sudah dipakai
+      }
+
+      // Buat pengguna jika minimal ada 1 identifier valid setelah dedup
+      if (finalEmail || finalNoHp || finalUsernameClean) {
+        const insUser = await pool.query(`
+          INSERT INTO pengguna (email, no_hp, username, password_hash, jemaat_id, requires_password_change)
+          VALUES ($1, $2, $3, $4, NULL, true)
+          RETURNING id
+        `, [finalEmail, finalNoHp, finalUsernameClean, password_hash]);
+        const userId = insUser.rows[0].id;
+        // Assign role JEMAAT sementara
+        const roleRow = await pool.query(`SELECT id FROM role WHERE UPPER(nama_role) = 'JEMAAT' LIMIT 1`);
+        if (roleRow.rowCount && roleRow.rowCount > 0) {
+          await pool.query(`
+            INSERT INTO user_role (user_id, role_id, satelit_id)
+            VALUES ($1, $2, $3)
+            ON CONFLICT DO NOTHING
+          `, [userId, roleRow.rows[0].id, parseInt(satelit_id, 10)]);
+        }
+      }
+    }
+
     return NextResponse.json({
       success: true,
-      message: 'Pendaftaran berhasil dikirim! Data Anda sedang ditinjau oleh sekretaris gereja.',
-      id: res.rows[0].id,
+      message: 'Pendaftaran berhasil dikirim! Akun login Anda sudah siap — gunakan No. HP, Email, atau Username dan tanggal lahir Anda (format DD/MM/YYYY) sebagai password.',
+      id: pendaftaranId,
     });
   } catch (error: any) {
     console.error('[public/daftar-jemaat POST]', error);

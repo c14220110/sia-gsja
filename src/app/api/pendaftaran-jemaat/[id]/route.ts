@@ -1,6 +1,24 @@
 import { NextResponse } from 'next/server';
 import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 import pool from '@/lib/db';
+import bcrypt from 'bcryptjs';
+
+function formatDobPassword(val: any): string {
+  if (!val) return 'gsja' + new Date().getFullYear();
+  if (val instanceof Date) {
+    const day = String(val.getDate()).padStart(2, '0');
+    const month = String(val.getMonth() + 1).padStart(2, '0');
+    const year = val.getFullYear();
+    return `${day}/${month}/${year}`;
+  }
+  if (typeof val === 'string') {
+    const parts = val.split('T')[0].split('-');
+    if (parts.length === 3) {
+      return `${parts[2].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[0]}`;
+    }
+  }
+  return 'gsja' + new Date().getFullYear();
+}
 
 export async function GET(
   request: Request,
@@ -205,6 +223,85 @@ export async function PUT(
        WHERE id=$3`,
       [caller.user_id, newJemaatId, parseInt(id, 10)]
     );
+
+    // === AUTO-CREATE / LINK AKUN PENGGUNA ===
+    // Saat disetujui, link/buat akun pengguna ke jemaat yang baru dibuat.
+    // Kasus 1: Pengguna sudah ada (dari self-registration) → update jemaat_id
+    // Kasus 2: Pengguna belum ada (approve langsung tanpa self-reg) → buat baru
+    const hasEmail = p.email && p.email.trim() !== '';
+    const hasNoHp = p.no_hp && p.no_hp.trim() !== '';
+    const hasUsername = p.tidak_punya_kontak && p.username && p.username.trim() !== '';
+
+    if (hasEmail || hasNoHp || hasUsername) {
+      // Cari akun pendaftaran sementara (yang dibuat saat self-registration, dengan jemaat_id IS NULL)
+      let existingUserId: number | null = null;
+
+      if (hasEmail) {
+        const ec = await client.query(`SELECT id FROM pengguna WHERE email = $1 AND jemaat_id IS NULL`, [p.email.trim()]);
+        if (ec.rowCount && ec.rowCount > 0) existingUserId = ec.rows[0].id;
+      }
+      if (!existingUserId && hasNoHp) {
+        const nc = await client.query(`SELECT id FROM pengguna WHERE no_hp = $1 AND jemaat_id IS NULL`, [p.no_hp.trim()]);
+        if (nc.rowCount && nc.rowCount > 0) existingUserId = nc.rows[0].id;
+      }
+      if (!existingUserId && hasUsername) {
+        const uc = await client.query(`SELECT id FROM pengguna WHERE username = $1 AND jemaat_id IS NULL`, [p.username.trim()]);
+        if (uc.rowCount && uc.rowCount > 0) existingUserId = uc.rows[0].id;
+      }
+
+      if (existingUserId) {
+        // Pengguna sudah ada → tautkan jemaat_id dan pastikan role JEMAAT terupdate dengan satelit yang benar
+        await client.query(
+          `UPDATE pengguna SET jemaat_id = $1, updated_at = NOW() WHERE id = $2`,
+          [newJemaatId, existingUserId]
+        );
+        // Update satelit_id di user_role ke yang benar
+        const roleRow = await client.query(`SELECT id FROM role WHERE UPPER(nama_role) = 'JEMAAT' LIMIT 1`);
+        if (roleRow.rowCount && roleRow.rowCount > 0) {
+          await client.query(`
+            INSERT INTO user_role (user_id, role_id, satelit_id)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (user_id, role_id, satelit_id) DO UPDATE SET is_active = true
+          `, [existingUserId, roleRow.rows[0].id, p.satelit_id]);
+        }
+      } else {
+        // Pengguna belum ada → buat akun baru
+        const defaultPassword = formatDobPassword(p.tanggal_lahir);
+        const password_hash = await bcrypt.hash(defaultPassword, 10);
+
+        let finalEmail = hasEmail ? p.email.trim() : null;
+        let finalNoHp = hasNoHp ? p.no_hp.trim() : null;
+        const finalUsername = hasUsername ? p.username.trim() : null;
+
+        // Null-kan identifier yang sudah dipakai pengguna lain (jangan gagalkan approve)
+        if (finalEmail) {
+          const ec = await client.query(`SELECT id FROM pengguna WHERE email = $1`, [finalEmail]);
+          if (ec.rowCount && ec.rowCount > 0) finalEmail = null;
+        }
+        if (finalNoHp) {
+          const nc = await client.query(`SELECT id FROM pengguna WHERE no_hp = $1`, [finalNoHp]);
+          if (nc.rowCount && nc.rowCount > 0) finalNoHp = null;
+        }
+
+        if (finalEmail || finalNoHp || finalUsername) {
+          const insUser = await client.query(`
+            INSERT INTO pengguna (email, no_hp, username, password_hash, jemaat_id, requires_password_change)
+            VALUES ($1, $2, $3, $4, $5, true)
+            RETURNING id
+          `, [finalEmail, finalNoHp, finalUsername, password_hash, newJemaatId]);
+
+          const userId = insUser.rows[0].id;
+          const roleRow = await client.query(`SELECT id FROM role WHERE UPPER(nama_role) = 'JEMAAT' LIMIT 1`);
+          if (roleRow.rowCount && roleRow.rowCount > 0) {
+            await client.query(`
+              INSERT INTO user_role (user_id, role_id, satelit_id)
+              VALUES ($1, $2, $3)
+              ON CONFLICT DO NOTHING
+            `, [userId, roleRow.rows[0].id, p.satelit_id]);
+          }
+        }
+      }
+    }
 
     await client.query('COMMIT');
 
