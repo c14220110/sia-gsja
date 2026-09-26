@@ -3,6 +3,7 @@ import { UserRepository } from '@/server/repositories/user.repository';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { getJwtSecret } from '@/server/utils/jwt';
+import { comparePasswordWithDobTolerance } from '@/server/utils/authUtils';
 
 // Pre-auth token: dicap sama JWT, matinya 5 menit, khususon buat fitur pilih peran aja
 function createPreAuthToken(userId: number): string {
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest) {
       throw new Error('Akun Anda tidak aktif');
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+    const isPasswordValid = await comparePasswordWithDobTolerance(password, user.password_hash);
     if (!isPasswordValid) {
       throw new Error('Password salah.');
     }

@@ -192,7 +192,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: 'Pendaftaran berhasil dikirim! Akun login Anda sudah siap — gunakan No. HP, Email, atau Username dan tanggal lahir Anda (format DD/MM/YYYY) sebagai password.',
+      message: 'Pendaftaran berhasil dikirim! Akun login Anda sudah siap — gunakan No. HP, Email, atau Username dan tanggal lahir Anda (contoh: 20112003 atau 20/11/2003) sebagai password.',
       id: pendaftaranId,
     });
   } catch (error: any) {

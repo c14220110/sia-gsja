@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { UserRepository } from '@/server/repositories/user.repository';
 import bcrypt from 'bcryptjs';
 import pool from '@/lib/db';
+import { comparePasswordWithDobTolerance } from '@/server/utils/authUtils';
 
 const userRepository = new UserRepository();
 
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'User tidak ditemukan' }, { status: 404 });
     }
 
-    const isPasswordValid = await bcrypt.compare(old_password, user.password_hash);
+    const isPasswordValid = await comparePasswordWithDobTolerance(old_password, user.password_hash);
     if (!isPasswordValid) {
       return NextResponse.json({ success: false, message: 'Password lama tidak cocok.' }, { status: 401 });
     }
