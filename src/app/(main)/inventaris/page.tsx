@@ -48,15 +48,16 @@ export default function InventarisPage() {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   // Groups satuan items with same nama+kategori_id. Massal items are always flat.
-  // Returns array of: { type: 'group', key, nama, kategori, items[], allSelected, someSelected }
-  //                or { type: 'flat', item }
+  // Returns array of: { type: 'section', sublokasi } (section divider)
+  //                or { type: 'group', key, nama, merk, merkCount, kategori, items[], ... }
+  //                or { type: 'flat', item, inGroup? }
   // Used only when viewMode === 'grouped'
   const computeGroupedData = (items: any[]) => {
     if (viewMode !== 'grouped') return null;
     
-    // Build groups from satuan items, keep massal as flat
+    // Build groups from satuan items; keep massal as flat (both sorted per-sublokasi)
     const groupMap = new Map<string, any[]>();
-    const flatItems: any[] = [];
+    const flatByKey: any[] = [];
     
     for (const item of items) {
       if (item.tipe_barang === 'satuan') {
@@ -64,7 +65,7 @@ export default function InventarisPage() {
         if (!groupMap.has(key)) groupMap.set(key, []);
         groupMap.get(key)!.push(item);
       } else {
-        flatItems.push({ type: 'flat', item });
+        flatByKey.push({ type: 'flat', item });
       }
     }
     
@@ -72,7 +73,6 @@ export default function InventarisPage() {
     
     for (const [key, groupItems] of groupMap.entries()) {
       if (groupItems.length === 1) {
-        // Single item: just render flat (no group row needed)
         rows.push({ type: 'flat', item: groupItems[0] });
       } else {
         const isExpanded = expandedGroups.has(key);
@@ -80,27 +80,68 @@ export default function InventarisPage() {
         const someSelected = groupItems.some(i => selectedIds.has(i.id));
         const sublokasi = groupItems[0].lokasi_nama_sublokasi || null;
         const satelit   = groupItems[0].lokasi_nama_satelit   || null;
+
+        // Only show merk on header if ALL items share the SAME merk (avoid misleading label)
+        const uniqueMerks = [...new Set(groupItems.map((i: any) => i.merk || ''))];
+        const displayMerk = uniqueMerks.length === 1 ? (uniqueMerks[0] || null) : null;
+
         rows.push({
           type: 'group', key,
           nama: groupItems[0].nama,
-          merk: groupItems[0].merk || null,
+          merk: displayMerk,
+          merkCount: uniqueMerks.length,
           kategori: groupItems[0].nama_kategori,
           kategori_id: groupItems[0].kategori_id,
           sublokasi, satelit,
           items: groupItems, isExpanded, allSelected, someSelected
         });
-        if (isExpanded) {
-          for (const item of groupItems) {
-            rows.push({ type: 'flat', item, inGroup: true });
-          }
+      }
+    }
+
+    // Massal flat items also go into the sortable pool
+    rows.push(...flatByKey);
+
+    // Sort all rows: by sublokasi order, then groups before flat, then alphabetical
+    const sublokasiOrder: Record<string, number> = {
+      'Ruang Ibadah': 1,
+      'Sekolah Minggu / Kelas': 2,
+      'Multimedia': 3,
+      'Lantai 3 / Ruang Latihan': 4,
+      'Gudang': 5,
+    };
+    rows.sort((a, b) => {
+      const aSub = (a.type === 'flat' ? (a.item?.lokasi_nama_sublokasi ?? '') : (a.sublokasi ?? ''));
+      const bSub = (b.type === 'flat' ? (b.item?.lokasi_nama_sublokasi ?? '') : (b.sublokasi ?? ''));
+      const aOrd = sublokasiOrder[aSub] ?? 99;
+      const bOrd = sublokasiOrder[bSub] ?? 99;
+      if (aOrd !== bOrd) return aOrd - bOrd;
+      // Within sublokasi: groups before flat items
+      const aGrp = a.type === 'group' ? 0 : 1;
+      const bGrp = b.type === 'group' ? 0 : 1;
+      if (aGrp !== bGrp) return aGrp - bGrp;
+      const aName = (a.type === 'flat' ? (a.item?.nama ?? '') : (a.nama ?? ''));
+      const bName = (b.type === 'flat' ? (b.item?.nama ?? '') : (b.nama ?? ''));
+      return aName.localeCompare(bName, 'id');
+    });
+
+    // Insert sublokasi section headers, then re-attach expanded group children inline
+    const finalRows: any[] = [];
+    let lastSublokasi: string | null = null;
+    for (const row of rows) {
+      const rowSub = (row.type === 'flat' ? (row.item?.lokasi_nama_sublokasi ?? null) : (row.sublokasi ?? null));
+      if (rowSub && rowSub !== lastSublokasi) {
+        finalRows.push({ type: 'section', sublokasi: rowSub });
+        lastSublokasi = rowSub;
+      }
+      finalRows.push(row);
+      if (row.type === 'group' && row.isExpanded) {
+        for (const item of row.items) {
+          finalRows.push({ type: 'flat', item, inGroup: true });
         }
       }
     }
     
-    // Merge massal flat items at end
-    rows.push(...flatItems);
-    
-    return rows;
+    return finalRows;
   };
 
   const toggleGroup = (key: string) => {
@@ -883,6 +924,21 @@ export default function InventarisPage() {
                 const rows = viewMode === 'grouped' && groupedData ? groupedData : data.map(item => ({ type: 'flat', item }));
                 
                 return rows.map((row: any, idx: number) => {
+                  // SUBLOKASI section divider
+                  if (row.type === 'section') {
+                    return (
+                      <tr key={`section-${row.sublokasi}`}>
+                        <td colSpan={9} className="px-4 pt-4 pb-1.5 bg-slate-50/80 border-t border-slate-200">
+                          <div className="flex items-center gap-2">
+                            <span className="material-icons-round text-slate-400 text-[15px]">location_on</span>
+                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{row.sublokasi}</span>
+                            <div className="flex-1 h-px bg-slate-200" />
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  }
+
                   // GROUP header row
                   if (row.type === 'group') {
                     return (
@@ -921,22 +977,23 @@ export default function InventarisPage() {
                             </span>
                           </div>
                         </td>
-                        {/* Group name + count + location */}
+                        {/* Group name + merk + count */}
                         <td className="px-4 py-2.5" colSpan={3}>
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-semibold text-slate-800 text-sm">{row.nama}</span>
-                            {row.merk && (
+                            {row.merk ? (
+                              /* Unanimous merk — show clearly */
                               <span className="text-xs text-slate-500 font-medium">{row.merk}</span>
+                            ) : (row.merkCount > 1) && (
+                              /* Mixed merks — show count badge so user knows */
+                              <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-amber-600 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">
+                                <span className="material-icons-round text-[11px]">category</span>
+                                {row.merkCount} merk
+                              </span>
                             )}
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-indigo-100 text-indigo-700 border border-indigo-200">
                               {row.items.length} unit
                             </span>
-                            {row.sublokasi && (
-                              <span className="inline-flex items-center gap-1 text-[11px] text-slate-500 bg-slate-100 rounded px-1.5 py-0.5">
-                                <span className="material-icons-round text-[11px]">location_on</span>
-                                {row.sublokasi}
-                              </span>
-                            )}
                             <span className="text-xs text-slate-400">🏷️ SATUAN · {row.kategori}</span>
                           </div>
                         </td>
