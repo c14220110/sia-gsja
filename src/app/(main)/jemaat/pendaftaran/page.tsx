@@ -331,32 +331,51 @@ export default function PendaftaranJemaatPage() {
                     </div>
                   )}
 
-                  {/* Reject input */}
-                  {showRejectInput && selectedItem.status === 'menunggu' && (
-                    <div className="flex flex-col gap-2">
-                      <label className="text-sm font-bold text-slate-700">Alasan Penolakan <span className="text-rose-500">*</span></label>
-                      <textarea
-                        value={catatanTolak}
-                        onChange={(e) => setCatatanTolak(e.target.value)}
-                        rows={3}
-                        placeholder="Tuliskan alasan penolakan..."
-                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-red-400 focus:ring-2 focus:ring-red-400/20 resize-none"
-                      />
-                    </div>
-                  )}
                 </div>
               )}
             </div>
 
             {/* Modal Footer — action buttons */}
             {selectedItem.status === 'menunggu' && actionState.type !== 'success' && (
-              <div className="px-6 py-4 border-t border-slate-100 flex items-center gap-3 flex-shrink-0">
+              <div className="px-6 py-4 border-t border-slate-100 flex-shrink-0">
                 {actionState.type === 'loading' ? (
                   <div className="flex items-center gap-2 text-slate-500 text-sm">
                     <span className="material-icons-round animate-spin text-[18px]">sync</span> Memproses...
                   </div>
+                ) : showRejectInput ? (
+                  /* Step 2: isi alasan tolak */
+                  <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-sm font-bold text-slate-700">Alasan Penolakan <span className="text-rose-500">*</span></label>
+                      <textarea
+                        value={catatanTolak}
+                        onChange={(e) => setCatatanTolak(e.target.value)}
+                        rows={3}
+                        placeholder="Tuliskan alasan penolakan..."
+                        autoFocus
+                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-red-400 focus:ring-2 focus:ring-red-400/20 resize-none"
+                      />
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => { setShowRejectInput(false); setCatatanTolak(''); }}
+                        className="px-4 py-2.5 border border-slate-200 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-50 transition-colors"
+                      >
+                        Batal
+                      </button>
+                      <button
+                        onClick={() => handleAction('reject')}
+                        disabled={!catatanTolak.trim()}
+                        className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2"
+                      >
+                        <span className="material-icons-round text-[18px]">cancel</span>
+                        Konfirmasi Tolak
+                      </button>
+                    </div>
+                  </div>
                 ) : (
-                  <>
+                  /* Step 1: pilih aksi */
+                  <div className="flex items-center gap-3">
                     <button
                       onClick={() => handleAction('approve')}
                       className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2"
@@ -364,22 +383,16 @@ export default function PendaftaranJemaatPage() {
                       <span className="material-icons-round text-[18px]">check_circle</span> Setujui
                     </button>
                     <button
-                      onClick={() => {
-                        if (showRejectInput && catatanTolak.trim()) {
-                          handleAction('reject');
-                        } else {
-                          setShowRejectInput(true);
-                        }
-                      }}
+                      onClick={() => setShowRejectInput(true)}
                       className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2"
                     >
                       <span className="material-icons-round text-[18px]">cancel</span>
-                      {showRejectInput && catatanTolak.trim() ? 'Konfirmasi Tolak' : 'Tolak'}
+                      Tolak
                     </button>
                     <button onClick={() => setSelectedItem(null)} className="px-4 py-2.5 border border-slate-200 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-50 transition-colors">
                       Tutup
                     </button>
-                  </>
+                  </div>
                 )}
               </div>
             )}
