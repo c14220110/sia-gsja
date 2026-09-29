@@ -201,7 +201,9 @@ export default function InventarisPage() {
   const [data, setData] = useState<any[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-  const limit = 10;
+  const [groupedPage, setGroupedPage] = useState(1); // display pagination for grouped view
+  const FLAT_LIMIT = 20;
+  const GROUPED_DISPLAY_SIZE = 20; // top-level rows (group headers + flat items) per page
 
   // selectedItems must be computed AFTER data is declared
   const selectedItems: BulkQRItem[] = data
@@ -359,6 +361,7 @@ export default function InventarisPage() {
   // Reset ke halaman 1 saat filter berubah
   useEffect(() => {
     setCurrentPage(1);
+    setGroupedPage(1);
   }, [debouncedSearch, filterKategori, filterSatelit, filterKondisi, filterStatus, filterAktivaTetap]);
 
   // Fetch data utama
@@ -375,12 +378,13 @@ export default function InventarisPage() {
         if (filterAktivaTetap) queryParams.append('is_aktiva_tetap', filterAktivaTetap);
         
         // Grouped mode: fetch all items at once so group counts are accurate (?all=true bypasses pagination)
-        // Flat mode: use normal pagination
+        // Display pagination is handled client-side (GROUPED_DISPLAY_SIZE rows per page)
+        // Flat mode: server-side pagination with FLAT_LIMIT
         if (viewMode === 'grouped') {
           queryParams.append('all', 'true');
         } else {
-          queryParams.append('limit', limit.toString());
-          queryParams.append('offset', ((currentPage - 1) * limit).toString());
+          queryParams.append('limit', FLAT_LIMIT.toString());
+          queryParams.append('offset', ((currentPage - 1) * FLAT_LIMIT).toString());
         }
 
         const res = await fetch(`/api/inventaris?${queryParams.toString()}`);
@@ -458,7 +462,7 @@ export default function InventarisPage() {
     }
   };
 
-  const totalPages = Math.ceil(totalItems / limit) || 1;
+  const totalPages = Math.ceil(totalItems / FLAT_LIMIT) || 1;
 
   return (
     <div className="w-full flex flex-col gap-8 pb-10">
@@ -921,7 +925,36 @@ export default function InventarisPage() {
                 </tr>
               ) : (() => {
                 const groupedData = computeGroupedData(data);
-                const rows = viewMode === 'grouped' && groupedData ? groupedData : data.map(item => ({ type: 'flat', item }));
+
+                let rows: any[];
+                if (viewMode === 'grouped' && groupedData) {
+                  // Client-side display pagination: paginate top-level rows (groups + flat items, NOT section headers)
+                  // Section headers are injected based on which slice is visible
+                  const topLevelRows = groupedData.filter((r: any) => r.type !== 'section');
+                  const startIdx = (groupedPage - 1) * GROUPED_DISPLAY_SIZE;
+                  const pageSlice = topLevelRows.slice(startIdx, startIdx + GROUPED_DISPLAY_SIZE);
+                  
+                  // Re-inject section headers for the current page slice
+                  const pagedRows: any[] = [];
+                  let lastSub: string | null = null;
+                  for (const row of pageSlice) {
+                    const rowSub = (row.type === 'flat' ? (row.item?.lokasi_nama_sublokasi ?? null) : (row.sublokasi ?? null));
+                    if (rowSub && rowSub !== lastSub) {
+                      pagedRows.push({ type: 'section', sublokasi: rowSub });
+                      lastSub = rowSub;
+                    }
+                    pagedRows.push(row);
+                    // Expanded group children
+                    if (row.type === 'group' && row.isExpanded) {
+                      for (const item of row.items) {
+                        pagedRows.push({ type: 'flat', item, inGroup: true });
+                      }
+                    }
+                  }
+                  rows = pagedRows;
+                } else {
+                  rows = data.map((item: any) => ({ type: 'flat', item }));
+                }
                 
                 return rows.map((row: any, idx: number) => {
                   // SUBLOKASI section divider
@@ -1199,74 +1232,90 @@ export default function InventarisPage() {
 
         {/* ── Pagination Footer — INSIDE the card ─────────────────────────── */}
         <div className="px-6 py-3.5 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-3">
-          {viewMode === 'grouped' ? (
-            // Grouped: all items loaded, show simple count
-            <span className="text-xs text-slate-400 font-sans">
-              Menampilkan semua <strong className="text-slate-600">{data.length.toLocaleString('id-ID')}</strong> barang (dari total <strong className="text-slate-600">{totalItems.toLocaleString('id-ID')}</strong>)
-            </span>
-          ) : (
-            <span className="text-xs text-slate-400 font-sans">
-              Menampilkan {data.length > 0 ? ((currentPage - 1) * limit) + 1 : 0}–{Math.min(currentPage * limit, totalItems)} dari <strong className="text-slate-600">{totalItems.toLocaleString('id-ID')}</strong> barang
-            </span>
+          {viewMode === 'grouped' ? (() => {
+            // Grouped: client-side pagination of display rows
+            const groupedData = computeGroupedData(data);
+            const topLevelCount = groupedData ? groupedData.filter((r: any) => r.type !== 'section').length : 0;
+            const totalGroupedPages = Math.max(1, Math.ceil(topLevelCount / GROUPED_DISPLAY_SIZE));
+            const startRow = (groupedPage - 1) * GROUPED_DISPLAY_SIZE + 1;
+            const endRow = Math.min(groupedPage * GROUPED_DISPLAY_SIZE, topLevelCount);
+            return (
+              <>
+                <span className="text-xs text-slate-400 font-sans">
+                  Tampil baris <strong className="text-slate-600">{startRow}–{endRow}</strong> dari <strong className="text-slate-600">{topLevelCount}</strong> grup/item · total <strong className="text-slate-600">{totalItems.toLocaleString('id-ID')}</strong> unit
+                </span>
+                {totalGroupedPages > 1 && (
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => setGroupedPage(1)} disabled={groupedPage === 1}
+                      className="w-8 h-8 rounded-lg border border-slate-200 flex justify-center items-center text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-colors disabled:opacity-30 disabled:hover:bg-transparent">
+                      <span className="material-icons-round text-[16px]">first_page</span>
+                    </button>
+                    <button onClick={() => setGroupedPage(p => Math.max(1, p - 1))} disabled={groupedPage === 1}
+                      className="w-8 h-8 rounded-lg border border-slate-200 flex justify-center items-center text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-colors disabled:opacity-30 disabled:hover:bg-transparent">
+                      <span className="material-icons-round text-[16px]">chevron_left</span>
+                    </button>
+                    {Array.from({ length: Math.min(5, totalGroupedPages) }, (_, i) => {
+                      const pg = Math.max(1, Math.min(totalGroupedPages - 4, groupedPage - 2)) + i;
+                      return (
+                        <button key={pg} onClick={() => setGroupedPage(pg)}
+                          className={`w-8 h-8 rounded-lg border text-xs font-bold transition-colors ${pg === groupedPage ? 'bg-slate-700 border-slate-700 text-white' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                          {pg}
+                        </button>
+                      );
+                    })}
+                    <button onClick={() => setGroupedPage(p => Math.min(totalGroupedPages, p + 1))} disabled={groupedPage === totalGroupedPages}
+                      className="w-8 h-8 rounded-lg border border-slate-200 flex justify-center items-center text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition-colors disabled:opacity-30 disabled:hover:bg-transparent">
+                      <span className="material-icons-round text-[16px]">chevron_right</span>
+                    </button>
+                    <button onClick={() => setGroupedPage(totalGroupedPages)} disabled={groupedPage === totalGroupedPages}
+                      className="w-8 h-8 rounded-lg border border-slate-200 flex justify-center items-center text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-colors disabled:opacity-30 disabled:hover:bg-transparent">
+                      <span className="material-icons-round text-[16px]">last_page</span>
+                    </button>
+                  </div>
+                )}
+              </>
+            );
+          })() : (
+            <>
+              <span className="text-xs text-slate-400 font-sans">
+                Menampilkan {data.length > 0 ? ((currentPage - 1) * FLAT_LIMIT) + 1 : 0}–{Math.min(currentPage * FLAT_LIMIT, totalItems)} dari <strong className="text-slate-600">{totalItems.toLocaleString('id-ID')}</strong> barang
+              </span>
+              {(() => {
+                const totalPages = Math.max(1, Math.ceil(totalItems / FLAT_LIMIT));
+                return (
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => setCurrentPage(1)} disabled={currentPage === 1}
+                      className="w-8 h-8 rounded-lg border border-slate-200 flex justify-center items-center text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-colors disabled:opacity-30 disabled:hover:bg-transparent text-xs" title="Halaman pertama">
+                      <span className="material-icons-round text-[16px]">first_page</span>
+                    </button>
+                    <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}
+                      className="w-8 h-8 rounded-lg border border-slate-200 flex justify-center items-center text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-colors disabled:opacity-30 disabled:hover:bg-transparent">
+                      <span className="material-icons-round text-[16px]">chevron_left</span>
+                    </button>
+                    {(() => {
+                      const pageWindow = 2;
+                      const start = Math.max(1, currentPage - pageWindow);
+                      const end = Math.min(totalPages, currentPage + pageWindow);
+                      return Array.from({ length: end - start + 1 }, (_, i) => start + i).map(pg => (
+                        <button key={pg} onClick={() => setCurrentPage(pg)}
+                          className={`w-8 h-8 rounded-lg border text-xs font-bold transition-colors ${pg === currentPage ? 'bg-slate-700 border-slate-700 text-white' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                          {pg}
+                        </button>
+                      ));
+                    })()}
+                    <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalItems === 0}
+                      className="w-8 h-8 rounded-lg border border-slate-200 flex justify-center items-center text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition-colors disabled:opacity-30 disabled:hover:bg-transparent">
+                      <span className="material-icons-round text-[16px]">chevron_right</span>
+                    </button>
+                    <button onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages || totalItems === 0}
+                      className="w-8 h-8 rounded-lg border border-slate-200 flex justify-center items-center text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-colors disabled:opacity-30 disabled:hover:bg-transparent text-xs" title="Halaman terakhir">
+                      <span className="material-icons-round text-[16px]">last_page</span>
+                    </button>
+                  </div>
+                );
+              })()}
+            </>
           )}
-          {/* Pagination controls — only in flat mode */}
-          {viewMode === 'flat' && (
-          <div className="flex items-center gap-1">
-            {/* First */}
-            <button
-              onClick={() => setCurrentPage(1)}
-              disabled={currentPage === 1}
-              className="w-8 h-8 rounded-lg border border-slate-200 flex justify-center items-center text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-colors disabled:opacity-30 disabled:hover:bg-transparent text-xs"
-              title="Halaman pertama"
-            >
-              <span className="material-icons-round text-[16px]">first_page</span>
-            </button>
-            {/* Prev */}
-            <button
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="w-8 h-8 rounded-lg border border-slate-200 flex justify-center items-center text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
-            >
-              <span className="material-icons-round text-[16px]">chevron_left</span>
-            </button>
-            {/* Page numbers */}
-            {(() => {
-              const pageWindow = 2;
-              const start = Math.max(1, currentPage - pageWindow);
-              const end = Math.min(totalPages, currentPage + pageWindow);
-              return Array.from({ length: end - start + 1 }, (_, i) => start + i).map(pg => (
-                <button
-                  key={pg}
-                  onClick={() => setCurrentPage(pg)}
-                  className={`w-8 h-8 rounded-lg border text-xs font-bold transition-colors ${
-                    pg === currentPage
-                      ? 'bg-slate-700 border-slate-700 text-white'
-                      : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  {pg}
-                </button>
-              ));
-            })()}
-            {/* Next */}
-            <button
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages || totalItems === 0}
-              className="w-8 h-8 rounded-lg border border-slate-200 flex justify-center items-center text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
-            >
-              <span className="material-icons-round text-[16px]">chevron_right</span>
-            </button>
-            {/* Last */}
-            <button
-              onClick={() => setCurrentPage(totalPages)}
-              disabled={currentPage === totalPages || totalItems === 0}
-              className="w-8 h-8 rounded-lg border border-slate-200 flex justify-center items-center text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-colors disabled:opacity-30 disabled:hover:bg-transparent text-xs"
-              title="Halaman terakhir"
-            >
-              <span className="material-icons-round text-[16px]">last_page</span>
-            </button>
-          </div>
-          )} {/* end viewMode flat pagination */}
         </div>
       </div>{/* end table card */}
 
