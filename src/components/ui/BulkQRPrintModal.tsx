@@ -15,11 +15,14 @@ interface BulkQRPrintModalProps {
   isOpen: boolean;
   onClose: () => void;
   items: BulkQRItem[];
+  /** 'satuan_unik' = setiap item QR unik, copies locked 1, tidak bisa diubah */
+  mode?: 'massal' | 'satuan_unik';
 }
 
-export default function BulkQRPrintModal({ isOpen, onClose, items: initialItems }: BulkQRPrintModalProps) {
+export default function BulkQRPrintModal({ isOpen, onClose, items: initialItems, mode = 'massal' }: BulkQRPrintModalProps) {
+  const isSatuanUnik = mode === 'satuan_unik';
   const [items, setItems] = useState<BulkQRItem[]>(() =>
-    initialItems.map(it => ({ ...it, copies: 1 }))
+    initialItems.map(it => ({ ...it, copies: isSatuanUnik ? 1 : 1 }))
   );
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState(0); // 0-100
@@ -106,12 +109,21 @@ export default function BulkQRPrintModal({ isOpen, onClose, items: initialItems 
         {/* ── Header ── */}
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50 flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-indigo-100 rounded-xl flex items-center justify-center">
-              <span className="material-icons-round text-indigo-600 text-[20px]">print</span>
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${isSatuanUnik ? 'bg-indigo-100' : 'bg-indigo-100'}`}>
+              <span className={`material-icons-round text-[20px] ${isSatuanUnik ? 'text-indigo-600' : 'text-indigo-600'}`}>
+                {isSatuanUnik ? 'qr_code_2' : 'print'}
+              </span>
             </div>
             <div>
-              <h3 className="font-bold text-slate-900 text-base">Cetak QR Massal</h3>
-              <p className="text-xs text-slate-400">{items.length} barang dipilih</p>
+              <h3 className="font-bold text-slate-900 text-base">
+                {isSatuanUnik ? 'Cetak Semua QR Unik' : 'Cetak QR Massal'}
+              </h3>
+              <p className="text-xs text-slate-400">
+                {isSatuanUnik
+                  ? `${items.length} unit — masing-masing QR berbeda`
+                  : `${items.length} barang dipilih`
+                }
+              </p>
             </div>
           </div>
           {!generating && (
@@ -133,20 +145,31 @@ export default function BulkQRPrintModal({ isOpen, onClose, items: initialItems 
             </span>
             <span className="text-indigo-400">·</span>
             <span className="text-indigo-500">layout {STICKER_COLS}×{STICKER_ROWS}</span>
+            {isSatuanUnik && (
+              <>
+                <span className="text-indigo-400">·</span>
+                <span className="text-indigo-600 font-bold flex items-center gap-1">
+                  <span className="material-icons-round text-[12px]">verified</span>
+                  QR Unik per Unit
+                </span>
+              </>
+            )}
           </div>
-          {/* Set all copies shortcuts */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-[11px] text-indigo-500 font-semibold">Semua:</span>
-            {[1, 5, 10].map(n => (
-              <button
-                key={n}
-                onClick={() => setAllCopies(n)}
-                className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-100 transition-colors"
-              >
-                ×{n}
-              </button>
-            ))}
-          </div>
+          {/* Set all copies shortcuts — hanya untuk mode massal */}
+          {!isSatuanUnik && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] text-indigo-500 font-semibold">Semua:</span>
+              {[1, 5, 10].map(n => (
+                <button
+                  key={n}
+                  onClick={() => setAllCopies(n)}
+                  className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-100 transition-colors"
+                >
+                  ×{n}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* ── Item list ── */}
@@ -170,32 +193,40 @@ export default function BulkQRPrintModal({ isOpen, onClose, items: initialItems 
                   </div>
                 </div>
 
-                {/* Per-item copy count */}
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  <button
-                    onClick={() => setCopies(item.id, item.copies - 1)}
-                    disabled={item.copies <= 1}
-                    className="w-7 h-7 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-100 disabled:opacity-30 transition-colors flex items-center justify-center"
-                  >
-                    <span className="material-icons-round text-[14px]">remove</span>
-                  </button>
-                  <input
-                    type="number"
-                    min={1}
-                    max={500}
-                    value={item.copies}
-                    onChange={(e) => setCopies(item.id, parseInt(e.target.value) || 1)}
-                    className="w-14 h-7 text-center text-xs font-bold text-slate-800 border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                  />
-                  <button
-                    onClick={() => setCopies(item.id, item.copies + 1)}
-                    disabled={item.copies >= 500}
-                    className="w-7 h-7 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-100 disabled:opacity-30 transition-colors flex items-center justify-center"
-                  >
-                    <span className="material-icons-round text-[14px]">add</span>
-                  </button>
-                  <span className="text-[10px] text-slate-400 ml-1 w-12">stiker</span>
-                </div>
+                {/* Per-item copy count — editable for massal, locked for satuan_unik */}
+                {isSatuanUnik ? (
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-50 border border-indigo-200 text-indigo-700">
+                      1 stiker unik
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <button
+                      onClick={() => setCopies(item.id, item.copies - 1)}
+                      disabled={item.copies <= 1}
+                      className="w-7 h-7 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-100 disabled:opacity-30 transition-colors flex items-center justify-center"
+                    >
+                      <span className="material-icons-round text-[14px]">remove</span>
+                    </button>
+                    <input
+                      type="number"
+                      min={1}
+                      max={500}
+                      value={item.copies}
+                      onChange={(e) => setCopies(item.id, parseInt(e.target.value) || 1)}
+                      className="w-14 h-7 text-center text-xs font-bold text-slate-800 border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    />
+                    <button
+                      onClick={() => setCopies(item.id, item.copies + 1)}
+                      disabled={item.copies >= 500}
+                      className="w-7 h-7 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-100 disabled:opacity-30 transition-colors flex items-center justify-center"
+                    >
+                      <span className="material-icons-round text-[14px]">add</span>
+                    </button>
+                    <span className="text-[10px] text-slate-400 ml-1 w-12">stiker</span>
+                  </div>
+                )}
 
                 {/* Remove */}
                 <button

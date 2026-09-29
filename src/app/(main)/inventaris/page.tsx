@@ -40,6 +40,9 @@ export default function InventarisPage() {
   const [isBulkQrOpen, setIsBulkQrOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
+  // Group QR print modal — print all unique QRs of a satuan group at once
+  const [groupQrItems, setGroupQrItems] = useState<BulkQRItem[] | null>(null);
+
   // Group view state
   const [viewMode, setViewMode] = useState<'grouped' | 'flat'>('grouped');
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
@@ -932,7 +935,27 @@ export default function InventarisPage() {
                             {row.isExpanded ? 'Tutup ▲' : 'Lihat ▼'}
                           </span>
                         </td>
-                        <td />
+                        <td className="px-4 py-2.5 text-center" onClick={e => e.stopPropagation()}>
+                          <button
+                            title={`Print semua ${row.items.length} QR unik untuk grup ini`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setGroupQrItems(
+                                row.items.map((it: any) => ({
+                                  id: it.id,
+                                  nama: it.nama,
+                                  kode_barang: it.kode_barang,
+                                  nama_kategori: it.nama_kategori,
+                                  copies: 1,
+                                }))
+                              );
+                            }}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-sm whitespace-nowrap"
+                          >
+                            <span className="material-icons-round text-[13px]">print</span>
+                            Print {row.items.length} QR
+                          </button>
+                        </td>
                       </tr>
                     );
                   }
@@ -1239,13 +1262,24 @@ export default function InventarisPage() {
         />
       )}
 
-      {/* Bulk QR Print Modal (multi-item) */}
+      {/* Bulk QR Print Modal (multi-item selection) */}
       {isBulkQrOpen && selectedItems.length > 0 && (
         <BulkQRPrintModal
           key={Array.from(selectedIds).sort().join(',')}
           isOpen={isBulkQrOpen}
           onClose={() => { setIsBulkQrOpen(false); clearSelection(); }}
           items={selectedItems}
+        />
+      )}
+
+      {/* Group QR Print Modal — Print semua QR unik dari satu grup satuan */}
+      {groupQrItems && groupQrItems.length > 0 && (
+        <BulkQRPrintModal
+          key={`group-${groupQrItems.map(i => i.id).join(',')}`}
+          isOpen={true}
+          onClose={() => setGroupQrItems(null)}
+          items={groupQrItems}
+          mode="satuan_unik"
         />
       )}
 
