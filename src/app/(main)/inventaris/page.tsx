@@ -323,8 +323,14 @@ export default function InventarisPage() {
         if (filterStatus && filterStatus !== 'Semua') queryParams.append('status', filterStatus);
         if (filterAktivaTetap) queryParams.append('is_aktiva_tetap', filterAktivaTetap);
         
-        queryParams.append('limit', limit.toString());
-        queryParams.append('offset', ((currentPage - 1) * limit).toString());
+        // Grouped mode: fetch all items at once so group counts are accurate (?all=true bypasses pagination)
+        // Flat mode: use normal pagination
+        if (viewMode === 'grouped') {
+          queryParams.append('all', 'true');
+        } else {
+          queryParams.append('limit', limit.toString());
+          queryParams.append('offset', ((currentPage - 1) * limit).toString());
+        }
 
         const res = await fetch(`/api/inventaris?${queryParams.toString()}`);
         const result = await res.json();
@@ -341,7 +347,7 @@ export default function InventarisPage() {
     };
 
     fetchData();
-  }, [debouncedSearch, filterKategori, filterSatelit, filterKondisi, filterStatus, filterAktivaTetap, currentPage]);
+  }, [debouncedSearch, filterKategori, filterSatelit, filterKondisi, filterStatus, filterAktivaTetap, currentPage, viewMode]);
 
   // Fetch stats untuk KPI cards (hanya saat satelit/kategori berubah)
   useEffect(() => {
@@ -1117,9 +1123,18 @@ export default function InventarisPage() {
 
         {/* ── Pagination Footer — INSIDE the card ─────────────────────────── */}
         <div className="px-6 py-3.5 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-3">
-          <span className="text-xs text-slate-400 font-sans">
-            Menampilkan {data.length > 0 ? ((currentPage - 1) * limit) + 1 : 0}–{Math.min(currentPage * limit, totalItems)} dari <strong className="text-slate-600">{totalItems.toLocaleString('id-ID')}</strong> barang
-          </span>
+          {viewMode === 'grouped' ? (
+            // Grouped: all items loaded, show simple count
+            <span className="text-xs text-slate-400 font-sans">
+              Menampilkan semua <strong className="text-slate-600">{data.length.toLocaleString('id-ID')}</strong> barang (dari total <strong className="text-slate-600">{totalItems.toLocaleString('id-ID')}</strong>)
+            </span>
+          ) : (
+            <span className="text-xs text-slate-400 font-sans">
+              Menampilkan {data.length > 0 ? ((currentPage - 1) * limit) + 1 : 0}–{Math.min(currentPage * limit, totalItems)} dari <strong className="text-slate-600">{totalItems.toLocaleString('id-ID')}</strong> barang
+            </span>
+          )}
+          {/* Pagination controls — only in flat mode */}
+          {viewMode === 'flat' && (
           <div className="flex items-center gap-1">
             {/* First */}
             <button
@@ -1175,6 +1190,7 @@ export default function InventarisPage() {
               <span className="material-icons-round text-[16px]">last_page</span>
             </button>
           </div>
+          )} {/* end viewMode flat pagination */}
         </div>
       </div>{/* end table card */}
 

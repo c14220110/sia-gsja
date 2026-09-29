@@ -22,8 +22,9 @@ export async function GET(request: NextRequest) {
     const status              = searchParams.get('status') || undefined;
     const is_aktiva_tetap     = searchParams.get('is_aktiva_tetap') || undefined;
     const isExport            = searchParams.get('export') === 'true';
-    const limit               = isExport ? 5000 : Math.min(parseInt(searchParams.get('limit') ?? '10'), 100);
-    const offset              = isExport ? 0 : parseInt(searchParams.get('offset') ?? '0');
+    const isAll               = searchParams.get('all') === 'true'; // grouped view needs all items
+    const limit               = (isExport || isAll) ? 5000 : Math.min(parseInt(searchParams.get('limit') ?? '10'), 100);
+    const offset              = (isExport || isAll) ? 0 : parseInt(searchParams.get('offset') ?? '0');
 
     // Satellite lock: hanya untuk non-super-admin yang punya satelit_id
     const lokasi_satelit_id = (!caller.is_super_admin && caller.satelit_id)
