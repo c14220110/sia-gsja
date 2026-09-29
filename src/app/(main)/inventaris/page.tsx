@@ -60,7 +60,7 @@ export default function InventarisPage() {
     
     for (const item of items) {
       if (item.tipe_barang === 'satuan') {
-        const key = `${item.nama.trim().toLowerCase()}||${item.kategori_id}`;
+        const key = `${item.nama.trim().toLowerCase()}||${item.kategori_id}||${item.lokasi_sublokasi_id ?? 'null'}`;
         if (!groupMap.has(key)) groupMap.set(key, []);
         groupMap.get(key)!.push(item);
       } else {
@@ -78,7 +78,17 @@ export default function InventarisPage() {
         const isExpanded = expandedGroups.has(key);
         const allSelected = groupItems.every(i => selectedIds.has(i.id));
         const someSelected = groupItems.some(i => selectedIds.has(i.id));
-        rows.push({ type: 'group', key, nama: groupItems[0].nama, kategori: groupItems[0].nama_kategori, kategori_id: groupItems[0].kategori_id, items: groupItems, isExpanded, allSelected, someSelected });
+        const sublokasi = groupItems[0].lokasi_nama_sublokasi || null;
+        const satelit   = groupItems[0].lokasi_nama_satelit   || null;
+        rows.push({
+          type: 'group', key,
+          nama: groupItems[0].nama,
+          merk: groupItems[0].merk || null,
+          kategori: groupItems[0].nama_kategori,
+          kategori_id: groupItems[0].kategori_id,
+          sublokasi, satelit,
+          items: groupItems, isExpanded, allSelected, someSelected
+        });
         if (isExpanded) {
           for (const item of groupItems) {
             rows.push({ type: 'flat', item, inGroup: true });
@@ -911,13 +921,22 @@ export default function InventarisPage() {
                             </span>
                           </div>
                         </td>
-                        {/* Group name + count */}
+                        {/* Group name + count + location */}
                         <td className="px-4 py-2.5" colSpan={3}>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-semibold text-slate-800 text-sm">{row.nama}</span>
+                            {row.merk && (
+                              <span className="text-xs text-slate-500 font-medium">{row.merk}</span>
+                            )}
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-indigo-100 text-indigo-700 border border-indigo-200">
                               {row.items.length} unit
                             </span>
+                            {row.sublokasi && (
+                              <span className="inline-flex items-center gap-1 text-[11px] text-slate-500 bg-slate-100 rounded px-1.5 py-0.5">
+                                <span className="material-icons-round text-[11px]">location_on</span>
+                                {row.sublokasi}
+                              </span>
+                            )}
                             <span className="text-xs text-slate-400">🏷️ SATUAN · {row.kategori}</span>
                           </div>
                         </td>
