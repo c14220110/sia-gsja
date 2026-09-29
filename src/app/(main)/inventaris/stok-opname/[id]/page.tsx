@@ -24,9 +24,10 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
   const [editingDetailId, setEditingDetailId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState({ jumlah_fisik: '', kondisi_fisik: '', keterangan: '' });
 
-  // Quick input modal state (massal items — scan or manual)
+  // Quick input modal state (massal items — scan-to-count or manual)
   const [quickInputItem, setQuickInputItem] = useState<any>(null);
   const [quickInputForm, setQuickInputForm] = useState({ jumlah_fisik: '', kondisi_fisik: '', keterangan: '' });
+  const [modalScannerOpen, setModalScannerOpen] = useState(false); // scanner inside quick input modal
 
   // Barcode scanner
   const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -916,37 +917,60 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
 
             {/* Body */}
             <div className="px-5 py-5 space-y-4">
-              {/* Big number input + +/- */}
+              {/* Scan counter UI */}
               <div>
-                <label className="text-sm font-bold text-slate-700 block mb-2">
-                  Jumlah Fisik <span className="text-rose-500">*</span>
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-bold text-slate-700">
+                    Jumlah Fisik <span className="text-rose-500">*</span>
+                  </label>
+                  <span className="text-[11px] text-slate-400 bg-slate-50 border border-slate-200 rounded-full px-2 py-0.5">
+                    Scan = +1 otomatis
+                  </span>
+                </div>
+
+                {/* Counter display + +/- */}
                 <div className="flex items-center gap-3">
                   <button
                     type="button"
                     onClick={() => setQuickInputForm(prev => ({ ...prev, jumlah_fisik: String(Math.max(0, (parseInt(prev.jumlah_fisik) || 0) - 1)) }))}
-                    className="w-12 h-12 rounded-xl border-2 border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 hover:border-slate-300 flex items-center justify-center transition-colors flex-shrink-0"
+                    className="w-12 h-14 rounded-xl border-2 border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 hover:border-slate-300 flex items-center justify-center transition-colors flex-shrink-0"
                   >
                     <span className="material-icons-round text-[22px]">remove</span>
                   </button>
-                  <input
-                    type="number"
-                    min="0"
-                    value={quickInputForm.jumlah_fisik}
-                    onChange={(e) => setQuickInputForm(prev => ({ ...prev, jumlah_fisik: e.target.value }))}
-                    onFocus={(e) => e.target.select()}
-                    autoFocus
-                    placeholder="0"
-                    className="flex-1 h-14 text-center text-2xl font-bold text-slate-900 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-white"
-                  />
+                  <div className="flex-1 h-14 flex items-center justify-center border-2 border-slate-200 rounded-xl bg-white relative">
+                    <span className="text-3xl font-bold text-slate-900">
+                      {quickInputForm.jumlah_fisik === '' ? '0' : quickInputForm.jumlah_fisik}
+                    </span>
+                    {quickInputForm.jumlah_fisik !== '' && parseInt(quickInputForm.jumlah_fisik) > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setQuickInputForm(prev => ({ ...prev, jumlah_fisik: '' }))}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-lg text-slate-300 hover:text-slate-500 hover:bg-slate-50"
+                        title="Reset ke 0"
+                      >
+                        <span className="material-icons-round text-[14px]">restart_alt</span>
+                      </button>
+                    )}
+                  </div>
                   <button
                     type="button"
                     onClick={() => setQuickInputForm(prev => ({ ...prev, jumlah_fisik: String((parseInt(prev.jumlah_fisik) || 0) + 1) }))}
-                    className="w-12 h-12 rounded-xl border-2 border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:border-blue-300 flex items-center justify-center transition-colors flex-shrink-0"
+                    className="w-12 h-14 rounded-xl border-2 border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:border-blue-300 flex items-center justify-center transition-colors flex-shrink-0"
                   >
                     <span className="material-icons-round text-[22px]">add</span>
                   </button>
                 </div>
+
+                {/* BIG SCAN BUTTON — per scan = +1 */}
+                <button
+                  type="button"
+                  onClick={() => setModalScannerOpen(true)}
+                  className="mt-3 w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm flex items-center justify-center gap-2 transition-colors shadow-sm active:scale-95"
+                >
+                  <span className="material-icons-round text-[20px]">photo_camera</span>
+                  Scan Fisik (+1 per scan)
+                </button>
+
                 {/* Quick set to sistem count */}
                 <button
                   type="button"
@@ -970,6 +994,7 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
                   );
                 })()}
               </div>
+
 
               {/* Kondisi */}
               <div>
@@ -1028,6 +1053,23 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
         }}
         title="Scan Barcode Stok Opname"
         hint="Scan barcode pada barang untuk langsung membuka baris editnya di sesi ini."
+      />
+
+      {/* ── Scan Modal INSIDE Quick Input (Massal) — setiap scan +1 ─────────── */}
+      <BarcodeScannerModal
+        isOpen={modalScannerOpen && !!quickInputItem}
+        onClose={() => setModalScannerOpen(false)}
+        onScanSuccess={() => {
+          // ANY scan = +1 to jumlah fisik (user scans each physical unit one by one)
+          setQuickInputForm(prev => {
+            const next = (parseInt(prev.jumlah_fisik) || 0) + 1;
+            showScanToast(`+1 scan → Total: ${next}`, 'success');
+            return { ...prev, jumlah_fisik: String(next) };
+          });
+          // Scanner stays open — user closes manually when done counting
+        }}
+        title={`Scan Fisik: ${quickInputItem?.nama_barang || ''}`}
+        hint="Arahkan ke barcode/QR setiap barang fisik. Setiap scan otomatis +1. Tutup kamera jika selesai menghitung."
       />
     </div>
   );
