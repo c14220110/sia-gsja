@@ -10,6 +10,7 @@ import QRCodeModal from '@/components/ui/QRCodeModal';
 import BulkQRPrintModal, { type BulkQRItem } from '@/components/ui/BulkQRPrintModal';
 import BarcodeScannerModal from '@/components/ui/BarcodeScannerModal';
 import { exportInventarisToExcel, DEFAULT_EXPORT_COLUMNS } from '@/lib/exportInventaris';
+import ImportInventarisModal from '@/components/ui/ImportInventarisModal';
 
 /** Converts stored R2 public URL to our authenticated proxy URL */
 function fotoUrlToProxy(url: string | null | undefined): string | null {
@@ -194,6 +195,7 @@ export default function InventarisPage() {
   });
 
   const [userData, setUserData] = useState<any>(null);
+  const [isImportOpen, setIsImportOpen] = useState(false);
 
   const [kategoriOptions, setKategoriOptions] = useState<any[]>([]);
   const [satelitOptions, setSatelitOptions] = useState<any[]>([]);
@@ -481,6 +483,15 @@ export default function InventarisPage() {
               >
                 <span className="material-icons-round text-emerald-600 text-[20px]">table_view</span>
                 <span className="text-slate-700 text-sm font-bold font-sans leading-5">Export Excel</span>
+              </button>
+            )}
+            {hasPermission('inventaris_manage') && (
+              <button
+                onClick={() => setIsImportOpen(true)}
+                className="px-4 py-2.5 bg-white border border-slate-200 rounded-lg flex justify-start items-center gap-2 hover:bg-blue-50 hover:border-blue-300 transition-colors shadow-sm"
+              >
+                <span className="material-icons-round text-blue-600 text-[20px]">upload_file</span>
+                <span className="text-slate-700 text-sm font-bold font-sans leading-5">Import Excel</span>
               </button>
             )}
             {hasPermission('inventaris_manage') && (
@@ -1346,6 +1357,18 @@ export default function InventarisPage() {
           </div>
         </div>
       )}
+
+      <ImportInventarisModal
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        satelitOptions={satelitOptions}
+        onImportSuccess={() => {
+          setCurrentPage(1);
+          setGroupedPage(1);
+          // Trigger refetch by toggling a dummy filter reset
+          setFilterKategori(prev => prev);
+        }}
+      />
 
       <AlertModal
         isOpen={alertState.isOpen}
