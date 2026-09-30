@@ -61,7 +61,9 @@ export default function InventarisPage() {
     
     for (const item of items) {
       if (item.tipe_barang === 'satuan') {
-        const key = `${item.nama.trim().toLowerCase()}||${item.kategori_id}||${item.lokasi_sublokasi_id ?? 'null'}`;
+        // Best practice: group by nama + kategori + sublokasi + merk
+        // Different brands = different asset groups (different spare parts, maintenance, warranty)
+        const key = `${item.nama.trim().toLowerCase()}||${item.kategori_id}||${item.lokasi_sublokasi_id ?? 'null'}||${(item.merk || '').trim().toLowerCase()}`;
         if (!groupMap.has(key)) groupMap.set(key, []);
         groupMap.get(key)!.push(item);
       } else {
@@ -81,15 +83,13 @@ export default function InventarisPage() {
         const sublokasi = groupItems[0].lokasi_nama_sublokasi || null;
         const satelit   = groupItems[0].lokasi_nama_satelit   || null;
 
-        // Only show merk on header if ALL items share the SAME merk (avoid misleading label)
-        const uniqueMerks = [...new Set(groupItems.map((i: any) => i.merk || ''))];
-        const displayMerk = uniqueMerks.length === 1 ? (uniqueMerks[0] || null) : null;
+        // Each group now has exactly one merk (merk is part of the key)
+        const displayMerk = groupItems[0].merk || null;
 
         rows.push({
           type: 'group', key,
           nama: groupItems[0].nama,
           merk: displayMerk,
-          merkCount: uniqueMerks.length,
           kategori: groupItems[0].nama_kategori,
           kategori_id: groupItems[0].kategori_id,
           sublokasi, satelit,
@@ -1014,15 +1014,8 @@ export default function InventarisPage() {
                         <td className="px-4 py-2.5" colSpan={3}>
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-semibold text-slate-800 text-sm">{row.nama}</span>
-                            {row.merk ? (
-                              /* Unanimous merk — show clearly */
+                            {row.merk && (
                               <span className="text-xs text-slate-500 font-medium">{row.merk}</span>
-                            ) : (row.merkCount > 1) && (
-                              /* Mixed merks — show count badge so user knows */
-                              <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-amber-600 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">
-                                <span className="material-icons-round text-[11px]">category</span>
-                                {row.merkCount} merk
-                              </span>
                             )}
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-indigo-100 text-indigo-700 border border-indigo-200">
                               {row.items.length} unit
