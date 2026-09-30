@@ -125,7 +125,7 @@ export default function InventarisPage() {
       return aName.localeCompare(bName, 'id');
     });
 
-    // Insert sublokasi section headers, then re-attach expanded group children inline
+    // Insert sublokasi section headers only — expanded children are injected by render loop (single source of truth)
     const finalRows: any[] = [];
     let lastSublokasi: string | null = null;
     for (const row of rows) {
@@ -135,11 +135,6 @@ export default function InventarisPage() {
         lastSublokasi = rowSub;
       }
       finalRows.push(row);
-      if (row.type === 'group' && row.isExpanded) {
-        for (const item of row.items) {
-          finalRows.push({ type: 'flat', item, inGroup: true });
-        }
-      }
     }
     
     return finalRows;
@@ -939,13 +934,13 @@ export default function InventarisPage() {
 
                 let rows: any[];
                 if (viewMode === 'grouped' && groupedData) {
-                  // Client-side display pagination: paginate top-level rows (groups + flat items, NOT section headers)
-                  // Section headers are injected based on which slice is visible
-                  const topLevelRows = groupedData.filter((r: any) => r.type !== 'section');
+                  // Client-side display pagination: paginate top-level rows (groups + flat items, NOT section headers or expanded inline children)
+                  // Section headers and expanded children are re-injected for the visible slice only
+                  const topLevelRows = groupedData.filter((r: any) => r.type !== 'section' && !r.inGroup);
                   const startIdx = (groupedPage - 1) * GROUPED_DISPLAY_SIZE;
                   const pageSlice = topLevelRows.slice(startIdx, startIdx + GROUPED_DISPLAY_SIZE);
                   
-                  // Re-inject section headers for the current page slice
+                  // Build final page rows: section headers + top-level rows + expanded children (injected here, not from computeGroupedData)
                   const pagedRows: any[] = [];
                   let lastSub: string | null = null;
                   for (const row of pageSlice) {
@@ -955,7 +950,7 @@ export default function InventarisPage() {
                       lastSub = rowSub;
                     }
                     pagedRows.push(row);
-                    // Expanded group children
+                    // Inject expanded children HERE (single source of truth — NOT from pre-built inGroup rows)
                     if (row.type === 'group' && row.isExpanded) {
                       for (const item of row.items) {
                         pagedRows.push({ type: 'flat', item, inGroup: true });
@@ -1239,7 +1234,8 @@ export default function InventarisPage() {
           {viewMode === 'grouped' ? (() => {
             // Grouped: client-side pagination of display rows
             const groupedData = computeGroupedData(data);
-            const topLevelCount = groupedData ? groupedData.filter((r: any) => r.type !== 'section').length : 0;
+            // topLevelCount = group headers + ungrouped flat rows (exclude expanded inline children and section dividers)
+            const topLevelCount = groupedData ? groupedData.filter((r: any) => r.type !== 'section' && !r.inGroup).length : 0;
             const totalGroupedPages = Math.max(1, Math.ceil(topLevelCount / GROUPED_DISPLAY_SIZE));
             const startRow = (groupedPage - 1) * GROUPED_DISPLAY_SIZE + 1;
             const endRow = Math.min(groupedPage * GROUPED_DISPLAY_SIZE, topLevelCount);
