@@ -27,28 +27,21 @@ export async function POST(request: Request) {
     // ── Read _META sheet ──────────────────────────────────────────────
     const metaSheet = workbook.getWorksheet('_META');
     if (!metaSheet) {
-      return NextResponse.json({ success: false, message: 'File bukan template resmi SIA GSJA (sheet _META tidak ditemukan)' }, { status: 400 });
+      return NextResponse.json({
+        success: false,
+        message: 'File bukan template resmi SIA GSJA (sheet _META tidak ditemukan). Pastikan Anda menggunakan template yang didownload dari sistem ini.'
+      }, { status: 400 });
     }
 
-    const satelitIdRaw = metaSheet.getCell('B2').value;
-    const satelitId = parseInt(String(satelitIdRaw));
+    // ExcelJS returns the raw value (number) from numeric cells — no need to parseInt(String())
+    const satelitIdRaw = metaSheet.getRow(2).getCell(1).value;
+    const satelitId = Number(satelitIdRaw);
     if (!satelitId || isNaN(satelitId)) {
-      return NextResponse.json({ success: false, message: 'satelit_id tidak valid di _META' }, { status: 400 });
-    }
-
-    // Build sublokasi mapping: sheet_nama → sublokasi_id
-    const sublokasiMap = new Map<string, number>(); // sheet name → sublokasi_id
-    let metaRow = 5; // starts at row 5 in _META
-    while (true) {
-      const sheetNama = metaSheet.getCell(metaRow, 1).value;
-      const subId = metaSheet.getCell(metaRow, 2).value;
-      if (!sheetNama || !subId) break;
-      sublokasiMap.set(String(sheetNama), parseInt(String(subId)));
-      metaRow++;
+      return NextResponse.json({ success: false, message: `satelit_id tidak valid di _META (got: ${satelitIdRaw})` }, { status: 400 });
     }
 
     // ── Fetch master data for lookup ──────────────────────────────────
-    const kategoriRes = await pool.query('SELECT id, nama FROM master_kategori_barang ORDER BY kode');
+    const kategoriRes = await pool.query('SELECT id, kode, nama FROM master_kategori_barang ORDER BY kode');
     const kategoriMap = new Map<string, number>();
     kategoriRes.rows.forEach((k: any) => {
       kategoriMap.set(k.nama.toLowerCase().trim(), k.id);
@@ -67,31 +60,51 @@ export async function POST(request: Request) {
 
     await client.query('BEGIN');
 
-    for (const [sheetNama, sublokasiId] of sublokasiMap.entries()) {
-      const ws = workbook.getWorksheet(sheetNama);
-      if (!ws) continue;
+    // Iterate all worksheets — skip helper sheets, identify data sheets by hidden row
+    const skipSheets = new Set(['PETUNJUK', '_META', '_LISTS']);
+    for (const ws of workbook.worksheets) {
+      if (skipSheets.has(ws.name)) continue;
 
-      const sheetResult = { sheet: sheetNama, sublokasi_id: sublokasiId, inserted: 0, skipped: 0, errors: [] as string[] };
+      // Read sublokasi_id from hidden row 2 (__SUBLOKASI_ID__:XX)
+      // This is the most reliable approach — immune to sheet name changes
+      const hiddenCellVal = ws.getRow(2).getCell(1).value;
+      const hiddenStr = String(hiddenCellVal || '');
+      let sublokasiId: number | null = null;
 
-      // Data starts at row 4, row 2 is hidden meta with __SUBLOKASI_ID__, row 3 is header
-      // Collect all data rows
+      if (hiddenStr.startsWith('__SUBLOKASI_ID__:')) {
+        sublokasiId = parseInt(hiddenStr.replace('__SUBLOKASI_ID__:', ''), 10);
+      }
+
+      if (!sublokasiId || isNaN(sublokasiId)) {
+        // Sheet doesn't look like our data sheet template — skip silently
+        continue;
+      }
+
+      const sheetResult = { sheet: ws.name, sublokasi_id: sublokasiId, inserted: 0, skipped: 0, errors: [] as string[] };
+
+      // Data starts at row 4 (row 1=title, row 2=hidden meta, row 3=header)
       const dataRows: any[] = [];
       ws.eachRow((row, rowNumber) => {
         if (rowNumber < 4) return; // skip title, meta, header
-        const namaBarang = String(row.getCell(1).value || '').trim();
+        const namaBarang = String(row.getCell(1).value ?? '').trim();
         if (!namaBarang) return; // skip empty rows
+
+        const jumlahRaw = row.getCell(5).value;
+        const tahunRaw = row.getCell(8).value;
+        const nilaiRaw = row.getCell(9).value;
+
         dataRows.push({
           rowNumber,
           nama: namaBarang,
-          merk: String(row.getCell(2).value || '').trim(),
-          kategoriNama: String(row.getCell(3).value || '').trim(),
-          tipe: String(row.getCell(4).value || 'Satuan').trim(),
-          jumlah: parseInt(String(row.getCell(5).value || '1')),
-          kondisi: String(row.getCell(6).value || 'Baik').trim(),
-          noSeri: String(row.getCell(7).value || '').trim(),
-          tahunPerolehan: row.getCell(8).value ? parseInt(String(row.getCell(8).value)) : null,
-          nilaiPerolehan: row.getCell(9).value ? parseFloat(String(row.getCell(9).value)) : null,
-          keterangan: String(row.getCell(10).value || '').trim(),
+          merk: String(row.getCell(2).value ?? '').trim() || null,
+          kategoriNama: String(row.getCell(3).value ?? '').trim(),
+          tipe: String(row.getCell(4).value ?? 'Satuan').trim(),
+          jumlah: jumlahRaw ? parseInt(String(jumlahRaw), 10) : 1,
+          kondisi: String(row.getCell(6).value ?? 'Baik').trim(),
+          noSeri: String(row.getCell(7).value ?? '').trim() || null,
+          tahunPerolehan: tahunRaw ? parseInt(String(tahunRaw), 10) : null,
+          nilaiPerolehan: nilaiRaw ? parseFloat(String(nilaiRaw)) : null,
+          deskripsi: String(row.getCell(10).value ?? '').trim() || null,
         });
       });
 
@@ -104,12 +117,11 @@ export async function POST(request: Request) {
           continue;
         }
 
-        // Validate tipe
-        const tipeNormalized = rd.tipe.toLowerCase();
-        const tipeBarang = tipeNormalized === 'massal' ? 'massal' : 'satuan';
+        // Normalize tipe
+        const tipeBarang: 'satuan' | 'massal' = rd.tipe.toLowerCase() === 'massal' ? 'massal' : 'satuan';
 
         // Validate jumlah
-        const jumlah = isNaN(rd.jumlah) || rd.jumlah < 1 ? 1 : rd.jumlah;
+        const jumlah = (!isNaN(rd.jumlah) && rd.jumlah >= 1) ? rd.jumlah : 1;
 
         // Validate kondisi
         const validKondisi = ['Baik', 'Rusak Ringan', 'Rusak Berat'];
@@ -117,37 +129,37 @@ export async function POST(request: Request) {
 
         try {
           if (tipeBarang === 'massal') {
-            // Insert single massal barang
+            // Single massal barang with quantity
             await insertBarang(client, {
               tipeBarang: 'massal',
               nama: rd.nama,
-              merk: rd.merk || null,
+              merk: rd.merk,
               kategoriId,
               jumlah,
               kondisi,
-              noSeri: rd.noSeri || null,
+              noSeri: rd.noSeri,
               tahunPerolehan: rd.tahunPerolehan,
               nilaiPerolehan: rd.nilaiPerolehan,
-              keterangan: rd.keterangan || null,
+              deskripsi: rd.deskripsi,
               lokasiSatelitId: satelitId,
               lokasiSublokasiId: sublokasiId,
               pemilikSatelitId: satelitId,
             });
             sheetResult.inserted++;
           } else {
-            // Insert N satuan barang (each with unique kode_barang)
+            // N satuan barang (each with unique kode_barang)
             for (let i = 0; i < jumlah; i++) {
               await insertBarang(client, {
                 tipeBarang: 'satuan',
                 nama: rd.nama,
-                merk: rd.merk || null,
+                merk: rd.merk,
                 kategoriId,
                 jumlah: 1,
                 kondisi,
-                noSeri: jumlah === 1 ? (rd.noSeri || null) : null, // no seri only if single unit
+                noSeri: jumlah === 1 ? rd.noSeri : null, // only set no_seri if single unit
                 tahunPerolehan: rd.tahunPerolehan,
                 nilaiPerolehan: rd.nilaiPerolehan,
-                keterangan: rd.keterangan || null,
+                deskripsi: rd.deskripsi,
                 lokasiSatelitId: satelitId,
                 lokasiSublokasiId: sublokasiId,
                 pemilikSatelitId: satelitId,
@@ -156,7 +168,7 @@ export async function POST(request: Request) {
             sheetResult.inserted += jumlah;
           }
         } catch (err: any) {
-          sheetResult.errors.push(`Baris ${rd.rowNumber}: ${err.message}`);
+          sheetResult.errors.push(`Baris ${rd.rowNumber} "${rd.nama}": ${err.message}`);
           sheetResult.skipped++;
         }
       }
@@ -192,14 +204,14 @@ async function insertBarang(client: any, data: {
   noSeri: string | null;
   tahunPerolehan: number | null;
   nilaiPerolehan: number | null;
-  keterangan: string | null;
+  deskripsi: string | null;
   lokasiSatelitId: number;
   lokasiSublokasiId: number;
   pemilikSatelitId: number;
 }) {
   const tahun = data.tahunPerolehan || new Date().getFullYear();
 
-  // Get/create counter and increment
+  // Get/create counter and increment atomically
   await client.query(
     `INSERT INTO kode_barang_counter (kategori_id, tahun, last_number)
      VALUES ($1, $2, 0)
@@ -216,7 +228,7 @@ async function insertBarang(client: any, data: {
   );
   const lastNumber = counterRes.rows[0].last_number;
 
-  // Fetch kategori kode
+  // Fetch kategori kode for the code prefix
   const katRes = await client.query('SELECT kode FROM master_kategori_barang WHERE id = $1', [data.kategoriId]);
   const katKode = katRes.rows[0]?.kode || '00';
 
@@ -225,19 +237,22 @@ async function insertBarang(client: any, data: {
   await client.query(
     `INSERT INTO barang (
       kode_barang, nama, merk, kategori_id, tipe_barang, jumlah, kondisi,
-      no_seri, tahun_perolehan, nilai_perolehan, keterangan,
-      lokasi_satelit_id, lokasi_sublokasi_id, pemilik_satelit_id,
+      no_seri, tahun_perolehan, nilai_perolehan, deskripsi,
+      lokasi_satelit_id, lokasi_sublokasi_id,
+      pemilik_tipe, pemilik_satelit_id,
       status, is_deleted, created_at, updated_at
     ) VALUES (
       $1, $2, $3, $4, $5, $6, $7,
       $8, $9, $10, $11,
-      $12, $13, $14,
+      $12, $13,
+      'satelit', $14,
       'Aktif', false, NOW(), NOW()
     )`,
     [
       kodeBarang, data.nama, data.merk, data.kategoriId, data.tipeBarang, data.jumlah, data.kondisi,
-      data.noSeri, data.tahunPerolehan, data.nilaiPerolehan, data.keterangan,
-      data.lokasiSatelitId, data.lokasiSublokasiId, data.pemilikSatelitId,
+      data.noSeri, data.tahunPerolehan, data.nilaiPerolehan, data.deskripsi,
+      data.lokasiSatelitId, data.lokasiSublokasiId,
+      data.pemilikSatelitId,
     ]
   );
 }

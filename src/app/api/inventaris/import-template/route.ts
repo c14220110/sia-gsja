@@ -2,6 +2,16 @@ import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import ExcelJS from 'exceljs';
 
+// Excel sheet names cannot contain: * ? : \ / [ ]  and must be ≤ 31 chars
+function sanitizeSheetName(name: string): string {
+  return name
+    .replace(/[*?:\\/\[\]]/g, '-')  // replace forbidden chars with dash
+    .replace(/\s*-\s*/g, ' - ')      // normalize " / " → " - " spacing
+    .replace(/\s+/g, ' ')            // collapse multiple spaces
+    .trim()
+    .slice(0, 31);                   // max 31 characters
+}
+
 // GET /api/inventaris/import-template?satelit_id=12
 // Returns an .xlsx file with one sheet per sublokasi, pre-validated dropdowns
 export async function GET(request: Request) {
@@ -22,12 +32,23 @@ export async function GET(request: Request) {
       [satelitId]
     );
 
+    // Guard: satellite must have sublokasi configured
+    if (sublokasiRes.rows.length === 0) {
+      return NextResponse.json({
+        success: false,
+        message: 'Satelit ini belum memiliki data sublokasi/ruangan. Hubungi admin untuk menambahkan master sublokasi terlebih dahulu.'
+      }, { status: 400 });
+    }
+
     // Fetch satellite name
     const satelitRes = await pool.query(
       'SELECT nama_satelit FROM satelit WHERE id = $1',
       [satelitId]
     );
-    const satelitNama = satelitRes.rows[0]?.nama_satelit || 'Satelit';
+    if (!satelitRes.rows[0]) {
+      return NextResponse.json({ success: false, message: 'Satelit tidak ditemukan' }, { status: 404 });
+    }
+    const satelitNama = satelitRes.rows[0].nama_satelit;
 
     // Fetch categories
     const kategoriRes = await pool.query(
@@ -83,9 +104,11 @@ export async function GET(request: Request) {
     metaSheet.addRow(['satelit_id', 'satelit_nama']);
     metaSheet.addRow([satelitId, satelitNama]);
     metaSheet.addRow([]);
-    metaSheet.addRow(['sheet_nama', 'sublokasi_id', 'sublokasi_kode']);
+    // IMPORTANT: sheet_nama here = the SANITIZED sheet name (what Excel actually uses)
+    // sublokasi_nama = original DB name (for display)
+    metaSheet.addRow(['sheet_nama', 'sublokasi_id', 'sublokasi_kode', 'sublokasi_nama']);
     sublokasiRes.rows.forEach((sub: any) => {
-      metaSheet.addRow([sub.nama, sub.id, sub.kode]);
+      metaSheet.addRow([sanitizeSheetName(sub.nama), sub.id, sub.kode, sub.nama]);
     });
 
     // ── HIDDEN SHEET: _LISTS (dropdown sources) ──────────────────────────
@@ -122,12 +145,15 @@ export async function GET(request: Request) {
 
     // Create one sheet per sublokasi
     for (const sub of sublokasiRes.rows) {
-      const ws = workbook.addWorksheet(sub.nama, {
+      const sheetDisplayName = sub.nama; // original name for display
+      const sheetSafeName = sanitizeSheetName(sub.nama); // safe for Excel sheet tab
+
+      const ws = workbook.addWorksheet(sheetSafeName, {
         properties: { tabColor: { argb: 'FF70AD47' } },
       });
 
-      // Sheet title row
-      const titleRow = ws.addRow([`INVENTARIS — ${satelitNama.toUpperCase()} · ${sub.nama.toUpperCase()}`]);
+      // Sheet title row — use original name for readability
+      const titleRow = ws.addRow([`INVENTARIS — ${satelitNama.toUpperCase()} · ${sheetDisplayName.toUpperCase()}`]);
       ws.mergeCells(`A1:J1`);
       const titleCell = ws.getCell('A1');
       titleCell.font = { bold: true, size: 13, color: { argb: 'FFFFFFFF' } };
