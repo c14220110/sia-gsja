@@ -89,8 +89,9 @@ export default function BulkQRPrintModal({ isOpen, onClose, items: initialItems,
       URL.revokeObjectURL(url);
 
       onClose();
-    } catch (e) {
+    } catch (e: any) {
       console.error('Bulk PDF error:', e);
+      alert(`Gagal membuat PDF: ${e?.message || 'Error tidak diketahui'}. Coba kurangi jumlah stiker atau gunakan ukuran "Kecilkan 30%".`);
     } finally {
       setGenerating(false);
       setProgress(0);

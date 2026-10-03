@@ -180,8 +180,16 @@ export async function generateBulkPDF(
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   let stickerIndex = 0;
 
-  for (const item of items) {
-    const dataUrl = await renderStickerCanvas(item);
+  // Yield to event loop every N items to avoid UI freeze
+  const YIELD_EVERY = 20;
+  let sinceYield = 0;
+
+  for (let itemIdx = 0; itemIdx < items.length; itemIdx++) {
+    const item = items[itemIdx];
+
+    // Render sticker to canvas, then export as JPEG (10x smaller than PNG)
+    const dataUrl = await renderStickerCanvasJPEG(item);
+    const alias = `sticker_${itemIdx}`;
     const n = Math.max(1, item.copies);
 
     for (let c = 0; c < n; c++) {
@@ -192,7 +200,12 @@ export async function generateBulkPDF(
       const x = marginX + col * (sW + colGap);
       const y = marginY + row * (sH + rowGap);
 
-      pdf.addImage(dataUrl, 'PNG', x, y, sW, sH);
+      // Use alias so jsPDF stores the image data ONCE and references it for copies
+      if (c === 0) {
+        pdf.addImage(dataUrl, 'JPEG', x, y, sW, sH, alias, 'FAST');
+      } else {
+        pdf.addImage(dataUrl, 'JPEG', x, y, sW, sH, alias, 'FAST');
+      }
 
       // Dashed crop marks
       pdf.setDrawColor(180, 180, 180);
@@ -203,9 +216,144 @@ export async function generateBulkPDF(
 
       stickerIndex++;
     }
+
     item.onRendered?.();
+    sinceYield++;
+
+    // Yield to event loop periodically so progress bar updates and browser doesn't freeze
+    if (sinceYield >= YIELD_EVERY) {
+      sinceYield = 0;
+      await new Promise(r => setTimeout(r, 0));
+    }
   }
 
   return pdf.output('blob');
+}
+
+/**
+ * Same as renderStickerCanvas but outputs JPEG (much smaller file size).
+ * This prevents jsPDF from accumulating huge base64 strings for hundreds of stickers.
+ */
+async function renderStickerCanvasJPEG(params: StickerParams): Promise<string> {
+  const { title, subtitle, qrValue } = params;
+  const W = 600;
+  const H = 750;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d')!;
+
+  // ── Background — use white for JPEG (no transparency) ──
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, W, H);
+
+  // ── Content area with slight grey bg ──
+  ctx.fillStyle = '#f1f5f9';
+  ctx.fillRect(0, 0, W, H);
+
+  // ── Header strip ──
+  const headerH = 72;
+  ctx.fillStyle = '#1e293b';
+  ctx.beginPath();
+  ctx.roundRect(0, 0, W, headerH, [14, 14, 0, 0]);
+  ctx.fill();
+  ctx.fillStyle = '#3b82f6';
+  ctx.font = 'bold 26px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('SIM GSJA', W / 2, 40);
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '12px sans-serif';
+  ctx.fillText('LABEL ASET', W / 2, 58);
+
+  // ── White card ──
+  const cardM = 24;
+  const cardX = cardM;
+  const cardY = 88;
+  const cardW = W - cardM * 2;
+  const cardH = H - cardY - cardM;
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.roundRect(cardX, cardY, cardW, cardH, 14);
+  ctx.fill();
+
+  // ── QR Code ──
+  const qrSize = 380;
+  const qrX = (W - qrSize) / 2;
+  const qrY = cardY + 20;
+
+  try {
+    const QRCode = (await import('qrcode')).default;
+    const qrDataUrl = await QRCode.toDataURL(qrValue || ' ', {
+      errorCorrectionLevel: 'H',
+      margin: 1,
+      width: qrSize,
+      color: { dark: '#0f172a', light: '#ffffff' },
+    });
+    await new Promise<void>((resolve) => {
+      const qrImg = new Image();
+      qrImg.onload = () => { ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize); resolve(); };
+      qrImg.onerror = () => resolve();
+      qrImg.src = qrDataUrl;
+    });
+  } catch (_) { /* QR gagal */ }
+
+  // ── Logo GSJA ──
+  try {
+    const logoSize = qrSize * 0.28;
+    const logoX = qrX + (qrSize - logoSize) / 2;
+    const logoY = qrY + (qrSize - logoSize) / 2;
+    await new Promise<void>((resolve) => {
+      const logoImg = new Image();
+      logoImg.onload = () => {
+        ctx.fillStyle = '#ffffff';
+        const pad = 10;
+        ctx.beginPath();
+        ctx.roundRect(logoX - pad, logoY - pad, logoSize + pad * 2, logoSize + pad * 2, 10);
+        ctx.fill();
+        ctx.drawImage(logoImg, logoX, logoY, logoSize, logoSize);
+        resolve();
+      };
+      logoImg.onerror = () => resolve();
+      logoImg.src = '/assets/logo_gsja.png';
+    });
+  } catch (_) { /* logo opsional */ }
+
+  // ── Divider ──
+  const divY = qrY + qrSize + 16;
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(cardX + 32, divY);
+  ctx.lineTo(cardX + cardW - 32, divY);
+  ctx.stroke();
+
+  // ── Text section ──
+  let curY = divY + 28;
+  ctx.fillStyle = '#0f172a';
+  ctx.font = 'bold 28px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(title.length > 26 ? title.slice(0, 24) + '\u2026' : title, W / 2, curY);
+  curY += 26;
+
+  if (subtitle) {
+    ctx.fillStyle = '#64748b';
+    ctx.font = '18px sans-serif';
+    ctx.fillText(subtitle, W / 2, curY);
+    curY += 24;
+  }
+
+  ctx.fillStyle = '#1e40af';
+  ctx.font = 'bold 19px monospace';
+  curY += 8;
+  ctx.fillText(qrValue, W / 2, curY);
+
+  // ── Footer ──
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '10px sans-serif';
+  ctx.fillText('Properti Resmi GSJA \u2014 Jangan dipindahkan tanpa izin pengurus', W / 2, H - 12);
+
+  // Export as JPEG with 85% quality — ~10x smaller than PNG
+  return canvas.toDataURL('image/jpeg', 0.85);
 }
 
