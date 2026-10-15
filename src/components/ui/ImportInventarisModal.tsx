@@ -187,6 +187,7 @@ export default function ImportInventarisModal({
                     <li>📌 Sheet <strong>PETUNJUK</strong> — panduan pengisian</li>
                     <li>📄 Sheet per ruangan — Ruang Ibadah, Gudang, dll.</li>
                     <li>✅ Dropdown validasi untuk Kategori, Tipe, Kondisi</li>
+                    <li>📷 Kolom Link Foto (Google Drive) — otomatis upload ke sistem</li>
                     <li>🔒 Metadata tersembunyi untuk verifikasi import</li>
                   </ul>
                 </div>

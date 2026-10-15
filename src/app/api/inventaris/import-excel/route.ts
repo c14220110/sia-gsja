@@ -16,12 +16,20 @@ const r2Client = new S3Client({
 /** Extract the file ID from various Google Drive link formats */
 function extractGDriveFileId(url: string): string | null {
   if (!url) return null;
+  const trimmed = url.trim();
+  // Raw file ID (Google Drive IDs are usually 25+ chars alphanumeric with _ and -)
+  if (/^[a-zA-Z0-9_-]{25,}$/.test(trimmed)) {
+    return trimmed;
+  }
   // https://drive.google.com/file/d/{FILE_ID}/view?usp=sharing
-  const fileMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  const fileMatch = trimmed.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
   if (fileMatch) return fileMatch[1];
   // https://drive.google.com/open?id={FILE_ID}  or  uc?id={FILE_ID}
-  const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  const idMatch = trimmed.match(/[?&]id=([a-zA-Z0-9_-]+)/);
   if (idMatch) return idMatch[1];
+  // https://lh3.googleusercontent.com/d/{FILE_ID} or /d/{FILE_ID}
+  const dMatch = trimmed.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (dMatch) return dMatch[1];
   return null;
 }
 
@@ -42,19 +50,43 @@ async function downloadGDriveToR2(
     const fileId = extractGDriveFileId(gdriveUrl);
     if (!fileId) return { url: null, error: 'Format link Google Drive tidak valid' };
 
-    // Google Drive direct download URL for public files
-    const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
-    const res = await fetch(downloadUrl, { redirect: 'follow' });
+    // Google Drive candidate URLs for downloading public image files
+    const candidateUrls = [
+      `https://drive.google.com/uc?export=download&id=${fileId}`,
+      `https://lh3.googleusercontent.com/d/${fileId}`,
+      `https://drive.google.com/thumbnail?id=${fileId}&sz=w2048`,
+    ];
 
-    if (!res.ok) return { url: null, error: `Download gagal (HTTP ${res.status})` };
+    let imageRes: Response | null = null;
+    let contentType = '';
 
-    const contentType = res.headers.get('content-type') || '';
-    // If response is HTML, the file is likely private or too large (virus scan page)
-    if (!contentType.startsWith('image/')) {
-      return { url: null, error: 'File bukan gambar atau link tidak publik (pastikan "Anyone with the link")' };
+    for (const url of candidateUrls) {
+      try {
+        const res = await fetch(url, {
+          redirect: 'follow',
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          },
+          signal: AbortSignal.timeout(8000),
+        });
+        if (res.ok) {
+          const ct = res.headers.get('content-type') || '';
+          if (ct.startsWith('image/')) {
+            imageRes = res;
+            contentType = ct;
+            break;
+          }
+        }
+      } catch {
+        // try next candidate endpoint
+      }
     }
 
-    const arrayBuf = await res.arrayBuffer();
+    if (!imageRes) {
+      return { url: null, error: 'File bukan gambar atau link tidak publik (pastikan setting share "Anyone with the link")' };
+    }
+
+    const arrayBuf = await imageRes.arrayBuffer();
     const buffer = Buffer.from(arrayBuf);
 
     if (buffer.length > 10 * 1024 * 1024) {
