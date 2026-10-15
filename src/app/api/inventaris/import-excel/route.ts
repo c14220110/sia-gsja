@@ -1,6 +1,86 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import ExcelJS from 'exceljs';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+
+// R2 client for uploading photos from Google Drive during import
+const r2Client = new S3Client({
+  region: 'auto',
+  endpoint: process.env.R2_ENDPOINT!,
+  credentials: {
+    accessKeyId: process.env.R2_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
+  },
+});
+
+/** Extract the file ID from various Google Drive link formats */
+function extractGDriveFileId(url: string): string | null {
+  if (!url) return null;
+  // https://drive.google.com/file/d/{FILE_ID}/view?usp=sharing
+  const fileMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (fileMatch) return fileMatch[1];
+  // https://drive.google.com/open?id={FILE_ID}  or  uc?id={FILE_ID}
+  const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (idMatch) return idMatch[1];
+  return null;
+}
+
+/** ExcelJS cells can be string, object with hyperlink, or rich text — normalize */
+function getCellStringValue(cellValue: any): string {
+  if (!cellValue) return '';
+  if (typeof cellValue === 'string') return cellValue.trim();
+  if (typeof cellValue === 'object' && cellValue.hyperlink) return String(cellValue.hyperlink).trim();
+  if (typeof cellValue === 'object' && cellValue.text) return String(cellValue.text).trim();
+  return String(cellValue).trim();
+}
+
+/** Download a public Google Drive image and upload it to R2. Returns { url, error }. */
+async function downloadGDriveToR2(
+  gdriveUrl: string,
+): Promise<{ url: string | null; error: string | null }> {
+  try {
+    const fileId = extractGDriveFileId(gdriveUrl);
+    if (!fileId) return { url: null, error: 'Format link Google Drive tidak valid' };
+
+    // Google Drive direct download URL for public files
+    const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+    const res = await fetch(downloadUrl, { redirect: 'follow' });
+
+    if (!res.ok) return { url: null, error: `Download gagal (HTTP ${res.status})` };
+
+    const contentType = res.headers.get('content-type') || '';
+    // If response is HTML, the file is likely private or too large (virus scan page)
+    if (!contentType.startsWith('image/')) {
+      return { url: null, error: 'File bukan gambar atau link tidak publik (pastikan "Anyone with the link")' };
+    }
+
+    const arrayBuf = await res.arrayBuffer();
+    const buffer = Buffer.from(arrayBuf);
+
+    if (buffer.length > 10 * 1024 * 1024) {
+      return { url: null, error: 'Foto terlalu besar (maksimal 10MB)' };
+    }
+
+    const extMap: Record<string, string> = {
+      'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/png': 'png', 'image/webp': 'webp',
+    };
+    const ext = extMap[contentType] || 'jpg';
+    const fileName = `inventaris/${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`;
+
+    await r2Client.send(new PutObjectCommand({
+      Bucket: process.env.R2_BUCKET_NAME!,
+      Key: fileName,
+      Body: buffer,
+      ContentType: contentType,
+      CacheControl: 'public, max-age=31536000',
+    }));
+
+    const publicUrl = `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL}/${fileName}`;
+    return { url: publicUrl, error: null };
+  } catch (err: any) {
+    return { url: null, error: `Error download foto: ${err.message}` };
+  }
+}
 
 // POST /api/inventaris/import-excel
 // Body: FormData with file: File (.xlsx)
@@ -105,8 +185,12 @@ export async function POST(request: Request) {
           tahunPerolehan: tahunRaw ? parseInt(String(tahunRaw), 10) : null,
           nilaiPerolehan: nilaiRaw ? parseFloat(String(nilaiRaw)) : null,
           deskripsi: String(row.getCell(10).value ?? '').trim() || null,
+          linkFoto: getCellStringValue(row.getCell(11).value),
         });
       });
+
+      // Cache: avoid re-downloading the same GDrive link multiple times within this import
+      const fotoCache = new Map<string, string | null>();
 
       for (const rd of dataRows) {
         // Validate kategori
@@ -127,6 +211,24 @@ export async function POST(request: Request) {
         const validKondisi = ['Baik', 'Rusak Ringan', 'Rusak Berat'];
         const kondisi = validKondisi.includes(rd.kondisi) ? rd.kondisi : 'Baik';
 
+        // ── Download foto from Google Drive if link provided ──
+        let fotoUrl: string | null = null;
+        if (rd.linkFoto) {
+          // Check cache first (same link = reuse R2 URL)
+          if (fotoCache.has(rd.linkFoto)) {
+            fotoUrl = fotoCache.get(rd.linkFoto) ?? null;
+          } else {
+            const fotoResult = await downloadGDriveToR2(rd.linkFoto);
+            fotoUrl = fotoResult.url;
+            fotoCache.set(rd.linkFoto, fotoUrl);
+            if (fotoResult.error) {
+              sheetResult.errors.push(
+                `Baris ${rd.rowNumber}: Foto — ${fotoResult.error} (barang tetap diimport tanpa foto)`
+              );
+            }
+          }
+        }
+
         try {
           if (tipeBarang === 'massal') {
             // Single massal barang with quantity
@@ -144,10 +246,11 @@ export async function POST(request: Request) {
               lokasiSatelitId: satelitId,
               lokasiSublokasiId: sublokasiId,
               pemilikSatelitId: satelitId,
+              fotoUrl,
             });
             sheetResult.inserted++;
           } else {
-            // N satuan barang (each with unique kode_barang)
+            // N satuan barang (each with unique kode_barang, same foto)
             for (let i = 0; i < jumlah; i++) {
               await insertBarang(client, {
                 tipeBarang: 'satuan',
@@ -163,6 +266,7 @@ export async function POST(request: Request) {
                 lokasiSatelitId: satelitId,
                 lokasiSublokasiId: sublokasiId,
                 pemilikSatelitId: satelitId,
+                fotoUrl,
               });
             }
             sheetResult.inserted += jumlah;
@@ -208,6 +312,7 @@ async function insertBarang(client: any, data: {
   lokasiSatelitId: number;
   lokasiSublokasiId: number;
   pemilikSatelitId: number;
+  fotoUrl: string | null;
 }) {
   const tahun = data.tahunPerolehan || new Date().getFullYear();
 
@@ -240,12 +345,14 @@ async function insertBarang(client: any, data: {
       no_seri, tahun_perolehan, nilai_perolehan, deskripsi,
       lokasi_satelit_id, lokasi_sublokasi_id,
       pemilik_tipe, pemilik_satelit_id,
+      foto_url,
       status, is_deleted, created_at, updated_at
     ) VALUES (
       $1, $2, $3, $4, $5, $6, $7,
       $8, $9, $10, $11,
       $12, $13,
       'satelit', $14,
+      $15,
       'Aktif', false, NOW(), NOW()
     )`,
     [
@@ -253,6 +360,7 @@ async function insertBarang(client: any, data: {
       data.noSeri, data.tahunPerolehan, data.nilaiPerolehan, data.deskripsi,
       data.lokasiSatelitId, data.lokasiSublokasiId,
       data.pemilikSatelitId,
+      data.fotoUrl,
     ]
   );
 }

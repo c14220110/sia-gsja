@@ -88,7 +88,12 @@ export async function GET(request: Request) {
     addInstrRow('   • Untuk MASSAL  → isi jumlah total stok barang tersebut.');
     addInstrRow('5. Kolom KONDISI: pilih "Baik", "Rusak Ringan", atau "Rusak Berat".');
     addInstrRow('6. Kolom NO. SERI: opsional, hanya relevan untuk tipe Satuan (1 unit).');
-    addInstrRow('7. JANGAN ubah nama sheet atau header kolom.');
+    addInstrRow('7. Kolom LINK FOTO (GOOGLE DRIVE): opsional. Paste link sharing Google Drive foto barang.');
+    addInstrRow('   • Pastikan file di-share sebagai "Anyone with the link" (siapa pun yang punya link).');
+    addInstrRow('   • Format: https://drive.google.com/file/d/xxxxx/view?usp=sharing');
+    addInstrRow('   • Foto akan otomatis didownload dan disimpan ke sistem saat import.');
+    addInstrRow('   • Untuk tipe SATUAN dengan jumlah > 1, semua unit akan pakai foto yang sama.');
+    addInstrRow('8. JANGAN ubah nama sheet atau header kolom.');
     instrSheet.addRow([]);
     addInstrRow('⚠️  PERHATIAN:', true, 'C00000');
     addInstrRow('• Baris yang kolom NAMA BARANG-nya kosong akan DIABAIKAN saat import.');
@@ -141,6 +146,7 @@ export async function GET(request: Request) {
       { key: 'H', title: 'Tahun Perolehan', width: 16, required: false },
       { key: 'I', title: 'Nilai Perolehan (Rp)', width: 22, required: false },
       { key: 'J', title: 'Keterangan', width: 30, required: false },
+      { key: 'K', title: 'Link Foto (Google Drive)', width: 40, required: false },
     ];
 
     // Create one sheet per sublokasi
@@ -154,7 +160,7 @@ export async function GET(request: Request) {
 
       // Sheet title row — use original name for readability
       const titleRow = ws.addRow([`INVENTARIS — ${satelitNama.toUpperCase()} · ${sheetDisplayName.toUpperCase()}`]);
-      ws.mergeCells(`A1:J1`);
+      ws.mergeCells(`A1:K1`);
       const titleCell = ws.getCell('A1');
       titleCell.font = { bold: true, size: 13, color: { argb: 'FFFFFFFF' } };
       titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2E4057' } };
