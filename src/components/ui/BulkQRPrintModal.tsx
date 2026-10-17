@@ -1,12 +1,15 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   generateBulkPDF,
+  estimateTotalPages,
   PER_PAGE, STICKER_COLS, STICKER_ROWS,
   PER_PAGE_SM, STICKER_SM_COLS, STICKER_SM_ROWS,
+  PER_PAGE_A3_SM, STICKER_A3_SM_COLS, STICKER_A3_SM_ROWS,
   STICKER_W_MM, STICKER_H_MM,
   STICKER_SM_W_MM, STICKER_SM_H_MM,
+  type StickerPrintSize,
 } from '@/lib/renderQRSticker';
 
 export interface BulkQRItem {
@@ -14,6 +17,8 @@ export interface BulkQRItem {
   nama: string;
   kode_barang: string;
   nama_kategori?: string;
+  sublokasi?: string;
+  satelit?: string;
   copies: number;
 }
 
@@ -33,17 +38,29 @@ export default function BulkQRPrintModal({ isOpen, onClose, items: initialItems,
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState(0); // 0-100
 
-  // Size toggle — Normal (5×6.25cm, 3×4=12/hal) or Mini/Kecilkan 30% (3.5×4.375cm, 5×6=30/hal)
-  const [stickerSize, setStickerSize] = useState<'normal' | 'small'>('normal');
+  // Size toggle — Normal (A4, 3×4=12/hal), Kecilkan 30% (A4, 5×6=30/hal), or A3 & 30% (A3, 7×8=56/hal)
+  const [stickerSize, setStickerSize] = useState<StickerPrintSize>('normal');
 
-  const perPage    = stickerSize === 'small' ? PER_PAGE_SM    : PER_PAGE;
-  const cols       = stickerSize === 'small' ? STICKER_SM_COLS : STICKER_COLS;
-  const rows       = stickerSize === 'small' ? STICKER_SM_ROWS : STICKER_ROWS;
-  const wMm        = stickerSize === 'small' ? STICKER_SM_W_MM : STICKER_W_MM;
-  const hMm        = stickerSize === 'small' ? STICKER_SM_H_MM : STICKER_H_MM;
+  const isA3        = stickerSize === 'a3_small';
+  const paperFormat = isA3 ? 'A3' : 'A4';
+  const perPage     = isA3 ? PER_PAGE_A3_SM : (stickerSize === 'small' ? PER_PAGE_SM : PER_PAGE);
+  const cols        = isA3 ? STICKER_A3_SM_COLS : (stickerSize === 'small' ? STICKER_SM_COLS : STICKER_COLS);
+  const rows        = isA3 ? STICKER_A3_SM_ROWS : (stickerSize === 'small' ? STICKER_SM_ROWS : STICKER_ROWS);
+  const wMm         = stickerSize === 'normal' ? STICKER_W_MM : STICKER_SM_W_MM;
+  const hMm         = stickerSize === 'normal' ? STICKER_H_MM : STICKER_SM_H_MM;
 
   const totalStickers = items.reduce((s, it) => s + it.copies, 0);
-  const totalPages    = Math.ceil(totalStickers / perPage);
+  const totalPages    = estimateTotalPages(items, stickerSize);
+
+  // Group summary by room/sublokasi
+  const roomSummary = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const it of items) {
+      const room = it.sublokasi?.trim() || 'Tanpa Ruangan';
+      map.set(room, (map.get(room) || 0) + it.copies);
+    }
+    return Array.from(map.entries()).map(([name, count]) => ({ name, count }));
+  }, [items]);
 
   const setCopies = useCallback((id: number, copies: number) => {
     setItems(prev => prev.map(it => it.id === id ? { ...it, copies: Math.max(1, Math.min(500, copies)) } : it));
@@ -69,6 +86,8 @@ export default function BulkQRPrintModal({ isOpen, onClose, items: initialItems,
         title: it.nama,
         subtitle: it.nama_kategori,
         qrValue: it.kode_barang,
+        sublokasi: it.sublokasi,
+        satelit: it.satelit,
         copies: it.copies,
         onRendered: () => {
           done += it.copies;
@@ -82,8 +101,8 @@ export default function BulkQRPrintModal({ isOpen, onClose, items: initialItems,
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       const names = items.length === 1 ? items[0].kode_barang : `${items.length}item`;
-      const sizeTag = stickerSize === 'small' ? '_MINI' : '';
-      link.download = `STIKER_QR_BULK${sizeTag}_${names}_${totalStickers}stiker_${totalPages}hal.pdf`;
+      const sizeTag = isA3 ? '_A3_MINI' : (stickerSize === 'small' ? '_MINI' : '');
+      link.download = `STIKER_QR_BULK${sizeTag}_${names}_${totalStickers}stiker_${totalPages}hal_${paperFormat}.pdf`;
       link.href = url;
       link.click();
       URL.revokeObjectURL(url);
@@ -145,63 +164,96 @@ export default function BulkQRPrintModal({ isOpen, onClose, items: initialItems,
           )}
         </div>
 
-        {/* ── Ukuran Stiker Toggle ── */}
+        {/* ── Ukuran Stiker & Kertas Toggle ── */}
         <div className="px-6 pt-4 pb-0 flex-shrink-0">
-          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wide mb-2">Ukuran Stiker</p>
-          <div className="grid grid-cols-2 gap-3">
-            {/* Normal */}
+          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wide mb-2">Ukuran Stiker & Kertas</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* Normal A4 */}
             <button
               type="button"
               onClick={() => setStickerSize('normal')}
-              className={`rounded-xl border-2 px-4 py-3 text-left transition-all ${
+              className={`rounded-xl border-2 px-3.5 py-3 text-left transition-all ${
                 stickerSize === 'normal'
-                  ? 'border-indigo-500 bg-indigo-50'
+                  ? 'border-indigo-500 bg-indigo-50/70 shadow-sm ring-2 ring-indigo-500/20'
                   : 'border-slate-200 hover:border-slate-300 bg-white'
               }`}
             >
-              <p className={`font-bold text-sm ${stickerSize === 'normal' ? 'text-indigo-700' : 'text-slate-700'}`}>
-                Normal
+              <div className="flex items-center justify-between">
+                <p className={`font-bold text-sm ${stickerSize === 'normal' ? 'text-indigo-700' : 'text-slate-700'}`}>
+                  Normal
+                </p>
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 text-slate-600 leading-none">A4</span>
+              </div>
+              <p className="text-[11px] text-slate-500 mt-1 font-medium">
+                {STICKER_W_MM} × {STICKER_H_MM} mm
               </p>
-              <p className="text-[11px] text-slate-400 mt-0.5">
-                {STICKER_W_MM} × {STICKER_H_MM} cm · {STICKER_COLS}×{STICKER_ROWS}/hal
+              <p className="text-[10px] text-slate-400 mt-0.5">
+                3×4 / hal (12 stiker)
               </p>
             </button>
 
-            {/* Mini / Kecilkan 30% */}
+            {/* Kecilkan 30% A4 */}
             <button
               type="button"
               onClick={() => setStickerSize('small')}
-              className={`rounded-xl border-2 px-4 py-3 text-left transition-all relative ${
+              className={`rounded-xl border-2 px-3.5 py-3 text-left transition-all relative ${
                 stickerSize === 'small'
-                  ? 'border-indigo-500 bg-indigo-50'
+                  ? 'border-indigo-500 bg-indigo-50/70 shadow-sm ring-2 ring-indigo-500/20'
                   : 'border-slate-200 hover:border-slate-300 bg-white'
               }`}
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between">
                 <p className={`font-bold text-sm ${stickerSize === 'small' ? 'text-indigo-700' : 'text-slate-700'}`}>
                   Kecilkan 30%
                 </p>
-                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-100 text-indigo-700 leading-none">MINI</span>
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-100 text-indigo-700 leading-none">A4 MINI</span>
               </div>
-              <p className="text-[11px] text-slate-400 mt-0.5">
-                {STICKER_SM_W_MM} × {STICKER_SM_H_MM} cm · {STICKER_SM_COLS}×{STICKER_SM_ROWS}/hal
+              <p className="text-[11px] text-slate-500 mt-1 font-medium">
+                {STICKER_SM_W_MM} × {STICKER_SM_H_MM} mm
+              </p>
+              <p className="text-[10px] text-slate-400 mt-0.5">
+                5×6 / hal (30 stiker)
+              </p>
+            </button>
+
+            {/* A3 & Ukuran 30% (NEW!) */}
+            <button
+              type="button"
+              onClick={() => setStickerSize('a3_small')}
+              className={`rounded-xl border-2 px-3.5 py-3 text-left transition-all relative ${
+                stickerSize === 'a3_small'
+                  ? 'border-indigo-500 bg-indigo-50/70 shadow-sm ring-2 ring-indigo-500/20'
+                  : 'border-slate-200 hover:border-slate-300 bg-white'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <p className={`font-bold text-sm ${stickerSize === 'a3_small' ? 'text-indigo-700' : 'text-slate-700'}`}>
+                  A3 & 30%
+                </p>
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-700 leading-none">A3 JUMBO</span>
+              </div>
+              <p className="text-[11px] text-slate-500 mt-1 font-medium">
+                {STICKER_SM_W_MM} × {STICKER_SM_H_MM} mm
+              </p>
+              <p className="text-[10px] text-slate-400 mt-0.5">
+                7×8 / hal (56 stiker A3)
               </p>
             </button>
           </div>
         </div>
 
         {/* ── Top summary strip ── */}
-        <div className="px-6 py-3 mx-0 mt-3 bg-indigo-50 border-y border-indigo-100 flex items-center justify-between gap-4 flex-shrink-0">
-          <div className="flex items-center gap-4 text-xs flex-wrap">
+        <div className="px-6 py-3 mx-0 mt-3 bg-indigo-50/80 border-y border-indigo-100 flex items-center justify-between gap-4 flex-shrink-0">
+          <div className="flex items-center gap-3 text-xs flex-wrap">
             <span className="text-indigo-700 font-semibold">
               Total: <strong className="text-indigo-900 text-sm">{totalStickers}</strong> stiker
             </span>
             <span className="text-indigo-400">·</span>
             <span className="text-indigo-700 font-semibold">
-              <strong className="text-indigo-900 text-sm">{totalPages}</strong> halaman PDF A4
+              <strong className="text-indigo-900 text-sm">{totalPages}</strong> halaman PDF {paperFormat}
             </span>
             <span className="text-indigo-400">·</span>
-            <span className="text-indigo-500">layout {cols}×{rows}</span>
+            <span className="text-indigo-600 font-medium">layout {cols}×{rows}</span>
             {isSatuanUnik && (
               <>
                 <span className="text-indigo-400">·</span>
@@ -229,6 +281,21 @@ export default function BulkQRPrintModal({ isOpen, onClose, items: initialItems,
           )}
         </div>
 
+        {/* ── Room filter summary strip (jika ada ruangan terdeteksi) ── */}
+        {roomSummary.length > 0 && (
+          <div className="px-6 py-2 bg-slate-50 border-b border-slate-100 flex items-center gap-2 flex-wrap text-[11px] text-slate-500 flex-shrink-0">
+            <span className="font-bold text-slate-700 flex items-center gap-1">
+              <span className="material-icons-round text-[14px] text-indigo-500">meeting_room</span>
+              Ruangan:
+            </span>
+            {roomSummary.map((r, idx) => (
+              <span key={idx} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-700 font-medium shadow-2xs">
+                {r.name} <span className="text-indigo-600 font-bold">({r.count})</span>
+              </span>
+            ))}
+          </div>
+        )}
+
         {/* ── Item list ── */}
         <div className="overflow-y-auto flex-1 divide-y divide-slate-100">
           {items.length === 0 ? (
@@ -241,7 +308,14 @@ export default function BulkQRPrintModal({ isOpen, onClose, items: initialItems,
               <div key={item.id} className="px-6 py-3.5 flex items-center gap-4 hover:bg-slate-50 transition-colors group">
                 {/* Item info */}
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-slate-800 text-sm truncate">{item.nama}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-slate-800 text-sm truncate">{item.nama}</p>
+                    {item.sublokasi && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 font-medium flex-shrink-0">
+                        📍 {item.sublokasi}
+                      </span>
+                    )}
+                  </div>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-xs font-mono text-slate-400">{item.kode_barang}</span>
                     {item.nama_kategori && (
@@ -332,7 +406,7 @@ export default function BulkQRPrintModal({ isOpen, onClose, items: initialItems,
             <span>
               {generating
                 ? 'Menyiapkan PDF…'
-                : `Unduh PDF — ${totalStickers} Stiker (${totalPages} Hal.)${stickerSize === 'small' ? ' · MINI' : ''}`
+                : `Unduh PDF — ${totalStickers} Stiker (${totalPages} Hal. ${paperFormat})`
               }
             </span>
           </button>

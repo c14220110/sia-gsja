@@ -13,6 +13,15 @@ export interface StickerParams {
   qrValue: string;
 }
 
+export type StickerPrintSize = 'normal' | 'small' | 'a3_small';
+
+export interface BulkPrintItemParams extends StickerParams {
+  copies: number;
+  sublokasi?: string;
+  satelit?: string;
+  onRendered?: () => void;
+}
+
 export const STICKER_W_MM = 50;    // physical width mm (5 cm)
 export const STICKER_H_MM = 62.5;  // physical height mm (6.25 cm)
 export const STICKER_COLS = 3;     // columns per A4 page
@@ -25,6 +34,11 @@ export const STICKER_SM_H_MM = 43.75;  // 62.5 × 0.7 = 43.75mm (4.375 cm ≈ 4.
 export const STICKER_SM_COLS = 5;      // 5 cols × A4 (totalW=187mm, marginX=11.5mm)
 export const STICKER_SM_ROWS = 6;      // 6 rows × A4 (totalH=277.5mm, marginY=9.75mm)
 export const PER_PAGE_SM = STICKER_SM_COLS * STICKER_SM_ROWS; // 30 per A4
+
+// ── A3 Mini sticker — Kertas A3 (297×420 mm) & ukuran stiker 30% ──
+export const STICKER_A3_SM_COLS = 7;   // 7 cols × 35mm = 245mm (+6×4mm gaps = 269mm, marginX=14mm)
+export const STICKER_A3_SM_ROWS = 8;   // 8 rows × 43.75mm = 350mm (+7×4mm gaps = 378mm, marginY=21mm)
+export const PER_PAGE_A3_SM = STICKER_A3_SM_COLS * STICKER_A3_SM_ROWS; // 56 per A3
 
 
 
@@ -152,33 +166,118 @@ export async function renderStickerCanvas(params: StickerParams): Promise<string
 }
 
 /**
- * Generates a PDF A4 (portrait) containing stickers for multiple items.
- * Items appear in order, each with `copies` repetitions before moving to the next.
+ * Calculates the exact total number of PDF pages needed, taking into account
+ * page capacity and clean row breaks when the room/sublokasi changes.
+ */
+export function estimateTotalPages(
+  items: Array<{ copies: number; sublokasi?: string }>,
+  size: StickerPrintSize = 'normal'
+): number {
+  if (items.length === 0) return 0;
+  const cols = size === 'a3_small' ? STICKER_A3_SM_COLS : (size === 'small' ? STICKER_SM_COLS : STICKER_COLS);
+  const rows = size === 'a3_small' ? STICKER_A3_SM_ROWS : (size === 'small' ? STICKER_SM_ROWS : STICKER_ROWS);
+
+  let curCol = 0;
+  let curRow = 0;
+  let pages = 1;
+  let lastRoom = '';
+
+  for (const it of items) {
+    const room = (it.sublokasi || '').trim();
+    if (room && lastRoom !== '' && room !== lastRoom) {
+      if (curCol > 0) {
+        curCol = 0;
+        curRow++;
+        if (curRow >= rows) {
+          pages++;
+          curRow = 0;
+        }
+      }
+    }
+
+    const n = Math.max(1, it.copies);
+    for (let c = 0; c < n; c++) {
+      if (curRow >= rows) {
+        pages++;
+        curRow = 0;
+        curCol = 0;
+      }
+      curCol++;
+      if (curCol >= cols) {
+        curCol = 0;
+        curRow++;
+      }
+    }
+    if (room) lastRoom = room;
+  }
+  return pages;
+}
+
+/**
+ * Generates a PDF containing stickers for multiple items.
+ * Supports A4 Normal (3×4=12/hal), A4 Mini (5×6=30/hal), and A3 Mini (7×8=56/hal).
+ * When items belong to different rooms (sublokasi), it separates them cleanly
+ * by row and adds room headers/markers on the PDF.
  *
- * @param items   Array of sticker definitions with per-item copy count and optional progress callback
- * @param size    'normal' = 5×6.25cm, 3×4 layout (12/page) | 'small' = 3.5×4.375cm, 5×5 layout (25/page)
+ * @param items   Array of sticker definitions with per-item copy count and room info
+ * @param size    'normal' (A4) | 'small' (A4 30% mini) | 'a3_small' (A3 30% mini)
  * @returns       Blob of the generated PDF
  */
 export async function generateBulkPDF(
-  items: Array<StickerParams & { copies: number; onRendered?: () => void }>,
-  size: 'normal' | 'small' = 'normal',
+  items: BulkPrintItemParams[],
+  size: StickerPrintSize = 'normal',
 ): Promise<Blob> {
   const { jsPDF } = await import('jspdf');
 
-  const sW     = size === 'small' ? STICKER_SM_W_MM  : STICKER_W_MM;
-  const sH     = size === 'small' ? STICKER_SM_H_MM  : STICKER_H_MM;
-  const cols   = size === 'small' ? STICKER_SM_COLS  : STICKER_COLS;
-  const rows   = size === 'small' ? STICKER_SM_ROWS  : STICKER_ROWS;
-  const perPg  = cols * rows;
-  const colGap = size === 'small' ? 3 : 5;
-  const rowGap = size === 'small' ? 3 : 4;
+  const isA3 = size === 'a3_small';
+  const paperFormat = isA3 ? 'a3' : 'a4';
+
+  let sW: number;
+  let sH: number;
+  let cols: number;
+  let rows: number;
+  let colGap: number;
+  let rowGap: number;
+
+  if (size === 'a3_small') {
+    sW     = STICKER_SM_W_MM;  // 35mm
+    sH     = STICKER_SM_H_MM;  // 43.75mm
+    cols   = STICKER_A3_SM_COLS; // 7 cols
+    rows   = STICKER_A3_SM_ROWS; // 8 rows
+    colGap = 4;
+    rowGap = 4;
+  } else if (size === 'small') {
+    sW     = STICKER_SM_W_MM;  // 35mm
+    sH     = STICKER_SM_H_MM;  // 43.75mm
+    cols   = STICKER_SM_COLS;  // 5 cols
+    rows   = STICKER_SM_ROWS;  // 6 rows
+    colGap = 3;
+    rowGap = 3;
+  } else {
+    sW     = STICKER_W_MM;     // 50mm
+    sH     = STICKER_H_MM;     // 62.5mm
+    cols   = STICKER_COLS;     // 3 cols
+    rows   = STICKER_ROWS;     // 4 rows
+    colGap = 5;
+    rowGap = 4;
+  }
+
+  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: paperFormat });
+  const paperW = pdf.internal.pageSize.getWidth();
+  const paperH = pdf.internal.pageSize.getHeight();
+
   const totalW = cols * sW + (cols - 1) * colGap;
   const totalH = rows * sH + (rows - 1) * rowGap;
-  const marginX = (210 - totalW) / 2;
-  const marginY = (297 - totalH) / 2;
+  const marginX = (paperW - totalW) / 2;
+  const marginY = (paperH - totalH) / 2;
 
-  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  let stickerIndex = 0;
+  let curPage = 1;
+  let curCol = 0;
+  let curRow = 0;
+  let lastRoom = '';
+
+  // Track which rooms appear on each page for page headers
+  const pageRooms: Record<number, Set<string>> = { 1: new Set() };
 
   // Yield to event loop every N items to avoid UI freeze
   const YIELD_EVERY = 20;
@@ -186,6 +285,22 @@ export async function generateBulkPDF(
 
   for (let itemIdx = 0; itemIdx < items.length; itemIdx++) {
     const item = items[itemIdx];
+    const room = (item.sublokasi || '').trim();
+
+    // If room changed and not first item: start room on a clean new row
+    if (room && lastRoom !== '' && room !== lastRoom) {
+      if (curCol > 0) {
+        curCol = 0;
+        curRow++;
+        if (curRow >= rows) {
+          pdf.addPage();
+          curPage++;
+          pageRooms[curPage] = new Set();
+          curRow = 0;
+          curCol = 0;
+        }
+      }
+    }
 
     // Render sticker to canvas, then export as JPEG (10x smaller than PNG)
     const dataUrl = await renderStickerCanvasJPEG(item);
@@ -193,19 +308,40 @@ export async function generateBulkPDF(
     const n = Math.max(1, item.copies);
 
     for (let c = 0; c < n; c++) {
-      if (stickerIndex > 0 && stickerIndex % perPg === 0) pdf.addPage();
-      const pos = stickerIndex % perPg;
-      const col = pos % cols;
-      const row = Math.floor(pos / cols);
-      const x = marginX + col * (sW + colGap);
-      const y = marginY + row * (sH + rowGap);
-
-      // Use alias so jsPDF stores the image data ONCE and references it for copies
-      if (c === 0) {
-        pdf.addImage(dataUrl, 'JPEG', x, y, sW, sH, alias, 'FAST');
-      } else {
-        pdf.addImage(dataUrl, 'JPEG', x, y, sW, sH, alias, 'FAST');
+      if (curRow >= rows) {
+        pdf.addPage();
+        curPage++;
+        pageRooms[curPage] = new Set();
+        curRow = 0;
+        curCol = 0;
       }
+
+      if (room) {
+        pageRooms[curPage].add(room);
+      }
+
+      const x = marginX + curCol * (sW + colGap);
+      const y = marginY + curRow * (sH + rowGap);
+
+      // If room changed and this is the start of that room row, draw section marker
+      if (room && room !== lastRoom && curCol === 0) {
+        if (curRow > 0) {
+          // Subtle divider line in row gap
+          const lineY = y - rowGap / 2;
+          pdf.setDrawColor(203, 213, 225); // slate-300
+          pdf.setLineWidth(0.25);
+          pdf.line(marginX, lineY, paperW - marginX, lineY);
+        }
+
+        // Room label above row
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(7.5);
+        pdf.setTextColor(67, 56, 202); // indigo-700
+        pdf.text(`\u25B8 Ruang: ${room}`, marginX, y - 1);
+      }
+
+      // Add sticker image
+      pdf.addImage(dataUrl, 'JPEG', x, y, sW, sH, alias, 'FAST');
 
       // Dashed crop marks
       pdf.setDrawColor(180, 180, 180);
@@ -214,17 +350,50 @@ export async function generateBulkPDF(
       pdf.rect(x, y, sW, sH);
       pdf.setLineDashPattern([], 0);
 
-      stickerIndex++;
+      // Advance column / row
+      curCol++;
+      if (curCol >= cols) {
+        curCol = 0;
+        curRow++;
+      }
     }
+
+    if (room) lastRoom = room;
 
     item.onRendered?.();
     sinceYield++;
 
-    // Yield to event loop periodically so progress bar updates and browser doesn't freeze
     if (sinceYield >= YIELD_EVERY) {
       sinceYield = 0;
       await new Promise(r => setTimeout(r, 0));
     }
+  }
+
+  // ── Second pass: Draw page header and footer across all generated pages ──
+  const totalPdfPages = pdf.getNumberOfPages();
+  for (let p = 1; p <= totalPdfPages; p++) {
+    pdf.setPage(p);
+    const roomsList = Array.from(pageRooms[p] || []).filter(Boolean);
+    const roomsStr = roomsList.length > 0 ? roomsList.join(', ') : '';
+
+    // Top Header: Left = SIM GSJA, Right = Ruangan name(s) (matches Photo 4 top-right text)
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(7.5);
+    pdf.setTextColor(148, 163, 184); // slate-400
+    pdf.text('SIM GSJA \u2014 LABEL ASET', marginX, marginY - 3.5);
+
+    if (roomsStr) {
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(8.5);
+      pdf.setTextColor(30, 41, 59); // slate-800
+      pdf.text(`Ruang: ${roomsStr}`, paperW - marginX, marginY - 3.5, { align: 'right' });
+    }
+
+    // Bottom Footer
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(7);
+    pdf.setTextColor(148, 163, 184);
+    pdf.text(`Halaman ${p} dari ${totalPdfPages} (${paperFormat.toUpperCase()})`, paperW / 2, paperH - Math.max(4, marginY / 2), { align: 'center' });
   }
 
   return pdf.output('blob');

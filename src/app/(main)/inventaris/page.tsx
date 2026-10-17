@@ -205,11 +205,19 @@ export default function InventarisPage() {
   // selectedItems must be computed AFTER data is declared
   const selectedItems: BulkQRItem[] = data
     .filter((d: any) => selectedIds.has(d.id))
+    .sort((a: any, b: any) => {
+      const subA = a.lokasi_nama_sublokasi || '';
+      const subB = b.lokasi_nama_sublokasi || '';
+      if (subA !== subB) return subA.localeCompare(subB);
+      return (a.nama || '').localeCompare(b.nama || '');
+    })
     .map((d: any) => ({
       id: d.id,
       nama: d.nama,
       kode_barang: d.kode_barang,
       nama_kategori: d.nama_kategori,
+      sublokasi: d.lokasi_nama_sublokasi || 'Tanpa Ruangan',
+      satelit: d.lokasi_nama_satelit || '',
       copies: 1,
     }));
 
@@ -1060,6 +1068,8 @@ export default function InventarisPage() {
                                   nama: it.nama,
                                   kode_barang: it.kode_barang,
                                   nama_kategori: it.nama_kategori,
+                                  sublokasi: it.lokasi_nama_sublokasi || 'Tanpa Ruangan',
+                                  satelit: it.lokasi_nama_satelit || '',
                                   copies: 1,
                                 }))
                               );
