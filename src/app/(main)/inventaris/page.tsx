@@ -102,7 +102,7 @@ export default function InventarisPage() {
     // Massal flat items also go into the sortable pool
     rows.push(...flatByKey);
 
-    // Sort all rows: by sublokasi order, then groups before flat, then alphabetical
+    // Sort all rows: by satelit, then sublokasi order, then alphabetical sublokasi, then groups before flat, then alphabetical item name
     const sublokasiOrder: Record<string, number> = {
       'Ruang Ibadah': 1,
       'Sekolah Minggu / Kelas': 2,
@@ -111,33 +111,34 @@ export default function InventarisPage() {
       'Gudang': 5,
     };
     rows.sort((a, b) => {
+      // 1. Satelit if multiple satellites present
+      const aSat = (a.type === 'flat' ? (a.item?.lokasi_nama_satelit ?? '') : (a.satelit ?? ''));
+      const bSat = (b.type === 'flat' ? (b.item?.lokasi_nama_satelit ?? '') : (b.satelit ?? ''));
+      if (aSat !== bSat) return aSat.localeCompare(bSat, 'id');
+
+      // 2. Sublokasi order (Tanpa Ruangan at the very end = 999)
       const aSub = (a.type === 'flat' ? (a.item?.lokasi_nama_sublokasi ?? '') : (a.sublokasi ?? ''));
       const bSub = (b.type === 'flat' ? (b.item?.lokasi_nama_sublokasi ?? '') : (b.sublokasi ?? ''));
-      const aOrd = sublokasiOrder[aSub] ?? 99;
-      const bOrd = sublokasiOrder[bSub] ?? 99;
+      const aOrd = !aSub ? 999 : (sublokasiOrder[aSub] ?? 99);
+      const bOrd = !bSub ? 999 : (sublokasiOrder[bSub] ?? 99);
       if (aOrd !== bOrd) return aOrd - bOrd;
-      // Within sublokasi: groups before flat items
+
+      // 3. Fallback: alphabetical sublokasi if both are 99 (or same custom order)
+      const subComp = aSub.localeCompare(bSub, 'id');
+      if (subComp !== 0) return subComp;
+
+      // 4. Within sublokasi: groups before flat items
       const aGrp = a.type === 'group' ? 0 : 1;
       const bGrp = b.type === 'group' ? 0 : 1;
       if (aGrp !== bGrp) return aGrp - bGrp;
+
+      // 5. Alphabetical by item name
       const aName = (a.type === 'flat' ? (a.item?.nama ?? '') : (a.nama ?? ''));
       const bName = (b.type === 'flat' ? (b.item?.nama ?? '') : (b.nama ?? ''));
       return aName.localeCompare(bName, 'id');
     });
 
-    // Insert sublokasi section headers only — expanded children are injected by render loop (single source of truth)
-    const finalRows: any[] = [];
-    let lastSublokasi: string | null = null;
-    for (const row of rows) {
-      const rowSub = (row.type === 'flat' ? (row.item?.lokasi_nama_sublokasi ?? null) : (row.sublokasi ?? null));
-      if (rowSub && rowSub !== lastSublokasi) {
-        finalRows.push({ type: 'section', sublokasi: rowSub });
-        lastSublokasi = rowSub;
-      }
-      finalRows.push(row);
-    }
-    
-    return finalRows;
+    return rows;
   };
 
   const toggleGroup = (key: string) => {
@@ -434,7 +435,7 @@ export default function InventarisPage() {
       const keys = data
         .filter((i: any) => i.tipe_barang === 'satuan')
         .reduce((acc: Map<string, boolean>, i: any) => {
-          acc.set(`${i.nama.trim().toLowerCase()}||${i.kategori_id}`, true);
+          acc.set(`${i.nama.trim().toLowerCase()}||${i.kategori_id}||${i.lokasi_sublokasi_id ?? 'null'}||${(i.merk || '').trim().toLowerCase()}`, true);
           return acc;
         }, new Map<string, boolean>());
       setExpandedGroups(new Set(keys.keys()));
@@ -942,23 +943,31 @@ export default function InventarisPage() {
 
                 let rows: any[];
                 if (viewMode === 'grouped' && groupedData) {
-                  // Client-side display pagination: paginate top-level rows (groups + flat items, NOT section headers or expanded inline children)
-                  // Section headers and expanded children are re-injected for the visible slice only
-                  const topLevelRows = groupedData.filter((r: any) => r.type !== 'section' && !r.inGroup);
+                  // Client-side display pagination: paginate top-level rows (groups + flat items)
+                  // Section headers and expanded children are injected for the visible slice only
+                  const topLevelRows = groupedData;
                   const startIdx = (groupedPage - 1) * GROUPED_DISPLAY_SIZE;
                   const pageSlice = topLevelRows.slice(startIdx, startIdx + GROUPED_DISPLAY_SIZE);
                   
-                  // Build final page rows: section headers + top-level rows + expanded children (injected here, not from computeGroupedData)
+                  // Build final page rows: section headers + top-level rows + expanded children
                   const pagedRows: any[] = [];
-                  let lastSub: string | null = null;
+                  let lastSubKey: string | null = null;
                   for (const row of pageSlice) {
-                    const rowSub = (row.type === 'flat' ? (row.item?.lokasi_nama_sublokasi ?? null) : (row.sublokasi ?? null));
-                    if (rowSub && rowSub !== lastSub) {
-                      pagedRows.push({ type: 'section', sublokasi: rowSub });
-                      lastSub = rowSub;
+                    const rowSat = (row.type === 'flat' ? (row.item?.lokasi_nama_satelit ?? '') : (row.satelit ?? ''));
+                    const rowSub = (row.type === 'flat' ? (row.item?.lokasi_nama_sublokasi ?? null) : (row.sublokasi ?? null)) || 'Tanpa Ruangan';
+                    const subKey = filterSatelit ? rowSub : `${rowSat}||${rowSub}`;
+
+                    if (subKey !== lastSubKey) {
+                      pagedRows.push({
+                        type: 'section',
+                        sublokasi: rowSub,
+                        satelit: rowSat,
+                        sectionTitle: !filterSatelit && rowSat ? `${rowSat} · ${rowSub}` : rowSub,
+                      });
+                      lastSubKey = subKey;
                     }
                     pagedRows.push(row);
-                    // Inject expanded children HERE (single source of truth — NOT from pre-built inGroup rows)
+                    // Inject expanded children HERE (single source of truth)
                     if (row.type === 'group' && row.isExpanded) {
                       for (const item of row.items) {
                         pagedRows.push({ type: 'flat', item, inGroup: true });
@@ -974,11 +983,11 @@ export default function InventarisPage() {
                   // SUBLOKASI section divider
                   if (row.type === 'section') {
                     return (
-                      <tr key={`section-${row.sublokasi}`}>
+                      <tr key={`section-${row.satelit || ''}-${row.sublokasi}-${idx}`}>
                         <td colSpan={9} className="px-4 pt-4 pb-1.5 bg-slate-50/80 border-t border-slate-200">
                           <div className="flex items-center gap-2">
                             <span className="material-icons-round text-slate-400 text-[15px]">location_on</span>
-                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{row.sublokasi}</span>
+                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{row.sectionTitle || row.sublokasi}</span>
                             <div className="flex-1 h-px bg-slate-200" />
                           </div>
                         </td>
@@ -1244,8 +1253,8 @@ export default function InventarisPage() {
           {viewMode === 'grouped' ? (() => {
             // Grouped: client-side pagination of display rows
             const groupedData = computeGroupedData(data);
-            // topLevelCount = group headers + ungrouped flat rows (exclude expanded inline children and section dividers)
-            const topLevelCount = groupedData ? groupedData.filter((r: any) => r.type !== 'section' && !r.inGroup).length : 0;
+            // topLevelCount = group headers + flat rows
+            const topLevelCount = groupedData ? groupedData.length : 0;
             const totalGroupedPages = Math.max(1, Math.ceil(topLevelCount / GROUPED_DISPLAY_SIZE));
             const startRow = (groupedPage - 1) * GROUPED_DISPLAY_SIZE + 1;
             const endRow = Math.min(groupedPage * GROUPED_DISPLAY_SIZE, topLevelCount);
