@@ -49,7 +49,7 @@ export async function PUT(
       ...body,
       kategori_id: body.kategori_id ? parseInt(body.kategori_id, 10) : undefined,
       jumlah: body.jumlah ? parseInt(body.jumlah, 10) : undefined,
-      nilai_perolehan: body.nilai_perolehan ? parseFloat(body.nilai_perolehan) : undefined,
+      nilai_perolehan: body.nilai_perolehan !== undefined && body.nilai_perolehan !== '' ? parseFloat(body.nilai_perolehan) : undefined,
       tahun_perolehan: body.tahun_perolehan ? parseInt(body.tahun_perolehan, 10) : undefined,
       pemilik_satelit_id: body.pemilik_satelit_id ? parseInt(body.pemilik_satelit_id, 10) : undefined,
       pemilik_jemaat_id: body.pemilik_jemaat_id ? parseInt(body.pemilik_jemaat_id, 10) : undefined,
@@ -63,9 +63,15 @@ export async function PUT(
     }
 
     return NextResponse.json({ success: true, data: { id: parseInt(id, 10) }, message: 'Barang berhasil diperbarui' });
-  } catch (error) {
+  } catch (error: any) {
     console.error('[InventarisDetailRoute] PUT error:', error);
-    return NextResponse.json({ success: false, message: 'Internal Server Error' }, { status: 500 });
+    if (error?.code === '23505') {
+      if (error?.constraint === 'idx_barang_no_seri_unique') {
+        return NextResponse.json({ success: false, message: 'Nomor seri sudah terdaftar pada barang lain.' }, { status: 400 });
+      }
+      return NextResponse.json({ success: false, message: 'Data duplikat: data sudah terdaftar.' }, { status: 400 });
+    }
+    return NextResponse.json({ success: false, message: error?.message || 'Internal Server Error' }, { status: 500 });
   }
 }
 

@@ -475,21 +475,21 @@ export class InventarisRepository {
         ) RETURNING id`,
         [
           kodeBarang,                                  // $1
-          params.nama,                                 // $2
+          params.nama?.trim(),                         // $2
           params.kategori_id,                          // $3
-          params.deskripsi || null,                    // $4
-          params.merk || null,                         // $5
-          params.no_seri || null,                      // $6
+          params.deskripsi?.trim() || null,            // $4
+          params.merk?.trim() || null,                 // $5
+          params.no_seri?.trim() || null,              // $6
           params.tipe_barang === 'satuan' ? 1 : (params.jumlah || 1), // $7
           params.kondisi || 'Baik',                    // $8
           params.tahun_perolehan || null,              // $9
           params.nilai_perolehan || 0,                 // $10
           isAktivaTetap,                               // $11
-          params.foto_url || null,                     // $12
+          params.foto_url?.trim() || null,             // $12
           params.pemilik_tipe,                         // $13
           params.pemilik_satelit_id || null,           // $14
           params.pemilik_jemaat_id || null,            // $15
-          params.pemilik_nama_lain || null,            // $16
+          params.pemilik_nama_lain?.trim() || null,    // $16
           params.lokasi_satelit_id || null,            // $17
           params.lokasi_sublokasi_id || null,          // $18
           params.tipe_barang || 'massal',              // $19
@@ -535,21 +535,21 @@ export class InventarisRepository {
       WHERE id = $20 AND is_deleted = false
       RETURNING id`,
       [
-        params.nama,                                  // $1
+        params.nama?.trim(),                          // $1
         params.kategori_id,                           // $2
-        params.deskripsi ?? null,                     // $3
-        params.merk ?? null,                          // $4
-        params.no_seri ?? null,                       // $5
+        params.deskripsi?.trim() || null,             // $3
+        params.merk?.trim() || null,                  // $4
+        params.no_seri?.trim() || null,               // $5
         params.tipe_barang === 'satuan' ? 1 : params.jumlah, // $6
         params.kondisi,                               // $7
         params.tahun_perolehan ?? null,               // $8
-        params.nilai_perolehan,                       // $9
+        params.nilai_perolehan ?? null,               // $9
         isAktivaTetap,                                // $10
-        params.foto_url ?? null,                      // $11
+        params.foto_url?.trim() || null,              // $11
         params.pemilik_tipe,                          // $12
         params.pemilik_satelit_id ?? null,            // $13
         params.pemilik_jemaat_id ?? null,             // $14
-        params.pemilik_nama_lain ?? null,             // $15
+        params.pemilik_nama_lain?.trim() || null,     // $15
         params.lokasi_satelit_id ?? null,             // $16
         params.lokasi_sublokasi_id ?? null,           // $17
         params.tipe_barang ?? null,                   // $18
