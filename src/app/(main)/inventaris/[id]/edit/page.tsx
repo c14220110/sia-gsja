@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, useRef, use } from 'react';
 import { useLoader } from '@/components/ui/GlobalLoader';
 import { useRouter } from 'next/navigation';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
@@ -47,6 +47,12 @@ export default function EditInventarisPage({ params }: { params: Promise<{ id: s
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewFoto, setPreviewFoto] = useState<string | null>(null);
+
+  // Camera state
+  const [showCamera, setShowCamera] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -141,6 +147,47 @@ export default function EditInventarisPage({ params }: { params: Promise<{ id: s
     const data = await res.json();
     if (data.success) return data.url;
     throw new Error(data.message || 'Gagal mengupload foto');
+  };
+
+  // Camera helpers
+  const startCamera = async () => {
+    setCameraError(null);
+    setShowCamera(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (err: any) {
+      setCameraError('Tidak bisa mengakses kamera: ' + (err.message || err));
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    }
+    setShowCamera(false);
+    setCameraError(null);
+  };
+
+  const capturePhoto = () => {
+    if (!videoRef.current) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = videoRef.current.videoWidth;
+    canvas.height = videoRef.current.videoHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.drawImage(videoRef.current, 0, 0);
+    canvas.toBlob(blob => {
+      if (!blob) return;
+      const file = new File([blob], `foto-${Date.now()}.jpg`, { type: 'image/jpeg' });
+      setSelectedFile(file);
+      setPreviewFoto(URL.createObjectURL(blob));
+      stopCamera();
+    }, 'image/jpeg', 0.85);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -289,11 +336,73 @@ export default function EditInventarisPage({ params }: { params: Promise<{ id: s
             </div>
             <div className="flex flex-col gap-2 mt-2">
               <label className="text-slate-700 text-sm font-bold font-sans">Foto Barang</label>
-              <div className="flex items-start gap-4">
+              <div className="flex items-start gap-4 flex-wrap">
                 {previewFoto && <img src={previewFoto} alt="Preview" className="w-24 h-24 object-cover rounded-lg border border-slate-200" />}
-                <input type="file" accept="image/*" onChange={handleFileChange} className="w-full max-w-sm px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-slate-200 file:text-slate-700 hover:file:bg-slate-300 transition-colors" />
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <input type="file" accept="image/*" onChange={handleFileChange} className="max-w-xs px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 file:mr-3 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-slate-200 file:text-slate-700 hover:file:bg-slate-300 transition-colors" />
+                    <button
+                      type="button"
+                      onClick={startCamera}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-lg text-sm font-semibold hover:bg-indigo-100 transition-colors whitespace-nowrap"
+                    >
+                      <span className="material-icons-round text-[18px]">photo_camera</span>
+                      Ambil Foto
+                    </button>
+                  </div>
+                  {selectedFile && (
+                    <p className="text-[11px] text-slate-400 flex items-center gap-1">
+                      <span className="material-icons-round text-[12px]">check_circle</span>
+                      Foto baru dipilih: {selectedFile.name}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
+
+            {/* Camera Modal */}
+            {showCamera && (
+              <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/80 backdrop-blur-sm">
+                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
+                  <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                    <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                      <span className="material-icons-round text-indigo-500">photo_camera</span>
+                      Ambil Foto Barang
+                    </h3>
+                    <button type="button" onClick={stopCamera} className="p-2 rounded-lg hover:bg-slate-100">
+                      <span className="material-icons-round text-slate-500">close</span>
+                    </button>
+                  </div>
+                  <div className="p-4 flex flex-col items-center gap-4">
+                    {cameraError ? (
+                      <div className="flex flex-col items-center gap-3 py-8 text-center">
+                        <span className="material-icons-round text-rose-400 text-5xl">no_photography</span>
+                        <p className="text-sm text-slate-600">{cameraError}</p>
+                        <p className="text-xs text-slate-400">Pastikan browser diizinkan mengakses kamera, atau gunakan tombol &quot;Pilih File&quot; di atas.</p>
+                      </div>
+                    ) : (
+                      <>
+                        {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                        <video
+                          ref={videoRef}
+                          autoPlay
+                          playsInline
+                          className="w-full rounded-xl bg-black aspect-video object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={capturePhoto}
+                          className="w-16 h-16 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-lg hover:bg-indigo-700 transition-colors active:scale-95"
+                        >
+                          <span className="material-icons-round text-3xl">camera</span>
+                        </button>
+                        <p className="text-xs text-slate-400">Arahkan kamera ke barang, lalu tekan tombol untuk mengambil foto.</p>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex flex-col gap-4">
