@@ -1,5 +1,46 @@
 import { NextResponse } from 'next/server';
-import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
+import { getCallerFromRequest, CallerInfo } from '@/server/utils/getCallerFromRequest';
+
+const ALLOWED_DELETE_BUCKETS = ['jemaat-photos', 'inventaris', 'bukti-bayar'];
+
+function isAuthorizedToDeleteOldFile(
+  bucket: string,
+  filename: string,
+  caller: CallerInfo
+): boolean {
+  if (caller.is_super_admin) {
+    return true;
+  }
+
+  if (bucket === 'jemaat-photos') {
+    if (caller.permissions?.includes('jemaat_edit')) {
+      return true;
+    }
+    if (
+      caller.jemaat_id != null &&
+      (filename.startsWith(`${caller.jemaat_id}_`) || filename.startsWith(`${caller.jemaat_id}.`))
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  if (bucket === 'inventaris') {
+    return !!caller.permissions?.includes('inventaris_manage');
+  }
+
+  if (bucket === 'bukti-bayar') {
+    if (caller.permissions?.includes('kegiatan_manage')) {
+      return true;
+    }
+    if (caller.jemaat_id != null && filename.startsWith(`${caller.jemaat_id}_`)) {
+      return true;
+    }
+    return false;
+  }
+
+  return false;
+}
 
 export async function POST(request: Request) {
   const caller = getCallerFromRequest(request);
@@ -45,26 +86,51 @@ export async function POST(request: Request) {
     const oldUrl = data.get('old_url') as string | null;
     if (oldUrl) {
       try {
-        // Ekstrak nama file dari URL: ambil bagian setelah /object/public/<bucket>/
-        const targetBucketForDelete = (data.get('bucket') as string) || 'jemaat-photos';
-        const publicPathPrefix = `/storage/v1/object/public/${targetBucketForDelete}/`;
-        const urlPath = new URL(oldUrl).pathname;
-        if (urlPath.includes(publicPathPrefix)) {
-          const oldFilename = urlPath.split(publicPathPrefix)[1];
-          if (oldFilename) {
-            const deleteUrl = `${supabaseUrl}/storage/v1/object/${targetBucketForDelete}/${oldFilename}`;
-            // await — pastikan delete selesai sebelum fungsi exit
-            const deleteRes = await fetch(deleteUrl, {
-              method: 'DELETE',
-              headers: {
-                'Authorization': `Bearer ${supabaseKey}`,
-                'apikey': supabaseKey,
-              },
-            });
-            if (!deleteRes.ok) {
-              console.warn(`[Upload] Foto lama gagal dihapus (${deleteRes.status}), tapi upload baru tetap jalan.`);
+        const rawBucket = (data.get('bucket') as string) || 'jemaat-photos';
+        const targetBucketForDelete = rawBucket.trim();
+
+        if (!ALLOWED_DELETE_BUCKETS.includes(targetBucketForDelete)) {
+          console.warn(`[Upload] Penghapusan old_url ditolak: bucket '${targetBucketForDelete}' tidak ada di whitelist.`);
+        } else {
+          const publicPathPrefix = `/storage/v1/object/public/${targetBucketForDelete}/`;
+          const parsedUrl = new URL(oldUrl);
+          const urlPath = parsedUrl.pathname;
+          const prefixIndex = urlPath.indexOf(publicPathPrefix);
+
+          if (prefixIndex === -1) {
+            console.warn(`[Upload] Penghapusan old_url ditolak: URL path '${urlPath}' tidak sesuai dengan bucket '${targetBucketForDelete}'.`);
+          } else {
+            const oldFilename = urlPath.slice(prefixIndex + publicPathPrefix.length);
+            const decodedFilename = oldFilename ? decodeURIComponent(oldFilename) : '';
+
+            const isTraversal =
+              !oldFilename ||
+              oldFilename.includes('..') ||
+              oldFilename.startsWith('/') ||
+              decodedFilename.includes('..') ||
+              decodedFilename.startsWith('/');
+
+            if (isTraversal) {
+              console.warn(`[Upload] Penghapusan old_url ditolak: path traversal atau nama file tidak valid: '${oldFilename}'`);
+            } else if (!isAuthorizedToDeleteOldFile(targetBucketForDelete, oldFilename, caller)) {
+              console.warn(
+                `[Upload] Penghapusan old_url ditolak: caller ${caller.user_id} tidak berwenang menghapus '${oldFilename}' di bucket '${targetBucketForDelete}'.`
+              );
             } else {
-              console.log(`[Upload] Foto lama berhasil dihapus: ${oldFilename}`);
+              const deleteUrl = `${supabaseUrl}/storage/v1/object/${targetBucketForDelete}/${oldFilename}`;
+              // await — pastikan delete selesai sebelum fungsi exit
+              const deleteRes = await fetch(deleteUrl, {
+                method: 'DELETE',
+                headers: {
+                  'Authorization': `Bearer ${supabaseKey}`,
+                  'apikey': supabaseKey,
+                },
+              });
+              if (!deleteRes.ok) {
+                console.warn(`[Upload] Foto lama gagal dihapus (${deleteRes.status}), tapi upload baru tetap jalan.`);
+              } else {
+                console.log(`[Upload] Foto lama berhasil dihapus: ${oldFilename}`);
+              }
             }
           }
         }
