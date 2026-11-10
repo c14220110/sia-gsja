@@ -1,0 +1,84 @@
+import webpush from 'web-push';
+import pool from '@/lib/db';
+
+// Konfigurasi VAPID mengikuti metode yang terbukti sukses
+const publicVapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
+const privateVapidKey = process.env.VAPID_PRIVATE_KEY || '';
+
+if (publicVapidKey && privateVapidKey) {
+  webpush.setVapidDetails(
+    'mailto:it@gsja.org',
+    publicVapidKey,
+    privateVapidKey
+  );
+} else {
+  console.warn('VAPID keys belum diset di environment variables. Push Notification tidak akan berfungsi.');
+}
+
+/**
+ * Mengirim push notification ke HP/Browser Jemaat
+ * @param jemaatId ID jemaat yang dituju
+ * @param title Judul Notifikasi
+ * @param body Isi Notifikasi
+ * @param url URL yang akan dibuka saat notifikasi di-klik
+ * @returns true jika notifikasi berhasil dikirim ke minimal 1 perangkat, false jika tidak
+ */
+export async function sendPushNotificationToJemaat(jemaatId: number, title: string, body: string, url: string = '/'): Promise<boolean> {
+  if (!publicVapidKey || !privateVapidKey) {
+    console.warn('[Web Push] Batal mengirim notifikasi karena VAPID keys belum di-set.');
+    return false;
+  }
+
+  try {
+    // Tolong digaliin user_id dari tabelnya si pengguna bermodal jemaat_id ini lho
+    const userQuery = await pool.query(`
+       SELECT id as user_id 
+       FROM public.pengguna 
+       WHERE jemaat_id = $1 LIMIT 1
+    `, [jemaatId]);
+    
+    if (userQuery.rows.length === 0) {
+      return false; // Jemaat tidak punya akun
+    }
+    const userId = userQuery.rows[0].user_id;
+
+    // Bongkarlah subskripsi berpatokan di nama nama kolomnya yg bner tuh kaya (endpoint dkk yak)
+    const subQuery = await pool.query(`
+       SELECT endpoint, p256dh, auth 
+       FROM public.push_subscriptions 
+       WHERE user_id = $1
+    `, [userId]);
+    
+    if (subQuery.rows.length === 0) {
+      return false; // Jemaat belum mengaktifkan notifikasi di perangkat
+    }
+
+    const payload = JSON.stringify({
+      title,
+      body,
+      url,
+      icon: '/icons/icon-192x192.png',
+      badge: '/icons/icon-72x72.png'
+    });
+
+    let sentCount = 0;
+    for (const sub of subQuery.rows) {
+      const pushSub = {
+         endpoint: sub.endpoint,
+         keys: { p256dh: sub.p256dh, auth: sub.auth }
+      };
+      try {
+         await webpush.sendNotification(pushSub, payload);
+         sentCount++;
+      } catch (pushErr) {
+         console.error("[Web Push] Failed to push to endpoint:", sub.endpoint, pushErr);
+      }
+    }
+    
+    return sentCount > 0;
+
+  } catch (error) {
+    console.error('[Web Push] Error pada proses push notification:', error);
+    return false;
+  }
+}

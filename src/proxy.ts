@@ -1,0 +1,116 @@
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+
+/**
+ * Global Proxy
+ * 
+ * Handles TWO responsibilities:
+ * 1. Page-level auth: Redirect unauthenticated users away from protected pages
+ * 2. API-level auth: Block all API requests without a valid access_token cookie
+ *    (except auth-flow endpoints like login, force-change-password, select-role)
+ */
+
+// Jalur Rute API yang sah dibuka TANPA perlu nunjukin identitas ya
+const PUBLIC_API_ROUTES = [
+  '/api/auth/login',
+  '/api/auth/force-change-password',
+  '/api/auth/select-role',  // Called during login flow before cookie is set (multi-role users)
+  '/api/auth/forgot-password',  // No auth needed — user requests password reset
+  '/api/auth/reset-password',   // No auth needed — user resets password via email token
+];
+
+// Jalur rute yang bole diumbar buat orang umum tp tetep ngeliat khusus metodenya apaan.
+const PUBLIC_GET_ONLY_ROUTES = [
+  '/api/kegiatan',  // Public schedule page for jemaat (GET only)
+];
+
+export default function proxy(request: NextRequest) {
+  const token = request.cookies.get('access_token')?.value;
+  const { pathname } = request.nextUrl;
+
+  // 1. API SECURITY GUARD
+  if (pathname.startsWith('/api/')) {
+    // Izinin public API routes (semua route di /api/public/ dan auth routes)
+    if (pathname.startsWith('/api/public/') || PUBLIC_API_ROUTES.some(route => pathname === route)) {
+      return NextResponse.next();
+    }
+
+    // Allow GET-only public routes
+    if (request.method === 'GET' && PUBLIC_GET_ONLY_ROUTES.some(route => pathname === route)) {
+      return NextResponse.next();
+    }
+
+    // Block requests tanpa access_token cookie
+    if (!token) {
+      return NextResponse.json(
+        { success: false, message: 'Unauthorized: Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    // Basic JWT structure validation (header.payload.signature)
+    const parts = token.split('.');
+    if (parts.length !== 3) {
+      return NextResponse.json(
+        { success: false, message: 'Unauthorized: Invalid token format' },
+        { status: 401 }
+      );
+    }
+
+    // Token ADA dan has valid structurenya — biar  route handler do full JWT verification
+    return NextResponse.next();
+  }
+
+  // ═══════════════════════════════════════════════
+  // 2. PAGE-LEVEL AUTH REDIRECTS
+  // ═══════════════════════════════════════════════
+  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/reset-password');
+  const isPublicPage = isAuthPage || pathname.startsWith('/daftar-jemaat') || pathname.startsWith('/select-role');
+
+  // Ojo ksini ! Belokan yg blom login yang nekat pgn nembus akses yg dikunci nih ya
+  if (!token && !isPublicPage) {
+    return NextResponse.redirect(new URL('/login', request.url));
+  }
+
+  // Banting setir ngehalau yang udh login menjauh jauh dri ruang login page ini
+  if (token && isAuthPage) {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
+  }
+
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: [
+    // Match all API routes
+    '/api/:path*',
+    // Root dashboard & dashboard redirects
+    '/',
+    '/dashboard/:path*',
+    // Cocokkan buat laman terlidung doang (asset statis di public/ jangan di-matcher agar tidak bocor ke redirect)
+    '/alkitab/:path*',
+    '/anggaran/:path*',
+    '/bsc/:path*',
+    '/buku-besar/:path*',
+    '/family-tree/:path*',
+    '/inventaris/:path*',
+    '/jadwal/:path*',
+    '/jemaat/:path*',
+    '/kegiatan/:path*',
+    '/layanan-pastoral/:path*',
+    '/pegawai/:path*',
+    '/pelayan/:path*',
+    '/pengaturan-akun/:path*',
+    '/pengurus/:path*',
+    '/profil/:path*',
+    '/riwayat-kehadiran/:path*',
+    '/settings/:path*',
+    '/survei-saya/:path*',
+    '/tiket/:path*',
+    // Auth & public pages handled by proxy
+    '/login',
+    '/reset-password',
+    '/select-role',
+    '/daftar-jemaat/:path*',
+  ],
+};

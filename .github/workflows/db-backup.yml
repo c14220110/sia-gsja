@@ -1,0 +1,108 @@
+name: 🗄️ Daily Database Backup to Cloudflare R2
+
+on:
+  schedule:
+    # Setiap hari jam 01:00 WIB (UTC+7) = 18:00 UTC
+    - cron: '0 18 * * *'
+  workflow_dispatch: # Tombol "Run workflow" manual di GitHub Actions
+
+jobs:
+  backup:
+    name: Backup PostgreSQL → Cloudflare R2
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: 📦 Install PostgreSQL 17 Client (pg_dump)
+        run: |
+          sudo apt-get update -q
+          # Tambah repository resmi PostgreSQL untuk dapat versi 17
+          sudo apt-get install -y curl ca-certificates
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            --fail https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          sudo sh -c 'echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] \
+            https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            > /etc/apt/sources.list.d/pgdg.list'
+          sudo apt-get update -q
+          sudo apt-get install -y postgresql-client-17
+          pg_dump --version  # Verifikasi: harus tampil "pg_dump (PostgreSQL) 17.x"
+
+      - name: 🗃️ Dump Database Supabase
+        env:
+          # PENTING: Gunakan Direct Connection URL (port 5432), BUKAN Pooler (port 6543)
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
+          FILENAME="backup_${TIMESTAMP}.sql.gz"
+          echo "FILENAME=${FILENAME}" >> $GITHUB_ENV
+          echo "⏳ Membuat backup: ${FILENAME} ..."
+
+          /usr/lib/postgresql/17/bin/pg_dump "$SUPABASE_DB_URL" \
+            --no-owner \
+            --no-acl \
+            --clean \
+            --if-exists \
+            --format=plain \
+            | gzip > "${FILENAME}"
+
+          FILE_SIZE=$(du -sh "${FILENAME}" | cut -f1)
+          echo "✅ Backup selesai. Ukuran file: ${FILE_SIZE}"
+          echo "FILE_SIZE=${FILE_SIZE}" >> $GITHUB_ENV
+
+      - name: ☁️ Upload ke Cloudflare R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        run: |
+          echo "⬆️ Mengupload ${FILENAME} ke R2 bucket ${R2_BUCKET_NAME} ..."
+
+          aws s3 cp "${FILENAME}" \
+            "s3://${R2_BUCKET_NAME}/${FILENAME}" \
+            --endpoint-url "https://${CF_ACCOUNT_ID}.r2.cloudflarestorage.com" \
+            --region auto
+
+          echo "✅ Upload berhasil."
+
+      - name: 🧹 Hapus Backup Lebih dari 30 Hari
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        run: |
+          # Hitung tanggal batas (30 hari lalu)
+          CUTOFF_DATE=$(date -d "30 days ago" +"%Y-%m-%d")
+          echo "🗑️ Menghapus backup sebelum tanggal: ${CUTOFF_DATE}"
+
+          # List semua file di bucket, filter yang lebih tua dari 30 hari, lalu hapus
+          aws s3 ls "s3://${R2_BUCKET_NAME}/" \
+            --endpoint-url "https://${CF_ACCOUNT_ID}.r2.cloudflarestorage.com" \
+            --region auto \
+            | while read -r line; do
+                FILE_DATE=$(echo "$line" | awk '{print $1}')
+                FILE_NAME=$(echo "$line" | awk '{print $4}')
+                # Pastikan nama file tidak kosong dan lebih tua dari batas
+                if [[ -n "$FILE_NAME" ]] && [[ "$FILE_DATE" < "$CUTOFF_DATE" ]]; then
+                  echo "   🗑️ Menghapus: ${FILE_NAME} (dibuat: ${FILE_DATE})"
+                  aws s3 rm "s3://${R2_BUCKET_NAME}/${FILE_NAME}" \
+                    --endpoint-url "https://${CF_ACCOUNT_ID}.r2.cloudflarestorage.com" \
+                    --region auto
+                fi
+              done
+
+          echo "✅ Pembersihan selesai."
+
+      - name: 📋 Ringkasan Backup
+        if: always()
+        run: |
+          echo "================================================"
+          echo "  📦 BACKUP SIA GSJA - SELESAI"
+          echo "================================================"
+          echo "  📄 File   : ${FILENAME}"
+          echo "  📏 Ukuran : ${FILE_SIZE}"
+          echo "  🕐 Waktu  : $(date '+%Y-%m-%d %H:%M:%S') UTC"
+          echo "  ☁️  Bucket : gsja-db-backups (Cloudflare R2)"
+          echo "================================================"

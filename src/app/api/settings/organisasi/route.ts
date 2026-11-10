@@ -1,0 +1,269 @@
+import { NextRequest, NextResponse } from 'next/server';
+import pool from '@/lib/db';
+import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
+
+/**
+ * GET /api/settings/organisasi?tab=satelit|departemen|konflik&satelit_id=1
+ * Menyediakan data untuk halaman Bagan Organisasi.
+ */
+export async function GET(req: NextRequest) {
+  try {
+    const caller = await getCallerFromRequest(req);
+    if (!caller) {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const tab = searchParams.get('tab') || 'satelit';
+    const satelitId = searchParams.get('satelit_id');
+
+    const isMultiSatelit = caller.is_super_admin || caller.permissions.includes('multi_satelit_view');
+
+    // ── Tab 1: Bagan Per Satelit ──────────────────────────────────────────────
+    if (tab === 'satelit') {
+      // Angkat bersih daftar satelit (Saring patokan ID kalau ga punya muti-satelit)
+      let satelitQuery = `SELECT id, kode_satelit, nama_satelit, kota, is_active FROM satelit WHERE is_active = true`;
+      const satelitParams: any[] = [];
+      if (!isMultiSatelit) {
+        satelitQuery += ` AND id = $1`;
+        satelitParams.push(caller.satelit_id);
+      }
+      satelitQuery += ` ORDER BY id ASC`;
+      const satelitRes = await pool.query(satelitQuery, satelitParams);
+
+      if (!satelitId) {
+        return NextResponse.json({ success: true, satelit_list: satelitRes.rows });
+      }
+
+      let sid = parseInt(satelitId);
+      if (!isMultiSatelit && sid !== caller.satelit_id) {
+        sid = caller.satelit_id;
+      }
+
+      // Cek apakah satelit ini adalah Pusat (satelit_id = 1)
+      // Jabatan Pusat (Gembala Sidang, Majelis, dll) disimpan dengan lingkup='Pusat' dan is_bph_satelit=false
+      // Jabatan satelit biasa disimpan dengan lingkup='Satelit' dan is_bph_satelit=true
+      const bphRes = await pool.query(`
+        SELECT
+          dk.id AS dk_id,
+          jab.nama_jabatan,
+          jab.lingkup_default,
+          jab.is_bph_satelit,
+          dk.lingkup,
+          dk.status_jabatan,
+          dk.tanggal_mulai_menjabat,
+          dk.periode_id,
+          per.nama_periode,
+          per.tahun_akhir,
+          j.id AS jemaat_id,
+          j.nama_lengkap,
+          j.foto_url,
+          j.no_hp,
+          p.id AS pengurus_id,
+          p.id_pengurus,
+          EXISTS(SELECT 1 FROM pengguna pg WHERE pg.jemaat_id = j.id) AS has_akun
+        FROM detail_kepengurusan dk
+        JOIN jabatan jab ON dk.jabatan_id = jab.id
+        JOIN pengurus p ON dk.pengurus_id = p.id
+        JOIN jemaat j ON p.jemaat_id = j.id
+        LEFT JOIN periode_kepengurusan per ON dk.periode_id = per.id
+        WHERE dk.satelit_id = $1
+          AND dk.status_jabatan = 'Aktif'
+          AND (
+            -- Jabatan satelit biasa (mis. Gembala Satelit, Wakil Ketua, dll)
+            (dk.lingkup = 'Satelit' AND jab.is_bph_satelit = true)
+            OR
+            -- Jabatan Pusat (Gembala Sidang, Majelis, Bendahara, dll) untuk satelit pusat
+            (dk.lingkup = 'Pusat')
+          )
+        ORDER BY 
+          CASE dk.lingkup WHEN 'Pusat' THEN 0 ELSE 1 END ASC,
+          CASE jab.nama_jabatan
+            WHEN 'Gembala Sidang' THEN 1
+            WHEN 'Wakil Gembala' THEN 2
+            WHEN 'Gembala Satelit' THEN 3
+            WHEN 'Wakil Ketua' THEN 4
+            WHEN 'Sekretaris' THEN 5
+            WHEN 'Bendahara' THEN 6
+            WHEN 'Majelis' THEN 7
+            WHEN 'Komisaris' THEN 8
+            ELSE 99
+          END ASC,
+          dk.catatan ASC
+      `, [sid]);
+
+      // Flag apakah ini satelit pusat (ada jabatan lingkup Pusat)
+      const isPusat = bphRes.rows.some((r: any) => r.lingkup === 'Pusat');
+
+      // Komisi di satelit ini beserta BPH-nya
+      const komisiRes = await pool.query(`
+        SELECT
+          k.id AS komisi_id,
+          k.nama_komisi,
+          k.is_active AS komisi_aktif,
+          -- BPH Komisi sebagai JSON array
+          COALESCE(
+            JSON_AGG(
+              JSON_BUILD_OBJECT(
+                'dk_id', dk.id,
+                'jabatan', jab.nama_jabatan,
+                'is_bph_komisi', jab.is_bph_komisi,
+                'jemaat_id', j.id,
+                'nama_lengkap', j.nama_lengkap,
+                'foto_url', j.foto_url,
+                'pengurus_id', p.id,
+                'id_pengurus', p.id_pengurus,
+                'status_jabatan', dk.status_jabatan
+              ) ORDER BY jab.id ASC
+            ) FILTER (WHERE dk.id IS NOT NULL AND dk.status_jabatan = 'Aktif'),
+            '[]'
+          ) AS bph_list
+        FROM komisi k
+        LEFT JOIN detail_kepengurusan dk ON dk.komisi_id = k.id
+          AND dk.lingkup = 'Komisi'
+          AND dk.status_jabatan = 'Aktif'
+        LEFT JOIN jabatan jab ON dk.jabatan_id = jab.id
+        LEFT JOIN pengurus p ON dk.pengurus_id = p.id
+        LEFT JOIN jemaat j ON p.jemaat_id = j.id
+        WHERE k.satelit_id = $1
+        GROUP BY k.id
+        ORDER BY k.nama_komisi ASC
+      `, [sid]);
+
+
+
+      return NextResponse.json({
+        success: true,
+        satelit_list: satelitRes.rows,
+        bph: bphRes.rows,
+        is_pusat: isPusat,
+        komisi: komisiRes.rows,
+      });
+    }
+
+    // ── Tab 2: Departemen Pusat ───────────────────────────────────────────────
+    if (tab === 'departemen') {
+      const res = await pool.query(`
+        SELECT
+          d.id AS departemen_id,
+          d.nama_departemen,
+          d.is_active,
+          -- Semua koordinator/perwakilan dari berbagai satelit
+          COALESCE(
+            JSON_AGG(
+              JSON_BUILD_OBJECT(
+                'dk_id', dk.id,
+                'jabatan', jab.nama_jabatan,
+                'jemaat_id', j.id,
+                'nama_lengkap', j.nama_lengkap,
+                'foto_url', j.foto_url,
+                'pengurus_id', p.id,
+                'id_pengurus', p.id_pengurus,
+                'satelit_id', s.id,
+                'nama_satelit', s.nama_satelit,
+                'status_jabatan', dk.status_jabatan
+              ) ORDER BY s.id ASC, jab.id ASC
+            ) FILTER (WHERE dk.id IS NOT NULL AND dk.status_jabatan = 'Aktif'),
+            '[]'
+          ) AS koordinator_list
+        FROM departemen d
+        LEFT JOIN detail_kepengurusan dk ON dk.departemen_id = d.id
+          AND dk.lingkup = 'Departemen'
+          AND dk.status_jabatan = 'Aktif'
+        LEFT JOIN jabatan jab ON dk.jabatan_id = jab.id
+        LEFT JOIN pengurus p ON dk.pengurus_id = p.id
+        LEFT JOIN jemaat j ON p.jemaat_id = j.id
+        LEFT JOIN satelit s ON dk.satelit_id = s.id
+        WHERE d.is_active = true
+        GROUP BY d.id
+        ORDER BY d.nama_departemen ASC
+      `);
+
+      return NextResponse.json({ success: true, departemen: res.rows });
+    }
+
+    // ── Tab 3: Conflict Detection (Jabatan Ganda) ─────────────────────────────
+    if (tab === 'konflik') {
+      // Tancepin dasaran Klausa WHERE keamanannya (parameterized yak jangan lupa biar ga dijebol SQL)
+      const rbacCondition = isMultiSatelit ? '' : `AND j.satelit_id = $1`;
+      const rbacParams: any[] = isMultiSatelit ? [] : [caller.satelit_id];
+
+      // Orang yang punya ≥ 2 jabatan aktif
+      const res = await pool.query(`
+        SELECT
+          j.id AS jemaat_id,
+          j.nama_lengkap,
+          j.foto_url,
+          s_asal.nama_satelit AS satelit_asal,
+          p.id AS pengurus_id,
+          p.id_pengurus,
+          COUNT(dk.id) AS jumlah_jabatan,
+          JSON_AGG(
+            JSON_BUILD_OBJECT(
+              'jabatan', jab.nama_jabatan,
+              'lingkup', dk.lingkup,
+              'nama_satelit', s_jab.nama_satelit,
+              'nama_komisi', kom.nama_komisi,
+              'nama_departemen', dep.nama_departemen,
+              'status', dk.status_jabatan
+            ) ORDER BY dk.id ASC
+          ) AS jabatan_list
+        FROM pengurus p
+        JOIN jemaat j ON p.jemaat_id = j.id
+        LEFT JOIN satelit s_asal ON j.satelit_id = s_asal.id
+        JOIN detail_kepengurusan dk ON dk.pengurus_id = p.id AND dk.status_jabatan = 'Aktif'
+        JOIN jabatan jab ON dk.jabatan_id = jab.id
+        LEFT JOIN satelit s_jab ON dk.satelit_id = s_jab.id
+        LEFT JOIN komisi kom ON dk.komisi_id = kom.id
+        LEFT JOIN departemen dep ON dk.departemen_id = dep.id
+        WHERE 1=1 ${rbacCondition}
+        GROUP BY j.id, j.nama_lengkap, j.foto_url, s_asal.nama_satelit, p.id, p.id_pengurus
+        HAVING COUNT(dk.id) >= 2
+        ORDER BY COUNT(dk.id) DESC, j.nama_lengkap ASC
+      `, rbacParams);
+
+      // Wah, masa jabatan mau lengser nih (kurang dari 90 harian lagi)
+      const segeraHabisRes = await pool.query(`
+        SELECT
+          j.id AS jemaat_id,
+          j.nama_lengkap,
+          j.foto_url,
+          jab.nama_jabatan,
+          dk.lingkup,
+          s_jab.nama_satelit,
+          kom.nama_komisi,
+          per.nama_periode,
+          per.tahun_akhir,
+          -- estimasi: tanggal_selesai = 31 Desember tahun_akhir
+          (per.tahun_akhir || '-12-31')::date - CURRENT_DATE AS sisa_hari
+        FROM detail_kepengurusan dk
+        JOIN jabatan jab ON dk.jabatan_id = jab.id
+        JOIN pengurus p ON dk.pengurus_id = p.id
+        JOIN jemaat j ON p.jemaat_id = j.id
+        LEFT JOIN satelit s_jab ON dk.satelit_id = s_jab.id
+        LEFT JOIN komisi kom ON dk.komisi_id = kom.id
+        LEFT JOIN periode_kepengurusan per ON dk.periode_id = per.id
+        WHERE dk.status_jabatan = 'Aktif'
+          AND per.tahun_akhir IS NOT NULL
+          AND (per.tahun_akhir || '-12-31')::date - CURRENT_DATE <= 90
+          AND (per.tahun_akhir || '-12-31')::date >= CURRENT_DATE
+          ${rbacCondition}
+        ORDER BY sisa_hari ASC
+        LIMIT 20
+      `, rbacParams);
+
+      return NextResponse.json({
+        success: true,
+        jabatan_ganda: res.rows,
+        segera_habis: segeraHabisRes.rows,
+        total_konflik: res.rows.length,
+      });
+    }
+
+    return NextResponse.json({ success: false, message: 'Tab tidak dikenal' }, { status: 400 });
+
+  } catch (error: any) {
+    console.error('Error GET /api/settings/organisasi:', error);
+    return NextResponse.json({ success: false, message: 'Internal Server Error' }, { status: 500 });
+  }
+}
