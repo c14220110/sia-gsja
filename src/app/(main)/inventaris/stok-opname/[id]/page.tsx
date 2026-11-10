@@ -36,8 +36,9 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
 
   // ── Search & Filter state ─────────────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'belum' | 'sudah' | 'selisih'>('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'belum' | 'sudah' | 'selisih' | 'dipinjam' | 'rusak'>('all');
   const [filterKategori, setFilterKategori] = useState('');
+  const [filterRuangan, setFilterRuangan] = useState('');
 
   // ── Toast notification state ──────────────────────────────────────────────
   const [scanToast, setScanToast] = useState<{ msg: string; type: 'success' | 'error' | 'warn' } | null>(null);
@@ -64,6 +65,7 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
     setSearchQuery('');
     setFilterStatus('all');
     setFilterKategori('');
+    setFilterRuangan('');
     setHighlightedDetailId(found.id);
     setTimeout(() => {
       rowRefs.current[found.id]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -194,6 +196,8 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
     if (d.jumlah_fisik === null) return false;
     return d.jumlah_fisik !== d.jumlah_tercatat;
   }).length || 0;
+  const totalRusak = data?.detail?.filter((d: any) => d.is_rusak).length || 0;
+  const totalDipinjam = data?.detail?.filter((d: any) => d.is_dipinjam).length || 0;
   const progress = totalItems > 0 ? Math.round((itemsChecked / totalItems) * 100) : 0;
 
   // Unique kategori list for filter dropdown
@@ -203,15 +207,23 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
     return Array.from(set).sort();
   }, [data?.detail]);
 
+  // Unique ruangan list for filter dropdown
+  const ruangans = useMemo(() => {
+    if (!data?.detail) return [] as string[];
+    const set = new Set<string>(data.detail.map((d: any) => d.nama_sublokasi || 'Tanpa Ruangan').filter(Boolean));
+    return Array.from(set).sort();
+  }, [data?.detail]);
+
   // Filtered + searched detail
   const filteredDetail = useMemo(() => {
     if (!data?.detail) return [];
     const q = searchQuery.toLowerCase().trim();
     return data.detail.filter((item: any) => {
-      // Search by nama or kode
+      // Search by nama, kode, or ruangan
       const matchSearch = !q ||
         item.nama_barang?.toLowerCase().includes(q) ||
-        item.kode_barang?.toLowerCase().includes(q);
+        item.kode_barang?.toLowerCase().includes(q) ||
+        item.nama_sublokasi?.toLowerCase().includes(q);
 
       // Status filter
       const hasData = item.jumlah_fisik !== null;
@@ -220,14 +232,19 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
         filterStatus === 'all' ||
         (filterStatus === 'belum' && !hasData) ||
         (filterStatus === 'sudah' && hasData) ||
-        (filterStatus === 'selisih' && selisih !== null && selisih !== 0);
+        (filterStatus === 'selisih' && selisih !== null && selisih !== 0) ||
+        (filterStatus === 'dipinjam' && item.is_dipinjam) ||
+        (filterStatus === 'rusak' && item.is_rusak);
 
       // Kategori filter
       const matchKategori = !filterKategori || item.nama_kategori === filterKategori;
 
-      return matchSearch && matchStatus && matchKategori;
+      // Ruangan filter
+      const matchRuangan = !filterRuangan || (item.nama_sublokasi || 'Tanpa Ruangan') === filterRuangan;
+
+      return matchSearch && matchStatus && matchKategori && matchRuangan;
     });
-  }, [data?.detail, searchQuery, filterStatus, filterKategori]);
+  }, [data?.detail, searchQuery, filterStatus, filterKategori, filterRuangan]);
 
   const kondisiOptions = ['Baik', 'Rusak Ringan', 'Rusak Berat', 'Tidak Ditemukan'];
 
@@ -261,12 +278,14 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
     );
   }
 
-  const STATUS_FILTERS = [
+  const STATUS_FILTERS: { key: 'all' | 'belum' | 'sudah' | 'selisih' | 'dipinjam' | 'rusak'; label: string; count: number }[] = [
     { key: 'all', label: 'Semua', count: totalItems },
     { key: 'belum', label: 'Belum Dicek', count: totalItems - itemsChecked },
     { key: 'sudah', label: 'Sudah Dicek', count: itemsChecked },
     { key: 'selisih', label: 'Ada Selisih', count: itemsWithSelisih },
-  ] as const;
+    ...(totalDipinjam > 0 ? [{ key: 'dipinjam' as const, label: 'Sedang Dipinjam', count: totalDipinjam }] : []),
+    ...(totalRusak > 0 ? [{ key: 'rusak' as const, label: 'Barang Rusak', count: totalRusak }] : []),
+  ];
 
   return (
     <div className="w-full flex flex-col gap-6 pb-10">
@@ -428,7 +447,63 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
         </div>
       )}
 
-      {/* ── Daftar Barang Table ───────────────────────────────────────────── */}
+      {/* ── Notification Banner: Barang Rusak & Dipinjam ─────────────────── */}
+      {(totalRusak > 0 || totalDipinjam > 0) && (
+        <div className="bg-amber-50/90 border border-amber-200/80 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span className="material-icons-round text-[22px]">notifications_active</span>
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                Pemberitahuan Khusus Barang
+                <span className="text-[10px] font-semibold bg-amber-200/70 text-amber-900 px-2 py-0.5 rounded-full">
+                  Perhatian Petugas
+                </span>
+              </h3>
+              <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
+                {totalDipinjam > 0 && totalRusak > 0 ? (
+                  <>Tercatat <strong className="text-indigo-800 font-semibold">{totalDipinjam} barang sedang dipinjam</strong> di luar dan <strong className="text-rose-800 font-semibold">{totalRusak} barang berstatus rusak</strong> di sistem. Harap perhatikan badge saat pencocokan fisik.</>
+                ) : totalDipinjam > 0 ? (
+                  <>Tercatat <strong className="text-indigo-800 font-semibold">{totalDipinjam} barang sedang dipinjam</strong> di luar gereja. Jika barang tidak ada di ruangan, cek status peminjam.</>
+                ) : (
+                  <>Tercatat <strong className="text-rose-800 font-semibold">{totalRusak} barang berstatus rusak</strong> di sistem.</>
+                )}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap pl-13 sm:pl-0">
+            {totalDipinjam > 0 && (
+              <button
+                type="button"
+                onClick={() => setFilterStatus(filterStatus === 'dipinjam' ? 'all' : 'dipinjam')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                  filterStatus === 'dipinjam'
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                    : 'bg-white text-indigo-700 border-indigo-200 hover:bg-indigo-50'
+                }`}
+              >
+                {filterStatus === 'dipinjam' ? '✕ Tutup Filter' : `Lihat Dipinjam (${totalDipinjam})`}
+              </button>
+            )}
+            {totalRusak > 0 && (
+              <button
+                type="button"
+                onClick={() => setFilterStatus(filterStatus === 'rusak' ? 'all' : 'rusak')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                  filterStatus === 'rusak'
+                    ? 'bg-rose-600 text-white border-rose-600 shadow-sm'
+                    : 'bg-white text-rose-700 border-rose-200 hover:bg-rose-50'
+                }`}
+              >
+                {filterStatus === 'rusak' ? '✕ Tutup Filter' : `Lihat Rusak (${totalRusak})`}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Daftar Barang Container ───────────────────────────────────────── */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
 
         {/* Table header + search/filter toolbar */}
@@ -455,13 +530,13 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
           </div>
 
           {/* Search + filter row */}
-          <div className="flex flex-col sm:flex-row gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
             {/* Search */}
-            <div className="relative flex-1">
+            <div className="relative sm:col-span-6">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 material-icons-round text-slate-400 text-[18px]">search</span>
               <input
                 type="text"
-                placeholder="Cari nama atau kode barang..."
+                placeholder="Cari nama, kode, atau ruangan..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-9 pr-9 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-300 bg-slate-50"
@@ -476,13 +551,27 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
               )}
             </div>
 
+            {/* Ruangan dropdown */}
+            <div className="relative sm:col-span-3">
+              <select
+                value={filterRuangan}
+                onChange={(e) => setFilterRuangan(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-400 text-slate-700"
+              >
+                <option value="">Semua Ruangan ({ruangans.length})</option>
+                {ruangans.map((r) => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+              </select>
+            </div>
+
             {/* Kategori dropdown */}
             <select
               value={filterKategori}
               onChange={(e) => setFilterKategori(e.target.value)}
-              className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-400 text-slate-700 min-w-[160px]"
+              className="sm:col-span-3 px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-400 text-slate-700"
             >
-              <option value="">Semua Kategori</option>
+              <option value="">Semua Kategori ({kategoris.length})</option>
               {kategoris.map((k) => (
                 <option key={k} value={k}>{k}</option>
               ))}
@@ -490,7 +579,7 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
           </div>
 
           {/* Status filter chips */}
-          <div className="flex gap-2 mt-2 flex-wrap">
+          <div className="flex gap-2 mt-2.5 flex-wrap items-center">
             {STATUS_FILTERS.map(({ key, label, count }) => {
               const isActive = filterStatus === key;
               const chipColor = {
@@ -498,6 +587,8 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
                 belum: isActive ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-amber-600 border-amber-200 hover:border-amber-400',
                 sudah: isActive ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-blue-600 border-blue-200 hover:border-blue-400',
                 selisih: isActive ? 'bg-red-600 text-white border-red-600' : 'bg-white text-red-600 border-red-200 hover:border-red-400',
+                dipinjam: isActive ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-indigo-700 border-indigo-200 hover:border-indigo-400',
+                rusak: isActive ? 'bg-rose-600 text-white border-rose-600' : 'bg-white text-rose-700 border-rose-200 hover:border-rose-400',
               }[key];
 
               return (
@@ -515,9 +606,9 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
             })}
 
             {/* Clear all filters */}
-            {(searchQuery || filterStatus !== 'all' || filterKategori) && (
+            {(searchQuery || filterStatus !== 'all' || filterKategori || filterRuangan) && (
               <button
-                onClick={() => { setSearchQuery(''); setFilterStatus('all'); setFilterKategori(''); }}
+                onClick={() => { setSearchQuery(''); setFilterStatus('all'); setFilterKategori(''); setFilterRuangan(''); }}
                 className="flex items-center gap-1 px-3 py-1.5 text-xs text-slate-500 hover:text-slate-700 transition-colors"
               >
                 <span className="material-icons-round text-[14px]">filter_alt_off</span>
@@ -541,7 +632,7 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
             <span className="material-icons-round text-3xl mb-2 block">search_off</span>
             <p className="text-sm font-medium text-slate-500">Tidak ada barang yang sesuai filter</p>
             <button
-              onClick={() => { setSearchQuery(''); setFilterStatus('all'); setFilterKategori(''); }}
+              onClick={() => { setSearchQuery(''); setFilterStatus('all'); setFilterKategori(''); setFilterRuangan(''); }}
               className="mt-2 text-xs text-blue-600 hover:text-blue-800 font-medium"
             >
               Reset filter
@@ -549,14 +640,296 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
           </div>
         )}
 
-        {/* Table */}
+        {/* ── Mobile Card List (block md:hidden) ─────────────────────────── */}
         {filteredDetail.length > 0 && (
-          <div className="overflow-x-auto">
+          <div className="block md:hidden divide-y divide-slate-100">
+            {filteredDetail.map((item: any) => {
+              const isEditing = editingDetailId === item.id;
+              const hasData = item.jumlah_fisik !== null;
+              const selisih = hasData ? (item.jumlah_fisik - item.jumlah_tercatat) : null;
+              const isHighlighted = highlightedDetailId === item.id;
+              const isSatuan = item.tipe_barang === 'satuan';
+
+              return (
+                <div
+                  key={`m-${item.id}`}
+                  ref={(el) => {
+                    if (rowRefs.current) (rowRefs.current as any)[item.id] = el;
+                  }}
+                  className={`p-4 transition-colors duration-200 ${
+                    isHighlighted
+                      ? 'bg-amber-100/90 ring-2 ring-amber-400 ring-inset'
+                      : hasData
+                      ? 'bg-white'
+                      : 'bg-amber-50/25'
+                  }`}
+                >
+                  {/* Row 1: Nama, Type Badge & Status Pill */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-bold text-slate-800 text-sm leading-snug">
+                          {item.nama_barang}
+                        </span>
+                        <span
+                          className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold leading-none ${
+                            isSatuan
+                              ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                              : 'bg-slate-100 text-slate-600 border border-slate-300'
+                          }`}
+                        >
+                          {isSatuan ? '🏷️ SATUAN' : '📦 MASSAL'}
+                        </span>
+                      </div>
+                      <p className="font-mono text-[11px] text-slate-400 mt-0.5">
+                        {item.kode_barang}
+                      </p>
+                    </div>
+
+                    {/* Status Pill (Right) */}
+                    <div className="flex-shrink-0">
+                      {hasData ? (
+                        isSatuan ? (
+                          item.jumlah_fisik === 1 ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 border border-green-200">
+                              <span className="material-icons-round text-[14px]">check_circle</span>
+                              Ditemukan
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 border border-red-200">
+                              <span className="material-icons-round text-[14px]">cancel</span>
+                              Hilang
+                            </span>
+                          )
+                        ) : (
+                          <div className="text-right">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                              Fisik: {item.jumlah_fisik}
+                            </span>
+                            {selisih !== null && selisih !== 0 && (
+                              <span
+                                className={`block text-[10px] font-bold mt-0.5 ${
+                                  selisih < 0 ? 'text-red-600' : 'text-amber-600'
+                                }`}
+                              >
+                                Selisih: {selisih > 0 ? `+${selisih}` : selisih}
+                              </span>
+                            )}
+                          </div>
+                        )
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 text-slate-500">
+                          Belum Dicek
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Row 2: Ruangan + Kategori pills + Sistem count */}
+                  <div className="flex items-center gap-1.5 flex-wrap mt-2 text-xs">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-medium text-[11px]">
+                      <span className="material-icons-round text-[13px] text-slate-500">meeting_room</span>
+                      {item.nama_sublokasi || 'Tanpa Ruangan'}
+                    </span>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-50 text-slate-500 text-[11px] border border-slate-200">
+                      {item.nama_kategori}
+                    </span>
+                    {!isSatuan && (
+                      <span className="text-[11px] text-slate-500 ml-auto">
+                        Sistem: <strong className="text-slate-700">{item.jumlah_tercatat}</strong>
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Alerts: Barang Dipinjam */}
+                  {item.is_dipinjam && (
+                    <div className="mt-2.5 px-3 py-2 bg-indigo-50 border border-indigo-200 rounded-xl text-xs text-indigo-900 flex items-start gap-2 shadow-xs">
+                      <span className="material-icons-round text-indigo-600 text-[18px] flex-shrink-0 mt-0.5">assignment_return</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold">
+                          Sedang Dipinjam: <span className="font-normal">{item.nama_peminjam || 'Peminjam'}</span>
+                        </p>
+                        {item.tanggal_rencana_kembali && (
+                          <p className="text-indigo-600 text-[11px] mt-0.5">
+                            Rencana kembali: {new Date(item.tanggal_rencana_kembali).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Alerts: Barang Rusak */}
+                  {item.is_rusak && (
+                    <div className="mt-2.5 px-3 py-2 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-900 flex items-start gap-2 shadow-xs">
+                      <span className="material-icons-round text-rose-600 text-[18px] flex-shrink-0 mt-0.5">warning</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold">
+                          Kondisi di Sistem: <span className="text-rose-800">{item.kondisi_sistem}</span>
+                        </p>
+                        <p className="text-rose-700 text-[11px] mt-0.5">
+                          Barang tercatat rusak, harap teliti memeriksa fisiknya.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Recorded Condition or Note (if not editing) */}
+                  {!isEditing && (item.kondisi_fisik || item.keterangan) && (
+                    <div className="mt-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {item.kondisi_fisik && (
+                          <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-bold border ${kondisiBadge(item.kondisi_fisik)}`}>
+                            {item.kondisi_fisik}
+                          </span>
+                        )}
+                        {item.keterangan && (
+                          <span className="italic text-[11px] text-slate-500">&ldquo;{item.keterangan}&rdquo;</span>
+                        )}
+                      </div>
+                      {item.checked_by_name && (
+                        <span className="text-[10px] text-slate-400">oleh {item.checked_by_name}</span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Action Controls for Mobile */}
+                  {canEdit && data.status === 'Berjalan' && (
+                    <div className="mt-3">
+                      {isEditing ? (
+                        /* Inline Edit Mode on Mobile */
+                        <div className="p-3 bg-blue-50/60 border border-blue-200 rounded-xl space-y-2.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-blue-900">Catatan & Kondisi Fisik</span>
+                            <button
+                              type="button"
+                              onClick={() => setEditingDetailId(null)}
+                              className="text-slate-400 hover:text-slate-600 p-1"
+                            >
+                              <span className="material-icons-round text-[16px]">close</span>
+                            </button>
+                          </div>
+                          <div>
+                            <label className="text-[11px] font-semibold text-slate-600 block mb-1">Kondisi Fisik</label>
+                            <select
+                              value={editForm.kondisi_fisik}
+                              onChange={(e) => setEditForm(prev => ({ ...prev, kondisi_fisik: e.target.value }))}
+                              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            >
+                              <option value="">Pilih kondisi...</option>
+                              {kondisiOptions.map(k => <option key={k} value={k}>{k}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-[11px] font-semibold text-slate-600 block mb-1">Keterangan / Alasan</label>
+                            <input
+                              type="text"
+                              placeholder="Contoh: lecet bodi, baut hilang..."
+                              value={editForm.keterangan}
+                              onChange={(e) => setEditForm(prev => ({ ...prev, keterangan: e.target.value }))}
+                              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            />
+                          </div>
+                          <div className="flex gap-2 pt-1">
+                            <button
+                              type="button"
+                              onClick={() => setEditingDetailId(null)}
+                              className="flex-1 py-2 rounded-lg border border-slate-200 bg-white text-slate-600 text-xs font-bold"
+                            >
+                              Batal
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleSaveDetail(item.id)}
+                              className="flex-1 py-2 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 shadow-sm"
+                            >
+                              Simpan Catatan
+                            </button>
+                          </div>
+                        </div>
+                      ) : isSatuan ? (
+                        /* Satuan 1-Tap Touch Buttons (min-h 44px) */
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleAction('update_detail', { detail_id: item.id, jumlah_fisik: 1 })}
+                            className={`flex-1 min-h-[44px] px-3 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 ${
+                              hasData && item.jumlah_fisik === 1
+                                ? 'bg-green-600 text-white shadow-sm'
+                                : 'bg-green-50 border border-green-200 text-green-700 hover:bg-green-100'
+                            }`}
+                          >
+                            <span className="material-icons-round text-[16px]">check_circle</span>
+                            Ditemukan
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleAction('update_detail', { detail_id: item.id, jumlah_fisik: 0 })}
+                            className={`flex-1 min-h-[44px] px-3 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 ${
+                              hasData && item.jumlah_fisik === 0
+                                ? 'bg-red-600 text-white shadow-sm'
+                                : 'bg-red-50 border border-red-200 text-red-700 hover:bg-red-100'
+                            }`}
+                          >
+                            <span className="material-icons-round text-[16px]">cancel</span>
+                            Tidak Ada
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingDetailId(item.id);
+                              setEditForm({
+                                jumlah_fisik: item.jumlah_fisik !== null ? String(item.jumlah_fisik) : '1',
+                                kondisi_fisik: item.kondisi_fisik || '',
+                                keterangan: item.keterangan || '',
+                              });
+                              setSubmitState({ status: 'idle', message: '' });
+                            }}
+                            title="Tambah Catatan"
+                            className="min-h-[44px] min-w-[44px] rounded-xl border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 flex items-center justify-center transition-colors flex-shrink-0"
+                          >
+                            <span className="material-icons-round text-[18px]">edit_note</span>
+                          </button>
+                        </div>
+                      ) : (
+                        /* Massal 1-Tap Count Button (min-h 44px) */
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setQuickInputItem(item);
+                            setQuickInputForm({
+                              jumlah_fisik: item.jumlah_fisik !== null ? String(item.jumlah_fisik) : '',
+                              kondisi_fisik: item.kondisi_fisik || '',
+                              keterangan: item.keterangan || '',
+                            });
+                            setSubmitState({ status: 'idle', message: '' });
+                          }}
+                          className={`w-full min-h-[44px] px-4 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-98 ${
+                            hasData
+                              ? 'bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100'
+                              : 'bg-blue-600 text-white shadow-sm hover:bg-blue-700'
+                          }`}
+                        >
+                          <span className="material-icons-round text-[18px]">{hasData ? 'edit' : 'add_circle'}</span>
+                          {hasData ? `Ubah Hitungan Fisik (${item.jumlah_fisik})` : 'Hitung Jumlah Fisik'}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ── Desktop Table (hidden md:block) ────────────────────────────── */}
+        {filteredDetail.length > 0 && (
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50">
                   <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Kode & Nama</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider hidden md:table-cell">Kategori</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Ruangan</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Kategori</th>
                   <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Jml Sistem</th>
                   <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Jml Fisik</th>
                   <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Selisih</th>
@@ -582,7 +955,7 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
                           : hasData ? 'hover:bg-slate-50' : 'bg-amber-50/30 hover:bg-amber-50/60'
                       }`}
                     >
-                      {/* Kode + Nama (merged, always visible) */}
+                      {/* Kode + Nama */}
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5 mb-0.5">
                           <p className="font-medium text-slate-800 text-sm">{item.nama_barang}</p>
@@ -595,14 +968,33 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
                           </span>
                         </div>
                         <p className="font-mono text-[11px] text-slate-400">{item.kode_barang}</p>
-                        {/* Kategori on mobile */}
-                        <p className="text-[11px] text-slate-400 mt-0.5 md:hidden">{item.nama_kategori}</p>
+                        {/* Inline Alert Tags */}
+                        {item.is_dipinjam && (
+                          <div className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                            <span className="material-icons-round text-[11px]">assignment_return</span>
+                            <span>Dipinjam: {item.nama_peminjam || 'Peminjam'}</span>
+                          </div>
+                        )}
+                        {item.is_rusak && (
+                          <div className="mt-1 ml-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                            <span className="material-icons-round text-[11px]">warning</span>
+                            <span>Sistem: {item.kondisi_sistem}</span>
+                          </div>
+                        )}
                       </td>
 
-                      {/* Kategori — desktop only */}
-                      <td className="px-4 py-3 text-slate-500 text-xs hidden md:table-cell">{item.nama_kategori}</td>
+                      {/* Ruangan */}
+                      <td className="px-4 py-3 text-slate-700 text-xs font-medium">
+                        <div className="flex items-center gap-1.5">
+                          <span className="material-icons-round text-slate-400 text-[14px]">meeting_room</span>
+                          <span>{item.nama_sublokasi || 'Tanpa Ruangan'}</span>
+                        </div>
+                      </td>
 
-                      {/* Jumlah sistem — hidden for satuan (always 1, not meaningful) */}
+                      {/* Kategori */}
+                      <td className="px-4 py-3 text-slate-500 text-xs">{item.nama_kategori}</td>
+
+                      {/* Jumlah sistem */}
                       <td className="px-4 py-3 text-center text-slate-700 font-medium">
                         {isSatuan ? <span className="text-slate-300 text-xs">—</span> : item.jumlah_tercatat}
                       </td>
@@ -673,7 +1065,7 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
                         </>
                       ) : (
                         <>
-                          {/* Jumlah fisik view — satuan: chip, massal: number */}
+                          {/* Jumlah fisik view */}
                           <td className="px-4 py-3 text-center">
                             {isSatuan ? (
                               hasData ? (
@@ -695,7 +1087,7 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
                                 : <span className="text-slate-300 text-xs">–</span>
                             )}
                           </td>
-                          {/* Selisih badge — satuan: Sesuai/Hilang, massal: angka */}
+                          {/* Selisih badge */}
                           <td className="px-4 py-3 text-center">
                             {selisih !== null ? (
                               <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold border ${
@@ -735,7 +1127,6 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
                           <td className="px-4 py-3">
                             {canEdit && data.status === 'Berjalan' && (
                               isSatuan ? (
-                                // Satuan: Ditemukan ✓ / Tidak Ditemukan ✗ / Edit catatan
                                 <div className="flex items-center gap-1">
                                   <button
                                     onClick={() => handleAction('update_detail', { detail_id: item.id, jumlah_fisik: 1 })}
@@ -776,7 +1167,6 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
                                   </button>
                                 </div>
                               ) : (
-                                // Massal: Quick Input Modal button
                                 <button
                                   onClick={() => {
                                     setQuickInputItem(item);
@@ -1071,6 +1461,19 @@ export default function StokOpnameDetailPage({ params }: { params: Promise<{ id:
         title={`Scan Fisik: ${quickInputItem?.nama_barang || ''}`}
         hint="Arahkan ke barcode/QR setiap barang fisik. Setiap scan otomatis +1. Tutup kamera jika selesai menghitung."
       />
+
+      {/* ── Floating Scan Button for Mobile ─────────────────────────────── */}
+      {canEdit && data.status === 'Berjalan' && (
+        <button
+          type="button"
+          onClick={() => setIsScannerOpen(true)}
+          className="fixed bottom-6 right-6 z-40 md:hidden flex items-center gap-2 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-bold text-sm px-4 py-3 rounded-full shadow-2xl transition-all"
+          title="Scan Barcode"
+        >
+          <span className="material-icons-round text-[20px]">photo_camera</span>
+          <span>Scan Barcode</span>
+        </button>
+      )}
     </div>
   );
 }

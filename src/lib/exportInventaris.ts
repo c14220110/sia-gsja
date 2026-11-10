@@ -164,11 +164,11 @@ export async function exportStokOpnameToExcel(sessionData: any) {
     pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true }
   });
 
-  // Column widths: No | Kode | Nama | Kategori | Jml Sistem | Jml Fisik | Selisih | Kondisi Fisik | Keterangan | Dicek Oleh
-  [5, 22, 35, 18, 12, 12, 10, 16, 30, 20].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+  // Column widths: No | Kode | Nama | Ruangan | Kategori | Jml Sistem | Jml Fisik | Selisih | Kondisi Fisik | Keterangan | Dicek Oleh
+  [5, 20, 32, 20, 18, 12, 12, 10, 16, 28, 18].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
 
   const cell = (addr: string) => ws.getCell(addr);
-  const COLS = 10;
+  const COLS = 11;
 
   const fill = (c: any, bg: string, fc: string, bold = true, sz = 11) => {
     c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
@@ -179,12 +179,12 @@ export async function exportStokOpnameToExcel(sessionData: any) {
   const rangeMerge = (start: string, end: string) => ws.mergeCells(`${start}:${end}`);
 
   // ── Title ──
-  rangeMerge('A1', 'J1');
+  rangeMerge('A1', 'K1');
   fill(cell('A1'), SLATE, WHITE, true, 15);
   cell('A1').value = 'LAPORAN STOK OPNAME — GSJA';
   ws.getRow(1).height = 34;
 
-  rangeMerge('A2', 'J2');
+  rangeMerge('A2', 'K2');
   fill(cell('A2'), BLUE, WHITE, false, 11);
   cell('A2').value = sessionData.judul;
   ws.getRow(2).height = 22;
@@ -222,7 +222,7 @@ export async function exportStokOpnameToExcel(sessionData: any) {
   const plus  = detail.filter((d: any) => d.selisih !== null && d.selisih > 0).length;
   const ok    = detail.filter((d: any) => d.selisih !== null && d.selisih === 0).length;
 
-  const summaryRow = ws.addRow([`Total: ${totalItems}`, `Dicek: ${checked}`, `Sesuai: ${ok}`, `Surplus: ${plus}`, `Kurang: ${minus}`, '', '', '', '', '']);
+  const summaryRow = ws.addRow([`Total: ${totalItems}`, `Dicek: ${checked}`, `Sesuai: ${ok}`, `Surplus: ${plus}`, `Kurang: ${minus}`, '', '', '', '', '', '']);
   ws.mergeCells(`A${summaryRow.number}:B${summaryRow.number}`);
   summaryRow.eachCell((c, i) => {
     if (i <= 5) {
@@ -236,7 +236,7 @@ export async function exportStokOpnameToExcel(sessionData: any) {
   ws.addRow([]); // spacer
 
   // ── Data Header ──
-  const HEADERS = ['No', 'Kode Barang', 'Nama Barang', 'Kategori', 'Jml Sistem', 'Jml Fisik', 'Selisih', 'Kondisi Fisik', 'Keterangan', 'Dicek Oleh'];
+  const HEADERS = ['No', 'Kode Barang', 'Nama Barang', 'Ruangan', 'Kategori', 'Jml Sistem', 'Jml Fisik', 'Selisih', 'Kondisi Fisik', 'Keterangan', 'Dicek Oleh'];
   const hRow = ws.addRow(HEADERS);
   hRow.height = 24;
   hRow.eachCell((c) => fill(c, SLATE, WHITE, true, 10));
@@ -251,6 +251,7 @@ export async function exportStokOpnameToExcel(sessionData: any) {
       idx + 1,
       item.kode_barang,
       item.nama_barang,
+      item.nama_sublokasi || '-',
       item.nama_kategori || '-',
       item.jumlah_tercatat,
       item.jumlah_fisik !== null ? item.jumlah_fisik : '(belum dicek)',

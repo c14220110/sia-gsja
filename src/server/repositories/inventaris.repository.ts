@@ -645,8 +645,15 @@ export class InventarisRepository {
     const detailRes = await pool.query(
       `SELECT sod.*,
         b.kode_barang, b.nama AS nama_barang, b.jumlah AS jumlah_sistem, b.tipe_barang,
+        b.kondisi AS kondisi_sistem,
+        b.status AS status_barang,
+        b.lokasi_sublokasi_id,
         mk.nama AS nama_kategori,
         ms.nama AS nama_sublokasi,
+        pb_lat.nama_peminjam,
+        pb_lat.tanggal_rencana_kembali,
+        CASE WHEN pb_lat.id IS NOT NULL OR b.status = 'Dipinjam' THEN true ELSE false END AS is_dipinjam,
+        CASE WHEN b.kondisi IN ('Rusak Ringan', 'Rusak Berat') THEN true ELSE false END AS is_rusak,
         pc.id AS checker_id,
         jc.nama_lengkap AS checked_by_name
        FROM stok_opname_detail sod
@@ -655,8 +662,22 @@ export class InventarisRepository {
        LEFT JOIN master_sublokasi ms ON b.lokasi_sublokasi_id = ms.id
        LEFT JOIN pengguna pc ON sod.checked_by = pc.id
        LEFT JOIN jemaat jc ON pc.jemaat_id = jc.id
+       LEFT JOIN LATERAL (
+         SELECT
+           pb.id,
+           CASE
+             WHEN pb.peminjam_tipe = 'Jemaat' AND j.nama_lengkap IS NOT NULL THEN j.nama_lengkap
+             ELSE pb.peminjam_nama_lain
+           END AS nama_peminjam,
+           pb.tanggal_rencana_kembali
+         FROM peminjaman_barang pb
+         LEFT JOIN jemaat j ON pb.peminjam_jemaat_id = j.id
+         WHERE pb.barang_id = b.id AND pb.status = 'Dipinjam'
+         ORDER BY pb.tanggal_pinjam DESC
+         LIMIT 1
+       ) pb_lat ON true
        WHERE sod.stok_opname_id = $1
-       ORDER BY mk.nama, b.nama`,
+       ORDER BY ms.nama NULLS LAST, mk.nama, b.nama`,
       [id]
     );
 
