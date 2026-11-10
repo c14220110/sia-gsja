@@ -9,6 +9,11 @@ export async function GET(request: Request) {
     return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
   }
 
+  const canView = caller.is_super_admin || caller.permissions.includes('buku_besar_view') || caller.permissions.includes('buku_besar_manage');
+  if (!canView) {
+    return NextResponse.json({ success: false, message: 'Akses Ditolak: Butuh izin buku_besar_view' }, { status: 403 });
+  }
+
   try {
     const res = await pool.query(`
       SELECT 
@@ -33,6 +38,11 @@ export async function POST(req: Request) {
   const caller = getCallerFromRequest(req);
   if (!caller) {
     return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  }
+
+  const canManage = caller.is_super_admin || caller.permissions.includes('buku_besar_manage');
+  if (!canManage) {
+    return NextResponse.json({ success: false, message: 'Akses Ditolak: Butuh izin buku_besar_manage' }, { status: 403 });
   }
 
   try {
@@ -90,6 +100,11 @@ export async function PUT(req: Request) {
   const caller = getCallerFromRequest(req);
   if (!caller) {
     return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  }
+
+  const canManage = caller.is_super_admin || caller.permissions.includes('buku_besar_manage');
+  if (!canManage) {
+    return NextResponse.json({ success: false, message: 'Akses Ditolak: Butuh izin buku_besar_manage' }, { status: 403 });
   }
 
   try {
@@ -162,6 +177,51 @@ export async function PUT(req: Request) {
       return NextResponse.json({ success: false, message: 'Kode Akun sudah digunakan. Silakan gunakan kode lain.' }, { status: 409 });
     }
     return NextResponse.json({ success: false, message: 'Gagal memperbarui akun', error: error.message }, { status: 500 });
+  }
+}
+
+// DELETE: Delete an existing Account
+export async function DELETE(req: Request) {
+  const caller = getCallerFromRequest(req);
+  if (!caller) {
+    return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  }
+
+  const canManage = caller.is_super_admin || caller.permissions.includes('buku_besar_manage');
+  if (!canManage) {
+    return NextResponse.json({ success: false, message: 'Akses Ditolak: Butuh izin buku_besar_manage' }, { status: 403 });
+  }
+
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ success: false, message: 'ID Akun tidak valid' }, { status: 400 });
+    }
+
+    const childCheck = await pool.query(`SELECT id FROM public.buku_besar_coa WHERE induk_akun_id = $1 LIMIT 1`, [id]);
+    if (childCheck.rows.length > 0) {
+      return NextResponse.json({ success: false, message: 'Tidak dapat menghapus akun yang memiliki sub-akun (anak).' }, { status: 400 });
+    }
+
+    const journalCheck = await pool.query(`SELECT id FROM public.buku_besar_jurnal_detail WHERE coa_id = $1 LIMIT 1`, [id]);
+    if (journalCheck.rows.length > 0) {
+      return NextResponse.json({ success: false, message: 'Tidak dapat menghapus akun yang sudah memiliki riwayat transaksi jurnal.' }, { status: 400 });
+    }
+
+    const res = await pool.query(`DELETE FROM public.buku_besar_coa WHERE id = $1 RETURNING *`, [id]);
+    if (res.rows.length === 0) {
+      return NextResponse.json({ success: false, message: 'Akun tidak ditemukan' }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Akun berhasil dihapus'
+    });
+  } catch (error: any) {
+    console.error('Error deleting COA:', error);
+    return NextResponse.json({ success: false, message: 'Gagal menghapus akun', error: error.message }, { status: 500 });
   }
 }
 

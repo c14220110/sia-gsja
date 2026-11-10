@@ -16,10 +16,24 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const { id } = await params;
     if (!id) return NextResponse.json({ success: false, message: 'ID required' }, { status: 400 });
 
+    const isOwner = caller.jemaat_id != null && String(caller.jemaat_id) === String(id);
+    const canView = caller.is_super_admin || caller.permissions.includes('jemaat_view');
+
+    if (!isOwner && !canView) {
+      return NextResponse.json({ success: false, message: 'Akses Ditolak: Anda tidak memiliki izin melihat data jemaat ini.' }, { status: 403 });
+    }
+
     const jemaat = await jemaatRepository.getJemaatById(id);
     
     if (!jemaat) {
       return NextResponse.json({ success: false, message: 'Jemaat tidak ditemukan' }, { status: 404 });
+    }
+
+    // Jika bukan Superadmin & tidak punya izin multi_satelit_view, pastikan jemaat satu satelit
+    if (!caller.is_super_admin && !caller.permissions.includes('multi_satelit_view') && !isOwner) {
+      if (Number(jemaat.satelit_id) !== Number(caller.satelit_id)) {
+        return NextResponse.json({ success: false, message: 'Akses Ditolak: Jemaat berbeda satelit.' }, { status: 403 });
+      }
     }
 
     return NextResponse.json({ success: true, data: jemaat }, { status: 200 });

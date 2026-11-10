@@ -6,6 +6,11 @@ export async function GET(req: Request) {
   const caller = getCallerFromRequest(req);
   if (!caller) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
 
+  const canView = caller.is_super_admin || caller.permissions.includes('buku_besar_view') || caller.permissions.includes('buku_besar_manage');
+  if (!canView) {
+    return NextResponse.json({ success: false, message: 'Akses Ditolak: Butuh izin buku_besar_view' }, { status: 403 });
+  }
+
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
@@ -54,6 +59,11 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const caller = getCallerFromRequest(req);
   if (!caller) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+
+  const canManage = caller.is_super_admin || caller.permissions.includes('buku_besar_manage');
+  if (!canManage) {
+    return NextResponse.json({ success: false, message: 'Akses Ditolak: Butuh izin buku_besar_manage' }, { status: 403 });
+  }
 
   const client = await pool.connect();
   try {
@@ -151,6 +161,11 @@ export async function PUT(req: Request) {
   const caller = getCallerFromRequest(req);
   if (!caller) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
 
+  const canManage = caller.is_super_admin || caller.permissions.includes('buku_besar_manage');
+  if (!canManage) {
+    return NextResponse.json({ success: false, message: 'Akses Ditolak: Butuh izin buku_besar_manage' }, { status: 403 });
+  }
+
   const client = await pool.connect();
   try {
     const body = await req.json();
@@ -239,6 +254,11 @@ export async function PUT(req: Request) {
 export async function DELETE(req: Request) {
   const caller = getCallerFromRequest(req);
   if (!caller) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+
+  const canManage = caller.is_super_admin || caller.permissions.includes('buku_besar_manage');
+  if (!canManage) {
+    return NextResponse.json({ success: false, message: 'Akses Ditolak: Butuh izin buku_besar_manage' }, { status: 403 });
+  }
 
   try {
     const { searchParams } = new URL(req.url);
