@@ -54,6 +54,12 @@ export async function GET(
     }
     const peg = pegawaiRes.rows[0];
 
+    if (!caller.is_super_admin && !caller.permissions.includes('multi_satelit_view')) {
+      if (peg.satelit_id !== caller.satelit_id) {
+        return NextResponse.json({ success: false, message: 'Akses Ditolak: Pegawai bukan milik satelit Anda' }, { status: 403 });
+      }
+    }
+
     // 2. Ambil semua komponen master (aktif)
     const komponenRes = await pool.query(`
       SELECT id, nama_komponen, tipe, calculation_type, is_employer_portion, global_rate_field, is_system, urutan

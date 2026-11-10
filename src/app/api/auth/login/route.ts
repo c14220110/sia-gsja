@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     const user = await userRepository.findByIdentifier(email);
 
     if (!user) {
-      throw new Error('Email, No Handphone, atau Username tidak terdaftar.');
+      throw new Error('Email, No Handphone, Username, atau Password salah.');
     }
 
     if (!user.is_active) {
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
 
     const isPasswordValid = await comparePasswordWithDobTolerance(password, user.password_hash);
     if (!isPasswordValid) {
-      throw new Error('Password salah.');
+      throw new Error('Email, No Handphone, Username, atau Password salah.');
     }
 
     // Case 1: requires password change
