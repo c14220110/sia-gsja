@@ -64,7 +64,7 @@ export default function proxy(request: NextRequest) {
   // ═══════════════════════════════════════════════
   // 2. PAGE-LEVEL AUTH REDIRECTS
   // ═══════════════════════════════════════════════
-  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/reset-password');
+  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/reset-password') || pathname.startsWith('/select-role');
   const isPublicPage = isAuthPage || pathname.startsWith('/daftar-jemaat');
 
   // Ojo ksini ! Belokan yg blom login yang nekat pgn nembus akses yg dikunci nih ya
@@ -84,18 +84,33 @@ export const config = {
   matcher: [
     // Match all API routes
     '/api/:path*',
-    // Cocokkan buat laman terlidung doang dong ya (asset yang diam-diam aja jgn diitung ege)
+    // Root dashboard & dashboard redirects
+    '/',
     '/dashboard/:path*',
-    '/pengurus/:path*',
-    '/pelayan/:path*',
-    '/kegiatan/:path*',
-    '/pegawai/:path*',
-    '/buku-besar/:path*',
+    // Cocokkan buat laman terlidung doang (asset statis di public/ jangan di-matcher agar tidak bocor ke redirect)
+    '/alkitab/:path*',
     '/anggaran/:path*',
-    '/settings/:path*',
+    '/bsc/:path*',
+    '/buku-besar/:path*',
     '/family-tree/:path*',
+    '/inventaris/:path*',
+    '/jadwal/:path*',
+    '/jemaat/:path*',
+    '/kegiatan/:path*',
     '/layanan-pastoral/:path*',
+    '/pegawai/:path*',
+    '/pelayan/:path*',
+    '/pengaturan-akun/:path*',
+    '/pengurus/:path*',
+    '/profil/:path*',
+    '/riwayat-kehadiran/:path*',
+    '/settings/:path*',
+    '/survei-saya/:path*',
+    '/tiket/:path*',
+    // Auth & public pages handled by proxy
     '/login',
     '/reset-password',
+    '/select-role',
+    '/daftar-jemaat/:path*',
   ],
 };
