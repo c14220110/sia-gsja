@@ -34,6 +34,40 @@ export interface InsertPengurusAuditLogParams {
   keterangan?: string;
 }
 
+export interface InsertInventarisAuditLogParams {
+  barang_id:   number;
+  aksi:        AuditAction;
+  user_id:     number;
+  role_id:     number;
+  satelit_id:  number;
+  keterangan?: string;
+}
+
+export interface InsertKegiatanAuditLogParams {
+  kegiatan_id: number;
+  aksi:        AuditAction;
+  user_id:     number;
+  role_id:     number;
+  satelit_id:  number;
+  keterangan?: string;
+}
+
+export interface PastoralAuditLogEntry {
+  id:                 number;
+  permohonan_id:      number;
+  nomor_tiket:        string;
+  nama_pemohon:       string;
+  jenis_layanan:      string;
+  status_sebelumnya:  string | null;
+  status_baru:        string;
+  diubah_oleh_id:     number;
+  nama_pelaksana:     string;
+  nama_role:          string;
+  nama_satelit:       string;
+  catatan_perubahan:  string | null;
+  created_at:         string;
+}
+
 export interface InsertAnggaranAuditLogParams {
   anggaran_id:    string; // uuid
   kode_dokumen:   string;
@@ -65,6 +99,7 @@ export interface AuditLogEntry {
   id:             number;
   entity_id:      number;
   nama_entity:    string;
+  kode_entity?:   string;
   aksi:           AuditAction;
   user_id:        number;
   nama_pelaksana: string;
@@ -159,6 +194,24 @@ export class AuditLogRepository {
       `INSERT INTO pengurus_audit_log (pengurus_id, aksi, user_id, role_id, satelit_id, keterangan)
        VALUES ($1, $2::audit_action, $3, $4, $5, $6)`,
       [pengurus_id, aksi, user_id, role_id, satelit_id, keterangan ?? null]
+    );
+  }
+
+  async insertInventarisAuditLog(params: InsertInventarisAuditLogParams): Promise<void> {
+    const { barang_id, aksi, user_id, role_id, satelit_id, keterangan } = params;
+    await pool.query(
+      `INSERT INTO inventaris_audit_log (barang_id, aksi, user_id, role_id, satelit_id, keterangan)
+       VALUES ($1, $2::audit_action, $3, $4, $5, $6)`,
+      [barang_id, aksi, user_id, role_id, satelit_id, keterangan ?? null]
+    );
+  }
+
+  async insertKegiatanAuditLog(params: InsertKegiatanAuditLogParams): Promise<void> {
+    const { kegiatan_id, aksi, user_id, role_id, satelit_id, keterangan } = params;
+    await pool.query(
+      `INSERT INTO kegiatan_audit_log (kegiatan_id, aksi, user_id, role_id, satelit_id, keterangan)
+       VALUES ($1, $2::audit_action, $3, $4, $5, $6)`,
+      [kegiatan_id, aksi, user_id, role_id, satelit_id, keterangan ?? null]
     );
   }
 
@@ -354,6 +407,203 @@ export class AuditLogRepository {
              al.role_id, r.nama_role, al.satelit_id, s.nama_satelit, al.keterangan, al.created_at
       ${baseFrom}
       WHERE ${where} ORDER BY al.created_at DESC LIMIT $${nextIdx} OFFSET $${nextIdx + 1}`;
+
+    const [countRes, dataRes] = await Promise.all([
+      pool.query(countQuery, values),
+      pool.query(dataQuery, [...values, limit, offset]),
+    ]);
+    return { total: parseInt(countRes.rows[0].count, 10), data: dataRes.rows };
+  }
+
+  // ── GET INVENTARIS AUDIT LOG ───────────────────────────────────────────────
+
+  async getInventarisAuditLogs(params: GetAuditLogParams): Promise<{ data: AuditLogEntry[]; total: number }> {
+    const { limit = 15, offset = 0, search, entity_id, user_id, aksi, date_from, date_to } = params;
+    const conditions: string[] = ['1 = 1'];
+    const values: any[] = [];
+    let idx = 1;
+
+    if (entity_id) {
+      conditions.push(`al.barang_id = $${idx++}`);
+      values.push(entity_id);
+    }
+    if (user_id) {
+      conditions.push(`al.user_id = $${idx++}`);
+      values.push(user_id);
+    }
+    if (aksi) {
+      conditions.push(`al.aksi = $${idx++}::audit_action`);
+      values.push(aksi);
+    }
+    if (date_from) {
+      conditions.push(`al.created_at >= $${idx++}::date`);
+      values.push(date_from);
+    }
+    if (date_to) {
+      conditions.push(`al.created_at < ($${idx++}::date + INTERVAL '1 day')`);
+      values.push(date_to);
+    }
+    if (search) {
+      conditions.push(`(b.nama ILIKE $${idx} OR b.kode_barang ILIKE $${idx} OR COALESCE(j2.nama_lengkap, p.email) ILIKE $${idx} OR al.keterangan ILIKE $${idx})`);
+      values.push(`%${search}%`);
+      idx++;
+    }
+
+    const where = conditions.join(' AND ');
+
+    const baseFrom = `
+      FROM inventaris_audit_log al
+      JOIN barang   b  ON al.barang_id  = b.id
+      JOIN pengguna p  ON al.user_id    = p.id
+      LEFT JOIN jemaat j2 ON p.jemaat_id = j2.id
+      JOIN role     r  ON al.role_id    = r.id
+      JOIN satelit  s  ON al.satelit_id = s.id`;
+
+    const countQuery = `SELECT COUNT(*) AS count ${baseFrom} WHERE ${where}`;
+    const dataQuery = `
+      SELECT al.id, al.barang_id AS entity_id, b.nama AS nama_entity, b.kode_barang AS kode_entity, al.aksi, al.user_id,
+             COALESCE(j2.nama_lengkap, p.email) AS nama_pelaksana,
+             al.role_id, r.nama_role, al.satelit_id, s.nama_satelit, al.keterangan, al.created_at
+      ${baseFrom}
+      WHERE ${where}
+      ORDER BY al.created_at DESC
+      LIMIT $${idx} OFFSET $${idx + 1}`;
+
+    const [countRes, dataRes] = await Promise.all([
+      pool.query(countQuery, values),
+      pool.query(dataQuery, [...values, limit, offset]),
+    ]);
+    return { total: parseInt(countRes.rows[0].count, 10), data: dataRes.rows };
+  }
+
+  // ── GET KEGIATAN AUDIT LOG ─────────────────────────────────────────────────
+
+  async getKegiatanAuditLogs(params: GetAuditLogParams): Promise<{ data: AuditLogEntry[]; total: number }> {
+    const { limit = 15, offset = 0, search, entity_id, user_id, aksi, date_from, date_to } = params;
+    const conditions: string[] = ['1 = 1'];
+    const values: any[] = [];
+    let idx = 1;
+
+    if (entity_id) {
+      conditions.push(`al.kegiatan_id = $${idx++}`);
+      values.push(entity_id);
+    }
+    if (user_id) {
+      conditions.push(`al.user_id = $${idx++}`);
+      values.push(user_id);
+    }
+    if (aksi) {
+      conditions.push(`al.aksi = $${idx++}::audit_action`);
+      values.push(aksi);
+    }
+    if (date_from) {
+      conditions.push(`al.created_at >= $${idx++}::date`);
+      values.push(date_from);
+    }
+    if (date_to) {
+      conditions.push(`al.created_at < ($${idx++}::date + INTERVAL '1 day')`);
+      values.push(date_to);
+    }
+    if (search) {
+      conditions.push(`(k.nama_kegiatan ILIKE $${idx} OR k.kode_kegiatan ILIKE $${idx} OR COALESCE(j2.nama_lengkap, p.email) ILIKE $${idx} OR al.keterangan ILIKE $${idx})`);
+      values.push(`%${search}%`);
+      idx++;
+    }
+
+    const where = conditions.join(' AND ');
+
+    const baseFrom = `
+      FROM kegiatan_audit_log al
+      JOIN kegiatan k  ON al.kegiatan_id = k.id
+      JOIN pengguna p  ON al.user_id     = p.id
+      LEFT JOIN jemaat j2 ON p.jemaat_id = j2.id
+      JOIN role     r  ON al.role_id     = r.id
+      JOIN satelit  s  ON al.satelit_id  = s.id`;
+
+    const countQuery = `SELECT COUNT(*) AS count ${baseFrom} WHERE ${where}`;
+    const dataQuery = `
+      SELECT al.id, al.kegiatan_id AS entity_id, k.nama_kegiatan AS nama_entity, k.kode_kegiatan AS kode_entity, al.aksi, al.user_id,
+             COALESCE(j2.nama_lengkap, p.email) AS nama_pelaksana,
+             al.role_id, r.nama_role, al.satelit_id, s.nama_satelit, al.keterangan, al.created_at
+      ${baseFrom}
+      WHERE ${where}
+      ORDER BY al.created_at DESC
+      LIMIT $${idx} OFFSET $${idx + 1}`;
+
+    const [countRes, dataRes] = await Promise.all([
+      pool.query(countQuery, values),
+      pool.query(dataQuery, [...values, limit, offset]),
+    ]);
+    return { total: parseInt(countRes.rows[0].count, 10), data: dataRes.rows };
+  }
+
+  // ── GET PASTORAL AUDIT LOG ─────────────────────────────────────────────────
+
+  async getPastoralAuditLogs(params: GetAuditLogParams & { status_baru?: string }): Promise<{ data: PastoralAuditLogEntry[]; total: number }> {
+    const { limit = 15, offset = 0, search, entity_id, user_id, aksi, status_baru, date_from, date_to } = params;
+    const conditions: string[] = ['1 = 1'];
+    const values: any[] = [];
+    let idx = 1;
+
+    if (entity_id) {
+      conditions.push(`al.permohonan_id = $${idx++}`);
+      values.push(entity_id);
+    }
+    if (user_id) {
+      conditions.push(`al.diubah_oleh_id = $${idx++}`);
+      values.push(user_id);
+    }
+    if (aksi || status_baru) {
+      conditions.push(`al.status_baru = $${idx++}`);
+      values.push(aksi || status_baru);
+    }
+    if (date_from) {
+      conditions.push(`al.created_at >= $${idx++}::date`);
+      values.push(date_from);
+    }
+    if (date_to) {
+      conditions.push(`al.created_at < ($${idx++}::date + INTERVAL '1 day')`);
+      values.push(date_to);
+    }
+    if (search) {
+      conditions.push(`(plp.nomor_tiket ILIKE $${idx} OR COALESCE(jp.nama_lengkap, plp.nama_target_luar) ILIKE $${idx} OR COALESCE(j2.nama_lengkap, p.email) ILIKE $${idx} OR al.catatan_perubahan ILIKE $${idx})`);
+      values.push(`%${search}%`);
+      idx++;
+    }
+
+    const where = conditions.join(' AND ');
+
+    const baseFrom = `
+      FROM permohonan_layanan_audit_log al
+      JOIN permohonan_layanan_pastoral plp ON al.permohonan_id = plp.id
+      LEFT JOIN jemaat jp ON plp.jemaat_pemohon_id = jp.id
+      LEFT JOIN jenis_kegiatan jk ON plp.jenis_kegiatan_id = jk.id
+      LEFT JOIN pengguna p ON al.diubah_oleh_id = p.id
+      LEFT JOIN jemaat j2 ON p.jemaat_id = j2.id
+      LEFT JOIN LATERAL (
+        SELECT ur.role_id, ur.satelit_id 
+        FROM user_role ur 
+        WHERE ur.user_id = p.id 
+        ORDER BY ur.is_active DESC 
+        LIMIT 1
+      ) ur_lat ON true
+      LEFT JOIN role r ON ur_lat.role_id = r.id
+      LEFT JOIN satelit s ON (ur_lat.satelit_id = s.id OR (ur_lat.satelit_id IS NULL AND jp.satelit_id = s.id))`;
+
+    const countQuery = `SELECT COUNT(*) AS count ${baseFrom} WHERE ${where}`;
+    const dataQuery = `
+      SELECT al.id, al.permohonan_id, plp.nomor_tiket,
+             COALESCE(jp.nama_lengkap, plp.nama_target_luar, 'Pemohon') AS nama_pemohon,
+             COALESCE(jk.nama_jenis_kegiatan, 'Layanan Pastoral') AS jenis_layanan,
+             al.status_sebelumnya, al.status_baru, al.diubah_oleh_id,
+             COALESCE(j2.nama_lengkap, p.username, p.email, 'Sistem') AS nama_pelaksana,
+             COALESCE(r.nama_role, 'Pengguna') AS nama_role,
+             COALESCE(s.nama_satelit, '-') AS nama_satelit,
+             al.catatan_perubahan, al.created_at
+      ${baseFrom}
+      WHERE ${where}
+      ORDER BY al.created_at DESC
+      LIMIT $${idx} OFFSET $${idx + 1}`;
 
     const [countRes, dataRes] = await Promise.all([
       pool.query(countQuery, values),

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 import { InventarisRepository } from '@/server/repositories/inventaris.repository';
+import { auditLogRepository } from '@/server/repositories/auditLog.repository';
 
 const inventarisRepository = new InventarisRepository();
 
@@ -62,6 +63,19 @@ export async function PUT(
       return NextResponse.json({ success: false, message: 'Barang tidak ditemukan' }, { status: 404 });
     }
 
+    try {
+      await auditLogRepository.insertInventarisAuditLog({
+        barang_id: parseInt(id, 10),
+        aksi: 'UPDATE',
+        user_id: caller.user_id,
+        role_id: caller.role_id,
+        satelit_id: caller.satelit_id || (body.lokasi_satelit_id ? parseInt(body.lokasi_satelit_id, 10) : 1),
+        keterangan: `Data barang diperbarui: ${body.nama || 'ID ' + id}`,
+      });
+    } catch (auditErr) {
+      console.error('[InventarisDetailRoute] PUT audit log error:', auditErr);
+    }
+
     return NextResponse.json({ success: true, data: { id: parseInt(id, 10) }, message: 'Barang berhasil diperbarui' });
   } catch (error: any) {
     console.error('[InventarisDetailRoute] PUT error:', error);
@@ -93,6 +107,20 @@ export async function DELETE(
     if (!success) {
       return NextResponse.json({ success: false, message: 'Barang tidak ditemukan' }, { status: 404 });
     }
+
+    try {
+      await auditLogRepository.insertInventarisAuditLog({
+        barang_id: parseInt(id, 10),
+        aksi: 'DEACTIVATE',
+        user_id: caller.user_id,
+        role_id: caller.role_id,
+        satelit_id: caller.satelit_id || 1,
+        keterangan: `Barang dinonaktifkan/dihapus (ID: ${id})`,
+      });
+    } catch (auditErr) {
+      console.error('[InventarisDetailRoute] DELETE audit log error:', auditErr);
+    }
+
     return NextResponse.json({ success: true, data: { id: parseInt(id, 10) }, message: 'Barang berhasil dihapus' });
   } catch (error) {
     console.error('[InventarisDetailRoute] DELETE error:', error);

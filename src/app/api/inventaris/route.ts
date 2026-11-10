@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 import { InventarisRepository } from '@/server/repositories/inventaris.repository';
+import { auditLogRepository } from '@/server/repositories/auditLog.repository';
 
 const inventarisRepository = new InventarisRepository();
 
@@ -73,6 +74,19 @@ export async function POST(request: NextRequest) {
       lokasi_sublokasi_id: body.lokasi_sublokasi_id ? parseInt(body.lokasi_sublokasi_id, 10) : undefined,
       created_by: caller.user_id,
     });
+
+    try {
+      await auditLogRepository.insertInventarisAuditLog({
+        barang_id: newId,
+        aksi: 'CREATE',
+        user_id: caller.user_id,
+        role_id: caller.role_id,
+        satelit_id: caller.satelit_id || (body.lokasi_satelit_id ? parseInt(body.lokasi_satelit_id, 10) : 1),
+        keterangan: `Barang baru ditambahkan: ${body.nama}`,
+      });
+    } catch (auditErr) {
+      console.error('[InventarisRoute] POST audit log error:', auditErr);
+    }
 
     return NextResponse.json({
       success: true,

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
+import { auditLogRepository } from '@/server/repositories/auditLog.repository';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -139,6 +140,24 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     } else {
       const updateQuery = `UPDATE public.kegiatan SET status_kegiatan = CAST($1 AS status_kegiatan_enum) WHERE id = $2 RETURNING id`;
       await pool.query(updateQuery, [status_kegiatan, id]);
+    }
+
+    // [Audit Log] Catat perubahan status kegiatan
+    try {
+      const aksi = status_kegiatan === 'Dibatalkan' ? 'DEACTIVATE' : 'UPDATE';
+      const keterangan = status_kegiatan === 'Dibatalkan'
+        ? `Kegiatan dibatalkan: ${alasan_pembatalan || 'Tanpa alasan'}`
+        : `Status kegiatan diubah menjadi ${status_kegiatan}`;
+      await auditLogRepository.insertKegiatanAuditLog({
+        kegiatan_id: parseInt(id, 10),
+        aksi,
+        user_id: caller.user_id,
+        role_id: caller.role_id,
+        satelit_id: caller.satelit_id || 1,
+        keterangan,
+      });
+    } catch (auditErr) {
+      console.error('[Kegiatan PATCH] Audit log error:', auditErr);
     }
 
     // ── Auto-Survei: trigger saat Ongoing → Menunggu LPJ ──────────────
@@ -321,6 +340,13 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         `, [id, body.tema_khotbah || null, body.nama_pengkhotbah_1 || null, body.nama_pengkhotbah_2 || null]);
       }
     }
+
+    // [Audit Log] Catat aksi UPDATE kegiatan
+    await client.query(
+      `INSERT INTO kegiatan_audit_log (kegiatan_id, aksi, user_id, role_id, satelit_id, keterangan)
+       VALUES ($1, $2::audit_action, $3, $4, $5, $6)`,
+      [parseInt(id, 10), 'UPDATE', caller.user_id, caller.role_id, s_id || caller.satelit_id || 1, `Detail kegiatan diperbarui: ${body.nama_kegiatan || 'ID ' + id}`]
+    );
 
     await client.query('COMMIT');
     return NextResponse.json({ success: true, message: 'Kegiatan berhasil diperbarui' });

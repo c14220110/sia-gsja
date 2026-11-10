@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
 
-    const log_type  = searchParams.get('log_type') || 'jemaat'; // 'jemaat' | 'pelayan' | 'pengurus'
+    const log_type  = searchParams.get('log_type') || 'jemaat'; // 'jemaat' | 'pelayan' | 'pengurus' | 'anggaran' | 'inventaris' | 'kegiatan' | 'pastoral'
     const limit     = Math.min(parseInt(searchParams.get('limit')  ?? '15'), 100);
     const offset    = parseInt(searchParams.get('offset') ?? '0');
     const aksi      = searchParams.get('aksi')      || undefined;
@@ -49,6 +49,15 @@ export async function GET(request: NextRequest) {
       ({ data, total } = await auditLogRepository.getPelayanAuditLogs(queryParams));
     } else if (log_type === 'pengurus') {
       ({ data, total } = await auditLogRepository.getPengurusAuditLogs(queryParams));
+    } else if (log_type === 'inventaris') {
+      ({ data, total } = await auditLogRepository.getInventarisAuditLogs(queryParams));
+    } else if (log_type === 'kegiatan') {
+      ({ data, total } = await auditLogRepository.getKegiatanAuditLogs(queryParams));
+    } else if (log_type === 'pastoral') {
+      ({ data, total } = await auditLogRepository.getPastoralAuditLogs({
+        ...queryParams,
+        status_baru: aksi,
+      }));
     } else {
       ({ data, total } = await auditLogRepository.getJemaatAuditLogs(queryParams));
     }
