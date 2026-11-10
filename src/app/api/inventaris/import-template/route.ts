@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import ExcelJS from 'exceljs';
+import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 
 // Excel sheet names cannot contain: * ? : \ / [ ]  and must be ≤ 31 chars
 function sanitizeSheetName(name: string): string {
@@ -15,11 +16,26 @@ function sanitizeSheetName(name: string): string {
 // GET /api/inventaris/import-template?satelit_id=12
 // Returns an .xlsx file with one sheet per sublokasi, pre-validated dropdowns
 export async function GET(request: Request) {
+  const caller = getCallerFromRequest(request);
+  if (!caller) {
+    return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  }
+  if (!caller.is_super_admin && !caller.permissions.includes('inventaris_manage')) {
+    return NextResponse.json({ success: false, message: 'Forbidden: Butuh hak akses inventaris_manage' }, { status: 403 });
+  }
+
   const { searchParams } = new URL(request.url);
   const satelitId = searchParams.get('satelit_id');
 
   if (!satelitId) {
     return NextResponse.json({ success: false, message: 'satelit_id required' }, { status: 400 });
+  }
+
+  if (!caller.is_super_admin && caller.satelit_id && Number(satelitId) !== Number(caller.satelit_id)) {
+    return NextResponse.json({
+      success: false,
+      message: 'Akses ditolak: Anda hanya dapat mengunduh template untuk satelit Anda sendiri',
+    }, { status: 403 });
   }
 
   try {
