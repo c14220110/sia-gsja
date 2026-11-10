@@ -1,7 +1,18 @@
 # AGENTS.md — SIA GSJA (BSC Performance Management System)
 
-Konteks project ini untuk agent (Antigravity/lainnya). Disusun dari audit codebase 2026-08-10.
-Sebelumnya project ini belum punya context file sama sekali — file ini adalah yang pertama.
+> [!CRITICAL]
+> ## ATURAN KESELAMATAN LINGKUNGAN & DATABASE (WAJIB DIIKUTI)
+> 1. **PRODUCTION (GEREJA AKTIF):**
+>    - **URL:** `https://gsja.vercel.app`
+>    - **Supabase DB:** `stqsbfmhdemyxtyltivs`
+>    - **STATUS:** SEDANG DIPAKAI OLEH RATUSAN USER AKTIF GEREJA.
+>    - **ATURAN:** **DILARANG KERAS** menjalankan query modifikasi data (UPDATE/DELETE/TRUNCATE), migration, atau alter table ke database ini! Branch `main` tidak boleh disentuh sembarangan tanpa testing tuntas.
+> 
+> 2. **STAGING & LOCALHOST (TESTING & PENGEMBANGAN):**
+>    - **URL:** `https://gsja-staging.vercel.app` & `http://localhost:3000`
+>    - **Supabase DB:** `unqbekiwjzaundmdlfxo` (Password: `@gsjastaging123`)
+>    - **STATUS:** Testing sandbox untuk dosen dan developer (data jemaat dipangkas ~20 orang).
+>    - **ATURAN:** File `.env.local` di laptop pengembangan **WAJIB** mengarah ke database staging ini. Semua fitur baru dan bugfix dikerjakan di branch `staging`.
 
 ## Tentang Project
 - Next.js 16 (App Router), TypeScript 5 strict mode, fullstack monolith (frontend + API dalam satu repo)
