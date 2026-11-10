@@ -64,8 +64,8 @@ export default function proxy(request: NextRequest) {
   // ═══════════════════════════════════════════════
   // 2. PAGE-LEVEL AUTH REDIRECTS
   // ═══════════════════════════════════════════════
-  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/reset-password') || pathname.startsWith('/select-role');
-  const isPublicPage = isAuthPage || pathname.startsWith('/daftar-jemaat');
+  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/reset-password');
+  const isPublicPage = isAuthPage || pathname.startsWith('/daftar-jemaat') || pathname.startsWith('/select-role');
 
   // Ojo ksini ! Belokan yg blom login yang nekat pgn nembus akses yg dikunci nih ya
   if (!token && !isPublicPage) {
