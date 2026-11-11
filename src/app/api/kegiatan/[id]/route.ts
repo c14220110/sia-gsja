@@ -341,14 +341,22 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       }
     }
 
-    // [Audit Log] Catat aksi UPDATE kegiatan
-    await client.query(
-      `INSERT INTO kegiatan_audit_log (kegiatan_id, aksi, user_id, role_id, satelit_id, keterangan)
-       VALUES ($1, $2::audit_action, $3, $4, $5, $6)`,
-      [parseInt(id, 10), 'UPDATE', caller.user_id, caller.role_id, s_id || caller.satelit_id || 1, `Detail kegiatan diperbarui: ${body.nama_kegiatan || 'ID ' + id}`]
-    );
-
     await client.query('COMMIT');
+
+    // [Audit Log] Catat aksi UPDATE kegiatan secara aman (fault-tolerant, tidak membatalkan transaksi utama jika log gagal)
+    try {
+      await auditLogRepository.insertKegiatanAuditLog({
+        kegiatan_id: parseInt(id, 10),
+        aksi: 'UPDATE',
+        user_id: caller.user_id,
+        role_id: caller.role_id,
+        satelit_id: s_id || caller.satelit_id || 1,
+        keterangan: `Detail kegiatan diperbarui: ${body.nama_kegiatan || 'ID ' + id}`,
+      });
+    } catch (auditErr) {
+      console.error('[KegiatanDetailRoute] PUT audit log error:', auditErr);
+    }
+
     return NextResponse.json({ success: true, message: 'Kegiatan berhasil diperbarui' });
   } catch (error: any) {
     await client.query('ROLLBACK');

@@ -85,6 +85,83 @@ export interface CreateBarangParams {
   created_by: number;
 }
 
+export interface MutasiBarangData {
+  id: number;
+  barang_id: number;
+  dari_satelit_id: number | null;
+  dari_sublokasi_id: number | null;
+  ke_satelit_id: number | null;
+  ke_sublokasi_id: number | null;
+  nama_satelit_asal: string | null;
+  nama_ruangan_asal: string | null;
+  nama_satelit_tujuan: string | null;
+  nama_ruangan_tujuan: string | null;
+  tanggal_mutasi: string;
+  alasan: string | null;
+  status: string;
+  dicatat_oleh: number;
+  dicatat_oleh_nama: string | null;
+  disetujui_oleh: number | null;
+  catatan_approval: string | null;
+  created_at: Date;
+}
+
+export interface CreateMutasiParams {
+  barang_id: number;
+  ke_satelit_id: number;
+  ke_sublokasi_id?: number | null;
+  tanggal_mutasi?: string;
+  alasan?: string;
+  dicatat_oleh: number;
+  role_id?: number;
+}
+
+export interface PeminjamanBarangData {
+  id: number;
+  barang_id: number;
+  peminjam_tipe: string;
+  peminjam_satelit_id: number | null;
+  peminjam_jemaat_id: number | null;
+  peminjam_nama_lain: string | null;
+  peminjam_nama: string;
+  tanggal_pinjam: string;
+  tanggal_rencana_kembali: string | null;
+  tanggal_kembali_aktual: string | null;
+  status: string;
+  dicatat_oleh: number;
+  dicatat_oleh_nama: string | null;
+  catatan: string | null;
+  created_at: Date;
+}
+
+export interface CreatePeminjamanParams {
+  barang_id: number;
+  peminjam_tipe: 'Jemaat' | 'Lain-lain' | 'Satelit';
+  peminjam_satelit_id?: number | null;
+  peminjam_jemaat_id?: number | null;
+  peminjam_nama_lain?: string | null;
+  tanggal_pinjam: string;
+  tanggal_rencana_kembali?: string | null;
+  catatan?: string | null;
+  dicatat_oleh: number;
+  role_id?: number;
+}
+
+export interface StokOpnameDetailHistoryData {
+  id: number;
+  stok_opname_id: number;
+  judul_opname: string;
+  tanggal_opname: string;
+  status_opname: string;
+  jumlah_tercatat: number;
+  jumlah_fisik: number | null;
+  selisih: number | null;
+  kondisi_fisik: string | null;
+  keterangan: string | null;
+  checked_by_nama: string | null;
+  checked_at: Date | null;
+}
+
 
 // ─── Repository Class ──────────────────────────────────────
 
@@ -807,5 +884,286 @@ export class InventarisRepository {
     } finally {
       client.release();
     }
+  }
+
+  // ── Mutasi Barang (Move History) ───────────────────────────
+
+  async getMutasiByBarangId(barangId: number): Promise<MutasiBarangData[]> {
+    const result = await pool.query(
+      `SELECT
+        mb.*,
+        ms_dari.nama AS nama_ruangan_asal,
+        ms_ke.nama AS nama_ruangan_tujuan,
+        s_dari.nama_satelit AS nama_satelit_asal,
+        s_ke.nama_satelit AS nama_satelit_tujuan,
+        COALESCE(j_catat.nama_lengkap, p_catat.username, p_catat.email, 'Petugas') AS dicatat_oleh_nama
+      FROM mutasi_barang mb
+      LEFT JOIN master_sublokasi ms_dari ON mb.dari_sublokasi_id = ms_dari.id
+      LEFT JOIN master_sublokasi ms_ke ON mb.ke_sublokasi_id = ms_ke.id
+      LEFT JOIN satelit s_dari ON mb.dari_satelit_id = s_dari.id
+      LEFT JOIN satelit s_ke ON mb.ke_satelit_id = s_ke.id
+      LEFT JOIN pengguna p_catat ON mb.dicatat_oleh = p_catat.id
+      LEFT JOIN jemaat j_catat ON p_catat.jemaat_id = j_catat.id
+      WHERE mb.barang_id = $1
+      ORDER BY mb.tanggal_mutasi DESC, mb.created_at DESC`,
+      [barangId]
+    );
+    return result.rows;
+  }
+
+  async createMutasiBarang(params: CreateMutasiParams): Promise<number> {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Ambil lokasi saat ini
+      const barangRes = await client.query(
+        `SELECT lokasi_satelit_id, lokasi_sublokasi_id, nama FROM barang WHERE id = $1 AND is_deleted = false`,
+        [params.barang_id]
+      );
+      if (barangRes.rows.length === 0) {
+        throw new Error('Barang tidak ditemukan');
+      }
+      const currentBarang = barangRes.rows[0];
+
+      // Insert mutasi_barang
+      const insertMutasiRes = await client.query(
+        `INSERT INTO mutasi_barang (
+          barang_id, dari_satelit_id, dari_sublokasi_id, ke_satelit_id, ke_sublokasi_id,
+          tanggal_mutasi, alasan, status, disetujui_oleh, dicatat_oleh, created_at, updated_at
+        ) VALUES (
+          $1, $2, $3, $4, $5,
+          COALESCE($6::date, CURRENT_DATE), $7, 'Selesai', $8, $8, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+        ) RETURNING id`,
+        [
+          params.barang_id,
+          currentBarang.lokasi_satelit_id,
+          currentBarang.lokasi_sublokasi_id,
+          params.ke_satelit_id,
+          params.ke_sublokasi_id || null,
+          params.tanggal_mutasi || null,
+          params.alasan || null,
+          params.dicatat_oleh
+        ]
+      );
+      const mutasiId = insertMutasiRes.rows[0].id;
+
+      // Update lokasi barang
+      await client.query(
+        `UPDATE barang
+         SET lokasi_satelit_id = $1, lokasi_sublokasi_id = $2, updated_at = CURRENT_TIMESTAMP
+         WHERE id = $3`,
+        [params.ke_satelit_id, params.ke_sublokasi_id || null, params.barang_id]
+      );
+
+      // Audit Log
+      try {
+        await client.query(
+          `INSERT INTO inventaris_audit_log (barang_id, aksi, user_id, role_id, satelit_id, keterangan)
+           VALUES ($1, 'UPDATE'::audit_action, $2, $3, $4, $5)`,
+          [
+            params.barang_id,
+            params.dicatat_oleh,
+            params.role_id || null,
+            params.ke_satelit_id,
+            `Pindah lokasi ruangan. Alasan: ${params.alasan || 'Mutasi internal'}`
+          ]
+        );
+      } catch (auditErr) {
+        console.error('[InventarisRepository] insert audit log mutasi error (ignored):', auditErr);
+      }
+
+      await client.query('COMMIT');
+      return mutasiId;
+    } catch (e) {
+      await client.query('ROLLBACK');
+      throw e;
+    } finally {
+      client.release();
+    }
+  }
+
+  // ── Peminjaman Barang (Loan History) ────────────────────────
+
+  async getPeminjamanByBarangId(barangId: number): Promise<PeminjamanBarangData[]> {
+    const result = await pool.query(
+      `SELECT
+        pb.*,
+        COALESCE(j_peminjam.nama_lengkap, pb.peminjam_nama_lain, s_peminjam.nama_satelit, 'Tidak Diketahui') AS peminjam_nama,
+        COALESCE(j_catat.nama_lengkap, p_catat.username, p_catat.email, 'Petugas') AS dicatat_oleh_nama
+      FROM peminjaman_barang pb
+      LEFT JOIN jemaat j_peminjam ON pb.peminjam_jemaat_id = j_peminjam.id
+      LEFT JOIN satelit s_peminjam ON pb.peminjam_satelit_id = s_peminjam.id
+      LEFT JOIN pengguna p_catat ON pb.dicatat_oleh = p_catat.id
+      LEFT JOIN jemaat j_catat ON p_catat.jemaat_id = j_catat.id
+      WHERE pb.barang_id = $1
+      ORDER BY pb.tanggal_pinjam DESC, pb.created_at DESC`,
+      [barangId]
+    );
+    return result.rows;
+  }
+
+  async createPeminjamanBarang(params: CreatePeminjamanParams): Promise<number> {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Pastikan barang ada dan tidak sedang dipinjam
+      const barangRes = await client.query(
+        `SELECT id, nama, status, lokasi_satelit_id FROM barang WHERE id = $1 AND is_deleted = false`,
+        [params.barang_id]
+      );
+      if (barangRes.rows.length === 0) {
+        throw new Error('Barang tidak ditemukan');
+      }
+
+      const insertRes = await client.query(
+        `INSERT INTO peminjaman_barang (
+          barang_id, peminjam_tipe, peminjam_satelit_id, peminjam_jemaat_id, peminjam_nama_lain,
+          tanggal_pinjam, tanggal_rencana_kembali, status, dicatat_oleh, catatan, created_at, updated_at
+        ) VALUES (
+          $1, $2, $3, $4, $5,
+          COALESCE($6::date, CURRENT_DATE), $7::date, 'Dipinjam', $8, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+        ) RETURNING id`,
+        [
+          params.barang_id,
+          params.peminjam_tipe,
+          params.peminjam_satelit_id || null,
+          params.peminjam_jemaat_id || null,
+          params.peminjam_nama_lain || null,
+          params.tanggal_pinjam || null,
+          params.tanggal_rencana_kembali || null,
+          params.dicatat_oleh,
+          params.catatan || null
+        ]
+      );
+      const peminjamanId = insertRes.rows[0].id;
+
+      // Update status barang ke 'Dipinjam'
+      await client.query(
+        `UPDATE barang SET status = 'Dipinjam', updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
+        [params.barang_id]
+      );
+
+      // Audit Log
+      try {
+        await client.query(
+          `INSERT INTO inventaris_audit_log (barang_id, aksi, user_id, role_id, satelit_id, keterangan)
+           VALUES ($1, 'UPDATE'::audit_action, $2, $3, $4, $5)`,
+          [
+            params.barang_id,
+            params.dicatat_oleh,
+            params.role_id || null,
+            barangRes.rows[0].lokasi_satelit_id,
+            `Barang dipinjam (${params.peminjam_tipe}): ${params.peminjam_nama_lain || 'Jemaat ID ' + params.peminjam_jemaat_id}`
+          ]
+        );
+      } catch (auditErr) {
+        console.error('[InventarisRepository] insert audit log pinjam error (ignored):', auditErr);
+      }
+
+      await client.query('COMMIT');
+      return peminjamanId;
+    } catch (e) {
+      await client.query('ROLLBACK');
+      throw e;
+    } finally {
+      client.release();
+    }
+  }
+
+  async kembalikanPeminjamanBarang(
+    peminjamanId: number,
+    barangId: number,
+    userId: number,
+    roleId?: number,
+    catatanKembali?: string
+  ): Promise<boolean> {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      const updatePinjamRes = await client.query(
+        `UPDATE peminjaman_barang
+         SET status = 'Dikembalikan',
+             tanggal_kembali_aktual = CURRENT_DATE,
+             catatan = CASE
+               WHEN $1::text IS NOT NULL AND $1::text != '' THEN COALESCE(catatan || ' | Pengembalian: ' || $1::text, $1::text)
+               ELSE catatan
+             END,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = $2 AND barang_id = $3
+         RETURNING id`,
+        [catatanKembali || null, peminjamanId, barangId]
+      );
+
+      if (updatePinjamRes.rows.length === 0) {
+        throw new Error('Data peminjaman tidak ditemukan');
+      }
+
+      // Kembalikan status barang ke 'Tersedia'
+      await client.query(
+        `UPDATE barang SET status = 'Tersedia', updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
+        [barangId]
+      );
+
+      // Audit Log
+      try {
+        const barangRes = await client.query(
+          `SELECT lokasi_satelit_id FROM barang WHERE id = $1`,
+          [barangId]
+        );
+        const satelitId = barangRes.rows[0]?.lokasi_satelit_id || 1;
+        await client.query(
+          `INSERT INTO inventaris_audit_log (barang_id, aksi, user_id, role_id, satelit_id, keterangan)
+           VALUES ($1, 'UPDATE'::audit_action, $2, $3, $4, $5)`,
+          [
+            barangId,
+            userId,
+            roleId || null,
+            satelitId,
+            `Barang dikembalikan dari peminjaman (ID ${peminjamanId})`
+          ]
+        );
+      } catch (auditErr) {
+        console.error('[InventarisRepository] insert audit log pengembalian error (ignored):', auditErr);
+      }
+
+      await client.query('COMMIT');
+      return true;
+    } catch (e) {
+      await client.query('ROLLBACK');
+      throw e;
+    } finally {
+      client.release();
+    }
+  }
+
+  // ── Stok Opname History ────────────────────────────────────
+
+  async getStokOpnameHistoryByBarangId(barangId: number): Promise<StokOpnameDetailHistoryData[]> {
+    const result = await pool.query(
+      `SELECT
+        sod.id,
+        sod.stok_opname_id,
+        so.judul AS judul_opname,
+        so.tanggal::text AS tanggal_opname,
+        so.status AS status_opname,
+        sod.jumlah_tercatat,
+        sod.jumlah_fisik,
+        sod.selisih,
+        sod.kondisi_fisik,
+        sod.keterangan,
+        COALESCE(j_check.nama_lengkap, p_check.username, p_check.email, 'Petugas') AS checked_by_nama,
+        sod.checked_at
+      FROM stok_opname_detail sod
+      JOIN stok_opname so ON sod.stok_opname_id = so.id
+      LEFT JOIN pengguna p_check ON sod.checked_by = p_check.id
+      LEFT JOIN jemaat j_check ON p_check.jemaat_id = j_check.id
+      WHERE sod.barang_id = $1
+      ORDER BY so.tanggal DESC, sod.created_at DESC`,
+      [barangId]
+    );
+    return result.rows;
   }
 }
