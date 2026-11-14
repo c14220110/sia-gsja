@@ -9,9 +9,18 @@ export async function GET(request: Request) {
     return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
   }
 
-  const canView = caller.is_super_admin || caller.permissions.includes('buku_besar_view') || caller.permissions.includes('buku_besar_manage');
+  const coaReadPermissions = [
+    'buku_besar_view',
+    'buku_besar_manage',
+    'anggaran_view',
+    'anggaran_create',
+    'anggaran_review',
+    'anggaran_approve_ketua',
+    'kegiatan_lpj',
+  ];
+  const canView = caller.is_super_admin || coaReadPermissions.some((p) => caller.permissions.includes(p));
   if (!canView) {
-    return NextResponse.json({ success: false, message: 'Akses Ditolak: Butuh izin buku_besar_view' }, { status: 403 });
+    return NextResponse.json({ success: false, message: 'Akses Ditolak: Butuh izin melihat COA / Anggaran / LPJ' }, { status: 403 });
   }
 
   try {
