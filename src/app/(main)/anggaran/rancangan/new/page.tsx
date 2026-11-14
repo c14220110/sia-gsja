@@ -39,6 +39,7 @@ export default function InputAnggaranBaruPage() {
   // State dropdown COA
   const [coaQuery, setCoaQuery] = useState('');
   const [coaOpen, setCoaOpen] = useState(false);
+  const [coaError, setCoaError] = useState('');
   const coaRef = useRef<HTMLDivElement>(null);
   
   // State buat hak akses
@@ -55,6 +56,8 @@ export default function InputAnggaranBaruPage() {
     ]).then(([resCoa, resSatelit, resUser, resJenis]) => {
       if (resCoa.success) {
         setCoaList(resCoa.data.filter((c:any)=>c.tipe_akun==='Detail'&&c.is_active).map((c:any)=>({id:c.id,label:`${c.kode_akun} — ${c.nama_akun}`,saldo_normal:c.saldo_normal,grup_laporan:c.grup_laporan})));
+      } else {
+        setCoaError(resCoa.message || 'Gagal memuat daftar akun COA.');
       }
       if (resSatelit.success) {
         setSatelitList(resSatelit.data.filter((s:any)=>s.is_active).map((s:any)=>({id:s.id,label:s.nama_satelit})));
@@ -487,7 +490,8 @@ export default function InputAnggaranBaruPage() {
                   </div>
                 )}
               </div>
-              {filteredCoaList.length === 0 && coaList.length > 0 && <p className="text-[10px] text-amber-600 mt-1">Belum ada akun COA jenis {form.jenis === 'Penerimaan' ? 'Pendapatan (Kredit)' : 'Beban (Debit)'} yang aktif.</p>}
+              {coaError && <p className="text-[11px] text-red-600 mt-1 font-medium">{coaError}</p>}
+              {!coaError && filteredCoaList.length === 0 && coaList.length > 0 && <p className="text-[10px] text-amber-600 mt-1">Belum ada akun COA jenis {form.jenis === 'Penerimaan' ? 'Pendapatan (Kredit)' : 'Beban (Debit)'} yang aktif.</p>}
             </div>
             <div>
               <label className={labelCls}>Sumber Dana</label>
