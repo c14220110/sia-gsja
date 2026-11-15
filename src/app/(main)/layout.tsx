@@ -165,6 +165,16 @@ export default function DashboardLayout({
     );
   }
 
+  if (userData?.role_name?.toLowerCase() === 'pegawai') {
+    return (
+      <div className="w-full min-h-screen bg-slate-100 flex justify-center">
+        <div className="w-full max-w-[440px] min-h-screen bg-slate-50 shadow-xl overflow-x-hidden">
+          {children}
+        </div>
+      </div>
+    );
+  }
+
   // Selama data user-nya masih muter, kasih layar putih kosong aja sementara
   // agar sidebar admin tidak "flash" sesaat sebelum redirect ke PWA Jemaat
   if (!userData) {

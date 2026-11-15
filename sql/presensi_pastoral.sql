@@ -81,3 +81,33 @@ CREATE INDEX IF NOT EXISTS idx_pegawai_kunjungan_pegawai_tanggal
   ON public.pegawai_kunjungan(pegawai_id, tanggal DESC);
 CREATE INDEX IF NOT EXISTS idx_pegawai_kunjungan_presensi
   ON public.pegawai_kunjungan(presensi_id);
+
+-- 5. Tabel Chatter / Audit Log Presensi ala Odoo HRIS
+CREATE TABLE IF NOT EXISTS public.pegawai_presensi_chatter (
+  id SERIAL PRIMARY KEY,
+  pegawai_id INTEGER NOT NULL REFERENCES public.pegawai(id) ON DELETE CASCADE,
+  tanggal DATE NOT NULL,
+  presensi_id INTEGER REFERENCES public.pegawai_presensi(id) ON DELETE SET NULL,
+  actor_user_id INTEGER,
+  actor_name VARCHAR(150) NOT NULL DEFAULT 'System',
+  event_type VARCHAR(40) NOT NULL, -- ADMIN_EDIT | ADMIN_CREATE | ADMIN_DELETE | LOG_NOTE
+  message TEXT,
+  changes JSONB NOT NULL DEFAULT '[]'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_pegawai_presensi_chatter_lookup
+  ON public.pegawai_presensi_chatter(pegawai_id, tanggal DESC, created_at DESC);
+
+-- 6. Seed Role PEGAWAI (tampilan full mobile seperti JEMAAT)
+SELECT setval(
+  pg_get_serial_sequence('public.role', 'id'),
+  COALESCE((SELECT MAX(id) FROM public.role), 1),
+  true
+);
+
+INSERT INTO public.role (nama_role, deskripsi, is_active)
+SELECT 'PEGAWAI', 'Akses mobile presensi & jurnal kunjungan pastoral pegawai', true
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.role WHERE UPPER(nama_role) = 'PEGAWAI'
+);

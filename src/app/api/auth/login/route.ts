@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
     const is_super_admin = singleRole.nama_role === 'SUPER_ADMIN';
     const permissions = await userRepository.getRolePermissionNames(singleRole.role_id);
 
-    const isJemaat = singleRole.nama_role === 'JEMAAT';
+    const isJemaat = singleRole.nama_role === 'JEMAAT' || singleRole.nama_role === 'PEGAWAI';
     const expiresInString = isJemaat ? '180d' : '1d';
     const cookieMaxAge = isJemaat ? 60 * 60 * 24 * 180 : 60 * 60 * 24;
 

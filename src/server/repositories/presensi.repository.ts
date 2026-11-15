@@ -454,6 +454,34 @@ export class PresensiRepository {
         ) AS visits,
         COALESCE(
           (
+            SELECT COUNT(*)::int
+            FROM public.pegawai_presensi pm
+            WHERE pm.pegawai_id = p.id
+              AND pm.check_in_at IS NOT NULL
+              AND pm.tanggal >= DATE_TRUNC('month', $1::date)::date
+              AND pm.tanggal < (DATE_TRUNC('month', $1::date) + INTERVAL '1 month')::date
+          ),
+          0
+        ) AS monthly_attendance_count,
+        COALESCE(
+          (
+            SELECT json_agg(
+              json_build_object(
+                'id', ch.id,
+                'actor_name', ch.actor_name,
+                'event_type', ch.event_type,
+                'message', ch.message,
+                'changes', ch.changes,
+                'created_at', ch.created_at
+              ) ORDER BY ch.created_at DESC
+            )
+            FROM public.pegawai_presensi_chatter ch
+            WHERE ch.pegawai_id = p.id AND ch.tanggal = $1::date
+          ),
+          '[]'::json
+        ) AS chatter,
+        COALESCE(
+          (
             SELECT ARRAY_AGG(DISTINCT r.nama_role)
             FROM public.pengguna u3
             JOIN public.user_role ur3 ON ur3.user_id = u3.id
@@ -501,5 +529,203 @@ export class PresensiRepository {
       ORDER BY p.nama_lengkap ASC
     `);
     return res.rows;
+  }
+
+  async getActorDisplayName(userId: number): Promise<string> {
+    const res = await pool.query(
+      `SELECT COALESCE(j.nama_lengkap, u.username, u.email, 'Super Admin') AS display_name
+       FROM public.pengguna u
+       LEFT JOIN public.jemaat j ON j.id = u.jemaat_id
+       WHERE u.id = $1
+       LIMIT 1`,
+      [userId]
+    );
+    return res.rows[0]?.display_name || 'Super Admin';
+  }
+
+  async adminUpsertPresensi(params: {
+    pegawaiId: number;
+    tanggal: string;
+    checkInAt: string | null;
+    checkOutAt: string | null;
+    checkInStatus: 'TEPAT_WAKTU' | 'TERLAMBAT';
+    overviewNote: string | null;
+    actorUserId: number;
+    actorName: string;
+    reason?: string;
+  }): Promise<PresensiRecord> {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      const existingRes = await client.query(
+        `SELECT * FROM public.pegawai_presensi WHERE pegawai_id = $1 AND tanggal = $2::date LIMIT 1`,
+        [params.pegawaiId, params.tanggal]
+      );
+      const existing = existingRes.rows[0] || null;
+
+      let workedMinutes = 0;
+      if (params.checkInAt && params.checkOutAt) {
+        const diffMs = new Date(params.checkOutAt).getTime() - new Date(params.checkInAt).getTime();
+        if (Number.isFinite(diffMs) && diffMs > 0) {
+          workedMinutes = Math.round(diffMs / 60000);
+        }
+      }
+
+      const upsertRes = await client.query(
+        `INSERT INTO public.pegawai_presensi (
+           pegawai_id, tanggal, check_in_at, check_out_at, check_in_status,
+           worked_minutes, overview_note, overview_updated_at, updated_at
+         )
+         VALUES ($1, $2::date, $3::timestamptz, $4::timestamptz, $5, $6, $7, NOW(), NOW())
+         ON CONFLICT (pegawai_id, tanggal) DO UPDATE SET
+           check_in_at = EXCLUDED.check_in_at,
+           check_out_at = EXCLUDED.check_out_at,
+           check_in_status = EXCLUDED.check_in_status,
+           worked_minutes = EXCLUDED.worked_minutes,
+           overview_note = EXCLUDED.overview_note,
+           overview_updated_at = NOW(),
+           updated_at = NOW()
+         RETURNING *`,
+        [
+          params.pegawaiId,
+          params.tanggal,
+          params.checkInAt,
+          params.checkOutAt,
+          params.checkInStatus,
+          workedMinutes,
+          params.overviewNote,
+        ]
+      );
+      const saved = upsertRes.rows[0];
+
+      const fmtIso = (v: any) =>
+        v ? new Date(v).toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit' }) + ' WIB' : 'Kosong';
+
+      const changes: { field: string; old: string; new: string }[] = [];
+      if (!existing) {
+        if (params.checkInAt) changes.push({ field: 'Check In', old: 'Kosong', new: fmtIso(params.checkInAt) });
+        if (params.checkOutAt) changes.push({ field: 'Check Out', old: 'Kosong', new: fmtIso(params.checkOutAt) });
+        changes.push({ field: 'Status', old: '-', new: params.checkInStatus });
+      } else {
+        if (fmtIso(existing.check_in_at) !== fmtIso(params.checkInAt)) {
+          changes.push({ field: 'Check In', old: fmtIso(existing.check_in_at), new: fmtIso(params.checkInAt) });
+        }
+        if (fmtIso(existing.check_out_at) !== fmtIso(params.checkOutAt)) {
+          changes.push({ field: 'Check Out', old: fmtIso(existing.check_out_at), new: fmtIso(params.checkOutAt) });
+        }
+        if ((existing.check_in_status || 'TEPAT_WAKTU') !== params.checkInStatus) {
+          changes.push({ field: 'Status', old: existing.check_in_status || '-', new: params.checkInStatus });
+        }
+        if ((existing.overview_note || '') !== (params.overviewNote || '')) {
+          changes.push({ field: 'Overview', old: existing.overview_note || '-', new: params.overviewNote || '-' });
+        }
+      }
+
+      await client.query(
+        `INSERT INTO public.pegawai_presensi_chatter
+           (pegawai_id, tanggal, presensi_id, actor_user_id, actor_name, event_type, message, changes)
+         VALUES ($1, $2::date, $3, $4, $5, $6, $7, $8::jsonb)`,
+        [
+          params.pegawaiId,
+          params.tanggal,
+          saved.id,
+          params.actorUserId,
+          params.actorName,
+          existing ? 'ADMIN_EDIT' : 'ADMIN_CREATE',
+          params.reason?.trim() || (existing ? 'Koreksi manual data presensi oleh Super Admin' : 'Input manual presensi oleh Super Admin'),
+          JSON.stringify(changes),
+        ]
+      );
+
+      await client.query('COMMIT');
+      return saved;
+    } catch (e) {
+      await client.query('ROLLBACK');
+      throw e;
+    } finally {
+      client.release();
+    }
+  }
+
+  async adminHardDeletePresensi(params: {
+    pegawaiId: number;
+    tanggal: string;
+    actorUserId: number;
+    actorName: string;
+    reason?: string;
+  }): Promise<boolean> {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      const existingRes = await client.query(
+        `SELECT * FROM public.pegawai_presensi WHERE pegawai_id = $1 AND tanggal = $2::date LIMIT 1`,
+        [params.pegawaiId, params.tanggal]
+      );
+      const existing = existingRes.rows[0];
+      if (!existing) {
+        await client.query('ROLLBACK');
+        return false;
+      }
+
+      const fmtIso = (v: any) =>
+        v ? new Date(v).toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit' }) + ' WIB' : 'Kosong';
+
+      await client.query(
+        `DELETE FROM public.pegawai_presensi WHERE id = $1`,
+        [existing.id]
+      );
+
+      await client.query(
+        `INSERT INTO public.pegawai_presensi_chatter
+           (pegawai_id, tanggal, presensi_id, actor_user_id, actor_name, event_type, message, changes)
+         VALUES ($1, $2::date, NULL, $3, $4, 'ADMIN_DELETE', $5, $6::jsonb)`,
+        [
+          params.pegawaiId,
+          params.tanggal,
+          params.actorUserId,
+          params.actorName,
+          params.reason?.trim() || 'Hapus permanen (Hard Delete) presensi oleh Super Admin agar pegawai dapat absen ulang',
+          JSON.stringify([
+            { field: 'Check In', old: fmtIso(existing.check_in_at), new: 'DIHAPUS' },
+            { field: 'Check Out', old: fmtIso(existing.check_out_at), new: 'DIHAPUS' },
+          ]),
+        ]
+      );
+
+      await client.query('COMMIT');
+      return true;
+    } catch (e) {
+      await client.query('ROLLBACK');
+      throw e;
+    } finally {
+      client.release();
+    }
+  }
+
+  async addChatterNote(params: {
+    pegawaiId: number;
+    tanggal: string;
+    presensiId: number | null;
+    actorUserId: number;
+    actorName: string;
+    message: string;
+  }) {
+    const res = await pool.query(
+      `INSERT INTO public.pegawai_presensi_chatter
+         (pegawai_id, tanggal, presensi_id, actor_user_id, actor_name, event_type, message, changes)
+       VALUES ($1, $2::date, $3, $4, $5, 'LOG_NOTE', $6, '[]'::jsonb)
+       RETURNING *`,
+      [
+        params.pegawaiId,
+        params.tanggal,
+        params.presensiId,
+        params.actorUserId,
+        params.actorName,
+        params.message,
+      ]
+    );
+    return res.rows[0];
   }
 }

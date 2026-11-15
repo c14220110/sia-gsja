@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Toaster, toast } from 'sonner';
 import {
   MapPin,
@@ -13,6 +14,8 @@ import {
   UserCircle,
   CheckCircle,
   ShieldCheck,
+  ArrowsLeftRight,
+  SignOut,
   X,
 } from '@phosphor-icons/react';
 import { AttendanceHeroCard } from '@/components/presensi/AttendanceHeroCard';
@@ -35,6 +38,7 @@ function toWibTime(iso?: string | null): string | null {
 }
 
 export default function PresensiPegawaiPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<PresensiTabType>('home');
   const [loading, setLoading] = useState(true);
   const [pegawai, setPegawai] = useState<any>(null);
@@ -54,6 +58,38 @@ export default function PresensiPegawaiPage() {
   const [cameraMode, setCameraMode] = useState<'ENROLL' | 'CHECK_IN' | 'CHECK_OUT' | null>(null);
   const [visitOpen, setVisitOpen] = useState(false);
   const [branchesOpen, setBranchesOpen] = useState(false);
+
+  const handleSwitchRole = async () => {
+    try {
+      const res = await fetch('/api/auth/me');
+      if (res.ok) {
+        const me = await res.json();
+        const payload = {
+          user_id: me.user_id,
+          available_roles: me.available_roles || [],
+        };
+        try {
+          sessionStorage.setItem('temp_auth_data', JSON.stringify(payload));
+        } catch {
+          (window as any).__TEMP_AUTH_DATA = JSON.stringify(payload);
+        }
+        router.push('/select-role');
+        return;
+      }
+    } catch {
+      // ignore
+    }
+    router.push('/select-role');
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/me', { method: 'POST' });
+    } catch {
+      // ignore
+    }
+    router.push('/login');
+  };
 
   // Overview Form
   const [overviewNote, setOverviewNote] = useState('');
@@ -263,6 +299,24 @@ export default function PresensiPegawaiPage() {
                 <ShieldCheck className="w-4 h-4" />
                 <span>Buka Monitoring Super Admin</span>
               </Link>
+              <div className="mt-3 flex items-center justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleSwitchRole}
+                  className="px-3.5 py-2 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-100 text-xs font-bold inline-flex items-center gap-1.5"
+                >
+                  <ArrowsLeftRight className="w-3.5 h-3.5" weight="bold" />
+                  <span>Ganti Peran</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="px-3.5 py-2 rounded-xl bg-rose-50 text-rose-700 border border-rose-100 text-xs font-bold inline-flex items-center gap-1.5"
+                >
+                  <SignOut className="w-3.5 h-3.5" weight="bold" />
+                  <span>Keluar</span>
+                </button>
+              </div>
             </div>
           ) : activeTab === 'home' ? (
             <div className="flex flex-col gap-4">
@@ -566,6 +620,25 @@ export default function PresensiPegawaiPage() {
               >
                 Perbarui Titik GPS Sekarang
               </button>
+
+              <div className="pt-2 border-t border-slate-100 grid grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  onClick={handleSwitchRole}
+                  className="py-2.5 px-3 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-100 text-xs font-bold inline-flex items-center justify-center gap-1.5 hover:bg-indigo-100"
+                >
+                  <ArrowsLeftRight className="w-4 h-4" weight="bold" />
+                  <span>Ganti Peran</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="py-2.5 px-3 rounded-xl bg-rose-50 text-rose-700 border border-rose-100 text-xs font-bold inline-flex items-center justify-center gap-1.5 hover:bg-rose-100"
+                >
+                  <SignOut className="w-4 h-4" weight="bold" />
+                  <span>Keluar</span>
+                </button>
+              </div>
             </div>
           )}
         </div>

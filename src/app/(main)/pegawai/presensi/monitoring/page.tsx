@@ -19,6 +19,10 @@ import {
   UserX,
   Eye,
   Smartphone,
+  Save,
+  Trash2,
+  MessageSquare,
+  Send,
 } from 'lucide-react';
 import { formatWorkedMinutes } from '@/lib/presensiTime';
 
@@ -76,6 +80,25 @@ export default function PresensiMonitoringPage() {
 
   // Detail modal (Odoo Form + Chatter style)
   const [detailRow, setDetailRow] = useState<any | null>(null);
+  const [editCheckInTime, setEditCheckInTime] = useState('');
+  const [editCheckOutTime, setEditCheckOutTime] = useState('');
+  const [editStatus, setEditStatus] = useState<'TEPAT_WAKTU' | 'TERLAMBAT'>('TEPAT_WAKTU');
+  const [editOverviewNote, setEditOverviewNote] = useState('');
+  const [editReason, setEditReason] = useState('');
+  const [savingPresensi, setSavingPresensi] = useState(false);
+  const [deletingPresensi, setDeletingPresensi] = useState(false);
+  const [chatterInput, setChatterInput] = useState('');
+  const [sendingNote, setSendingNote] = useState(false);
+
+  const openDetailModal = (row: any) => {
+    setDetailRow(row);
+    setEditCheckInTime(row.check_in_at ? formatWibTime(row.check_in_at).replace('.', ':') : '');
+    setEditCheckOutTime(row.check_out_at ? formatWibTime(row.check_out_at).replace('.', ':') : '');
+    setEditStatus(row.check_in_status === 'TERLAMBAT' ? 'TERLAMBAT' : 'TEPAT_WAKTU');
+    setEditOverviewNote(row.overview_note || '');
+    setEditReason('');
+    setChatterInput('');
+  };
 
   // Modal Pengaturan GPS Satelit
   const [gpsModalOpen, setGpsModalOpen] = useState(false);
@@ -102,7 +125,12 @@ export default function PresensiMonitoringPage() {
       }
       const json = await res.json();
       if (json.success && json.data) {
-        setRows(json.data.rows || []);
+        const nextRows = json.data.rows || [];
+        setRows(nextRows);
+        setDetailRow((prev: any) => {
+          if (!prev) return null;
+          return nextRows.find((r: any) => r.pegawai_id === prev.pegawai_id) || null;
+        });
         setRoles(json.data.roles || []);
         setSatelits(json.data.satelits || []);
         if (!editSatelitId && json.data.satelits?.length > 0) {
@@ -150,6 +178,101 @@ export default function PresensiMonitoringPage() {
       loadData();
     } catch (err: any) {
       toast.error(err?.message || 'Gagal mereset Face ID');
+    }
+  };
+
+  const handleAdminSavePresensi = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!detailRow) return;
+    setSavingPresensi(true);
+    try {
+      const res = await fetch('/api/pegawai/presensi/monitoring', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'admin_save_presensi',
+          pegawaiId: detailRow.pegawai_id,
+          tanggal: selectedDate,
+          checkInTime: editCheckInTime || null,
+          checkOutTime: editCheckOutTime || null,
+          checkInStatus: editStatus,
+          overviewNote: editOverviewNote || null,
+          reason: editReason || undefined,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.message);
+      toast.success(json.message);
+      setEditReason('');
+      await loadData();
+    } catch (err: any) {
+      toast.error(err?.message || 'Gagal menyimpan koreksi presensi.');
+    } finally {
+      setSavingPresensi(false);
+    }
+  };
+
+  const handleAdminHardDeletePresensi = async () => {
+    if (!detailRow || !detailRow.presensi_id) return;
+    if (
+      !confirm(
+        `HAPUS PERMANEN presensi ${detailRow.nama_lengkap} pada tanggal ${selectedDate}?\n\nRecord presensi akan dihapus dari database agar pegawai dapat melakukan Check-In ulang. Jejak penghapusan tetap tercatat di Chatter.`
+      )
+    ) {
+      return;
+    }
+    setDeletingPresensi(true);
+    try {
+      const res = await fetch('/api/pegawai/presensi/monitoring', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'admin_delete_presensi',
+          pegawaiId: detailRow.pegawai_id,
+          tanggal: selectedDate,
+          reason: editReason || undefined,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.message);
+      toast.success(json.message);
+      setEditCheckInTime('');
+      setEditCheckOutTime('');
+      setEditOverviewNote('');
+      setEditReason('');
+      await loadData();
+    } catch (err: any) {
+      toast.error(err?.message || 'Gagal menghapus presensi.');
+    } finally {
+      setDeletingPresensi(false);
+    }
+  };
+
+  const handleSendChatterNote = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!detailRow || !chatterInput.trim()) return;
+    setSendingNote(true);
+    try {
+      const res = await fetch('/api/pegawai/presensi/monitoring', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'add_chatter_note',
+          pegawaiId: detailRow.pegawai_id,
+          tanggal: selectedDate,
+          presensiId: detailRow.presensi_id || null,
+          message: chatterInput.trim(),
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.message);
+      toast.success(json.message);
+      setChatterInput('');
+      await loadData();
+    } catch (err: any) {
+      toast.error(err?.message || 'Gagal mengirim Log Note.');
+    } finally {
+      setSendingNote(false);
     }
   };
 
@@ -390,6 +513,7 @@ export default function PresensiMonitoringPage() {
               <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
                 <th className="py-3 px-4">Employee</th>
                 <th className="py-3 px-3">Satelit / Role</th>
+                <th className="py-3 px-3">Absen Bulan Ini</th>
                 <th className="py-3 px-3">Check In</th>
                 <th className="py-3 px-3">Check Out</th>
                 <th className="py-3 px-3">Status</th>
@@ -401,13 +525,13 @@ export default function PresensiMonitoringPage() {
             <tbody className="divide-y divide-slate-100 text-xs">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="py-10 text-center text-slate-400">
+                  <td colSpan={9} className="py-10 text-center text-slate-400">
                     Memuat data presensi...
                   </td>
                 </tr>
               ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-10 text-center text-slate-400">
+                  <td colSpan={9} className="py-10 text-center text-slate-400">
                     Tidak ada data pegawai yang cocok dengan filter.
                   </td>
                 </tr>
@@ -418,7 +542,7 @@ export default function PresensiMonitoringPage() {
                   return (
                     <tr
                       key={row.pegawai_id}
-                      onClick={() => setDetailRow(row)}
+                      onClick={() => openDetailModal(row)}
                       className="hover:bg-slate-50/80 cursor-pointer transition-colors"
                     >
                       <td className="py-3 px-4">
@@ -436,6 +560,11 @@ export default function PresensiMonitoringPage() {
                             {row.role_names.map((r: string) => r.replace(/_/g, ' ')).join(', ')}
                           </div>
                         )}
+                      </td>
+                      <td className="py-3 px-3">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                          {row.monthly_attendance_count ?? 0} hari
+                        </span>
                       </td>
                       <td className="py-3 px-3 font-medium text-slate-800">
                         {hasIn ? (
@@ -494,7 +623,7 @@ export default function PresensiMonitoringPage() {
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setDetailRow(row);
+                            openDetailModal(row);
                           }}
                           className="px-2.5 py-1 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 inline-flex items-center gap-1 text-[11px] font-bold"
                         >
@@ -524,6 +653,9 @@ export default function PresensiMonitoringPage() {
                 </h2>
               </div>
               <div className="flex items-center gap-2">
+                <span className="px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 text-[11px] font-bold border border-indigo-100">
+                  Absen Bulan Ini: {detailRow.monthly_attendance_count ?? 0} hari
+                </span>
                 {detailRow.is_face_enrolled && (
                   <button
                     type="button"
@@ -544,51 +676,111 @@ export default function PresensiMonitoringPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-12 overflow-y-auto flex-1">
-              {/* Left Column: Attendance Form Info + Overview + Visits */}
+              {/* Left Column: Editable Odoo Attendance Form + Overview + Visits */}
               <div className="md:col-span-7 p-5 border-b md:border-b-0 md:border-r border-slate-200 flex flex-col gap-4">
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                    <span className="text-slate-400 font-bold block">Check In</span>
-                    <span className="text-sm font-extrabold text-slate-900">
-                      {formatWibDateTime(detailRow.check_in_at)}
-                    </span>
-                    {detailRow.check_in_satelit_nama && (
-                      <span className="block text-[11px] text-emerald-700 font-semibold mt-0.5">
-                        Lokasi: {detailRow.check_in_satelit_nama} ({detailRow.check_in_distance_m ?? 0}m)
-                      </span>
+                <form onSubmit={handleAdminSavePresensi} className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 flex flex-col gap-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wide">
+                      Koreksi & Edit Presensi Manual (Super Admin)
+                    </h4>
+                    {detailRow.presensi_id && (
+                      <button
+                        type="button"
+                        disabled={deletingPresensi}
+                        onClick={handleAdminHardDeletePresensi}
+                        className="px-2.5 py-1 rounded-lg bg-rose-600 text-white text-[11px] font-bold inline-flex items-center gap-1 hover:bg-rose-700 disabled:opacity-50"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>{deletingPresensi ? 'Menghapus...' : 'Hapus Permanen'}</span>
+                      </button>
                     )}
                   </div>
-                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                    <span className="text-slate-400 font-bold block">Check Out</span>
-                    <span className="text-sm font-extrabold text-slate-900">
-                      {formatWibDateTime(detailRow.check_out_at)}
-                    </span>
-                    <span className="block text-[11px] text-slate-500 mt-0.5">
-                      Durasi: {detailRow.worked_minutes > 0 ? formatWorkedMinutes(detailRow.worked_minutes) : '-'}
-                    </span>
-                  </div>
-                </div>
 
-                {/* Overview Note & Attachment */}
-                <div className="rounded-xl border border-indigo-100 bg-indigo-50/50 p-3.5">
-                  <h4 className="text-xs font-extrabold text-indigo-800 uppercase tracking-wide mb-1">
-                    Overview Harian Pegawai
-                  </h4>
-                  <p className="text-xs text-slate-700 leading-relaxed">
-                    {detailRow.overview_note || 'Belum ada catatan overview untuk tanggal ini.'}
-                  </p>
-                  {detailRow.overview_attachment_url && (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-500 block mb-1">Check In (WIB)</label>
+                      <input
+                        type="time"
+                        value={editCheckInTime}
+                        onChange={(e) => setEditCheckInTime(e.target.value)}
+                        className="w-full h-9 px-2.5 rounded-lg border border-slate-200 bg-white font-bold text-slate-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-500 block mb-1">Check Out (WIB)</label>
+                      <input
+                        type="time"
+                        value={editCheckOutTime}
+                        onChange={(e) => setEditCheckOutTime(e.target.value)}
+                        className="w-full h-9 px-2.5 rounded-lg border border-slate-200 bg-white font-bold text-slate-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-500 block mb-1">Status</label>
+                      <select
+                        value={editStatus}
+                        onChange={(e) => setEditStatus(e.target.value as 'TEPAT_WAKTU' | 'TERLAMBAT')}
+                        className="w-full h-9 px-2.5 rounded-lg border border-slate-200 bg-white font-bold text-slate-900"
+                      >
+                        <option value="TEPAT_WAKTU">Tepat Waktu</option>
+                        <option value="TERLAMBAT">Terlambat</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-500 block mb-1">Overview Harian</label>
+                      <input
+                        type="text"
+                        value={editOverviewNote}
+                        onChange={(e) => setEditOverviewNote(e.target.value)}
+                        placeholder="Catatan overview harian..."
+                        className="w-full h-9 px-2.5 rounded-lg border border-slate-200 bg-white text-slate-800"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-500 block mb-1">Alasan Koreksi (Chatter)</label>
+                      <input
+                        type="text"
+                        value={editReason}
+                        onChange={(e) => setEditReason(e.target.value)}
+                        placeholder="Contoh: Lupa clock-out saat pelayanan..."
+                        className="w-full h-9 px-2.5 rounded-lg border border-slate-200 bg-white text-slate-800"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-[11px] text-slate-500">
+                      Durasi Kerja: <b>{detailRow.worked_minutes > 0 ? formatWorkedMinutes(detailRow.worked_minutes) : '-'}</b>
+                      {detailRow.check_in_satelit_nama ? ` · Lokasi: ${detailRow.check_in_satelit_nama} (${detailRow.check_in_distance_m ?? 0}m)` : ''}
+                    </span>
+                    <button
+                      type="submit"
+                      disabled={savingPresensi}
+                      className="px-3.5 py-2 rounded-lg bg-[#3B1F3D] text-white text-xs font-bold inline-flex items-center gap-1.5 hover:opacity-95 disabled:opacity-50"
+                    >
+                      <Save className="w-3.5 h-3.5" />
+                      <span>{savingPresensi ? 'Menyimpan...' : detailRow.presensi_id ? 'Simpan Perubahan' : 'Buat Presensi Manual'}</span>
+                    </button>
+                  </div>
+                </form>
+
+                {detailRow.overview_attachment_url && (
+                  <div className="rounded-xl border border-indigo-100 bg-indigo-50/50 p-3 flex items-center justify-between">
+                    <span className="text-xs font-bold text-indigo-900">Lampiran Overview Pegawai</span>
                     <a
                       href={detailRow.overview_attachment_url}
                       target="_blank"
                       rel="noreferrer"
-                      className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-indigo-700 hover:underline"
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-700 hover:underline"
                     >
                       <Paperclip className="w-3.5 h-3.5" />
                       <span>{detailRow.overview_attachment_name || 'Buka Lampiran Overview'}</span>
                     </a>
-                  )}
-                </div>
+                  </div>
+                )}
 
                 {/* Visit Details */}
                 <div>
@@ -633,15 +825,66 @@ export default function PresensiMonitoringPage() {
                 </div>
               </div>
 
-              {/* Right Column: Odoo Chatter Style Photo Evidence */}
+              {/* Right Column: Odoo Chatter (Audit Trail + Log Note + Bukti Foto) */}
               <div className="md:col-span-5 p-5 bg-slate-50/70 flex flex-col gap-4">
-                <h4 className="text-xs font-extrabold text-slate-700 uppercase tracking-wider">
-                  Chatter Bukti Foto & Log Biometrik
-                </h4>
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-extrabold text-slate-700 uppercase tracking-wider inline-flex items-center gap-1.5">
+                    <MessageSquare className="w-3.5 h-3.5 text-[#3B1F3D]" />
+                    <span>Chatter & Audit Log Odoo</span>
+                  </h4>
+                </div>
 
-                {!detailRow.check_in_at && (!detailRow.visits || detailRow.visits.length === 0) ? (
+                <form onSubmit={handleSendChatterNote} className="bg-white rounded-xl border border-slate-200 p-2.5 flex gap-2 shadow-xs">
+                  <input
+                    type="text"
+                    value={chatterInput}
+                    onChange={(e) => setChatterInput(e.target.value)}
+                    placeholder="Tulis Log note di Chatter..."
+                    className="flex-1 text-xs outline-none px-2 text-slate-800"
+                  />
+                  <button
+                    type="submit"
+                    disabled={sendingNote || !chatterInput.trim()}
+                    className="px-3 py-1.5 rounded-lg bg-[#3B1F3D] text-white text-[11px] font-bold inline-flex items-center gap-1 disabled:opacity-40"
+                  >
+                    <Send className="w-3 h-3" /> Log note
+                  </button>
+                </form>
+
+                {/* Audit Trail & Log Notes */}
+                {Array.isArray(detailRow.chatter) && detailRow.chatter.length > 0 && (
+                  <div className="flex flex-col gap-2.5">
+                    {detailRow.chatter.map((c: any) => (
+                      <div key={`ch-${c.id}`} className="bg-white rounded-xl border border-slate-200 p-3 shadow-xs">
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <span className="text-xs font-extrabold text-slate-900">{c.actor_name}</span>
+                          <span className="text-[10px] font-semibold text-slate-400">
+                            {formatWibDateTime(c.created_at)}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-700">{c.message}</p>
+                        {Array.isArray(c.changes) && c.changes.length > 0 && (
+                          <ul className="mt-2 pt-2 border-t border-slate-100 flex flex-col gap-1">
+                            {c.changes.map((chg: any, idx: number) => (
+                              <li key={idx} className="text-[11px] text-slate-600 flex items-center gap-1.5 flex-wrap">
+                                <span className="font-bold text-slate-800">{chg.field}:</span>
+                                <span className="line-through text-rose-500">{chg.old}</span>
+                                <span>→</span>
+                                <span className="font-bold text-emerald-700">{chg.new}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {!detailRow.check_in_at &&
+                (!detailRow.visits || detailRow.visits.length === 0) &&
+                (!detailRow.chatter || detailRow.chatter.length === 0) ? (
                   <p className="text-xs text-slate-400 italic">
-                    Belum ada bukti foto presensi pada tanggal ini.
+                    Belum ada aktivitas chatter atau bukti foto presensi pada tanggal ini.
                   </p>
                 ) : (
                   <div className="flex flex-col gap-4">
