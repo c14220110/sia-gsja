@@ -84,8 +84,8 @@ export class PresensiRepository {
         p.face_enrolled_at
       FROM public.pegawai p
       LEFT JOIN public.satelit s ON s.id = p.satelit_id
-      LEFT JOIN public.master_jabatan_pegawai jp ON jp.id = p.jabatan_pegawai_id
-      LEFT JOIN public.master_departemen d ON d.id = p.departemen_id
+      LEFT JOIN public.jabatan_pegawai_master jp ON jp.id = p.jabatan_pegawai_id
+      LEFT JOIN public.departemen d ON d.id = p.departemen_id
       LEFT JOIN public.pengguna u ON u.id = $1
       WHERE UPPER(p.status_pegawai) = 'AKTIF'
         AND (
@@ -117,8 +117,8 @@ export class PresensiRepository {
         p.face_enrolled_at
       FROM public.pegawai p
       LEFT JOIN public.satelit s ON s.id = p.satelit_id
-      LEFT JOIN public.master_jabatan_pegawai jp ON jp.id = p.jabatan_pegawai_id
-      LEFT JOIN public.master_departemen d ON d.id = p.departemen_id
+      LEFT JOIN public.jabatan_pegawai_master jp ON jp.id = p.jabatan_pegawai_id
+      LEFT JOIN public.departemen d ON d.id = p.departemen_id
       WHERE p.id = $1
       LIMIT 1
     `;
@@ -466,8 +466,8 @@ export class PresensiRepository {
         ) AS role_names
       FROM public.pegawai p
       LEFT JOIN public.satelit s ON s.id = p.satelit_id
-      LEFT JOIN public.master_jabatan_pegawai jp ON jp.id = p.jabatan_pegawai_id
-      LEFT JOIN public.master_departemen d ON d.id = p.departemen_id
+      LEFT JOIN public.jabatan_pegawai_master jp ON jp.id = p.jabatan_pegawai_id
+      LEFT JOIN public.departemen d ON d.id = p.departemen_id
       LEFT JOIN public.pegawai_presensi pr ON pr.pegawai_id = p.id AND pr.tanggal = $1::date
       LEFT JOIN public.satelit cs ON cs.id = pr.check_in_satelit_id
       ${where}
@@ -495,8 +495,8 @@ export class PresensiRepository {
         p.face_descriptor, p.face_photo_url, p.face_enrolled_at
       FROM public.pegawai p
       LEFT JOIN public.satelit s ON s.id = p.satelit_id
-      LEFT JOIN public.master_jabatan_pegawai jp ON jp.id = p.jabatan_pegawai_id
-      LEFT JOIN public.master_departemen d ON d.id = p.departemen_id
+      LEFT JOIN public.jabatan_pegawai_master jp ON jp.id = p.jabatan_pegawai_id
+      LEFT JOIN public.departemen d ON d.id = p.departemen_id
       WHERE UPPER(p.status_pegawai) = 'AKTIF'
       ORDER BY p.nama_lengkap ASC
     `);
