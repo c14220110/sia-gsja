@@ -58,6 +58,7 @@ export default function PresensiPegawaiPage() {
   const [cameraMode, setCameraMode] = useState<'ENROLL' | 'CHECK_IN' | 'CHECK_OUT' | null>(null);
   const [visitOpen, setVisitOpen] = useState(false);
   const [branchesOpen, setBranchesOpen] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
   const [overlayState, setOverlayState] = useState<{
     status: 'idle' | 'loading' | 'success' | 'error';
     message: string;
@@ -596,10 +597,11 @@ export default function PresensiPegawaiPage() {
           ) : (
             <div className="bg-white rounded-2xl shadow-md border border-slate-100 p-5 flex flex-col gap-3">
               <div className="flex items-center gap-3">
-                {pegawai.face_photo_url ? (
+                {pegawai.face_photo_url && !avatarError ? (
                   <img
                     src={pegawai.face_photo_url}
                     alt={pegawai.nama_lengkap}
+                    onError={() => setAvatarError(true)}
                     className="w-14 h-14 rounded-full object-cover border-2 border-[#3B1F3D]"
                   />
                 ) : (
