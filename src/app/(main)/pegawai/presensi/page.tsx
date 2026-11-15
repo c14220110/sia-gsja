@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Toaster, toast } from 'sonner';
+import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
 import {
   MapPin,
   CalendarDots,
@@ -58,6 +58,10 @@ export default function PresensiPegawaiPage() {
   const [cameraMode, setCameraMode] = useState<'ENROLL' | 'CHECK_IN' | 'CHECK_OUT' | null>(null);
   const [visitOpen, setVisitOpen] = useState(false);
   const [branchesOpen, setBranchesOpen] = useState(false);
+  const [overlayState, setOverlayState] = useState<{
+    status: 'idle' | 'loading' | 'success' | 'error';
+    message: string;
+  }>({ status: 'idle', message: '' });
 
   const handleSwitchRole = async () => {
     try {
@@ -166,10 +170,14 @@ export default function PresensiPegawaiPage() {
   const handleSaveOverview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!overviewNote.trim() && !overviewFile) {
-      toast.error('Isi catatan overview atau lampiran terlebih dahulu.');
+      setOverlayState({
+        status: 'error',
+        message: 'Isi catatan overview atau lampiran terlebih dahulu.',
+      });
       return;
     }
     setSavingOverview(true);
+    setOverlayState({ status: 'loading', message: 'Menyimpan overview harian...' });
     try {
       const fd = new FormData();
       fd.append('overview_note', overviewNote.trim());
@@ -184,11 +192,17 @@ export default function PresensiPegawaiPage() {
       if (!res.ok || !json.success) {
         throw new Error(json.message || 'Gagal menyimpan overview.');
       }
-      toast.success(json.message || 'Overview harian tersimpan.');
+      setOverlayState({
+        status: 'success',
+        message: json.message || 'Overview harian tersimpan.',
+      });
       setOverviewFile(null);
       await loadTodayData(selectedPegawaiId);
     } catch (err: any) {
-      toast.error(err?.message || 'Gagal menyimpan overview.');
+      setOverlayState({
+        status: 'error',
+        message: err?.message || 'Gagal menyimpan overview.',
+      });
     } finally {
       setSavingOverview(false);
     }
@@ -202,7 +216,10 @@ export default function PresensiPegawaiPage() {
     }
     if (!hasCheckedIn) {
       if (!geofence.isWithinRadius) {
-        toast.error('Check-In harus berada di dalam radius area gereja/satelit GSJA.');
+        setOverlayState({
+          status: 'error',
+          message: 'Check-In harus berada di dalam radius area gereja/satelit GSJA.',
+        });
         return;
       }
       setCameraMode('CHECK_IN');
@@ -224,10 +241,14 @@ export default function PresensiPegawaiPage() {
 
   return (
     <div className="min-h-screen bg-slate-100 flex justify-center">
-      <Toaster position="top-center" richColors />
+      <SubmitOverlay
+        status={overlayState.status}
+        message={overlayState.message}
+        onClose={() => setOverlayState({ status: 'idle', message: '' })}
+      />
 
       <div className="w-full max-w-md min-h-screen bg-slate-50 relative shadow-xl flex flex-col">
-        {/* Top Curved Header (1:1 Odoo Attendance PWA Style) */}
+        {/* Top Curved Header */}
         <div className="bg-gradient-to-br from-[#3B1F3D] via-[#4A254D] to-[#2B152D] text-white px-5 pt-5 pb-16 rounded-b-[28px] shadow-md">
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0">
@@ -351,7 +372,7 @@ export default function PresensiPegawaiPage() {
                 </div>
               )}
 
-              {/* Quick Menu (4 Buttons ala Mekari/Odoo PWA) */}
+              {/* Quick Menu (4 Buttons) */}
               <div className="grid grid-cols-4 gap-2">
                 <button
                   type="button"
@@ -660,7 +681,7 @@ export default function PresensiPegawaiPage() {
           branchName={geofence.satelit?.nama_satelit}
           pegawaiIdOverride={selectedPegawaiId}
           onSuccess={(msg) => {
-            toast.success(msg);
+            setOverlayState({ status: 'success', message: msg });
             loadTodayData(selectedPegawaiId);
           }}
         />
@@ -673,7 +694,7 @@ export default function PresensiPegawaiPage() {
           coords={coords}
           pegawaiIdOverride={selectedPegawaiId}
           onSuccess={(msg) => {
-            toast.success(msg);
+            setOverlayState({ status: 'success', message: msg });
             loadTodayData(selectedPegawaiId);
           }}
         />

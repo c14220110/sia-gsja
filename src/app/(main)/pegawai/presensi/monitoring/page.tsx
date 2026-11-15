@@ -2,7 +2,8 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Toaster, toast } from 'sonner';
+import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
+import { AlertModal } from '@/components/ui/AlertModal';
 import {
   Calendar,
   ChevronLeft,
@@ -78,8 +79,19 @@ export default function PresensiMonitoringPage() {
   const [loading, setLoading] = useState(true);
   const [forbidden, setForbidden] = useState(false);
 
-  // Detail modal (Odoo Form + Chatter style)
+  // Detail modal (Form + Chatter Audit Log)
   const [detailRow, setDetailRow] = useState<any | null>(null);
+  const [overlayState, setOverlayState] = useState<{
+    status: 'idle' | 'loading' | 'success' | 'error';
+    message: string;
+  }>({ status: 'idle', message: '' });
+  const [confirmState, setConfirmState] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText?: string;
+    onConfirm: () => void;
+  }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
   const [editCheckInTime, setEditCheckInTime] = useState('');
   const [editCheckOutTime, setEditCheckOutTime] = useState('');
   const [editStatus, setEditStatus] = useState<'TEPAT_WAKTU' | 'TERLAMBAT'>('TEPAT_WAKTU');
@@ -161,30 +173,38 @@ export default function PresensiMonitoringPage() {
     return { total, hadir, tidakAbsen, terlambat, totalVisits };
   }, [rows]);
 
-  const handleResetFace = async (pegawaiId: number, nama: string) => {
-    if (!confirm(`Reset Face ID untuk ${nama}? Pegawai harus mendaftarkan wajah ulang saat presensi berikutnya.`)) {
-      return;
-    }
-    try {
-      const res = await fetch('/api/pegawai/presensi/monitoring', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'reset_face', pegawaiId }),
-      });
-      const json = await res.json();
-      if (!res.ok || !json.success) throw new Error(json.message);
-      toast.success(json.message);
-      setDetailRow(null);
-      loadData();
-    } catch (err: any) {
-      toast.error(err?.message || 'Gagal mereset Face ID');
-    }
+  const handleResetFace = (pegawaiId: number, nama: string) => {
+    setConfirmState({
+      isOpen: true,
+      title: 'Reset Face ID Pegawai?',
+      message: `Reset Face ID untuk ${nama}? Pegawai harus mendaftarkan wajah ulang saat presensi berikutnya.`,
+      confirmText: 'Ya, Reset Face ID',
+      onConfirm: async () => {
+        setConfirmState((p) => ({ ...p, isOpen: false }));
+        setOverlayState({ status: 'loading', message: 'Mereset Face ID...' });
+        try {
+          const res = await fetch('/api/pegawai/presensi/monitoring', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'reset_face', pegawaiId }),
+          });
+          const json = await res.json();
+          if (!res.ok || !json.success) throw new Error(json.message);
+          setOverlayState({ status: 'success', message: json.message });
+          setDetailRow(null);
+          loadData();
+        } catch (err: any) {
+          setOverlayState({ status: 'error', message: err?.message || 'Gagal mereset Face ID' });
+        }
+      },
+    });
   };
 
   const handleAdminSavePresensi = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!detailRow) return;
     setSavingPresensi(true);
+    setOverlayState({ status: 'loading', message: 'Menyimpan koreksi presensi...' });
     try {
       const res = await fetch('/api/pegawai/presensi/monitoring', {
         method: 'POST',
@@ -202,56 +222,60 @@ export default function PresensiMonitoringPage() {
       });
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.message);
-      toast.success(json.message);
+      setOverlayState({ status: 'success', message: json.message });
       setEditReason('');
       await loadData();
     } catch (err: any) {
-      toast.error(err?.message || 'Gagal menyimpan koreksi presensi.');
+      setOverlayState({ status: 'error', message: err?.message || 'Gagal menyimpan koreksi presensi.' });
     } finally {
       setSavingPresensi(false);
     }
   };
 
-  const handleAdminHardDeletePresensi = async () => {
+  const handleAdminHardDeletePresensi = () => {
     if (!detailRow || !detailRow.presensi_id) return;
-    if (
-      !confirm(
-        `HAPUS PERMANEN presensi ${detailRow.nama_lengkap} pada tanggal ${selectedDate}?\n\nRecord presensi akan dihapus dari database agar pegawai dapat melakukan Check-In ulang. Jejak penghapusan tetap tercatat di Chatter.`
-      )
-    ) {
-      return;
-    }
-    setDeletingPresensi(true);
-    try {
-      const res = await fetch('/api/pegawai/presensi/monitoring', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'admin_delete_presensi',
-          pegawaiId: detailRow.pegawai_id,
-          tanggal: selectedDate,
-          reason: editReason || undefined,
-        }),
-      });
-      const json = await res.json();
-      if (!res.ok || !json.success) throw new Error(json.message);
-      toast.success(json.message);
-      setEditCheckInTime('');
-      setEditCheckOutTime('');
-      setEditOverviewNote('');
-      setEditReason('');
-      await loadData();
-    } catch (err: any) {
-      toast.error(err?.message || 'Gagal menghapus presensi.');
-    } finally {
-      setDeletingPresensi(false);
-    }
+    setConfirmState({
+      isOpen: true,
+      title: 'Hapus Permanen Presensi?',
+      message: `Hapus permanen presensi ${detailRow.nama_lengkap} pada tanggal ${selectedDate}? Pegawai dapat melakukan Check-In ulang dan riwayat penghapusan tetap tercatat di Chatter.`,
+      confirmText: 'Ya, Hapus Permanen',
+      onConfirm: async () => {
+        setConfirmState((p) => ({ ...p, isOpen: false }));
+        setDeletingPresensi(true);
+        setOverlayState({ status: 'loading', message: 'Menghapus presensi...' });
+        try {
+          const res = await fetch('/api/pegawai/presensi/monitoring', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'admin_delete_presensi',
+              pegawaiId: detailRow.pegawai_id,
+              tanggal: selectedDate,
+              reason: editReason || undefined,
+            }),
+          });
+          const json = await res.json();
+          if (!res.ok || !json.success) throw new Error(json.message);
+          setOverlayState({ status: 'success', message: json.message });
+          setEditCheckInTime('');
+          setEditCheckOutTime('');
+          setEditOverviewNote('');
+          setEditReason('');
+          await loadData();
+        } catch (err: any) {
+          setOverlayState({ status: 'error', message: err?.message || 'Gagal menghapus presensi.' });
+        } finally {
+          setDeletingPresensi(false);
+        }
+      },
+    });
   };
 
   const handleSendChatterNote = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!detailRow || !chatterInput.trim()) return;
     setSendingNote(true);
+    setOverlayState({ status: 'loading', message: 'Mengirim Log Note...' });
     try {
       const res = await fetch('/api/pegawai/presensi/monitoring', {
         method: 'POST',
@@ -266,11 +290,11 @@ export default function PresensiMonitoringPage() {
       });
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.message);
-      toast.success(json.message);
+      setOverlayState({ status: 'success', message: json.message });
       setChatterInput('');
       await loadData();
     } catch (err: any) {
-      toast.error(err?.message || 'Gagal mengirim Log Note.');
+      setOverlayState({ status: 'error', message: err?.message || 'Gagal mengirim Log Note.' });
     } finally {
       setSendingNote(false);
     }
@@ -303,11 +327,11 @@ export default function PresensiMonitoringPage() {
       });
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.message);
-      toast.success(json.message);
+      setOverlayState({ status: 'success', message: json.message });
       setGpsModalOpen(false);
       loadData();
     } catch (err: any) {
-      toast.error(err?.message || 'Gagal menyimpan koordinat satelit.');
+      setOverlayState({ status: 'error', message: err?.message || 'Gagal menyimpan koordinat satelit.' });
     } finally {
       setSavingGps(false);
     }
@@ -334,7 +358,19 @@ export default function PresensiMonitoringPage() {
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto flex flex-col gap-5">
-      <Toaster position="top-right" richColors />
+      <SubmitOverlay
+        status={overlayState.status}
+        message={overlayState.message}
+        onClose={() => setOverlayState({ status: 'idle', message: '' })}
+      />
+      <AlertModal
+        isOpen={confirmState.isOpen}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmText={confirmState.confirmText}
+        onConfirm={confirmState.onConfirm}
+        onCancel={() => setConfirmState((p) => ({ ...p, isOpen: false }))}
+      />
 
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
@@ -344,7 +380,7 @@ export default function PresensiMonitoringPage() {
           </h1>
           <p className="text-xs md:text-sm text-slate-500 mt-0.5">
             Monitoring kehadiran harian pegawai (hadir & tidak hadir), filter tanggal & role, serta
-            audit foto selfie & visit ala Odoo HRIS.
+            audit foto selfie & jurnal kunjungan pastoral.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -830,7 +866,7 @@ export default function PresensiMonitoringPage() {
                 <div className="flex items-center justify-between">
                   <h4 className="text-xs font-extrabold text-slate-700 uppercase tracking-wider inline-flex items-center gap-1.5">
                     <MessageSquare className="w-3.5 h-3.5 text-[#3B1F3D]" />
-                    <span>Chatter & Audit Log Odoo</span>
+                    <span>Chatter & Audit Log Presensi</span>
                   </h4>
                 </div>
 
