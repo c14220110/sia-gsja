@@ -270,7 +270,7 @@ export default function AkunAksesPage() {
     {
       title: 'HRD & Penggajian', icon: 'work', color: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-100', ring: 'focus:ring-rose-500', 
       checkedBg: 'checked:bg-rose-500', checkBorder: 'peer-checked:border-rose-500', activeBg: 'bg-rose-100',
-      keys: ['pegawai_view', 'pegawai_create', 'pegawai_edit', 'pegawai_approval', 'penggajian_manage']
+      keys: ['pegawai_view', 'pegawai_create', 'pegawai_edit', 'pegawai_approval', 'penggajian_manage', 'presensi_monitoring_view', 'presensi_monitoring_manage']
     },
     {
       title: 'Sistem & Keamanan', icon: 'admin_panel_settings', color: 'text-slate-700', bg: 'bg-slate-100', border: 'border-slate-200', ring: 'focus:ring-slate-500', 

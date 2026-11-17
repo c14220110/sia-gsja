@@ -78,6 +78,18 @@ export default function PresensiMonitoringPage() {
   const [satelits, setSatelits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [forbidden, setForbidden] = useState(false);
+  const [canManage, setCanManage] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((auth) => {
+        if (auth) {
+          setCanManage(Boolean(auth.is_super_admin || auth.permissions?.includes('presensi_monitoring_manage')));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Detail modal (Form + Chatter Audit Log)
   const [detailRow, setDetailRow] = useState<any | null>(null);
@@ -343,7 +355,7 @@ export default function PresensiMonitoringPage() {
         <div className="bg-white rounded-2xl border border-rose-200 p-6 text-center shadow-sm">
           <h2 className="text-lg font-extrabold text-rose-700">Akses Terbatas</h2>
           <p className="text-sm text-slate-600 mt-1">
-            Halaman Monitoring Presensi sementara hanya dapat diakses oleh Super Admin.
+            Role Anda belum memiliki izin <b>Presensi Monitoring View</b> pada Matrix Edit Hak Akses.
           </p>
           <Link
             href="/pegawai/presensi"
@@ -384,14 +396,16 @@ export default function PresensiMonitoringPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setGpsModalOpen(true)}
-            className="px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-bold inline-flex items-center gap-1.5 hover:bg-slate-50 shadow-xs"
-          >
-            <Settings2 className="w-4 h-4 text-indigo-600" />
-            <span>Atur GPS Satelit</span>
-          </button>
+          {canManage && (
+            <button
+              type="button"
+              onClick={() => setGpsModalOpen(true)}
+              className="px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-bold inline-flex items-center gap-1.5 hover:bg-slate-50 shadow-xs"
+            >
+              <Settings2 className="w-4 h-4 text-indigo-600" />
+              <span>Atur GPS Satelit</span>
+            </button>
+          )}
           <Link
             href="/pegawai/presensi"
             className="px-3.5 py-2 rounded-xl bg-[#3B1F3D] text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-sm hover:opacity-95"
@@ -692,7 +706,7 @@ export default function PresensiMonitoringPage() {
                 <span className="px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 text-[11px] font-bold border border-indigo-100">
                   Absen Bulan Ini: {detailRow.monthly_attendance_count ?? 0} hari
                 </span>
-                {detailRow.is_face_enrolled && (
+                {canManage && detailRow.is_face_enrolled && (
                   <button
                     type="button"
                     onClick={() => handleResetFace(detailRow.pegawai_id, detailRow.nama_lengkap)}
@@ -717,9 +731,9 @@ export default function PresensiMonitoringPage() {
                 <form onSubmit={handleAdminSavePresensi} className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 flex flex-col gap-3">
                   <div className="flex items-center justify-between">
                     <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wide">
-                      Koreksi & Edit Presensi Manual (Super Admin)
+                      {canManage ? 'Koreksi & Edit Presensi Manual' : 'Detail Presensi (Mode Baca)'}
                     </h4>
-                    {detailRow.presensi_id && (
+                    {canManage && detailRow.presensi_id && (
                       <button
                         type="button"
                         disabled={deletingPresensi}
@@ -792,14 +806,16 @@ export default function PresensiMonitoringPage() {
                       Durasi Kerja: <b>{detailRow.worked_minutes > 0 ? formatWorkedMinutes(detailRow.worked_minutes) : '-'}</b>
                       {detailRow.check_in_satelit_nama ? ` · Lokasi: ${detailRow.check_in_satelit_nama} (${detailRow.check_in_distance_m ?? 0}m)` : ''}
                     </span>
-                    <button
-                      type="submit"
-                      disabled={savingPresensi}
-                      className="px-3.5 py-2 rounded-lg bg-[#3B1F3D] text-white text-xs font-bold inline-flex items-center gap-1.5 hover:opacity-95 disabled:opacity-50"
-                    >
-                      <Save className="w-3.5 h-3.5" />
-                      <span>{savingPresensi ? 'Menyimpan...' : detailRow.presensi_id ? 'Simpan Perubahan' : 'Buat Presensi Manual'}</span>
-                    </button>
+                    {canManage && (
+                      <button
+                        type="submit"
+                        disabled={savingPresensi}
+                        className="px-3.5 py-2 rounded-lg bg-[#3B1F3D] text-white text-xs font-bold inline-flex items-center gap-1.5 hover:opacity-95 disabled:opacity-50"
+                      >
+                        <Save className="w-3.5 h-3.5" />
+                        <span>{savingPresensi ? 'Menyimpan...' : detailRow.presensi_id ? 'Simpan Perubahan' : 'Buat Presensi Manual'}</span>
+                      </button>
+                    )}
                   </div>
                 </form>
 
@@ -870,22 +886,24 @@ export default function PresensiMonitoringPage() {
                   </h4>
                 </div>
 
-                <form onSubmit={handleSendChatterNote} className="bg-white rounded-xl border border-slate-200 p-2.5 flex gap-2 shadow-xs">
-                  <input
-                    type="text"
-                    value={chatterInput}
-                    onChange={(e) => setChatterInput(e.target.value)}
-                    placeholder="Tulis Log note di Chatter..."
-                    className="flex-1 text-xs outline-none px-2 text-slate-800"
-                  />
-                  <button
-                    type="submit"
-                    disabled={sendingNote || !chatterInput.trim()}
-                    className="px-3 py-1.5 rounded-lg bg-[#3B1F3D] text-white text-[11px] font-bold inline-flex items-center gap-1 disabled:opacity-40"
-                  >
-                    <Send className="w-3 h-3" /> Log note
-                  </button>
-                </form>
+                {canManage && (
+                  <form onSubmit={handleSendChatterNote} className="bg-white rounded-xl border border-slate-200 p-2.5 flex gap-2 shadow-xs">
+                    <input
+                      type="text"
+                      value={chatterInput}
+                      onChange={(e) => setChatterInput(e.target.value)}
+                      placeholder="Tulis Log note di Chatter..."
+                      className="flex-1 text-xs outline-none px-2 text-slate-800"
+                    />
+                    <button
+                      type="submit"
+                      disabled={sendingNote || !chatterInput.trim()}
+                      className="px-3 py-1.5 rounded-lg bg-[#3B1F3D] text-white text-[11px] font-bold inline-flex items-center gap-1 disabled:opacity-40"
+                    >
+                      <Send className="w-3 h-3" /> Log note
+                    </button>
+                  </form>
+                )}
 
                 {/* Audit Trail & Log Notes */}
                 {Array.isArray(detailRow.chatter) && detailRow.chatter.length > 0 && (
