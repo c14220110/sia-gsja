@@ -13,29 +13,13 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const { searchParams } = new URL(request.url);
-    const pegawaiIdParam = searchParams.get('pegawai_id');
-    const overrideId = pegawaiIdParam ? Number(pegawaiIdParam) : null;
-
     const [pegawai, satelits] = await Promise.all([
-      resolvePegawaiForCaller(presensiRepository, caller, overrideId),
+      resolvePegawaiForCaller(presensiRepository, caller),
       presensiRepository.listActiveSatelit(),
     ]);
 
     const today = getTodayWibDateString();
     if (!pegawai) {
-      const canPreviewAll =
-        caller.is_super_admin ||
-        caller.permissions.includes('presensi_monitoring_view') ||
-        caller.permissions.includes('presensi_monitoring_manage');
-      const availablePegawai = canPreviewAll
-        ? (await presensiRepository.listActivePegawaiSimple()).map((p) => ({
-            id: p.id,
-            id_pegawai: p.id_pegawai,
-            nama_lengkap: p.nama_lengkap,
-            nama_satelit: p.nama_satelit,
-          }))
-        : [];
       return NextResponse.json({
         success: true,
         data: {
@@ -45,7 +29,6 @@ export async function GET(request: NextRequest) {
           presensi: null,
           visits: [],
           satelits,
-          availablePegawai,
         },
       });
     }

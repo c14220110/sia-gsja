@@ -42,8 +42,6 @@ export default function PresensiPegawaiPage() {
   const [activeTab, setActiveTab] = useState<PresensiTabType>('home');
   const [loading, setLoading] = useState(true);
   const [pegawai, setPegawai] = useState<any>(null);
-  const [availablePegawai, setAvailablePegawai] = useState<any[]>([]);
-  const [selectedPegawaiId, setSelectedPegawaiId] = useState<number | null>(null);
   const [isFaceEnrolled, setIsFaceEnrolled] = useState(false);
   const [presensi, setPresensi] = useState<PresensiRecord | null>(null);
   const [visits, setVisits] = useState<KunjunganRecord[]>([]);
@@ -101,17 +99,13 @@ export default function PresensiPegawaiPage() {
   const [overviewFile, setOverviewFile] = useState<File | null>(null);
   const [savingOverview, setSavingOverview] = useState(false);
 
-  const loadTodayData = useCallback(async (overrideId?: number | null) => {
+  const loadTodayData = useCallback(async () => {
     setLoading(true);
     try {
-      const url = overrideId
-        ? `/api/pegawai/presensi/today?pegawai_id=${overrideId}`
-        : '/api/pegawai/presensi/today';
-      const res = await fetch(url);
+      const res = await fetch('/api/pegawai/presensi/today');
       const json = await res.json();
       if (json.success && json.data) {
         setPegawai(json.data.pegawai);
-        setAvailablePegawai(json.data.availablePegawai || []);
         setIsFaceEnrolled(Boolean(json.data.isFaceEnrolled));
         setPresensi(json.data.presensi);
         setVisits(json.data.visits || []);
@@ -126,8 +120,8 @@ export default function PresensiPegawaiPage() {
   }, []);
 
   useEffect(() => {
-    loadTodayData(selectedPegawaiId);
-  }, [loadTodayData, selectedPegawaiId]);
+    loadTodayData();
+  }, [loadTodayData]);
 
   const refreshGps = useCallback(() => {
     if (!navigator.geolocation) {
@@ -183,7 +177,6 @@ export default function PresensiPegawaiPage() {
       const fd = new FormData();
       fd.append('overview_note', overviewNote.trim());
       if (overviewFile) fd.append('attachment', overviewFile);
-      if (selectedPegawaiId) fd.append('pegawai_id', String(selectedPegawaiId));
 
       const res = await fetch('/api/pegawai/presensi/overview', {
         method: 'PUT',
@@ -198,7 +191,7 @@ export default function PresensiPegawaiPage() {
         message: json.message || 'Overview harian tersimpan.',
       });
       setOverviewFile(null);
-      await loadTodayData(selectedPegawaiId);
+      await loadTodayData();
     } catch (err: any) {
       setOverlayState({
         status: 'error',
@@ -230,7 +223,7 @@ export default function PresensiPegawaiPage() {
     setVisitOpen(true);
   };
 
-  if (loading && !pegawai && availablePegawai.length === 0) {
+  if (loading && !pegawai) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
         <div className="text-sm font-semibold text-slate-500 animate-pulse">
@@ -241,7 +234,7 @@ export default function PresensiPegawaiPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 flex justify-center">
+    <div className="min-h-screen bg-slate-50">
       <SubmitOverlay
         status={overlayState.status}
         message={overlayState.message}
@@ -257,12 +250,12 @@ export default function PresensiPegawaiPage() {
                 Selamat melayani,
               </p>
               <h1 className="text-lg font-extrabold truncate">
-                {pegawai ? pegawai.nama_lengkap : 'Mode Pratinjau Super Admin'}
+                {pegawai ? pegawai.nama_lengkap : 'Presensi Pegawai GSJA'}
               </h1>
               <p className="text-[11px] text-purple-200/80 truncate">
                 {pegawai
                   ? `${pegawai.id_pegawai} · ${pegawai.nama_jabatan || 'Staf Pastoral'}`
-                  : 'Pilih pegawai untuk simulasi presensi'}
+                  : 'Akun belum terhubung ke data pegawai'}
               </p>
             </div>
 
@@ -281,25 +274,6 @@ export default function PresensiPegawaiPage() {
               </span>
             </button>
           </div>
-
-          {!pegawai && availablePegawai.length > 0 && (
-            <div className="mt-3">
-              <select
-                value={selectedPegawaiId ?? ''}
-                onChange={(e) => setSelectedPegawaiId(e.target.value ? Number(e.target.value) : null)}
-                className="w-full h-9 px-3 rounded-xl bg-white/15 border border-white/25 text-white text-xs font-semibold outline-none"
-              >
-                <option value="" className="text-slate-900">
-                  -- Pilih Pegawai untuk Pratinjau --
-                </option>
-                {availablePegawai.map((p) => (
-                  <option key={p.id} value={p.id} className="text-slate-900">
-                    {p.nama_lengkap} ({p.id_pegawai})
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
         </div>
 
         {/* Main Scrollable Content */}
@@ -311,17 +285,9 @@ export default function PresensiPegawaiPage() {
                 Akun Belum Terhubung ke Data Pegawai
               </h3>
               <p className="text-xs text-slate-500 mt-1">
-                Pilih salah satu pegawai pada dropdown di atas untuk simulasi, atau buka panel
-                Monitoring Super Admin untuk memantau kehadiran staf.
+                Akun Anda belum tertaut ke profil pegawai GSJA. Hubungi HRD untuk menautkan data pegawai Anda.
               </p>
-              <Link
-                href="/pegawai/presensi/monitoring"
-                className="mt-4 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#3B1F3D] text-white text-xs font-bold"
-              >
-                <ShieldCheck className="w-4 h-4" />
-                <span>Buka Monitoring Super Admin</span>
-              </Link>
-              <div className="mt-3 flex items-center justify-center gap-2">
+              <div className="mt-4 flex items-center justify-center gap-2">
                 <button
                   type="button"
                   onClick={handleSwitchRole}
@@ -529,7 +495,7 @@ export default function PresensiPegawaiPage() {
               </div>
             </div>
           ) : activeTab === 'calendar' ? (
-            <CalendarHistoryTab pegawaiIdOverride={selectedPegawaiId} />
+            <CalendarHistoryTab />
           ) : activeTab === 'overview' ? (
             <div className="bg-white rounded-2xl shadow-md border border-slate-100 p-5">
               <h3 className="text-base font-extrabold text-slate-900 mb-1">
@@ -681,10 +647,9 @@ export default function PresensiPegawaiPage() {
           mode={cameraMode || 'CHECK_IN'}
           coords={coords}
           branchName={geofence.satelit?.nama_satelit}
-          pegawaiIdOverride={selectedPegawaiId}
           onSuccess={(msg) => {
             setOverlayState({ status: 'success', message: msg });
-            loadTodayData(selectedPegawaiId);
+            loadTodayData();
           }}
         />
 
@@ -694,10 +659,9 @@ export default function PresensiPegawaiPage() {
           onClose={() => setVisitOpen(false)}
           satelits={satelits}
           coords={coords}
-          pegawaiIdOverride={selectedPegawaiId}
           onSuccess={(msg) => {
             setOverlayState({ status: 'success', message: msg });
-            loadTodayData(selectedPegawaiId);
+            loadTodayData();
           }}
         />
 

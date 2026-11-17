@@ -406,13 +406,6 @@ export default function PresensiMonitoringPage() {
               <span>Atur GPS Satelit</span>
             </button>
           )}
-          <Link
-            href="/pegawai/presensi"
-            className="px-3.5 py-2 rounded-xl bg-[#3B1F3D] text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-sm hover:opacity-95"
-          >
-            <Smartphone className="w-4 h-4" />
-            <span>Tampilan HP Pegawai</span>
-          </Link>
         </div>
       </div>
 
