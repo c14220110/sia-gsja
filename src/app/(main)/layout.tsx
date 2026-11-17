@@ -165,10 +165,10 @@ export default function DashboardLayout({
     );
   }
 
-  if (userData?.role_name?.toLowerCase() === 'pegawai') {
+  if (userData?.role_name?.toLowerCase() === 'pegawai' || pathname === '/pegawai/presensi') {
     return (
-      <div className="w-full min-h-screen bg-slate-100 flex justify-center">
-        <div className="w-full max-w-[440px] min-h-screen bg-slate-50 shadow-xl overflow-x-hidden">
+      <div className="w-full min-h-screen bg-slate-50 md:bg-slate-100 md:flex md:justify-center">
+        <div className="w-full md:max-w-[440px] min-h-screen bg-slate-50 md:shadow-xl overflow-x-hidden">
           {children}
         </div>
       </div>
