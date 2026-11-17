@@ -921,6 +921,11 @@ export default function DashboardHome() {
            // Data BSC di-fetch saat user membuka halaman /bsc secara langsung.
 
 
+           if (uData?.role_name?.toLowerCase() === 'pegawai') {
+             router.replace('/pegawai/presensi');
+             return;
+           }
+
            if (uData?.role_name?.toLowerCase() === 'jemaat') {
               // mode=publik: bypass RBAC satelit, tampilkan semua kegiatan yang is_published
               // Exclude 'Ibadah Rutin' agar hanya tampil kegiatan spesial/event
@@ -1115,6 +1120,14 @@ export default function DashboardHome() {
       setShowLayananSheet(true);
     }
   };
+
+  if (userData?.role_name?.toLowerCase() === 'pegawai') {
+    return (
+      <div className="w-full min-h-screen bg-slate-50 flex items-center justify-center text-xs font-bold text-slate-400">
+        Membuka Presensi Pegawai...
+      </div>
+    );
+  }
 
   // --- TAMPILAN JEMAAT (PWA SUPER APP) ---
   if (userData?.role_name?.toLowerCase() === 'jemaat') {

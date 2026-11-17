@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
+import { auditLogRepository } from '@/server/repositories/auditLog.repository';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -399,14 +400,21 @@ export async function POST(request: Request) {
       );
     }
 
-    // [Audit Log] Catat aksi CREATE kegiatan
-    await client.query(
-      `INSERT INTO kegiatan_audit_log (kegiatan_id, aksi, user_id, role_id, satelit_id, keterangan)
-       VALUES ($1, $2::audit_action, $3, $4, $5, $6)`,
-      [newKegiatanId, 'CREATE', caller.user_id, caller.role_id, s_id || caller.satelit_id || 1, `Kegiatan baru dibuat: ${nama_kegiatan}`]
-    );
-
     await client.query('COMMIT'); // Selesaikan transaksi dan simpan ke database dengan sukses
+
+    // [Audit Log] Catat aksi CREATE kegiatan secara aman (fault-tolerant, tidak membatalkan transaksi utama jika log gagal)
+    try {
+      await auditLogRepository.insertKegiatanAuditLog({
+        kegiatan_id: newKegiatanId,
+        aksi: 'CREATE',
+        user_id: caller.user_id,
+        role_id: caller.role_id,
+        satelit_id: s_id || caller.satelit_id || 1,
+        keterangan: `Kegiatan baru dibuat: ${nama_kegiatan}`,
+      });
+    } catch (auditErr) {
+      console.error('[KegiatanRoute] POST audit log error:', auditErr);
+    }
     
     return NextResponse.json({ success: true, message: 'Kegiatan berhasil dibuat!', data: { id: newKegiatanId } });
 
