@@ -186,12 +186,22 @@ export default function PegawaiPage() {
             <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Manajemen Pegawai</h1>
             <div className="text-slate-500 text-base font-medium font-sans leading-6">HRIS System & Payroll Integration</div>
           </div>
-          {hasPermission('pegawai_create') && (
-            <Link href="/pegawai/new" className="px-5 py-2.5 bg-slate-700 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none">
-              <span className="material-icons-round text-white text-[20px]">badge</span>
-              <span className="text-white text-sm font-bold font-sans leading-5">Registrasi Pegawai</span>
-            </Link>
-          )}
+          <div className="flex items-center gap-3 flex-wrap">
+            <a
+              href="/templates/Template_Perjanjian_Kerja_GSJA.docx"
+              download="Template_Perjanjian_Kerja_GSJA.docx"
+              className="px-4 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-50 transition-colors shadow-sm text-sm font-bold"
+            >
+              <span className="material-icons-round text-emerald-600 text-[20px]">download</span>
+              <span>Download Template Kontrak</span>
+            </a>
+            {hasPermission('pegawai_create') && (
+              <Link href="/pegawai/new" className="px-5 py-2.5 bg-slate-700 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none">
+                <span className="material-icons-round text-white text-[20px]">badge</span>
+                <span className="text-white text-sm font-bold font-sans leading-5">Registrasi Pegawai</span>
+              </Link>
+            )}
+          </div>
         </div>
 
       {/* Statistic Cards */}

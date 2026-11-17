@@ -4,6 +4,13 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
+import {
+  DIGIT_16_FIELDS,
+  SHIFT_SATPAM_OPTIONS,
+  isSatpamJabatan,
+  sanitizeNumericField,
+  validatePegawaiTab,
+} from '@/lib/pegawaiForm';
 
 export default function NewPegawaiPage() {
   const router = useRouter();
@@ -38,6 +45,7 @@ export default function NewPegawaiPage() {
     no_hp: '',
     email_pribadi: '',
 
+    nik: '',
     no_kk: '',
     kontak_darurat_nama: '',
     kontak_darurat_nohp: '',
@@ -47,6 +55,7 @@ export default function NewPegawaiPage() {
     satelit_id: '',
     departemen_id: '',
     jabatan_pegawai_id: '',
+    shift_kerja: '',
     tipe_pekerja: 'Pegawai Tetap',
     tanggal_bergabung: new Date().toISOString().split('T')[0],
 
@@ -100,10 +109,12 @@ export default function NewPegawaiPage() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target as HTMLInputElement;
     const checked = (e.target as HTMLInputElement).checked;
-    
-    setFormData((prev: any) => ({ 
-      ...prev, 
-      [name]: type === 'checkbox' ? checked : value 
+    const nextValue = DIGIT_16_FIELDS.has(name) ? sanitizeNumericField(value) : value;
+
+    setFormData((prev: any) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : nextValue,
+      ...(name === 'jabatan_pegawai_id' && !isSatpamJabatan(nextValue, jabatanOptions) ? { shift_kerja: '' } : {}),
     }));
   };
 
@@ -144,28 +155,7 @@ export default function NewPegawaiPage() {
     setJemaatSearchModal(false);
   };
 
-  const validateCurrentTab = () => {
-    if (activeTab === 1) {
-      if (!formData.nama_lengkap) return 'Nama Lengkap wajib diisi.';
-
-      if (!formData.satelit_id) return 'Satelit Penugasan wajib diisi.';
-      if (!formData.jabatan_pegawai_id) return 'Jabatan Pegawai wajib dipilih.';
-    }
-    if (activeTab === 2) {
-      if (!formData.alamat_lengkap) return 'Alamat domisili wajib diisi.';
-      if (!formData.kota) return 'Kota wajib diisi.';
-    }
-    if (activeTab === 3) {
-      if (formData.is_kena_pph21 && !formData.no_npwp) return 'Karena terpotong PPh21, Nomor NPWP sangat disarankan untuk diisi. Hilangkan centang jika pegawai ini tidak menanggung PPh21.';
-      if (!formData.status_ptkp) return 'Status PTKP wajib dipilih.';
-    }
-    if (activeTab === 4) {
-      if (!formData.bank_id) return 'Bank penerima gaji wajib dipilih.';
-      if (!formData.no_rekening) return 'Nomor Rekening wajib diisi.';
-      if (!formData.atas_nama_rekening) return 'Pemilik Rekening wajib diisi.';
-    }
-    return null;
-  };
+  const validateCurrentTab = () => validatePegawaiTab(activeTab, formData, jabatanOptions);
 
   const nextTab = () => {
     const errorMsg = validateCurrentTab();
@@ -275,12 +265,16 @@ export default function NewPegawaiPage() {
 
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="flex flex-col gap-1 w-full">
-                  <label className="text-slate-700 text-xs font-bold uppercase">Nama Lengkap *</label>
+                  <label className="text-slate-700 text-xs font-bold uppercase">Nama Lengkap <span className="text-red-500">*</span></label>
                   <input type="text" name="nama_lengkap" value={formData.nama_lengkap} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Sesuai KTP" />
                 </div>
                 <div className="flex flex-col gap-1 w-full">
+                  <label className="text-slate-700 text-xs font-bold uppercase">NIK (Nomor Induk Kependudukan) <span className="text-red-500">*</span></label>
+                  <input type="text" inputMode="numeric" maxLength={16} name="nik" value={formData.nik} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="16 Digit NIK KTP" />
+                </div>
+                <div className="flex flex-col gap-1 w-full">
                   <label className="text-slate-700 text-xs font-bold uppercase">No. Kartu Keluarga</label>
-                  <input type="text" name="no_kk" value={formData.no_kk} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="16 Digit Nomor KK" />
+                  <input type="text" inputMode="numeric" maxLength={16} name="no_kk" value={formData.no_kk} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="16 Digit Nomor KK" />
                 </div>
                 <div className="flex flex-col gap-1 w-full">
                   <label className="text-slate-700 text-xs font-bold uppercase">Jenis Kelamin</label>
@@ -290,7 +284,7 @@ export default function NewPegawaiPage() {
                   </select>
                 </div>
                 <div className="flex flex-col gap-1 w-full">
-                  <label className="text-slate-700 text-xs font-bold uppercase">Tanggal Lahir</label>
+                  <label className="text-slate-700 text-xs font-bold uppercase">Tanggal Lahir <span className="text-red-500">*</span></label>
                   <input type="date" name="tanggal_lahir" value={formData.tanggal_lahir} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
                 <div className="flex flex-col gap-1 w-full">
@@ -303,7 +297,7 @@ export default function NewPegawaiPage() {
                   </select>
                 </div>
                 <div className="flex flex-col gap-1 w-full">
-                  <label className="text-slate-700 text-xs font-bold uppercase">Nomor HP/WA Aktif</label>
+                  <label className="text-slate-700 text-xs font-bold uppercase">Nomor HP/WA Aktif <span className="text-red-500">*</span></label>
                   <input type="text" name="no_hp" value={formData.no_hp} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="081234..." />
                 </div>
                 <div className="flex flex-col gap-1 w-full">
@@ -316,10 +310,15 @@ export default function NewPegawaiPage() {
 
              {/* Penempatan Unit Kerja */}
              <div className="flex flex-col gap-4">
-               <h3 className="text-slate-900 text-lg font-bold font-sans flex items-center gap-2"><span className="material-icons-round text-emerald-500">business_center</span> Penempatan & Posisi</h3>
+               <div className="flex flex-wrap justify-between items-center gap-3">
+                 <h3 className="text-slate-900 text-lg font-bold font-sans flex items-center gap-2"><span className="material-icons-round text-emerald-500">business_center</span> Penempatan & Posisi</h3>
+                 <a href="/templates/Template_Perjanjian_Kerja_GSJA.docx" download="Template_Perjanjian_Kerja_GSJA.docx" className="px-3.5 py-2 bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 shadow-sm">
+                   <span className="material-icons-round text-[16px]">download</span> Download Template Kontrak
+                 </a>
+               </div>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-5 bg-emerald-50/50 rounded-lg border border-emerald-100">
                   <div className="flex flex-col gap-1 w-full">
-                    <label className="text-slate-700 text-xs font-bold uppercase">Satelit Penugasan *</label>
+                    <label className="text-slate-700 text-xs font-bold uppercase">Satelit Penugasan <span className="text-red-500">*</span></label>
                     <select name="satelit_id" value={formData.satelit_id} onChange={handleInputChange} disabled={userData?.role_name === 'GEMBALA SATELIT'} className="px-3 py-2 bg-white rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:bg-slate-100">
                       <option value="">-- Pilih Satelit --</option>
                       {satelitOptions.map(s => (
@@ -328,23 +327,23 @@ export default function NewPegawaiPage() {
                     </select>
                   </div>
                   <div className="flex flex-col gap-1 w-full">
-                    <label className="text-slate-700 text-xs font-bold uppercase">Skema Tipe Pekerja *</label>
+                    <label className="text-slate-700 text-xs font-bold uppercase">Skema Tipe Pekerja <span className="text-red-500">*</span></label>
                     <select name="tipe_pekerja" value={formData.tipe_pekerja} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500">
                       <option value="Pegawai Tetap">Pegawai Tetap</option>
                       <option value="Tidak Tetap">Tidak Tetap (Part-time / Honorer)</option>
                     </select>
                   </div>
                   <div className="flex flex-col gap-1 w-full">
-                    <label className="text-slate-700 text-xs font-bold uppercase">Departemen <span className="text-slate-400 font-normal normal-case">(Opsional)</span></label>
-                    <select name="departemen_id" value={formData.departemen_id} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                      <option value="">-- Tidak Masuk Departemen --</option>
+                    <label className="text-slate-700 text-xs font-bold uppercase">Departemen <span className="text-red-500">*</span></label>
+                    <select name="departemen_id" value={formData.departemen_id} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-sans">
+                      <option value="">-- Pilih Departemen --</option>
                       {departemenOptions.map(d => (
                         <option key={d.id} value={d.id}>{d.nama_departemen}</option>
                       ))}
                     </select>
                   </div>
                   <div className="flex flex-col gap-1 w-full">
-                    <label className="text-slate-700 text-xs font-bold uppercase">Jabatan *</label>
+                    <label className="text-slate-700 text-xs font-bold uppercase">Jabatan <span className="text-red-500">*</span></label>
                     <select name="jabatan_pegawai_id" value={formData.jabatan_pegawai_id} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500">
                       <option value="">-- Pilih Jabatan --</option>
                       {jabatanOptions.map(j => (
@@ -352,8 +351,19 @@ export default function NewPegawaiPage() {
                       ))}
                     </select>
                   </div>
+                  {isSatpamJabatan(formData.jabatan_pegawai_id, jabatanOptions) && (
+                    <div className="flex flex-col gap-1 w-full">
+                      <label className="text-slate-700 text-xs font-bold uppercase">Shift Kerja (Satpam) <span className="text-red-500">*</span></label>
+                      <select name="shift_kerja" value={formData.shift_kerja} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                        <option value="">-- Pilih Shift Satpam --</option>
+                        {SHIFT_SATPAM_OPTIONS.map((shift) => (
+                          <option key={shift} value={shift}>{shift}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                   <div className="flex flex-col gap-1 w-full">
-                    <label className="text-slate-700 text-xs font-bold uppercase">Tanggal Bergabung *</label>
+                    <label className="text-slate-700 text-xs font-bold uppercase">Tanggal Bergabung <span className="text-red-500">*</span></label>
                     <input type="date" name="tanggal_bergabung" value={formData.tanggal_bergabung} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
                   </div>
                </div>
@@ -371,7 +381,7 @@ export default function NewPegawaiPage() {
 
              <div className="grid grid-cols-1 gap-6">
                 <div className="flex flex-col gap-1 w-full">
-                  <label className="text-slate-700 text-xs font-bold uppercase">Alamat Lengkap KTP / Domisili *</label>
+                  <label className="text-slate-700 text-xs font-bold uppercase">Alamat Lengkap KTP / Domisili <span className="text-red-500">*</span></label>
                   <textarea name="alamat_lengkap" value={formData.alamat_lengkap} onChange={handleInputChange} rows={3} className="px-3 py-2 bg-white rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none" placeholder="Jalan Raya No..."></textarea>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
@@ -380,7 +390,7 @@ export default function NewPegawaiPage() {
                     <input type="text" name="rt_rw" value={formData.rt_rw} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500" placeholder="001/010" />
                   </div>
                   <div className="flex flex-col gap-1 w-full">
-                    <label className="text-slate-700 text-xs font-bold uppercase">Kota / Kabupaten *</label>
+                    <label className="text-slate-700 text-xs font-bold uppercase">Kota / Kabupaten <span className="text-red-500">*</span></label>
                     <input type="text" name="kota" value={formData.kota} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500" />
                   </div>
                   <div className="flex flex-col gap-1 w-full">
@@ -397,15 +407,15 @@ export default function NewPegawaiPage() {
                <h3 className="text-slate-900 text-lg font-bold font-sans flex items-center gap-2"><span className="material-icons-round text-rose-500">contact_phone</span> Kontak Darurat (Emergency)</h3>
                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-5 bg-rose-50/30 rounded-lg border border-rose-100">
                   <div className="flex flex-col gap-1 w-full">
-                    <label className="text-slate-700 text-xs font-bold uppercase">Nama Kontak</label>
+                    <label className="text-slate-700 text-xs font-bold uppercase">Nama Kontak <span className="text-red-500">*</span></label>
                     <input type="text" name="kontak_darurat_nama" value={formData.kontak_darurat_nama} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500" placeholder="Mis. Budi Sentosa" />
                   </div>
                   <div className="flex flex-col gap-1 w-full">
-                    <label className="text-slate-700 text-xs font-bold uppercase">Nomor HP</label>
+                    <label className="text-slate-700 text-xs font-bold uppercase">Nomor HP <span className="text-red-500">*</span></label>
                     <input type="text" name="kontak_darurat_nohp" value={formData.kontak_darurat_nohp} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500" placeholder="081..." />
                   </div>
                   <div className="flex flex-col gap-1 w-full">
-                    <label className="text-slate-700 text-xs font-bold uppercase">Hubungan Relasi</label>
+                    <label className="text-slate-700 text-xs font-bold uppercase">Hubungan Relasi <span className="text-red-500">*</span></label>
                     <input type="text" name="kontak_darurat_relasi" value={formData.kontak_darurat_relasi} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500" placeholder="Mis. Suami / Istri / Anak" />
                   </div>
                </div>
@@ -427,17 +437,17 @@ export default function NewPegawaiPage() {
                </div>
                <div className="flex flex-col gap-1">
                   <label className="text-slate-900 font-bold">Pegawai Wajib Pajak Potong PPh21</label>
-                  <p className="text-slate-600 text-sm">Beri centang jika skema gaji pegawai ini bersinggungan langsung dengan kewajiban bayar Pajak Penghasilan Pasal 21. <br/>Pastikan NPWP Diisi untuk pegawai wajib pajak agar tidak terkena denda potongan lebih besar dari NPWP Aktif.</p>
+                  <p className="text-slate-600 text-sm">Beri centang jika skema gaji pegawai ini bersinggungan langsung dengan kewajiban bayar Pajak Penghasilan Pasal 21. <br/>Pastikan NPWP (16 digit sesuai NIK tanpa tanda baca) diisi untuk pegawai wajib pajak agar tidak terkena denda potongan lebih besar dari NPWP Aktif.</p>
                </div>
              </div>
 
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="flex flex-col gap-1 w-full">
-                  <label className="text-slate-700 text-xs font-bold uppercase">Nomor NPWP</label>
-                  <input type="text" name="no_npwp" value={formData.no_npwp} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-500 font-sans tracking-widest" placeholder="00.000.000.0-000.000" />
+                  <label className="text-slate-700 text-xs font-bold uppercase">Nomor NPWP (16 Digit NIK)</label>
+                  <input type="text" inputMode="numeric" maxLength={16} name="no_npwp" value={formData.no_npwp} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-500 font-sans tracking-widest" placeholder="16 Digit angka tanpa tanda baca" />
                 </div>
                 <div className="flex flex-col gap-1 w-full">
-                  <label className="text-slate-700 text-xs font-bold uppercase">Status PTKP (Penghasilan Tidak Kena Pajak) *</label>
+                  <label className="text-slate-700 text-xs font-bold uppercase">Status PTKP (Penghasilan Tidak Kena Pajak) <span className="text-red-500">*</span></label>
                   <select name="status_ptkp" value={formData.status_ptkp} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-500">
                     <option value="TK/0">TK/0 (Tidak Kawin Tanpa Tanggungan)</option>
                     <option value="TK/1">TK/1 (Tidak Kawin 1 Tanggungan)</option>
@@ -466,7 +476,7 @@ export default function NewPegawaiPage() {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10 w-full lg:w-3/4">
                   <div className="flex flex-col gap-1 w-full">
-                    <label className="text-slate-700 text-xs font-bold uppercase">Bank Tujuan *</label>
+                    <label className="text-slate-700 text-xs font-bold uppercase">Bank Tujuan <span className="text-red-500">*</span></label>
                     <select name="bank_id" value={formData.bank_id} onChange={handleInputChange} className="px-3 py-3 bg-white rounded-lg border shadow-sm border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold">
                       <option value="">-- Pilih Bank --</option>
                       {bankOptions.map(b => (
@@ -478,11 +488,11 @@ export default function NewPegawaiPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10 w-full lg:w-3/4">
                   <div className="flex flex-col gap-1 w-full">
-                    <label className="text-slate-700 text-xs font-bold uppercase">Nomor Rekening Tujuan *</label>
+                    <label className="text-slate-700 text-xs font-bold uppercase">Nomor Rekening Tujuan <span className="text-red-500">*</span></label>
                     <input type="text" name="no_rekening" value={formData.no_rekening} onChange={handleInputChange} placeholder="00019283..." className="px-3 py-3 bg-white rounded-lg border shadow-sm border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold text-lg font-sans tracking-wider" />
                   </div>
                   <div className="flex flex-col gap-1 w-full">
-                    <label className="text-slate-700 text-xs font-bold uppercase">Atas Nama Pemilik Rekening *</label>
+                    <label className="text-slate-700 text-xs font-bold uppercase">Atas Nama Pemilik Rekening <span className="text-red-500">*</span></label>
                     <input type="text" name="atas_nama_rekening" value={formData.atas_nama_rekening} onChange={handleInputChange} className="px-3 py-3 bg-white rounded-lg border shadow-sm border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold uppercase" placeholder="JOHN DOE" />
                   </div>
                 </div>
