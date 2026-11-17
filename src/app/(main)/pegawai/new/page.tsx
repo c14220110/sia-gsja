@@ -23,6 +23,7 @@ export default function NewPegawaiPage() {
   const [departemenOptions, setDepartemenOptions] = useState<any[]>([]);
   const [jabatanOptions, setJabatanOptions] = useState<any[]>([]);
   const [bankOptions, setBankOptions] = useState<any[]>([]);
+  const [userOptions, setUserOptions] = useState<any[]>([]);
   
   // Autocomplete khusus buat nama Jemaat (gak harus diisi)
   const [jemaatSearchModal, setJemaatSearchModal] = useState(false);
@@ -52,6 +53,7 @@ export default function NewPegawaiPage() {
     kontak_darurat_relasi: '',
     
     // Pekerjaan
+    user_id: '',
     satelit_id: '',
     departemen_id: '',
     jabatan_pegawai_id: '',
@@ -79,11 +81,12 @@ export default function NewPegawaiPage() {
   useEffect(() => {
     const fetchOptionsAndUser = async () => {
       try {
-        const [resSatelit, resDept, resJabatan, resBank, resUser] = await Promise.all([
+        const [resSatelit, resDept, resJabatan, resBank, resPengguna, resUser] = await Promise.all([
           fetch('/api/options?type=satelit'),
           fetch('/api/options?type=departemen'),
           fetch('/api/options?type=jabatan_pegawai'),
           fetch('/api/options?type=bank'),
+          fetch('/api/options?type=pengguna'),
           fetch('/api/auth/me')
         ]);
         
@@ -91,6 +94,7 @@ export default function NewPegawaiPage() {
         if (resDept.ok) setDepartemenOptions((await resDept.json()).data);
         if (resJabatan.ok) setJabatanOptions((await resJabatan.json()).data);
         if (resBank.ok) setBankOptions((await resBank.json()).data);
+        if (resPengguna.ok) setUserOptions((await resPengguna.json()).data);
         
         if (resUser.ok) {
           const authData = await resUser.json();
@@ -365,6 +369,17 @@ export default function NewPegawaiPage() {
                   <div className="flex flex-col gap-1 w-full">
                     <label className="text-slate-700 text-xs font-bold uppercase">Tanggal Bergabung <span className="text-red-500">*</span></label>
                     <input type="date" name="tanggal_bergabung" value={formData.tanggal_bergabung} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                  </div>
+                  <div className="flex flex-col gap-1 w-full">
+                    <label className="text-slate-700 text-xs font-bold uppercase">Akun Login (Presensi Mobile) <span className="text-slate-400 font-normal normal-case">(Opsional)</span></label>
+                    <select name="user_id" value={formData.user_id} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                      <option value="">-- Belum Ditautkan ke Akun Login --</option>
+                      {userOptions.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.label}{u.nama_jemaat ? ` (${u.nama_jemaat})` : ''}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                </div>
              </div>

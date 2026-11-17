@@ -153,48 +153,60 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       }
     }
 
+    // Resolve user_id: pakai yang dipilih HRD, atau auto-resolve dari jemaat_id jika belum diisi
+    let resolvedUserId: number | null = data.user_id ? parseInt(data.user_id) : null;
+    if (!resolvedUserId && data.jemaat_id) {
+      const userByJemaat = await pool.query(
+        `SELECT id FROM public.pengguna WHERE jemaat_id = $1 ORDER BY id ASC LIMIT 1`,
+        [parseInt(data.jemaat_id)]
+      );
+      resolvedUserId = userByJemaat.rows[0]?.id ?? null;
+    }
+
     // Jangan lupa ngubah konversi datanya (dari null pindah haluan ke tipenya yang bener)
     const updateQuery = `
       UPDATE public.pegawai SET
         jemaat_id = $1,
-        nama_lengkap = $2,
-        no_kk = $3,
-        status_pernikahan = $4,
-        jumlah_anak = $5,
-        tanggal_lahir = $6,
-        jenis_kelamin = $7,
-        no_hp = $8,
-        email_pribadi = $9,
-        kontak_darurat_nama = $10,
-        kontak_darurat_nohp = $11,
-        kontak_darurat_relasi = $12,
-        jabatan_pegawai_id = $13,
-        departemen_id = $14,
-        tanggal_bergabung = $15,
-        tipe_pekerja = $16,
-        alamat_lengkap = $17,
-        rt_rw = $18,
-        kota = $19,
-        kode_pos = $20,
-        is_kena_pph21 = $21,
-        no_npwp = $22,
-        status_ptkp = $23,
-        bank_id = $24,
-        no_rekening = $25,
-        atas_nama_rekening = $26,
-        satelit_id = $27,
-        url_ktp = $28,
-        url_kartu_keluarga = $29,
-        url_perjanjian_kerjasama = $30,
-        nik = $31,
-        shift_kerja = $32,
+        user_id = $2,
+        nama_lengkap = $3,
+        no_kk = $4,
+        status_pernikahan = $5,
+        jumlah_anak = $6,
+        tanggal_lahir = $7,
+        jenis_kelamin = $8,
+        no_hp = $9,
+        email_pribadi = $10,
+        kontak_darurat_nama = $11,
+        kontak_darurat_nohp = $12,
+        kontak_darurat_relasi = $13,
+        jabatan_pegawai_id = $14,
+        departemen_id = $15,
+        tanggal_bergabung = $16,
+        tipe_pekerja = $17,
+        alamat_lengkap = $18,
+        rt_rw = $19,
+        kota = $20,
+        kode_pos = $21,
+        is_kena_pph21 = $22,
+        no_npwp = $23,
+        status_ptkp = $24,
+        bank_id = $25,
+        no_rekening = $26,
+        atas_nama_rekening = $27,
+        satelit_id = $28,
+        url_ktp = $29,
+        url_kartu_keluarga = $30,
+        url_perjanjian_kerjasama = $31,
+        nik = $32,
+        shift_kerja = $33,
         updated_at = CURRENT_TIMESTAMP
-      WHERE id = $33
+      WHERE id = $34
       RETURNING id;
     `;
 
     const values = [
       data.jemaat_id ? parseInt(data.jemaat_id) : null,
+      resolvedUserId,
       data.nama_lengkap, data.no_kk || null, data.status_pernikahan, 
       data.jumlah_anak || 0, data.tanggal_lahir || null, data.jenis_kelamin, 
       data.no_hp, data.email_pribadi, data.kontak_darurat_nama, 

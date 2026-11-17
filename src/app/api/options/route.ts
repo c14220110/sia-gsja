@@ -79,7 +79,29 @@ export async function GET(request: Request) {
         ? caller.satelit_id
         : null;
       data = await masterRepository.getApprovedAnggaranOptions(satelitFilter);
-
+    } else if (type === 'pengguna') {
+      if (
+        !caller.is_super_admin &&
+        !caller.permissions?.includes('pegawai_view') &&
+        !caller.permissions?.includes('pegawai_create') &&
+        !caller.permissions?.includes('pegawai_edit')
+      ) {
+        return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
+      }
+      const res = await pool.query(`
+        SELECT
+          u.id,
+          COALESCE(NULLIF(u.username, ''), NULLIF(u.email, ''), u.no_hp, CONCAT('User #', u.id)) AS label,
+          u.username,
+          u.email,
+          u.jemaat_id,
+          j.nama_lengkap AS nama_jemaat
+        FROM public.pengguna u
+        LEFT JOIN public.jemaat j ON j.id = u.jemaat_id
+        WHERE COALESCE(u.is_active, true) = true
+        ORDER BY label ASC
+      `);
+      data = res.rows;
     } else {
       return NextResponse.json({ success: false, message: 'Invalid type parameter' }, { status: 400 });
     }

@@ -30,6 +30,7 @@ export default function DetailPegawaiPage() {
   const [departemenOptions, setDepartemenOptions] = useState<any[]>([]);
   const [jabatanOptions, setJabatanOptions] = useState<any[]>([]);
   const [bankOptions, setBankOptions] = useState<any[]>([]);
+  const [userOptions, setUserOptions] = useState<any[]>([]);
   
   // Autocomplete khusus buat nama Jemaat (gak harus diisi)
   const [jemaatSearchModal, setJemaatSearchModal] = useState(false);
@@ -59,6 +60,7 @@ export default function DetailPegawaiPage() {
     kontak_darurat_relasi: '',
     
     // Pekerjaan
+    user_id: '',
     satelit_id: '',
     departemen_id: '',
     jabatan_pegawai_id: '',
@@ -91,11 +93,12 @@ export default function DetailPegawaiPage() {
   useEffect(() => {
     const fetchAllData = async () => {
       try {
-        const [resSatelit, resDept, resJabatan, resBank, resUser, resPegawai] = await Promise.all([
+        const [resSatelit, resDept, resJabatan, resBank, resPengguna, resUser, resPegawai] = await Promise.all([
           fetch('/api/options?type=satelit'),
           fetch('/api/options?type=departemen'),
           fetch('/api/options?type=jabatan_pegawai'),
           fetch('/api/options?type=bank'),
+          fetch('/api/options?type=pengguna'),
           fetch('/api/auth/me'),
           fetch(`/api/pegawai/${pegawaiId}`)
         ]);
@@ -104,6 +107,7 @@ export default function DetailPegawaiPage() {
         if (resDept.ok) setDepartemenOptions((await resDept.json()).data);
         if (resJabatan.ok) setJabatanOptions((await resJabatan.json()).data);
         if (resBank.ok) setBankOptions((await resBank.json()).data);
+        if (resPengguna.ok) setUserOptions((await resPengguna.json()).data);
         
         if (resUser.ok) {
           const authData = await resUser.json();
@@ -130,6 +134,7 @@ export default function DetailPegawaiPage() {
               kontak_darurat_nama: p.kontak_darurat_nama || '',
               kontak_darurat_nohp: p.kontak_darurat_nohp || '',
               kontak_darurat_relasi: p.kontak_darurat_relasi || '',
+              user_id: p.user_id?.toString() || '',
               satelit_id: p.satelit_id?.toString() || '',
               departemen_id: p.departemen_id?.toString() || '',
               jabatan_pegawai_id: p.jabatan_pegawai_id?.toString() || '',
@@ -488,6 +493,17 @@ export default function DetailPegawaiPage() {
                   <div className="flex flex-col gap-1 w-full">
                     <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Tanggal Bergabung <span className="text-red-500">*</span></label>
                     <input type="date" name="tanggal_bergabung" value={formData.tanggal_bergabung} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-900 text-sm font-sans w-full transition-all" />
+                  </div>
+                  <div className="flex flex-col gap-1 w-full">
+                    <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Akun Login (Presensi Mobile)</label>
+                    <select name="user_id" value={formData.user_id} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-900 text-sm font-sans w-full transition-all">
+                      <option value="">-- Belum Ditautkan ke Akun Login --</option>
+                      {userOptions.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.label}{u.nama_jemaat ? ` (${u.nama_jemaat})` : ''}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                </div>
              </div>
