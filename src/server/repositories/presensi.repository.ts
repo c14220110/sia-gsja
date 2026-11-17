@@ -89,12 +89,13 @@ export class PresensiRepository {
       LEFT JOIN public.pengguna u ON u.id = $1
       WHERE UPPER(p.status_pegawai) = 'AKTIF'
         AND (
-          ($2::int IS NOT NULL AND p.jemaat_id = $2::int)
+          p.user_id = $1
+          OR ($2::int IS NOT NULL AND p.jemaat_id = $2::int)
           OR (u.jemaat_id IS NOT NULL AND p.jemaat_id = u.jemaat_id)
-          OR (u.email IS NOT NULL AND LOWER(p.email_pribadi) = LOWER(u.email))
-          OR (u.no_hp IS NOT NULL AND p.no_hp = u.no_hp)
+          OR (u.email IS NOT NULL AND u.email <> '' AND LOWER(p.email_pribadi) = LOWER(u.email))
+          OR (u.no_hp IS NOT NULL AND u.no_hp <> '' AND p.no_hp = u.no_hp)
         )
-      ORDER BY p.id ASC
+      ORDER BY (p.user_id = $1) DESC, p.id ASC
       LIMIT 1
     `;
     const res = await pool.query(query, [userId, jemaatId ?? null]);

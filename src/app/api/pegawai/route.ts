@@ -144,9 +144,19 @@ export async function POST(request: Request) {
     const rnd = Math.floor(100 + Math.random() * 900).toString();
     const generatedIdPegawai = `PG${satelitPrefix}${yy}${rnd}`;
 
+    // Resolve user_id: pakai yang dipilih HRD, atau auto-resolve dari jemaat_id jika ada akun
+    let resolvedUserId: number | null = body.user_id ? parseInt(body.user_id) : null;
+    if (!resolvedUserId && body.jemaat_id) {
+      const userByJemaat = await pool.query(
+        `SELECT id FROM public.pengguna WHERE jemaat_id = $1 ORDER BY id ASC LIMIT 1`,
+        [parseInt(body.jemaat_id)]
+      );
+      resolvedUserId = userByJemaat.rows[0]?.id ?? null;
+    }
+
     const insertQuery = `
       INSERT INTO public.pegawai (
-        id_pegawai, jemaat_id, nama_lengkap, nik, no_kk, status_pernikahan, 
+        id_pegawai, jemaat_id, user_id, nama_lengkap, nik, no_kk, status_pernikahan, 
         jumlah_anak, tanggal_lahir, jenis_kelamin, no_hp, email_pribadi, 
         kontak_darurat_nama, kontak_darurat_nohp, kontak_darurat_relasi, 
         jabatan_pegawai_id, departemen_id, shift_kerja, tanggal_bergabung, 
@@ -155,20 +165,21 @@ export async function POST(request: Request) {
         is_kena_pph21, no_npwp, tipe_pekerja, status_ptkp, 
         bank_id, no_rekening, atas_nama_rekening, satelit_id
       ) VALUES (
-        $1, $2, $3, $4, $5, $6, 
-        $7, $8, $9, $10, $11, 
-        $12, $13, $14, 
-        $15, $16, $17, $18, 
+        $1, $2, $3, $4, $5, $6, $7, 
+        $8, $9, $10, $11, $12, 
+        $13, $14, $15, 
+        $16, $17, $18, $19, 
         'Aktif', 'Pending', 
-        $19, $20, $21, $22, 
-        $23, $24, $25, $26, 
-        $27, $28, $29, $30
+        $20, $21, $22, $23, 
+        $24, $25, $26, $27, 
+        $28, $29, $30, $31
       ) RETURNING id
     `;
 
     const values = [
       generatedIdPegawai,
       body.jemaat_id || null, // Can be null if not a member yet
+      resolvedUserId,
       body.nama_lengkap,
       String(body.nik).trim(),
       body.no_kk ? String(body.no_kk).trim() : null,
