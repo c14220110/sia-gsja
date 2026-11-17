@@ -55,8 +55,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   try {
     const body = await request.json();
 
-    // Cek IDOR: Wajib mastiin pegawainya emang peliharaan satelitnya si caller
-    if (!caller.is_super_admin) {
+    // Cek IDOR: Wajib mastiin pegawainya emang peliharaan satelitnya si caller (kecuali super admin / multi_satelit_view)
+    if (!caller.is_super_admin && !caller.permissions.includes('multi_satelit_view')) {
       const ownerCheck = await pool.query(
         `SELECT satelit_id FROM public.pegawai WHERE id = $1`, [parseInt(id)]
       );
@@ -140,8 +140,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ success: false, message: 'Nomor NPWP harus tepat 16 digit angka sesuai NIK tanpa tanda baca.' }, { status: 400 });
     }
 
-    // Cek IDOR: Wajib mastiin pegawainya emang peliharaan satelitnya si caller
-    if (!caller.is_super_admin) {
+    // Cek IDOR: Wajib mastiin pegawainya emang peliharaan satelitnya si caller (kecuali super admin / multi_satelit_view)
+    if (!caller.is_super_admin && !caller.permissions.includes('multi_satelit_view')) {
       const ownerCheck = await pool.query(
         `SELECT satelit_id FROM public.pegawai WHERE id = $1`, [parseInt(id)]
       );

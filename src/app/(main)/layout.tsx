@@ -374,7 +374,7 @@ export default function DashboardLayout({
                   <div className={`md:hidden overflow-hidden transition-all duration-300 ${mobileExpandedMenus['pegawai'] ? 'max-h-96 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
                     <div className="pl-14 pr-4 py-2 flex flex-col gap-4">
                       <Link href="/pegawai/presensi" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Presensi &amp; Visit</Link>
-                      {userData?.is_super_admin && <Link href="/pegawai/presensi/monitoring" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Monitoring Presensi</Link>}
+                      {(hasPermission('presensi_monitoring_view') || hasPermission('presensi_monitoring_manage')) && <Link href="/pegawai/presensi/monitoring" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Monitoring Presensi</Link>}
                       {hasPermission('pegawai_view') && <Link href="/pegawai" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Data Pegawai</Link>}
                       {hasPermission('pegawai_approval') && <Link href="/pegawai/permohonan" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Permohonan</Link>}
                       {hasPermission('penggajian_manage') && <Link href="/pegawai/penggajian" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Penggajian</Link>}
@@ -795,7 +795,7 @@ export default function DashboardLayout({
                       </div>
                       <div className="text-center text-purple-900 text-sm font-bold font-sans leading-5">Presensi &amp;<br/>Visit</div>
                     </Link>
-                    {userData?.is_super_admin && (
+                    {(hasPermission('presensi_monitoring_view') || hasPermission('presensi_monitoring_manage')) && (
                     <Link href="/pegawai/presensi/monitoring" onClick={() => setActiveSubmenu(null)} className="h-28 p-4 bg-indigo-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-indigo-200 flex flex-col justify-center items-center cursor-pointer hover:bg-indigo-100 transition-colors block text-inherit no-underline">
                       <div className="pb-1.5 flex flex-col justify-start items-center">
                         <span className="material-icons-round text-indigo-700 text-[28px]">fact_check</span>

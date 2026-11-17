@@ -24,7 +24,11 @@ export async function GET(request: NextRequest) {
 
     const today = getTodayWibDateString();
     if (!pegawai) {
-      const availablePegawai = caller.is_super_admin
+      const canPreviewAll =
+        caller.is_super_admin ||
+        caller.permissions.includes('presensi_monitoring_view') ||
+        caller.permissions.includes('presensi_monitoring_manage');
+      const availablePegawai = canPreviewAll
         ? (await presensiRepository.listActivePegawaiSimple()).map((p) => ({
             id: p.id,
             id_pegawai: p.id_pegawai,

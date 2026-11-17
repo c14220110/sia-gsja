@@ -10,8 +10,15 @@ export async function GET(request: NextRequest) {
   if (!caller) {
     return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
   }
-  if (!caller.is_super_admin) {
-    return NextResponse.json({ success: false, message: 'Forbidden: Khusus Super Admin' }, { status: 403 });
+  const canView =
+    caller.is_super_admin ||
+    caller.permissions.includes('presensi_monitoring_view') ||
+    caller.permissions.includes('presensi_monitoring_manage');
+  if (!canView) {
+    return NextResponse.json(
+      { success: false, message: 'Akses Ditolak: Anda tidak memiliki izin melihat monitoring presensi' },
+      { status: 403 }
+    );
   }
 
   try {
@@ -48,8 +55,13 @@ export async function POST(request: NextRequest) {
   if (!caller) {
     return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
   }
-  if (!caller.is_super_admin) {
-    return NextResponse.json({ success: false, message: 'Forbidden: Khusus Super Admin' }, { status: 403 });
+  const canManage =
+    caller.is_super_admin || caller.permissions.includes('presensi_monitoring_manage');
+  if (!canManage) {
+    return NextResponse.json(
+      { success: false, message: 'Akses Ditolak: Anda tidak memiliki izin mengelola atau mengoreksi presensi' },
+      { status: 403 }
+    );
   }
 
   try {
