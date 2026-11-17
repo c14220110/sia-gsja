@@ -103,9 +103,11 @@ export default function AkunAksesPage() {
   // Modal Tambah User
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
   const [satelitOptions, setSatelitOptions] = useState<any[]>([]);
+  const [pegawaiOptions, setPegawaiOptions] = useState<any[]>([]);
   const [komisiOptionsByRow, setKomisiOptionsByRow] = useState<Record<string, any[]>>({}); // key: `${modalKey}-${idx}`
   const [departemenOptions, setDepartemenOptions] = useState<any[]>([]);
   const [newUserSelectedJemaat, setNewUserSelectedJemaat] = useState<any>(null);
+  const [newUserPegawaiId, setNewUserPegawaiId] = useState<string>('');
   const [newUserSearchQuery, setNewUserSearchQuery] = useState('');
   const [newUserForm, setNewUserForm] = useState({ email: '', password: '' });
   const [newUserLoginType, setNewUserLoginType] = useState<'email' | 'nohp' | 'username'>('email');
@@ -119,6 +121,7 @@ export default function AkunAksesPage() {
   const [editRoleAssignments, setEditRoleAssignments] = useState<RoleAssignment[]>([{ role_id: '', satelit_id: '' }]);
   const [editSelectedJemaat, setEditSelectedJemaat] = useState<any>(null);
   const [editJemaatQuery, setEditJemaatQuery] = useState('');
+  const [editPegawaiId, setEditPegawaiId] = useState<string>('');
 
 
   // State untuk buat akun massal nih
@@ -141,11 +144,17 @@ export default function AkunAksesPage() {
   const fetchUsersData = async () => {
     try {
       showLoader();
-      const [resUsers, resSat] = await Promise.all([fetch('/api/settings/akun-akses/users'), fetch('/api/options?type=satelit')]);
+      const [resUsers, resSat, resPeg] = await Promise.all([
+        fetch('/api/settings/akun-akses/users'),
+        fetch('/api/options?type=satelit'),
+        fetch('/api/options?type=pegawai_simple'),
+      ]);
       const jsonUsers = await resUsers.json();
       const jsonSat = await resSat.json();
+      const jsonPeg = await resPeg.json();
       if (jsonUsers.success) setDataUsers(jsonUsers.data);
       if (jsonSat.success) setSatelitOptions(jsonSat.data);
+      if (jsonPeg.success) setPegawaiOptions(jsonPeg.data);
     } catch (e) { console.error(e); } finally { hideLoader(); }
   };
 
@@ -333,7 +342,7 @@ export default function AkunAksesPage() {
             }}
           >
             <option value="">-- Role --</option>
-            {dataRoles.filter((r: any) => r.is_active && r.nama_role !== 'JEMAAT').map((r: any) => <option key={r.id} value={r.id}>{r.nama_role}</option>)}
+            {dataRoles.filter((r: any) => r.is_active && r.nama_role !== 'JEMAAT' && r.nama_role !== 'PEGAWAI').map((r: any) => <option key={r.id} value={r.id}>{r.nama_role}</option>)}
           </select>
           <select
             className={`flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 ${accentClass} text-sm font-semibold text-slate-800`}
@@ -439,11 +448,11 @@ export default function AkunAksesPage() {
     setIsAddUserModalOpen(false);
     setSubmitState({ status: 'loading', message: '' });
     try {
-      const res = await fetch('/api/settings/akun-akses/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: newUserForm.email, password: newUserForm.password, jemaat_id: newUserSelectedJemaat?.id || null, roles: validRoles.map(r => ({ role_id: parseInt(r.role_id), satelit_id: parseInt(r.satelit_id), komisi_id: r.komisi_id ? parseInt(r.komisi_id) : null, departemen_id: r.departemen_id ? parseInt(r.departemen_id) : null })) }) });
+      const res = await fetch('/api/settings/akun-akses/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: newUserForm.email, password: newUserForm.password, jemaat_id: newUserSelectedJemaat?.id || null, pegawai_id: newUserPegawaiId ? parseInt(newUserPegawaiId) : null, roles: validRoles.map(r => ({ role_id: parseInt(r.role_id), satelit_id: parseInt(r.satelit_id), komisi_id: r.komisi_id ? parseInt(r.komisi_id) : null, departemen_id: r.departemen_id ? parseInt(r.departemen_id) : null })) }) });
       const json = await res.json();
       if (json.success) {
         setSubmitState({ status: 'success', message: 'Akun berhasil dibuat dan role berhasil di-assign!' });
-        setNewUserForm({ email: '', password: '' }); setNewUserSelectedJemaat(null); setNewUserSearchQuery(''); setNewUserLoginType('email'); setRoleAssignments([{ role_id: '', satelit_id: '' }]);
+        setNewUserForm({ email: '', password: '' }); setNewUserSelectedJemaat(null); setNewUserPegawaiId(''); setNewUserSearchQuery(''); setNewUserLoginType('email'); setRoleAssignments([{ role_id: '', satelit_id: '' }]);
         fetchUsersData();
       } else setSubmitState({ status: 'error', message: json.message || 'Gagal membuat akun.' });
     } catch(e) { setSubmitState({ status: 'error', message: 'Terjadi kesalahan server.' }); }
@@ -458,7 +467,7 @@ export default function AkunAksesPage() {
     else setEditLoginType('username');
     
     const existingRoles = (user.roles || [])
-      .filter((r: any) => !r.tanggal_selesai && r.role_name !== 'JEMAAT')
+      .filter((r: any) => !r.tanggal_selesai && r.role_name !== 'JEMAAT' && r.role_name !== 'PEGAWAI')
       .map((r: any) => ({
         role_id: r.role_id ? String(r.role_id) : '',
         satelit_id: r.satelit_id ? String(r.satelit_id) : ''
@@ -472,6 +481,7 @@ export default function AkunAksesPage() {
       setEditSelectedJemaat(null);
       setEditJemaatQuery('');
     }
+    setEditPegawaiId(user.pegawai_id ? String(user.pegawai_id) : '');
     setIsEditUserModalOpen(true);
   };
 
@@ -495,6 +505,7 @@ export default function AkunAksesPage() {
         ...(editForm.password ? { password: editForm.password } : {}),
         // Kirim jemaat_id: null jika sengaja dikosongkan (hapus link), atau id jemaat yang dipilih
         jemaat_id: editSelectedJemaat ? editSelectedJemaat.id : null,
+        pegawai_id: editPegawaiId ? parseInt(editPegawaiId) : null,
         roles: validRoles.map(r => ({ role_id: parseInt(r.role_id), satelit_id: parseInt(r.satelit_id), komisi_id: r.komisi_id ? parseInt(r.komisi_id) : null, departemen_id: r.departemen_id ? parseInt(r.departemen_id) : null }))
       };
       const res = await fetch('/api/settings/akun-akses/users', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
@@ -1081,6 +1092,42 @@ export default function AkunAksesPage() {
                           value={newUserForm.password} onChange={e => setNewUserForm(p => ({ ...p, password: e.target.value }))} />
                       </div>
 
+                      {/* Step 3.5: Tautkan ke Data Pegawai (Opsional) */}
+                      <div className="flex flex-col gap-2 p-4 bg-emerald-50/70 border border-emerald-200 rounded-xl">
+                        <div className="flex items-center justify-between">
+                          <span className="text-emerald-800 font-bold text-xs flex items-center gap-1.5">
+                            <span className="material-icons-round text-[16px]">badge</span>
+                            Tautkan ke Data Pegawai (Opsional)
+                          </span>
+                          {newUserPegawaiId && (
+                            <button
+                              type="button"
+                              onClick={() => setNewUserPegawaiId('')}
+                              className="text-xs font-bold text-rose-600 hover:underline flex items-center gap-0.5"
+                            >
+                              <span className="material-icons-round text-[14px]">link_off</span> Lepas Tautan
+                            </button>
+                          )}
+                        </div>
+                        <select
+                          value={newUserPegawaiId}
+                          onChange={e => setNewUserPegawaiId(e.target.value)}
+                          className="px-3 py-2 bg-white border border-emerald-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm text-slate-800"
+                        >
+                          <option value="">-- Tidak ditautkan ke Pegawai --</option>
+                          {pegawaiOptions
+                            .filter((pg: any) => !pg.user_id)
+                            .map((pg: any) => (
+                              <option key={pg.id} value={pg.id}>
+                                {pg.nama_lengkap} ({pg.id_pegawai}{pg.nama_satelit ? ` • ${pg.nama_satelit}` : ''})
+                              </option>
+                            ))}
+                        </select>
+                        <p className="text-[11px] text-emerald-700 italic">
+                          Jika ditautkan, akun ini otomatis mendapat akses role <strong>PEGAWAI</strong> (Presensi &amp; Slip Gaji) sesuai satelit pegawai.
+                        </p>
+                      </div>
+
                       {/* Step 4: Role (opsional) */}
                       <div className="flex flex-col gap-3 p-4 bg-violet-50 border border-violet-100 rounded-xl">
                         <div className="flex items-center justify-between">
@@ -1202,6 +1249,46 @@ export default function AkunAksesPage() {
                   </div>
                 ) : (
                   <p className="text-[11px] text-indigo-600 italic">Tidak ada jemaat yang ditautkan. Akun ini akan menjadi akun mandiri (non-jemaat).</p>
+                )}
+              </div>
+              <div className="flex flex-col gap-2 p-4 bg-emerald-50/70 border border-emerald-200 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <span className="text-emerald-800 font-bold text-xs flex items-center gap-1.5">
+                    <span className="material-icons-round text-[16px]">badge</span>
+                    Tautkan ke Data Pegawai (Opsional)
+                  </span>
+                  {editPegawaiId && (
+                    <button
+                      type="button"
+                      onClick={() => setEditPegawaiId('')}
+                      className="text-xs font-bold text-rose-600 hover:underline flex items-center gap-0.5"
+                    >
+                      <span className="material-icons-round text-[14px]">link_off</span> Lepas Tautan
+                    </button>
+                  )}
+                </div>
+                <select
+                  value={editPegawaiId}
+                  onChange={e => setEditPegawaiId(e.target.value)}
+                  className="px-3 py-2 bg-white border border-emerald-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm text-slate-800"
+                >
+                  <option value="">-- Tidak ditautkan ke Pegawai --</option>
+                  {pegawaiOptions
+                    .filter((pg: any) => !pg.user_id || pg.user_id === editingUser.id || String(pg.id) === editPegawaiId)
+                    .map((pg: any) => (
+                      <option key={pg.id} value={pg.id}>
+                        {pg.nama_lengkap} ({pg.id_pegawai}{pg.nama_satelit ? ` • ${pg.nama_satelit}` : ''})
+                      </option>
+                    ))}
+                </select>
+                {editPegawaiId ? (
+                  <p className="text-[11px] text-emerald-700 font-medium">
+                    Terhubung ke pegawai — role <strong>PEGAWAI</strong> aktif otomatis sesuai satelit pegawai. Klik <strong>Lepas Tautan</strong> untuk mencabut akses pegawai.
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-emerald-700 italic">
+                    Tidak ada pegawai yang ditautkan. Pilih pegawai untuk otomatis mengaktifkan role <strong>PEGAWAI</strong>.
+                  </p>
                 )}
               </div>
               <div className="flex flex-col gap-3 p-4 bg-amber-50 border border-amber-100 rounded-xl">

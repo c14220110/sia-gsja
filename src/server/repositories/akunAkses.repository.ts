@@ -112,10 +112,33 @@ export class AkunAksesRepository {
               AND UPPER(r2.nama_role) = 'JEMAAT'
               AND ur2.is_active = true
           )
+
+        UNION
+
+        -- Fallback: role PEGAWAI dari tautan pegawai.user_id (jika belum ada di user_role)
+        SELECT
+          p.id AS user_id,
+          (SELECT id FROM role WHERE UPPER(nama_role) = 'PEGAWAI') AS role_id,
+          pg.satelit_id,
+          'PEGAWAI' AS role_name,
+          s.nama_satelit AS satelit_name,
+          NULL::timestamp AS tanggal_mulai,
+          NULL::timestamp AS tanggal_selesai
+        FROM pengguna p
+        JOIN pegawai pg ON pg.user_id = p.id
+        LEFT JOIN satelit s ON pg.satelit_id = s.id
+        WHERE NOT EXISTS (
+            SELECT 1 FROM user_role ur2
+            JOIN role r2 ON ur2.role_id = r2.id
+            WHERE ur2.user_id = p.id
+              AND UPPER(r2.nama_role) = 'PEGAWAI'
+              AND ur2.is_active = true
+          )
       )
       SELECT 
         p.id, p.email, p.no_hp, p.username, p.is_active, p.last_login_at, p.jemaat_id,
         j.nama_lengkap, j.jemaat_id AS jemaat_id_str, j.foto_url,
+        pg.id AS pegawai_id, pg.id_pegawai AS pegawai_kode, pg.nama_lengkap AS pegawai_nama,
         COALESCE(
           json_agg(
             json_build_object(
@@ -131,8 +154,9 @@ export class AkunAksesRepository {
         ) AS roles
       FROM pengguna p
       LEFT JOIN jemaat j ON p.jemaat_id = j.id
+      LEFT JOIN pegawai pg ON pg.user_id = p.id
       LEFT JOIN user_roles_combined urc ON p.id = urc.user_id
-      GROUP BY p.id, j.id
+      GROUP BY p.id, j.id, pg.id
       ORDER BY p.created_at DESC
     `);
     return res.rows;
@@ -202,6 +226,7 @@ export class AkunAksesRepository {
     email: string;
     password_hash: string;
     jemaat_id: number | null;
+    pegawai_id?: number | null;
     roles: { role_id: number; satelit_id: number; komisi_id?: number | null; departemen_id?: number | null }[];
   }): Promise<{ success: boolean; message?: string }> {
     const client = await pool.connect();
@@ -264,6 +289,26 @@ export class AkunAksesRepository {
         `, [userId, role.role_id, role.satelit_id, role.komisi_id ?? null, role.departemen_id ?? null]);
       }
 
+      // Sinkronisasi tautan Data Pegawai & role PEGAWAI otomatis
+      if (data.pegawai_id) {
+        const pgRes = await client.query(`SELECT id, user_id, satelit_id FROM pegawai WHERE id = $1`, [data.pegawai_id]);
+        if (pgRes.rows[0]?.user_id && pgRes.rows[0].user_id !== userId) {
+          await client.query('ROLLBACK');
+          return { success: false, message: 'Pegawai ini sudah ditautkan ke akun pengguna lain.' };
+        }
+        await client.query(`UPDATE pegawai SET user_id = $1, updated_at = NOW() WHERE id = $2`, [userId, data.pegawai_id]);
+        const pegawaiRoleRow = await client.query(`SELECT id FROM role WHERE UPPER(nama_role) = 'PEGAWAI' LIMIT 1`);
+        const pegawaiRoleId = pegawaiRoleRow.rows[0]?.id;
+        const pegawaiSatelitId = pgRes.rows[0]?.satelit_id || data.roles[0]?.satelit_id || 1;
+        if (pegawaiRoleId) {
+          await client.query(`
+            INSERT INTO user_role (user_id, role_id, satelit_id)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (user_id, role_id, satelit_id) DO UPDATE SET is_active = true
+          `, [userId, pegawaiRoleId, pegawaiSatelitId]);
+        }
+      }
+
       await client.query('COMMIT');
       return { success: true };
     } catch (error: any) {
@@ -299,6 +344,7 @@ export class AkunAksesRepository {
     email?: string;
     password_hash?: string;
     jemaat_id?: number | null; // null = hapus link, number = ganti/set link
+    pegawai_id?: number | null; // null = hapus link, number = ganti/set link
     roles?: { role_id: number; satelit_id: number; komisi_id?: number | null; departemen_id?: number | null }[];
   }): Promise<{ success: boolean; message?: string }> {
     const client = await pool.connect();
@@ -348,22 +394,21 @@ export class AkunAksesRepository {
 
       // Update roles jika diberikan
       if (data.roles !== undefined) {
-        // Ambil ID role JEMAAT untuk dikecualikan dari penghapusan
-        const jemaatRoleRow = await client.query(`SELECT id FROM role WHERE UPPER(nama_role) = 'JEMAAT' LIMIT 1`);
-        const jemaatRoleId = jemaatRoleRow.rowCount && jemaatRoleRow.rowCount > 0 ? jemaatRoleRow.rows[0].id : null;
+        // Ambil ID role JEMAAT & PEGAWAI untuk dikecualikan dari penghapusan manual
+        const autoRolesRes = await client.query(`SELECT id FROM role WHERE UPPER(nama_role) IN ('JEMAAT', 'PEGAWAI')`);
+        const autoRoleIds = autoRolesRes.rows.map((r: any) => r.id);
 
-        // Hapus semua permanent roles KECUALI JEMAAT (role JEMAAT dikelola otomatis via tautan jemaat)
-        if (jemaatRoleId) {
+        // Hapus semua permanent roles KECUALI JEMAAT & PEGAWAI (dikelola otomatis via tautan di atas)
+        if (autoRoleIds.length > 0) {
           await client.query(
-            `DELETE FROM user_role WHERE user_id = $1 AND tanggal_selesai IS NULL AND role_id != $2`,
-            [userId, jemaatRoleId]
+            `DELETE FROM user_role WHERE user_id = $1 AND tanggal_selesai IS NULL AND NOT (role_id = ANY($2::int[]))`,
+            [userId, autoRoleIds]
           );
         } else {
-          // Fallback jika role JEMAAT tidak ditemukan
           await client.query(`DELETE FROM user_role WHERE user_id = $1 AND tanggal_selesai IS NULL`, [userId]);
         }
 
-        // Insert roles baru (non-JEMAAT dari form)
+        // Insert roles baru (non-JEMAAT/PEGAWAI dari form)
         for (const role of data.roles) {
           await client.query(`
             INSERT INTO user_role (user_id, role_id, satelit_id, komisi_id, departemen_id)
@@ -373,6 +418,43 @@ export class AkunAksesRepository {
                   komisi_id = EXCLUDED.komisi_id,
                   departemen_id = EXCLUDED.departemen_id
           `, [userId, role.role_id, role.satelit_id, role.komisi_id ?? null, role.departemen_id ?? null]);
+        }
+      }
+
+      // Sinkronisasi tautan Data Pegawai & role PEGAWAI (sama persis dengan mekanisme JEMAAT)
+      if (data.pegawai_id !== undefined) {
+        if (data.pegawai_id !== null) {
+          const existingPg = await client.query(
+            `SELECT id, user_id, satelit_id FROM pegawai WHERE id = $1`,
+            [data.pegawai_id]
+          );
+          if (existingPg.rows.length > 0 && existingPg.rows[0].user_id && existingPg.rows[0].user_id !== userId) {
+            await client.query('ROLLBACK');
+            return { success: false, message: 'Pegawai ini sudah ditautkan ke akun pengguna lain.' };
+          }
+        }
+        await client.query(`UPDATE pegawai SET user_id = NULL, updated_at = NOW() WHERE user_id = $1`, [userId]);
+        if (data.pegawai_id !== null) {
+          await client.query(`UPDATE pegawai SET user_id = $1, updated_at = NOW() WHERE id = $2`, [userId, data.pegawai_id]);
+        }
+      }
+
+      const currentPg = await client.query(`SELECT id, satelit_id FROM pegawai WHERE user_id = $1 LIMIT 1`, [userId]);
+      const pegawaiRoleSync = await client.query(`SELECT id FROM role WHERE UPPER(nama_role) = 'PEGAWAI' LIMIT 1`);
+      const pegawaiSyncRoleId = pegawaiRoleSync.rows[0]?.id ?? null;
+      if (pegawaiSyncRoleId) {
+        if (currentPg.rows.length > 0) {
+          const pgSatelitId = currentPg.rows[0].satelit_id || 1;
+          await client.query(`
+            INSERT INTO user_role (user_id, role_id, satelit_id)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (user_id, role_id, satelit_id) DO UPDATE SET is_active = true
+          `, [userId, pegawaiSyncRoleId, pgSatelitId]);
+        } else {
+          await client.query(
+            `DELETE FROM user_role WHERE user_id = $1 AND role_id = $2`,
+            [userId, pegawaiSyncRoleId]
+          );
         }
       }
 
