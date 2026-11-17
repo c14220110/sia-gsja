@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
+import { isValid16Digits } from '@/lib/pegawaiForm';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const caller = getCallerFromRequest(request);
@@ -129,6 +130,16 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   try {
     const data = await request.json();
 
+    if (data.nik && !isValid16Digits(data.nik)) {
+      return NextResponse.json({ success: false, message: 'NIK harus tepat 16 digit angka.' }, { status: 400 });
+    }
+    if (data.no_kk && !isValid16Digits(data.no_kk)) {
+      return NextResponse.json({ success: false, message: 'Nomor Kartu Keluarga (KK) harus tepat 16 digit angka.' }, { status: 400 });
+    }
+    if (data.no_npwp && !isValid16Digits(data.no_npwp)) {
+      return NextResponse.json({ success: false, message: 'Nomor NPWP harus tepat 16 digit angka sesuai NIK tanpa tanda baca.' }, { status: 400 });
+    }
+
     // Cek IDOR: Wajib mastiin pegawainya emang peliharaan satelitnya si caller
     if (!caller.is_super_admin) {
       const ownerCheck = await pool.query(
@@ -175,14 +186,16 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         url_ktp = $28,
         url_kartu_keluarga = $29,
         url_perjanjian_kerjasama = $30,
+        nik = $31,
+        shift_kerja = $32,
         updated_at = CURRENT_TIMESTAMP
-      WHERE id = $31
+      WHERE id = $33
       RETURNING id;
     `;
 
     const values = [
       data.jemaat_id ? parseInt(data.jemaat_id) : null,
-      data.nama_lengkap, data.no_kk, data.status_pernikahan, 
+      data.nama_lengkap, data.no_kk || null, data.status_pernikahan, 
       data.jumlah_anak || 0, data.tanggal_lahir || null, data.jenis_kelamin, 
       data.no_hp, data.email_pribadi, data.kontak_darurat_nama, 
       data.kontak_darurat_nohp, data.kontak_darurat_relasi,
@@ -190,13 +203,15 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       parseInt(data.departemen_id) || null,
       data.tanggal_bergabung || null,
       data.tipe_pekerja, data.alamat_lengkap, data.rt_rw, data.kota, data.kode_pos,
-      data.is_kena_pph21, data.no_npwp, data.status_ptkp,
+      data.is_kena_pph21, data.no_npwp || null, data.status_ptkp,
       parseInt(data.bank_id) || null,
       data.no_rekening, data.atas_nama_rekening,
       parseInt(data.satelit_id) || null,
       data.url_ktp || null,
       data.url_kartu_keluarga || null,
       data.url_perjanjian_kerjasama || null,
+      data.nik || null,
+      data.shift_kerja || null,
       parseInt(id)
     ];
 

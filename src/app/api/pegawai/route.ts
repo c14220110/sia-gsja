@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
+import { isValid16Digits } from '@/lib/pegawaiForm';
 
 export async function GET(request: Request) {
   const caller = getCallerFromRequest(request);
@@ -126,6 +127,16 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
+
+    if (!isValid16Digits(body.nik)) {
+      return NextResponse.json({ success: false, message: 'NIK wajib diisi tepat 16 digit angka.' }, { status: 400 });
+    }
+    if (body.no_kk && !isValid16Digits(body.no_kk)) {
+      return NextResponse.json({ success: false, message: 'Nomor Kartu Keluarga (KK) harus tepat 16 digit angka.' }, { status: 400 });
+    }
+    if (body.no_npwp && !isValid16Digits(body.no_npwp)) {
+      return NextResponse.json({ success: false, message: 'Nomor NPWP harus tepat 16 digit angka sesuai NIK tanpa tanda baca.' }, { status: 400 });
+    }
     
     // Construct id_pegawai: PG + SatelitId (2 digits) + YY + Random(3)
     const satelitPrefix = body.satelit_id?.toString().padStart(2, '0') || '00';
@@ -135,23 +146,23 @@ export async function POST(request: Request) {
 
     const insertQuery = `
       INSERT INTO public.pegawai (
-        id_pegawai, jemaat_id, nama_lengkap, no_kk, status_pernikahan, 
+        id_pegawai, jemaat_id, nama_lengkap, nik, no_kk, status_pernikahan, 
         jumlah_anak, tanggal_lahir, jenis_kelamin, no_hp, email_pribadi, 
         kontak_darurat_nama, kontak_darurat_nohp, kontak_darurat_relasi, 
-        jabatan_pegawai_id, departemen_id, tanggal_bergabung, 
+        jabatan_pegawai_id, departemen_id, shift_kerja, tanggal_bergabung, 
         status_pegawai, status_approval, 
         alamat_lengkap, rt_rw, kota, kode_pos, 
         is_kena_pph21, no_npwp, tipe_pekerja, status_ptkp, 
         bank_id, no_rekening, atas_nama_rekening, satelit_id
       ) VALUES (
-        $1, $2, $3, $4, $5, 
-        $6, $7, $8, $9, $10, 
-        $11, $12, $13, 
-        $14, $15, $16, 
+        $1, $2, $3, $4, $5, $6, 
+        $7, $8, $9, $10, $11, 
+        $12, $13, $14, 
+        $15, $16, $17, $18, 
         'Aktif', 'Pending', 
-        $17, $18, $19, $20, 
-        $21, $22, $23, $24, 
-        $25, $26, $27, $28
+        $19, $20, $21, $22, 
+        $23, $24, $25, $26, 
+        $27, $28, $29, $30
       ) RETURNING id
     `;
 
@@ -159,7 +170,8 @@ export async function POST(request: Request) {
       generatedIdPegawai,
       body.jemaat_id || null, // Can be null if not a member yet
       body.nama_lengkap,
-      body.no_kk || null,
+      String(body.nik).trim(),
+      body.no_kk ? String(body.no_kk).trim() : null,
       body.status_pernikahan || null,
       body.jumlah_anak ? parseInt(body.jumlah_anak) : 0,
       body.tanggal_lahir || null,
@@ -171,13 +183,14 @@ export async function POST(request: Request) {
       body.kontak_darurat_relasi || null,
       body.jabatan_pegawai_id ? parseInt(body.jabatan_pegawai_id) : null,
       body.departemen_id ? parseInt(body.departemen_id) : null,
+      body.shift_kerja || null,
       body.tanggal_bergabung || null,
       body.alamat_lengkap || null,
       body.rt_rw || null,
       body.kota || null,
       body.kode_pos || null,
       body.is_kena_pph21 === undefined ? true : body.is_kena_pph21,
-      body.no_npwp || null,
+      body.no_npwp ? String(body.no_npwp).trim() : null,
       body.tipe_pekerja || null,
       body.status_ptkp || null,
       body.bank_id ? parseInt(body.bank_id) : null,
