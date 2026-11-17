@@ -318,7 +318,7 @@ export default function DashboardLayout({
               </div>
               )}
 
-              {(hasPermission('buku_besar_view') || hasPermission('buku_besar_manage') || hasPermission('penggajian_manage')) && (
+              {(hasPermission('buku_besar_view') || hasPermission('buku_besar_manage')) && (
               <div className="w-full">
                 <div 
                   className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer"
