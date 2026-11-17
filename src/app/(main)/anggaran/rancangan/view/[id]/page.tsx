@@ -83,13 +83,14 @@ export default function ViewAnggaranPage({ params }: { params: Promise<{ id: str
   const margin_acc = totalP_acc > 0 ? ((totalP_acc - totalK_acc) / totalP_acc) * 100 : 0;
 
   // Tentukan kesaktian pengguna dari izin yang mereka punya
-  const isApprover = userData ? (userData.is_super_admin || userData.permissions?.includes('anggaran_review')) : false;
-  const isKetua    = userData ? (userData.is_super_admin || userData.permissions?.includes('anggaran_approve_ketua')) : false;
-  const isPembuat  = userData?.permissions?.includes('anggaran_create');
+  const isApprover  = userData ? (userData.is_super_admin || userData.permissions?.includes('anggaran_review')) : false;
+  const isKetua     = userData ? (userData.is_super_admin || userData.permissions?.includes('anggaran_approve_ketua')) : false;
+  const isPembuat   = userData?.permissions?.includes('anggaran_create');
+  const canEditPerm = userData ? (userData.is_super_admin || userData.permissions?.includes('anggaran_edit')) : false;
   const status = data?.status || '';
 
   // Action permissions
-  const canEdit    = isPembuat && ['Draft', 'Revisi', 'Menunggu Persetujuan Ketua'].includes(status);
+  const canEdit    = canEditPerm && ['Draft', 'Revisi', 'Menunggu Persetujuan Ketua'].includes(status);
   const canReview  = isApprover && status === 'Menunggu Review';
   const canApproveAsKetua = isKetua && status === 'Menunggu Persetujuan Ketua';
   const isFinal    = ['Disetujui Penuh', 'Disetujui Sebagian', 'Ditolak', 'Dibatalkan'].includes(status);

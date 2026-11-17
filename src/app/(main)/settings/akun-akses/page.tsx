@@ -265,7 +265,7 @@ export default function AkunAksesPage() {
     {
       title: 'Keuangan & Anggaran', icon: 'account_balance_wallet', color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100', ring: 'focus:ring-emerald-500', 
       checkedBg: 'checked:bg-emerald-500', checkBorder: 'peer-checked:border-emerald-500', activeBg: 'bg-emerald-100',
-      keys: ['anggaran_view', 'anggaran_create', 'anggaran_review', 'buku_besar_view', 'buku_besar_manage']
+      keys: ['anggaran_view', 'anggaran_create', 'anggaran_edit', 'anggaran_review', 'buku_besar_view', 'buku_besar_manage']
     },
     {
       title: 'HRD & Penggajian', icon: 'work', color: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-100', ring: 'focus:ring-rose-500', 
