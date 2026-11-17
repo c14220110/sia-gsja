@@ -14,6 +14,7 @@ export async function GET(request: Request) {
     'buku_besar_manage',
     'anggaran_view',
     'anggaran_create',
+    'anggaran_edit',
     'anggaran_review',
     'anggaran_approve_ketua',
     'kegiatan_lpj',

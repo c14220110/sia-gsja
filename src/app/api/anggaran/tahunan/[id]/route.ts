@@ -63,8 +63,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   const id = resolvedParams.id;
   const caller = getCallerFromRequest(request);
   if (!caller) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-  if (!caller.is_super_admin && !caller.permissions.includes('anggaran_create')) {
-    return NextResponse.json({ success: false, message: 'Akses Ditolak: Anda tidak memiliki izin mengelola anggaran' }, { status: 403 });
+  if (!caller.is_super_admin && !caller.permissions.includes('anggaran_edit')) {
+    return NextResponse.json({ success: false, message: 'Akses Ditolak: Anda tidak memiliki izin mengedit rancangan anggaran' }, { status: 403 });
   }
 
   const client = await pool.connect();

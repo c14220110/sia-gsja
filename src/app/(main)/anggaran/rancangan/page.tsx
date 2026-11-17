@@ -181,6 +181,7 @@ export default function RancanganAnggaranPage() {
   const isApprover = userData?.is_super_admin || userData?.permissions?.includes('anggaran_review');
   const isKetua    = userData?.is_super_admin || userData?.permissions?.includes('anggaran_approve_ketua');
   const isPembuat  = userData?.permissions?.includes('anggaran_create');
+  const canEdit    = userData?.is_super_admin || userData?.permissions?.includes('anggaran_edit');
   const canBatalkanItem = (item: AnggaranItem) => {
     if (item.status === 'Dibatalkan') return false;
     if (item.status === 'Draft') return false; // Draft → hapus permanen saja
@@ -445,8 +446,8 @@ export default function RancanganAnggaranPage() {
                                   <span className="material-icons-round text-[18px] text-slate-400">history</span>Lihat Riwayat
                                 </button>
                               )}
-                              {/* Edit — hanya Draft/Revisi/Menunggu Persetujuan Ketua untuk pembuat */}
-                              {['Draft', 'Revisi', 'Menunggu Persetujuan Ketua'].includes(item.status) && isPembuat && (
+                              {/* Edit — hanya Draft/Revisi/Menunggu Persetujuan Ketua untuk pemegang izin anggaran_edit */}
+                              {['Draft', 'Revisi', 'Menunggu Persetujuan Ketua'].includes(item.status) && canEdit && (
                                 <Link href={`/anggaran/rancangan/edit/${item.id}`} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-slate-700 text-sm flex items-center gap-2">
                                   <span className="material-icons-round text-[18px] text-slate-400">edit</span>{item.status === 'Revisi' ? 'Edit & Perbaiki' : 'Edit Rancangan'}
                                 </Link>

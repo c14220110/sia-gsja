@@ -64,8 +64,8 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
       }
       if (resUser && (resUser.role_id || resUser.permissions)) {
         setUserData(resUser);
-        // Cek izin (anggaran_create) atau bypass buat bos besar (super admin)
-        if (resUser.is_super_admin || resUser.permissions?.includes('anggaran_create')) {
+        // Cek izin (anggaran_edit) atau bypass buat bos besar (super admin)
+        if (resUser.is_super_admin || resUser.permissions?.includes('anggaran_edit')) {
           setIsAuthorized(true);
           // Auto-select satelit berdasarkan penugasan user
           if (resUser.satelit_id) {
