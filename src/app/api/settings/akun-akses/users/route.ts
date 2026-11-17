@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { email, password, jemaat_id, roles } = body;
+    const { email, password, jemaat_id, pegawai_id, roles } = body;
 
     // `email` di sini adalah field identifier — bisa berisi email, no_hp, atau username
     const identifier = (email || '').trim();
@@ -41,6 +41,7 @@ export async function POST(req: NextRequest) {
       email: identifier,
       password_hash,
       jemaat_id: jemaat_id || null,
+      pegawai_id: pegawai_id || null,
       roles,
     });
 
@@ -90,7 +91,7 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { user_id, email, password, roles, jemaat_id } = body;
+    const { user_id, email, password, roles, jemaat_id, pegawai_id } = body;
 
     if (!user_id) {
       return NextResponse.json({ success: false, message: 'user_id diperlukan' }, { status: 400 });
@@ -101,8 +102,9 @@ export async function PUT(req: NextRequest) {
     if (password) {
       updateData.password_hash = await bcrypt.hash(password, 10);
     }
-    // jemaat_id: undefined = tidak diubah, null = hapus link, number = set link baru
+    // jemaat_id / pegawai_id: undefined = tidak diubah, null = hapus link, number = set link baru
     if (jemaat_id !== undefined) updateData.jemaat_id = jemaat_id;
+    if (pegawai_id !== undefined) updateData.pegawai_id = pegawai_id;
     // Teruskan komisi_id dan departemen_id per-role-row (bukan dari level global)
     if (roles !== undefined) {
       updateData.roles = roles.map((r: any) => ({

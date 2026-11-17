@@ -79,6 +79,18 @@ export async function GET(request: Request) {
         ? caller.satelit_id
         : null;
       data = await masterRepository.getApprovedAnggaranOptions(satelitFilter);
+    } else if (type === 'pegawai_simple') {
+      if (!caller.is_super_admin && !caller.permissions?.includes('user_access_manage')) {
+        return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
+      }
+      const res = await pool.query(`
+        SELECT p.id, p.id_pegawai, p.nama_lengkap, p.user_id, p.satelit_id, s.nama_satelit
+        FROM public.pegawai p
+        LEFT JOIN public.satelit s ON s.id = p.satelit_id
+        WHERE UPPER(COALESCE(p.status_pegawai, 'AKTIF')) = 'AKTIF'
+        ORDER BY p.nama_lengkap ASC
+      `);
+      data = res.rows;
     } else if (type === 'pengguna') {
       if (
         !caller.is_super_admin &&

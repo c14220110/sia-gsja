@@ -350,7 +350,7 @@ export default function DashboardLayout({
               </div>
               )}
 
-              {(userData || hasPermission('pegawai_view')) && (
+              {(hasPermission('presensi_monitoring_view') || hasPermission('presensi_monitoring_manage') || hasPermission('pegawai_view') || hasPermission('pegawai_approval') || hasPermission('penggajian_manage')) && (
                 <div className="w-full">
                   <div 
                     className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer"
@@ -373,7 +373,6 @@ export default function DashboardLayout({
                   {/* Mobile Accordion */}
                   <div className={`md:hidden overflow-hidden transition-all duration-300 ${mobileExpandedMenus['pegawai'] ? 'max-h-96 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
                     <div className="pl-14 pr-4 py-2 flex flex-col gap-4">
-                      <Link href="/pegawai/presensi" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Presensi &amp; Visit</Link>
                       {(hasPermission('presensi_monitoring_view') || hasPermission('presensi_monitoring_manage')) && <Link href="/pegawai/presensi/monitoring" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Monitoring Presensi</Link>}
                       {hasPermission('pegawai_view') && <Link href="/pegawai" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Data Pegawai</Link>}
                       {hasPermission('pegawai_approval') && <Link href="/pegawai/permohonan" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Permohonan</Link>}
@@ -789,12 +788,6 @@ export default function DashboardLayout({
                     <div className="justify-center text-slate-800 text-lg font-bold font-sans leading-7">Pegawai (HRD)</div>
                   </div>
                   <div className="self-stretch grid grid-cols-2 gap-3">
-                    <Link href="/pegawai/presensi" onClick={() => setActiveSubmenu(null)} className="h-28 p-4 bg-purple-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-purple-200 flex flex-col justify-center items-center cursor-pointer hover:bg-purple-100 transition-colors block text-inherit no-underline">
-                      <div className="pb-1.5 flex flex-col justify-start items-center">
-                        <span className="material-icons-round text-purple-700 text-[28px]">face</span>
-                      </div>
-                      <div className="text-center text-purple-900 text-sm font-bold font-sans leading-5">Presensi &amp;<br/>Visit</div>
-                    </Link>
                     {(hasPermission('presensi_monitoring_view') || hasPermission('presensi_monitoring_manage')) && (
                     <Link href="/pegawai/presensi/monitoring" onClick={() => setActiveSubmenu(null)} className="h-28 p-4 bg-indigo-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-indigo-200 flex flex-col justify-center items-center cursor-pointer hover:bg-indigo-100 transition-colors block text-inherit no-underline">
                       <div className="pb-1.5 flex flex-col justify-start items-center">
