@@ -3,8 +3,9 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
+import { formatAkunRa } from '@/lib/anggaranFormat';
 
-type Item = { id: string; jenis: 'Penerimaan'|'Pengeluaran'; coaId: number; coaLabel: string; sumber_dana: string; uraian: string; deskripsi: string; jumlah: number; satuan: string; harga: number; total: number; };
+type Item = { id: string; jenis: 'Penerimaan'|'Pengeluaran'; coaId: number | null; coaLabel: string; sumber_dana: string; uraian: string; deskripsi: string; jumlah: number; satuan: string; harga: number; total: number; };
 type COA = { id: number; label: string; saldo_normal: string; grup_laporan: string; };
 const fmt = (n: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
 const sel = 'w-full h-10 px-3 rounded-lg border border-slate-300 text-sm outline-none focus:ring-2 focus:ring-indigo-500 bg-white disabled:bg-slate-100 disabled:text-slate-400';
@@ -61,8 +62,8 @@ export default function InputLPJPage() {
         if (lpj.data.items?.length > 0) {
           setItems(lpj.data.items.map((it: any) => ({
             id: String(it.id || Date.now() + Math.random()),
-            jenis: it.jenis_anggaran, coaId: it.coa_id,
-            coaLabel: `${it.kode_akun} — ${it.nama_akun}`, sumber_dana: it.sumber_dana,
+            jenis: it.jenis_anggaran, coaId: it.coa_id || null,
+            coaLabel: it.coa_id ? `${it.kode_akun} — ${it.nama_akun}` : '', sumber_dana: it.sumber_dana,
             uraian: it.uraian, deskripsi: it.deskripsi || '', jumlah: it.jumlah,
             satuan: it.satuan || '', harga: parseFloat(it.harga_satuan), total: it.jumlah * parseFloat(it.harga_satuan)
           })));
@@ -74,23 +75,24 @@ export default function InputLPJPage() {
     });
   }, [id]);
 
-  // Filter COA by jenis (Penerimaan: 4, 7 | Pengeluaran: 5, 6, 8)
-  const filteredCoa = useMemo(() => coaList.filter(c => {
-    if (form.jenis === 'Penerimaan') {
+  // Filter COA by jenis (Penerimaan: 4, 7 | Pengeluaran: 5, 6, 8, 12)
+  const getCoaOptionsForJenis = useCallback((jenis: string) => coaList.filter(c => {
+    if (jenis === 'Penerimaan') {
       return c.label.startsWith('4') || c.label.startsWith('7');
     } else {
-      return c.label.startsWith('5') || c.label.startsWith('6') || c.label.startsWith('8');
+      return c.label.startsWith('5') || c.label.startsWith('6') || c.label.startsWith('8') || c.label.startsWith('12');
     }
-  }), [coaList, form.jenis]);
+  }), [coaList]);
+
+  const filteredCoa = useMemo(() => getCoaOptionsForJenis(form.jenis), [getCoaOptionsForJenis, form.jenis]);
 
   // Reset COA saat jenis berubah
   useEffect(() => { setForm(p => ({ ...p, coaId: '', coaLabel: '' })); setCoaSearch(''); }, [form.jenis]);
 
   const handleAdd = useCallback(() => {
-    if (!form.coaId) { alert('Akun Perkiraan (COA) wajib dipilih!'); return; }
     if (!form.uraian.trim()) { alert('Uraian item wajib diisi!'); return; }
     if (form.jumlah <= 0 || form.harga <= 0) { alert('Jumlah dan Harga Satuan harus lebih dari 0!'); return; }
-    setItems(p => [...p, { id: Date.now().toString(), jenis: form.jenis as any, coaId: parseInt(form.coaId), coaLabel: form.coaLabel, sumber_dana: form.sumber_dana, uraian: form.uraian, deskripsi: form.deskripsi, jumlah: form.jumlah, satuan: form.satuan, harga: form.harga, total: form.jumlah * form.harga }]);
+    setItems(p => [...p, { id: Date.now().toString(), jenis: form.jenis as any, coaId: form.coaId ? parseInt(form.coaId) : null, coaLabel: form.coaId ? form.coaLabel : '', sumber_dana: form.sumber_dana, uraian: form.uraian, deskripsi: form.deskripsi, jumlah: form.jumlah, satuan: form.satuan, harga: form.harga, total: form.jumlah * form.harga }]);
     setForm(p => ({ ...p, uraian: '', deskripsi: '', jumlah: 1, satuan: '', harga: 0 }));
   }, [form]);
 
@@ -104,8 +106,8 @@ export default function InputLPJPage() {
     const newItem: Item = {
       id: Date.now().toString() + Math.random(),
       jenis: r.jenis_anggaran as 'Penerimaan' | 'Pengeluaran',
-      coaId: r.coa_id,
-      coaLabel: `${r.kode_akun} — ${r.nama_akun}`,
+      coaId: r.coa_id || null,
+      coaLabel: r.coa_id ? `${r.kode_akun} — ${r.nama_akun}` : '',
       sumber_dana: r.sumber_dana || 'Kas Mandiri',
       uraian: r.uraian,
       deskripsi: r.deskripsi || '',
@@ -126,8 +128,8 @@ export default function InputLPJPage() {
       return {
         id: Date.now().toString() + Math.random(),
         jenis: r.jenis_anggaran as 'Penerimaan' | 'Pengeluaran',
-        coaId: r.coa_id,
-        coaLabel: `${r.kode_akun} — ${r.nama_akun}`,
+        coaId: r.coa_id || null,
+        coaLabel: r.coa_id ? `${r.kode_akun} — ${r.nama_akun}` : '',
         sumber_dana: r.sumber_dana || 'Kas Mandiri',
         uraian: r.uraian,
         deskripsi: r.deskripsi || '',
@@ -168,48 +170,56 @@ export default function InputLPJPage() {
   const totalK = useMemo(() => items.filter(i => i.jenis === 'Pengeluaran').reduce((a, c) => a + c.total, 0), [items]);
   const sisa = totalP - totalK;
 
-  // Head-to-head comparison: RA rencana vs LPJ realisasi, dicocokkan per COA
+  // Head-to-head comparison: RA rencana vs LPJ realisasi (match by coa_id if present, else by uraian)
   const comparisonData = useMemo(() => {
     if (raItemsReference.length === 0) return [];
-    // Group RA items by coa_id, sum total rencana
-    const raMap: Record<number, { kode_akun: string; nama_akun: string; uraian: string; jenis: string; total_ra: number; harga_satuan_ra: number; jumlah_ra: number; satuan_ra: string }> = {};
+    const raMap: Record<string, { kode_akun: string; nama_akun: string; uraian: string; jenis: string; total_ra: number; harga_satuan_ra: number; jumlah_ra: number; satuan_ra: string }> = {};
     raItemsReference.forEach((r: any) => {
       const total = r.jumlah * parseFloat(r.harga_satuan);
-      if (raMap[r.coa_id]) {
-        raMap[r.coa_id].total_ra += total;
+      const key = r.coa_id ? `coa:${r.coa_id}` : `uraian:${r.jenis_anggaran}:${(r.uraian || '').trim().toLowerCase()}`;
+      if (raMap[key]) {
+        raMap[key].total_ra += total;
       } else {
-        raMap[r.coa_id] = {
-          kode_akun: r.kode_akun, nama_akun: r.nama_akun, uraian: r.uraian,
+        raMap[key] = {
+          kode_akun: r.kode_akun || (r.akun_catatan ? 'Catatan' : '-'),
+          nama_akun: r.nama_akun || r.akun_catatan || 'Belum ada COA di RA',
+          uraian: r.uraian,
           jenis: r.jenis_anggaran,
           total_ra: total, harga_satuan_ra: parseFloat(r.harga_satuan),
           jumlah_ra: r.jumlah, satuan_ra: r.satuan || '-'
         };
       }
     });
-    // Group LPJ items by coa_id, sum total realisasi
-    const lpjMap: Record<number, { uraian: string; total_lpj: number; harga_satuan_lpj: number; jumlah_lpj: number }> = {};
+    const lpjMap: Record<string, { uraian: string; total_lpj: number; harga_satuan_lpj: number; jumlah_lpj: number; coaLabel: string; jenis: string }> = {};
     items.forEach(i => {
-      if (lpjMap[i.coaId]) {
-        lpjMap[i.coaId].total_lpj += i.total;
+      const uraianKey = `uraian:${i.jenis}:${i.uraian.trim().toLowerCase()}`;
+      const key = (i.coaId && raMap[`coa:${i.coaId}`])
+        ? `coa:${i.coaId}`
+        : raMap[uraianKey]
+          ? uraianKey
+          : (i.coaId ? `coa:${i.coaId}` : `lpj:${i.id}`);
+      if (lpjMap[key]) {
+        lpjMap[key].total_lpj += i.total;
       } else {
-        lpjMap[i.coaId] = { uraian: i.uraian, total_lpj: i.total, harga_satuan_lpj: i.harga, jumlah_lpj: i.jumlah };
+        lpjMap[key] = { uraian: i.uraian, total_lpj: i.total, harga_satuan_lpj: i.harga, jumlah_lpj: i.jumlah, coaLabel: i.coaLabel, jenis: i.jenis };
       }
     });
-    // Merge: all COAs from both RA and LPJ
-    const allCoaIds = new Set([...Object.keys(raMap).map(Number), ...Object.keys(lpjMap).map(Number)]);
-    return Array.from(allCoaIds).map(coaId => {
-      const ra = raMap[coaId];
-      const lpj = lpjMap[coaId];
+    const allKeys = new Set([...Object.keys(raMap), ...Object.keys(lpjMap)]);
+    return Array.from(allKeys).map(key => {
+      const ra = raMap[key];
+      const lpj = lpjMap[key];
       const total_ra = ra?.total_ra ?? 0;
       const total_lpj = lpj?.total_lpj ?? 0;
       const selisih = total_lpj - total_ra;
+      const lpjKode = lpj?.coaLabel ? lpj.coaLabel.split(' — ')[0] : null;
+      const lpjNama = lpj?.coaLabel ? lpj.coaLabel.split(' — ').slice(1).join(' — ') : null;
       return {
-        coaId,
-        kode_akun: ra?.kode_akun ?? items.find(i => i.coaId === coaId)?.coaLabel.split(' — ')[0] ?? '-',
-        nama_akun: ra?.nama_akun ?? items.find(i => i.coaId === coaId)?.coaLabel.split(' — ')[1] ?? '-',
+        coaId: key,
+        kode_akun: lpjKode ?? ra?.kode_akun ?? '-',
+        nama_akun: lpjNama ?? ra?.nama_akun ?? '-',
         uraian_ra: ra?.uraian ?? '-',
         uraian_lpj: lpj?.uraian ?? '-',
-        jenis: ra?.jenis ?? (items.find(i => i.coaId === coaId)?.jenis ?? 'Pengeluaran'),
+        jenis: ra?.jenis ?? lpj?.jenis ?? 'Pengeluaran',
         harga_satuan_ra: ra?.harga_satuan_ra ?? 0,
         jumlah_ra: ra?.jumlah_ra ?? 0,
         satuan_ra: ra?.satuan_ra ?? '-',
@@ -218,9 +228,7 @@ export default function InputLPJPage() {
         jumlah_lpj: lpj?.jumlah_lpj ?? 0,
         total_lpj,
         selisih,
-        // Penerimaan: surplus if LPJ > RA (lebih banyak masuk), deficit if less
-        // Pengeluaran: surplus if LPJ < RA (lebih hemat), over if LPJ > RA
-        isOver: ra?.jenis === 'Penerimaan' ? total_lpj < total_ra : total_lpj > total_ra,
+        isOver: (ra?.jenis ?? lpj?.jenis) === 'Penerimaan' ? total_lpj < total_ra : total_lpj > total_ra,
         pct: total_ra > 0 ? Math.round((total_lpj / total_ra) * 100) : null
       };
     });
@@ -228,6 +236,13 @@ export default function InputLPJPage() {
 
   const handleSave = async (action: 'draft' | 'ajukan' | 'ajukan_ulang') => {
     if (items.length === 0) { setSubmitState({ status: 'error', message: 'Minimal 1 item rincian harus diisi.' }); return; }
+    if (action === 'ajukan' || action === 'ajukan_ulang') {
+      const missingCoa = items.find(i => !i.coaId);
+      if (missingCoa) {
+        setSubmitState({ status: 'error', message: `Item "${missingCoa.uraian}" belum memiliki Akun COA. Wajib pilih Akun COA sebelum mengajukan LPJ.` });
+        return;
+      }
+    }
     const msgMap: Record<string, string> = { draft: 'Menyimpan draft...', ajukan: 'Mengajukan LPJ...', ajukan_ulang: 'Mengajukan ulang LPJ...' };
     setSubmitState({ status: 'loading', message: msgMap[action] });
     try {
@@ -449,7 +464,7 @@ export default function InputLPJPage() {
                   {raItemsReference.map((r: any, i: number) => (
                     <tr key={i} className="border-b border-blue-50 last:border-0 hover:bg-blue-50/30 group">
                       <td className="px-4 py-2 font-medium text-slate-700">{r.uraian}</td>
-                      <td className="px-4 py-2 font-sans text-slate-500">{r.kode_akun} — {r.nama_akun}</td>
+                      <td className="px-4 py-2 font-sans text-slate-500">{formatAkunRa(r)}</td>
                       <td className="px-4 py-2 text-center text-slate-600">{r.jumlah}</td>
                       <td className="px-4 py-2 text-slate-500">{r.satuan || '-'}</td>
                       <td className="px-4 py-2 text-right font-sans text-slate-600">{fmt(parseFloat(r.harga_satuan))}</td>
@@ -656,7 +671,24 @@ export default function InputLPJPage() {
                         ) : (
                         <tr key={item.id} className="border-b border-slate-100 hover:bg-emerald-50/30 group">
                           <td className="p-4 pl-6 text-sm font-semibold text-slate-800">{idx + 1}. {item.uraian}<p className="text-xs font-normal text-slate-400">{item.deskripsi}</p></td>
-                          <td className="p-4 text-xs font-sans text-slate-500">{item.coaLabel}</td>
+                          <td className="p-4 text-xs font-sans text-slate-500">
+                            {(isDraft || isRevisi) ? (
+                              <select
+                                value={item.coaId ?? ''}
+                                onChange={e => {
+                                  const val = e.target.value ? parseInt(e.target.value) : null;
+                                  const found = coaList.find(c => c.id === val);
+                                  setItems(prev => prev.map(x => x.id === item.id ? { ...x, coaId: val, coaLabel: found?.label || '' } : x));
+                                }}
+                                className={`w-full px-2 py-1.5 rounded-lg border text-xs outline-none focus:ring-2 focus:ring-emerald-500 ${!item.coaId ? 'border-amber-400 bg-amber-50 text-amber-800 font-semibold' : 'border-slate-200 bg-white text-slate-700'}`}
+                              >
+                                <option value="">-- Pilih Akun COA --</option>
+                                {getCoaOptionsForJenis(item.jenis).map(c => (
+                                  <option key={c.id} value={c.id}>{c.label}</option>
+                                ))}
+                              </select>
+                            ) : (item.coaLabel || '-')}
+                          </td>
                           <td className="p-4"><span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${item.sumber_dana === 'Kas Pusat' ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : item.sumber_dana === 'Kontribusi Peserta' ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-emerald-50 text-emerald-600 border-emerald-200'}`}>{item.sumber_dana}</span></td>
                           <td className="p-4 text-sm text-center font-medium">{item.jumlah}</td>
                           <td className="p-4 text-sm text-center text-slate-600">{item.satuan}</td>
@@ -709,7 +741,24 @@ export default function InputLPJPage() {
                         ) : (
                         <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50 group">
                           <td className="p-4 pl-6 text-sm font-semibold text-slate-800">{idx + 1}. {item.uraian}<p className="text-xs font-normal text-slate-400">{item.deskripsi}</p></td>
-                          <td className="p-4 text-xs font-sans text-slate-500">{item.coaLabel}</td>
+                          <td className="p-4 text-xs font-sans text-slate-500">
+                            {(isDraft || isRevisi) ? (
+                              <select
+                                value={item.coaId ?? ''}
+                                onChange={e => {
+                                  const val = e.target.value ? parseInt(e.target.value) : null;
+                                  const found = coaList.find(c => c.id === val);
+                                  setItems(prev => prev.map(x => x.id === item.id ? { ...x, coaId: val, coaLabel: found?.label || '' } : x));
+                                }}
+                                className={`w-full px-2 py-1.5 rounded-lg border text-xs outline-none focus:ring-2 focus:ring-emerald-500 ${!item.coaId ? 'border-amber-400 bg-amber-50 text-amber-800 font-semibold' : 'border-slate-200 bg-white text-slate-700'}`}
+                              >
+                                <option value="">-- Pilih Akun COA --</option>
+                                {getCoaOptionsForJenis(item.jenis).map(c => (
+                                  <option key={c.id} value={c.id}>{c.label}</option>
+                                ))}
+                              </select>
+                            ) : (item.coaLabel || '-')}
+                          </td>
                           <td className="p-4"><span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${item.sumber_dana === 'Kas Pusat' ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : item.sumber_dana === 'Kontribusi Peserta' ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-emerald-50 text-emerald-600 border-emerald-200'}`}>{item.sumber_dana}</span></td>
                           <td className="p-4 text-sm text-center font-medium">{item.jumlah}</td>
                           <td className="p-4 text-sm text-center text-slate-600">{item.satuan}</td>

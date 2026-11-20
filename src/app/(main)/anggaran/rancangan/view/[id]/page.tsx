@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo, use } from 'react';
 import Link from 'next/link';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
 import AnggaranTimeline from '@/components/anggaran/AnggaranTimeline';
+import { formatAkunRa, formatTanggalPelaksanaan } from '@/lib/anggaranFormat';
 
 const fmt = (n: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
 
@@ -260,8 +261,8 @@ export default function ViewAnggaranPage({ params }: { params: Promise<{ id: str
             <div className="text-sm font-semibold text-slate-700">{data.pola_penggunaan === 'Sekali Pakai' ? 'Tunggal' : (data.pola_penggunaan || '-')}</div>
           </div>
           <div>
-            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Estimasi Pelaksanaan</div>
-            <div className="text-sm font-semibold text-slate-700">{data.estimasi_waktu || '-'}</div>
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Tanggal Pelaksanaan</div>
+            <div className="text-sm font-semibold text-slate-700">{formatTanggalPelaksanaan(data.tanggal_mulai, data.tanggal_selesai, data.estimasi_waktu)}</div>
           </div>
         </div>
 
@@ -320,7 +321,7 @@ export default function ViewAnggaranPage({ params }: { params: Promise<{ id: str
                 {penItems.length > 0 && <><tr><td colSpan={isReviewed ? 10 : 7} className="px-4 py-1.5 bg-emerald-50 border-b border-emerald-100 text-[10px] font-bold text-emerald-700">↑ PENERIMAAN</td></tr>
                 {penItems.map((item: any, idx: number) => <tr key={item.id} className={`border-b border-slate-100 hover:bg-slate-50 transition-colors ${isReviewed ? (item.status_item === 'ACC' ? 'bg-emerald-50/30' : item.status_item === 'ACC_DIPOTONG' ? 'bg-blue-50/30' : item.status_item === 'Ditolak' ? 'bg-red-50/30' : item.status_item === 'Revisi' ? 'bg-amber-50/30' : '') : ''}`}>
                   <td className="p-4 pl-6 text-sm font-semibold text-slate-800">{idx + 1}. {item.uraian}<p className="text-xs font-normal text-slate-400">{item.deskripsi}</p></td>
-                  <td className="p-4 text-xs font-sans text-slate-500">{item.kode_akun} — {item.nama_akun}</td>
+                  <td className="p-4 text-xs font-sans text-slate-500">{formatAkunRa(item)}</td>
                   <td className="p-4"><span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${['Pusat', 'Plafon Pusat'].includes(item.sumber_dana) ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : ['Swadaya', 'Kas Pusat', 'Kas Satelit'].includes(item.sumber_dana) ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>{item.sumber_dana}</span></td>
                   <td className="p-4 text-sm text-center font-medium">{item.jumlah}</td><td className="p-4 text-sm text-center text-slate-600">{item.satuan}</td>
                   <td className="p-4 text-sm text-right font-sans text-slate-700">{fmt(Number(item.harga_satuan))}</td>
@@ -341,7 +342,7 @@ export default function ViewAnggaranPage({ params }: { params: Promise<{ id: str
                 {kelItems.length > 0 && <><tr><td colSpan={isReviewed ? 10 : 7} className="px-4 py-1.5 bg-red-50 border-b border-red-100 border-t border-t-slate-200 text-[10px] font-bold text-red-700">↓ PENGELUARAN</td></tr>
                 {kelItems.map((item: any, idx: number) => <tr key={item.id} className={`border-b border-slate-100 hover:bg-slate-50 transition-colors ${isReviewed ? (item.status_item === 'ACC' ? 'bg-emerald-50/30' : item.status_item === 'ACC_DIPOTONG' ? 'bg-blue-50/30' : item.status_item === 'Ditolak' ? 'bg-red-50/30' : item.status_item === 'Revisi' ? 'bg-amber-50/30' : '') : ''}`}>
                   <td className="p-4 pl-6 text-sm font-semibold text-slate-800">{idx + 1}. {item.uraian}<p className="text-xs font-normal text-slate-400">{item.deskripsi}</p></td>
-                  <td className="p-4 text-xs font-sans text-slate-500">{item.kode_akun} — {item.nama_akun}</td>
+                  <td className="p-4 text-xs font-sans text-slate-500">{formatAkunRa(item)}</td>
                   <td className="p-4"><span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${['Pusat', 'Plafon Pusat'].includes(item.sumber_dana) ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : ['Swadaya', 'Kas Pusat', 'Kas Satelit'].includes(item.sumber_dana) ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>{item.sumber_dana}</span></td>
                   <td className="p-4 text-sm text-center font-medium">{item.jumlah}</td><td className="p-4 text-sm text-center text-slate-600">{item.satuan}</td>
                   <td className="p-4 text-sm text-right font-sans text-slate-700">{fmt(Number(item.harga_satuan))}</td>

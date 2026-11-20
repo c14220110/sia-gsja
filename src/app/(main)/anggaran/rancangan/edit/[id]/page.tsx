@@ -3,9 +3,9 @@ import React, { useState, useMemo, useEffect, use } from 'react';
 import Link from 'next/link';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
 import { AlertModal } from '@/components/ui/AlertModal';
+import { formatAkunRa, toDateInputValue } from '@/lib/anggaranFormat';
 
-type RincianItem = { id: string; jenis: 'Penerimaan'|'Pengeluaran'; coaId: number; coa: string; sumber_dana: string; uraian: string; deskripsi: string; jumlah: number; satuan: string; harga: number; total: number; status_item?: string; catatan_reviewer?: string; };
-type COAOption = { id: number; label: string; saldo_normal: string; grup_laporan: string; };
+type RincianItem = { id: string; jenis: 'Penerimaan'|'Pengeluaran'; coaId: number | null; akunCatatan: string; coa: string; sumber_dana: string; uraian: string; deskripsi: string; jumlah: number; satuan: string; harga: number; total: number; status_item?: string; catatan_reviewer?: string; };
 type Option = { id: number; label: string };
 const currentYear = new Date().getFullYear();
 const tahunOptions = Array.from({ length: 11 }, (_, i) => 2020 + i);
@@ -27,14 +27,14 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
   // Pusat = satelit id=1 (Eben Haezer, kode '00')
   const isPusat = satelitId === '1';
   const [komisiList, setKomisiList] = useState<Option[]>([]);
-  const [coaList, setCoaList] = useState<COAOption[]>([]);
   const [namaRancangan, setNamaRancangan] = useState('');
   const [kategoriRa, setKategoriRa] = useState('Kegiatan');
   const [polaPenggunaan, setPolaPenggunaan] = useState('Sekali Pakai');
   const [jenisKegiatanList, setJenisKegiatanList] = useState<{id:number,label:string,kategori:string}[]>([]);
   const [jenisKegiatanId, setJenisKegiatanId] = useState('');
-  const [estimasiWaktu, setEstimasiWaktu] = useState('');
-  const [form, setForm] = useState({ id: '', jenis:'Pengeluaran', coaId:'', coaLabel:'', sumber_dana:'Kas Mandiri', uraian:'', deskripsi:'', jumlah:1, satuan:'', harga:0 });
+  const [tanggalMulai, setTanggalMulai] = useState('');
+  const [tanggalSelesai, setTanggalSelesai] = useState('');
+  const [form, setForm] = useState({ id: '', jenis:'Pengeluaran', coaId: null as number | null, akunCatatan:'', sumber_dana:'Kas Mandiri', uraian:'', deskripsi:'', jumlah:1, satuan:'', harga:0 });
   const [items, setItems] = useState<RincianItem[]>([]);
   const [kodeDokumen, setKodeDokumen] = useState('Memuat...');
   const [initialDataLoaded, setInitialDataLoaded] = useState(false);
@@ -45,17 +45,13 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
   const [userData, setUserData] = useState<any>(null);
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
-  // Ambil data COA, satelit, dan profil user sekaligus
+  // Ambil data satelit, jenis kegiatan, dan profil user sekaligus
   useEffect(() => {
     Promise.all([
-      fetch('/api/buku-besar/coa').then(r=>r.json()).catch(() => ({})),
       fetch('/api/master-data?table=satelit').then(r=>r.json()).catch(() => ({})),
       fetch('/api/auth/me').then(r=>r.json()).catch(() => ({})),
       fetch('/api/master-data?table=jenis_kegiatan').then(r=>r.json()).catch(() => ({}))
-    ]).then(([resCoa, resSatelit, resUser, resJenis]) => {
-      if (resCoa.success) {
-        setCoaList(resCoa.data.filter((c:any)=>c.tipe_akun==='Detail'&&c.is_active).map((c:any)=>({id:c.id,label:`${c.kode_akun} — ${c.nama_akun}`,saldo_normal:c.saldo_normal,grup_laporan:c.grup_laporan})));
-      }
+    ]).then(([resSatelit, resUser, resJenis]) => {
       if (resSatelit.success) {
         setSatelitList(resSatelit.data.filter((s:any)=>s.is_active).map((s:any)=>({id:s.id,label:s.nama_satelit})));
       }
@@ -113,18 +109,8 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
   }, [satelitId, initialDataLoaded]);
 
 
-  // Filter COA by jenis: Penerimaan → Kredit (income), Pengeluaran → Debit (expense)
-  // Dua-duanya wajib grup_laporan = 'Laba Rugi' buat urusan anggaran
-  const filteredCoaList = useMemo(() => coaList.filter(c =>
-    c.grup_laporan === 'Laba Rugi' &&
-    (form.jenis === 'Penerimaan' ? c.saldo_normal === 'Kredit' : c.saldo_normal === 'Debit')
-  ), [coaList, form.jenis]);
-
-  // Kosongin lagi COA kalau jenisnya ganti (biar COA yang salah tipe gak nyangkut)
-  useEffect(() => { setForm(p=>({...p,coaId:'',coaLabel:''})); }, [form.jenis]);
-
   useEffect(() => {
-    if (initialDataLoaded || coaList.length === 0) return;
+    if (initialDataLoaded) return;
     fetch(`/api/anggaran/tahunan/${id}`)
       .then(r => r.json())
       .then(json => {
@@ -139,13 +125,15 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
           setKategoriRa(data.kategori_ra || 'Kegiatan');
           setPolaPenggunaan(data.pola_penggunaan || 'Sekali Pakai');
           if (data.jenis_kegiatan_id) setJenisKegiatanId(String(data.jenis_kegiatan_id));
-          setEstimasiWaktu(data.estimasi_waktu || '');
+          setTanggalMulai(toDateInputValue(data.tanggal_mulai));
+          setTanggalSelesai(toDateInputValue(data.tanggal_selesai));
           
           setItems(data.items.map((i: any) => ({
             id: i.id,
             jenis: i.jenis_anggaran,
-            coaId: i.coa_id,
-            coa: `${i.kode_akun} — ${i.nama_akun}`,
+            coaId: i.coa_id || null,
+            akunCatatan: i.akun_catatan || '',
+            coa: formatAkunRa(i),
             sumber_dana: i.sumber_dana,
             uraian: i.uraian,
             deskripsi: i.deskripsi || '',
@@ -159,31 +147,33 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
           setInitialDataLoaded(true);
         }
       });
-  }, [id, initialDataLoaded, coaList.length]);
+  }, [id, initialDataLoaded]);
 
   const handleAdd = () => {
-    if (!form.coaId) { alert('Akun Perkiraan (COA) wajib dipilih. Ini adalah benang merah antara anggaran dan realisasi jurnal.'); return; }
     if (!form.uraian) { alert('Uraian / Judul Item wajib diisi.'); return; }
     if (form.jumlah <= 0 || form.harga <= 0) { alert('Jumlah dan Harga Satuan harus lebih dari 0.'); return; }
-    
-    const newItem = {id: form.id || Date.now().toString(),jenis:form.jenis as 'Penerimaan'|'Pengeluaran',coaId:parseInt(form.coaId),coa:form.coaLabel,sumber_dana:form.sumber_dana,uraian:form.uraian,deskripsi:form.deskripsi,jumlah:form.jumlah,satuan:form.satuan,harga:form.harga,total:form.jumlah*form.harga};
+    const catatan = form.akunCatatan.trim();
+    const newItem: RincianItem = {id: form.id || Date.now().toString(),jenis:form.jenis as 'Penerimaan'|'Pengeluaran',coaId: catatan ? null : form.coaId, akunCatatan: catatan, coa: catatan || (form.coaId ? items.find(i => i.id === form.id)?.coa || '-' : '-'),sumber_dana:form.sumber_dana,uraian:form.uraian,deskripsi:form.deskripsi,jumlah:form.jumlah,satuan:form.satuan,harga:form.harga,total:form.jumlah*form.harga};
     
     if (form.id) {
       setItems(p => p.map(i => i.id === form.id ? {...newItem, status_item: i.status_item, catatan_reviewer: i.catatan_reviewer} : i));
     } else {
       setItems(p=>[...p, newItem]);
     }
-    setForm(p=>({id:'', jenis:p.jenis, coaId:'', coaLabel:'', sumber_dana:'Kas Mandiri', uraian:'', deskripsi:'', jumlah:1, satuan:'', harga:0}));
+    setForm(p=>({id:'', jenis:p.jenis, coaId: null, akunCatatan:'', sumber_dana:'Kas Mandiri', uraian:'', deskripsi:'', jumlah:1, satuan:'', harga:0}));
   };
 
   const handleEditItem = (item: RincianItem) => {
-    setForm({ id: item.id, jenis: item.jenis, coaId: String(item.coaId), coaLabel: item.coa, sumber_dana: item.sumber_dana, uraian: item.uraian, deskripsi: item.deskripsi, jumlah: item.jumlah, satuan: item.satuan, harga: item.harga });
+    setForm({ id: item.id, jenis: item.jenis, coaId: item.coaId, akunCatatan: item.akunCatatan || (item.coa !== '-' ? item.coa : ''), sumber_dana: item.sumber_dana, uraian: item.uraian, deskripsi: item.deskripsi, jumlah: item.jumlah, satuan: item.satuan, harga: item.harga });
   };
 
   // Pre-validate fields before showing confirmation or saving
   const validateFields = (): boolean => {
     if (!satelitId) { setSubmitState({status:'error',message:'Satelit wajib dipilih.'}); return false; }
     if (!namaRancangan) { setSubmitState({status:'error',message:'Nama Rancangan wajib diisi.'}); return false; }
+    if (tanggalMulai && tanggalSelesai && tanggalSelesai < tanggalMulai) {
+      setSubmitState({status:'error',message:'Tanggal Selesai tidak boleh lebih awal dari Tanggal Mulai.'}); return false;
+    }
     if (items.length === 0) { setSubmitState({status:'error',message:'Minimal harus ada 1 item rincian anggaran.'}); return false; }
     return true;
   };
@@ -206,9 +196,10 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
         pola_penggunaan: polaPenggunaan,
         jenis_kegiatan_id: jenisKegiatanId ? parseInt(jenisKegiatanId) : null,
         nama_rancangan: namaRancangan,
-        estimasi_waktu: estimasiWaktu,
+        tanggal_mulai: tanggalMulai || null,
+        tanggal_selesai: tanggalSelesai || null,
         action,
-        items: items.map(i=>({ id:i.id, jenis_anggaran:i.jenis, coa_id:i.coaId, sumber_dana:i.sumber_dana, uraian:i.uraian, deskripsi:i.deskripsi||null, jumlah:i.jumlah, satuan:i.satuan||null, harga_satuan:i.harga }))
+        items: items.map(i=>({ id:i.id, jenis_anggaran:i.jenis, coa_id:i.coaId || null, akun_catatan:i.akunCatatan || null, sumber_dana:i.sumber_dana, uraian:i.uraian, deskripsi:i.deskripsi||null, jumlah:i.jumlah, satuan:i.satuan||null, harga_satuan:i.harga }))
       };
       const res = await fetch(`/api/anggaran/tahunan/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
       const json = await res.json();
@@ -410,8 +401,12 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
             </select>
           </div>
           <div>
-            <label className={labelCls}>Estimasi Pelaksanaan</label>
-            <input type="text" placeholder="Misal: Semester 1, 25 Des..." value={estimasiWaktu} onChange={e=>setEstimasiWaktu(e.target.value)} disabled={isHeaderLocked} className={inputCls + ' disabled:bg-slate-50 disabled:text-slate-500'}/>
+            <label className={labelCls}>Tanggal Pelaksanaan <span className="text-slate-400 font-normal">(Dari — Opsional)</span></label>
+            <input type="date" value={tanggalMulai} onChange={e=>setTanggalMulai(e.target.value)} disabled={isHeaderLocked} className={inputCls + ' disabled:bg-slate-50 disabled:text-slate-500'}/>
+          </div>
+          <div>
+            <label className={labelCls}>Tanggal Pelaksanaan <span className="text-slate-400 font-normal">(Sampai — Opsional)</span></label>
+            <input type="date" value={tanggalSelesai} min={tanggalMulai || undefined} onChange={e=>setTanggalSelesai(e.target.value)} disabled={isHeaderLocked} className={inputCls + ' disabled:bg-slate-50 disabled:text-slate-500'}/>
           </div>
         </div>
       </div>
@@ -439,14 +434,14 @@ export default function EditAnggaranPage({ params }: { params: Promise<{ id: str
               </select>
             </div>
             <div>
-              <label className={labelCls}>Akun Perkiraan (COA) <span className="text-red-500">*</span>
-                <span className="ml-1 font-normal normal-case text-slate-400">({form.jenis==='Penerimaan'?'Akun Pendapatan (Kredit)':'Akun Beban (Debit)'} saja)</span>
-              </label>
-              <select value={form.coaId} onChange={e=>{const s=filteredCoaList.find(c=>c.id===parseInt(e.target.value));setForm(p=>({...p,coaId:e.target.value,coaLabel:s?.label||''}));}} className={`${selectCls} ${!form.coaId?'border-amber-300':''}`}>
-                <option value="">-- Pilih Akun {form.jenis==='Penerimaan'?'Pendapatan':'Beban'} --</option>
-                {filteredCoaList.map(c=><option key={c.id} value={c.id}>{c.label}</option>)}
-              </select>
-              {filteredCoaList.length===0&&coaList.length>0&&<p className="text-[10px] text-amber-600 mt-1">Belum ada akun COA jenis {form.jenis==='Penerimaan'?'Pendapatan (Kredit)':'Beban (Debit)'} yang aktif.</p>}
+              <label className={labelCls}>Akun Perkiraan / COA <span className="text-slate-400 font-normal">(Opsional)</span></label>
+              <input
+                type="text"
+                value={form.akunCatatan}
+                onChange={e => setForm(p => ({ ...p, akunCatatan: e.target.value }))}
+                placeholder="Opsional (misal: Konsumsi / Perlengkapan)... COA diisi saat LPJ"
+                className={inputCls}
+              />
             </div>
             <div>
               <label className={labelCls}>Sumber Dana</label>

@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo, use } from 'react';
 import Link from 'next/link';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
+import { formatAkunRa, formatTanggalPelaksanaan } from '@/lib/anggaranFormat';
 
 const fmt = (n: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
 
@@ -211,7 +212,7 @@ export default function ReviewAnggaranPage({ params }: { params: Promise<{ id: s
           {idx + 1}. {item.uraian}
           <p className="text-xs font-normal text-slate-400 mt-0.5">{item.deskripsi}</p>
         </td>
-        <td className="p-4 text-xs font-sans text-slate-500 align-top">{item.kode_akun} — {item.nama_akun}</td>
+        <td className="p-4 text-xs font-sans text-slate-500 align-top">{formatAkunRa(item)}</td>
         <td className="p-4 align-top">
           <span className={`inline-block px-2 py-1 rounded-full text-[10px] font-bold border whitespace-nowrap ${['Pusat', 'Plafon Pusat'].includes(item.sumber_dana) ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : ['Swadaya', 'Kas Pusat', 'Kas Satelit'].includes(item.sumber_dana) ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>{item.sumber_dana}</span>
         </td>
@@ -435,7 +436,7 @@ export default function ReviewAnggaranPage({ params }: { params: Promise<{ id: s
             ['Satelit', data.nama_satelit],
             ['Komisi', data.nama_komisi || 'Umum'],
             ['Tahun', data.tahun],
-            ['Estimasi', data.estimasi_waktu || '-'],
+            ['Tanggal Pelaksanaan', formatTanggalPelaksanaan(data.tanggal_mulai, data.tanggal_selesai, data.estimasi_waktu)],
             ['Dibuat Oleh', data.pembuat || 'Sistem'],
             ['Total', fmt(Number(data.total_anggaran))],
           ].map(([label, value]) => (
@@ -512,7 +513,7 @@ export default function ReviewAnggaranPage({ params }: { params: Promise<{ id: s
                       <td className="p-4 pl-6 text-sm font-semibold text-slate-800">{idx + 1}. {item.uraian}
                         <p className="text-xs font-normal text-slate-400">{item.deskripsi}</p>
                       </td>
-                      <td className="p-4 text-xs text-slate-500">{item.kode_akun} — {item.nama_akun}</td>
+                      <td className="p-4 text-xs text-slate-500">{formatAkunRa(item)}</td>
                       <td className="p-4"><span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${['Pusat','Plafon Pusat'].includes(item.sumber_dana) ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : ['Swadaya','Kas Pusat'].includes(item.sumber_dana) ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>{item.sumber_dana}</span></td>
                       <td className="p-4 text-sm text-center">{item.jumlah}</td>
                       <td className="p-4 text-sm text-center text-slate-600">{item.satuan}</td>
@@ -528,7 +529,7 @@ export default function ReviewAnggaranPage({ params }: { params: Promise<{ id: s
                       <td className="p-4 pl-6 text-sm font-semibold text-slate-800">{idx + 1}. {item.uraian}
                         <p className="text-xs font-normal text-slate-400">{item.deskripsi}</p>
                       </td>
-                      <td className="p-4 text-xs text-slate-500">{item.kode_akun} — {item.nama_akun}</td>
+                      <td className="p-4 text-xs text-slate-500">{formatAkunRa(item)}</td>
                       <td className="p-4"><span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${['Pusat','Plafon Pusat'].includes(item.sumber_dana) ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : ['Swadaya','Kas Pusat'].includes(item.sumber_dana) ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>{item.sumber_dana}</span></td>
                       <td className="p-4 text-sm text-center">{item.jumlah}</td>
                       <td className="p-4 text-sm text-center text-slate-600">{item.satuan}</td>
