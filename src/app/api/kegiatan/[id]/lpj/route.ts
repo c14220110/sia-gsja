@@ -51,10 +51,10 @@ export async function GET(request: Request, { params }: { params: any }) {
     if (raInfo) {
       const [raItemsRes, terpakaiRes] = await Promise.all([
         pool.query(
-          `SELECT d.coa_id, d.jumlah, d.harga_satuan, d.uraian, d.satuan,
+          `SELECT d.coa_id, d.akun_catatan, d.jumlah, d.harga_satuan, d.uraian, d.satuan,
                   a.kode_akun, a.nama_akun, d.jenis_anggaran, d.sumber_dana, d.deskripsi
            FROM public.anggaran_tahunan_detail d
-           JOIN public.buku_besar_coa a ON a.id = d.coa_id
+           LEFT JOIN public.buku_besar_coa a ON a.id = d.coa_id
            WHERE d.anggaran_tahunan_id = $1`,
           [raInfo.id]
         ),
@@ -86,6 +86,7 @@ export async function GET(request: Request, { params }: { params: any }) {
            JOIN public.kegiatan k ON k.id = d.kegiatan_id
            WHERE k.anggaran_tahunan_id = $1
              AND d.kegiatan_id != $2
+             AND d.coa_id IS NOT NULL
              AND lh.status_lpj IN ('Menunggu Review', 'Disetujui')
            GROUP BY d.coa_id`,
           [raInfo.id, numId]
@@ -136,6 +137,21 @@ export async function POST(request: Request, { params }: { params: any }) {
     const body = await request.json();
     const { action, laporan_naratif, items } = body;
     // action: 'draft' | 'ajukan' | 'ajukan_ulang'
+
+    if (!items || items.length === 0) {
+      client.release();
+      return NextResponse.json({ success: false, message: 'Minimal harus ada 1 item rincian keuangan.' }, { status: 400 });
+    }
+    if (action === 'ajukan' || action === 'ajukan_ulang') {
+      const missingCoa = items.find((i: any) => !i.coa_id);
+      if (missingCoa) {
+        client.release();
+        return NextResponse.json({
+          success: false,
+          message: `Item "${missingCoa.uraian}" belum memiliki Akun COA. Wajib pilih Akun COA sebelum mengajukan LPJ.`
+        }, { status: 400 });
+      }
+    }
 
     // Guard: jangan bisa ubah jika sudah Disetujui
     const existing = await client.query(
@@ -194,7 +210,7 @@ export async function POST(request: Request, { params }: { params: any }) {
         `INSERT INTO public.kegiatan_lpj_detail
            (kegiatan_id, jenis_anggaran, coa_id, sumber_dana, uraian, deskripsi, jumlah, satuan, harga_satuan)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-        [numId, it.jenis_anggaran, it.coa_id, it.sumber_dana, it.uraian, it.deskripsi || null, it.jumlah, it.satuan || null, it.harga_satuan]
+        [numId, it.jenis_anggaran, it.coa_id || null, it.sumber_dana, it.uraian, it.deskripsi || null, it.jumlah, it.satuan || null, it.harga_satuan]
       );
     }
 

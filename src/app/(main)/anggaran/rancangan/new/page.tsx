@@ -1,11 +1,10 @@
 'use client';
-import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
 import { AlertModal } from '@/components/ui/AlertModal';
 
-type RincianItem = { id: string; jenis: 'Penerimaan'|'Pengeluaran'; coaId: number; coa: string; sumber_dana: string; uraian: string; deskripsi: string; jumlah: number; satuan: string; harga: number; total: number; };
-type COAOption = { id: number; label: string; saldo_normal: string; grup_laporan: string; };
+type RincianItem = { id: string; jenis: 'Penerimaan'|'Pengeluaran'; coaId: number | null; akunCatatan: string; coa: string; sumber_dana: string; uraian: string; deskripsi: string; jumlah: number; satuan: string; harga: number; total: number; };
 type Option = { id: number; label: string };
 const currentYear = new Date().getFullYear();
 const tahunOptions = Array.from({ length: 11 }, (_, i) => 2020 + i);
@@ -26,39 +25,27 @@ export default function InputAnggaranBaruPage() {
   // Pusat = satelit id=1 (Eben Haezer, kode '00')
   const isPusat = satelitId === '1';
   const [komisiList, setKomisiList] = useState<Option[]>([]);
-  const [coaList, setCoaList] = useState<COAOption[]>([]);
   const [jenisKegiatanList, setJenisKegiatanList] = useState<Option[]>([]);
   const [namaRancangan, setNamaRancangan] = useState('');
   const [kategoriRa, setKategoriRa] = useState('Kegiatan');
   const [polaPenggunaan, setPolaPenggunaan] = useState('Sekali Pakai');
   const [jenisKegiatanId, setJenisKegiatanId] = useState('');
-  const [estimasiWaktu, setEstimasiWaktu] = useState('');
-  const [form, setForm] = useState({ jenis:'Pengeluaran', coaId:'', coaLabel:'', sumber_dana:'Kas Mandiri', uraian:'', deskripsi:'', jumlah:1, satuan:'', harga:0 });
+  const [tanggalMulai, setTanggalMulai] = useState('');
+  const [tanggalSelesai, setTanggalSelesai] = useState('');
+  const [form, setForm] = useState({ jenis:'Pengeluaran', akunCatatan:'', sumber_dana:'Kas Mandiri', uraian:'', deskripsi:'', jumlah:1, satuan:'', harga:0 });
   const [items, setItems] = useState<RincianItem[]>([]);
-
-  // State dropdown COA
-  const [coaQuery, setCoaQuery] = useState('');
-  const [coaOpen, setCoaOpen] = useState(false);
-  const [coaError, setCoaError] = useState('');
-  const coaRef = useRef<HTMLDivElement>(null);
   
   // State buat hak akses
   const [userData, setUserData] = useState<any>(null);
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
-  // Ambil data COA, satelit, dan profil user sekaligus
+  // Ambil data satelit, jenis kegiatan, dan profil user sekaligus
   useEffect(() => {
     Promise.all([
-      fetch('/api/buku-besar/coa').then(r=>r.json()).catch(() => ({})),
       fetch('/api/master-data?table=satelit').then(r=>r.json()).catch(() => ({})),
       fetch('/api/auth/me').then(r=>r.json()).catch(() => ({})),
       fetch('/api/master-data?table=jenis_kegiatan').then(r=>r.json()).catch(() => ({}))
-    ]).then(([resCoa, resSatelit, resUser, resJenis]) => {
-      if (resCoa.success) {
-        setCoaList(resCoa.data.filter((c:any)=>c.tipe_akun==='Detail'&&c.is_active).map((c:any)=>({id:c.id,label:`${c.kode_akun} — ${c.nama_akun}`,saldo_normal:c.saldo_normal,grup_laporan:c.grup_laporan})));
-      } else {
-        setCoaError(resCoa.message || 'Gagal memuat daftar akun COA.');
-      }
+    ]).then(([resSatelit, resUser, resJenis]) => {
       if (resSatelit.success) {
         setSatelitList(resSatelit.data.filter((s:any)=>s.is_active).map((s:any)=>({id:s.id,label:s.nama_satelit})));
       }
@@ -115,78 +102,40 @@ export default function InputAnggaranBaruPage() {
   }, [satelitId]);
 
 
-  // Saring COA dari awalan kode_akun — ini jauh lebih tahan banting ketimbang pake saldo_normal
-  // yang emang ada salah data di grup 50000 (saldo_normal 'Kredit' yang harusnya 'Debit').
-  // Penerimaan  → 4xxxxx (Pendapatan) | 7xxxxx (Pendapatan Luar Usaha)
-  // Pengeluaran → 5xxxxx (Beban Pelayanan) | 6xxxxx (Beban Operasional) | 8xxxxx (Beban Luar Usaha) | 12xxxx (Aset Tetap/CapEx)
-  const filteredCoaList = useMemo(() => {
-    const prefixPenerimaan = ['4', '7'];
-    const prefixPengeluaran = ['5', '6', '8', '12'];
-    return coaList.filter(c => {
-      const kode = c.label.split('—')[0].trim();
-      if (form.jenis === 'Penerimaan') {
-        return prefixPenerimaan.some(p => kode.startsWith(p));
-      } else {
-        return prefixPengeluaran.some(p => kode.startsWith(p));
-      }
-    });
-  }, [coaList, form.jenis]);
-
-  // Kosongin lagi COA kalau jenisnya ganti (biar COA yang salah tipe gak nyangkut)
-  useEffect(() => { setForm(p=>({...p,coaId:'',coaLabel:''})); setCoaQuery(''); setCoaOpen(false); }, [form.jenis]);
-
-  // Close COA dropdown on outside click
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (coaRef.current && !coaRef.current.contains(e.target as Node)) setCoaOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
-
-  // Hasil saringan COA ngikutin ketikan user
-  const coaResults = useMemo(() => {
-    if (!coaQuery.trim()) return filteredCoaList;
-    const q = coaQuery.toLowerCase();
-    return filteredCoaList.filter(c => c.label.toLowerCase().includes(q));
-  }, [filteredCoaList, coaQuery]);
-
   const handleAdd = () => {
-    if (!form.coaId) { alert('Akun Perkiraan (COA) wajib dipilih. Ini adalah benang merah antara anggaran dan realisasi jurnal.'); return; }
     if (!form.uraian) { alert('Uraian / Judul Item wajib diisi.'); return; }
     if (form.jumlah <= 0 || form.harga <= 0) { alert('Jumlah dan Harga Satuan harus lebih dari 0.'); return; }
-    setItems(p=>[...p,{id:Date.now().toString(),jenis:form.jenis as 'Penerimaan'|'Pengeluaran',coaId:parseInt(form.coaId),coa:form.coaLabel,sumber_dana:form.sumber_dana,uraian:form.uraian,deskripsi:form.deskripsi,jumlah:form.jumlah,satuan:form.satuan,harga:form.harga,total:form.jumlah*form.harga}]);
-    setForm(p=>({...p,uraian:'',deskripsi:'',jumlah:1,satuan:'',harga:0}));
+    const catatan = form.akunCatatan.trim();
+    setItems(p=>[...p,{id:Date.now().toString(),jenis:form.jenis as 'Penerimaan'|'Pengeluaran',coaId:null,akunCatatan:catatan,coa:catatan || '-',sumber_dana:form.sumber_dana,uraian:form.uraian,deskripsi:form.deskripsi,jumlah:form.jumlah,satuan:form.satuan,harga:form.harga,total:form.jumlah*form.harga}]);
+    setForm(p=>({...p,akunCatatan:'',uraian:'',deskripsi:'',jumlah:1,satuan:'',harga:0}));
   };
 
   // State buat ngedit langsung di baris
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editValues, setEditValues] = useState<{ uraian: string; deskripsi: string; jumlah: number; satuan: string; harga: number; coaId: string; coaLabel: string }>({
-    uraian: '', deskripsi: '', jumlah: 1, satuan: '', harga: 0, coaId: '', coaLabel: ''
+  const [editValues, setEditValues] = useState<{ uraian: string; deskripsi: string; jumlah: number; satuan: string; harga: number; akunCatatan: string }>({
+    uraian: '', deskripsi: '', jumlah: 1, satuan: '', harga: 0, akunCatatan: ''
   });
-  const [editCoaQuery, setEditCoaQuery] = useState('');
-  const [editCoaOpen, setEditCoaOpen] = useState(false);
 
   const handleStartEdit = useCallback((item: RincianItem) => {
     setEditingId(item.id);
-    setEditValues({ uraian: item.uraian, deskripsi: item.deskripsi, jumlah: item.jumlah, satuan: item.satuan, harga: item.harga, coaId: String(item.coaId), coaLabel: item.coa });
-    setEditCoaQuery(item.coa);
-    setEditCoaOpen(false);
+    setEditValues({ uraian: item.uraian, deskripsi: item.deskripsi, jumlah: item.jumlah, satuan: item.satuan, harga: item.harga, akunCatatan: item.akunCatatan });
   }, []);
 
   const handleEditSave = useCallback((id: string) => {
     if (!editValues.uraian.trim()) { alert('Uraian tidak boleh kosong!'); return; }
-    if (!editValues.coaId) { alert('Akun COA wajib dipilih!'); return; }
     if (editValues.jumlah <= 0 || editValues.harga <= 0) { alert('Jumlah dan Harga harus lebih dari 0!'); return; }
-    setItems(prev => prev.map(i => i.id === id ? { ...i, ...editValues, coaId: parseInt(editValues.coaId), coa: editValues.coaLabel, total: editValues.jumlah * editValues.harga } : i));
+    const catatan = editValues.akunCatatan.trim();
+    setItems(prev => prev.map(i => i.id === id ? { ...i, ...editValues, akunCatatan: catatan, coa: catatan || '-', total: editValues.jumlah * editValues.harga } : i));
     setEditingId(null);
-    setEditCoaOpen(false);
   }, [editValues]);
 
   // Pre-validate fields before showing confirmation or saving
   const validateFields = (): boolean => {
     if (!satelitId) { setSubmitState({status:'error',message:'Satelit wajib dipilih.'}); return false; }
     if (!namaRancangan) { setSubmitState({status:'error',message:'Nama Rancangan wajib diisi.'}); return false; }
+    if (tanggalMulai && tanggalSelesai && tanggalSelesai < tanggalMulai) {
+      setSubmitState({status:'error',message:'Tanggal Selesai tidak boleh lebih awal dari Tanggal Mulai.'}); return false;
+    }
     if (kategoriRa === 'Kegiatan' && !jenisKegiatanId) {
       setSubmitState({status:'error',message:'Jenis Kegiatan wajib dipilih untuk RA ini.'}); return false; 
     }
@@ -212,9 +161,10 @@ export default function InputAnggaranBaruPage() {
         pola_penggunaan: polaPenggunaan,
         jenis_kegiatan_id: jenisKegiatanId ? parseInt(jenisKegiatanId) : null,
         nama_rancangan: namaRancangan,
-        estimasi_waktu: estimasiWaktu,
+        tanggal_mulai: tanggalMulai || null,
+        tanggal_selesai: tanggalSelesai || null,
         action,
-        items: items.map(i=>({ jenis_anggaran:i.jenis, coa_id:i.coaId, sumber_dana:i.sumber_dana, uraian:i.uraian, deskripsi:i.deskripsi||null, jumlah:i.jumlah, satuan:i.satuan||null, harga_satuan:i.harga }))
+        items: items.map(i=>({ jenis_anggaran:i.jenis, coa_id:i.coaId || null, akun_catatan:i.akunCatatan || null, sumber_dana:i.sumber_dana, uraian:i.uraian, deskripsi:i.deskripsi||null, jumlah:i.jumlah, satuan:i.satuan||null, harga_satuan:i.harga }))
       };
       const res = await fetch('/api/anggaran/tahunan', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
       const json = await res.json();
@@ -370,7 +320,7 @@ export default function InputAnggaranBaruPage() {
           </div>}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className={labelCls}>Satelit <span className="text-red-500">*</span></label>
             <select value={satelitId} onChange={e=>setSatelitId(e.target.value)} disabled={isSatelitLocked} className={selectCls}>
@@ -394,9 +344,15 @@ export default function InputAnggaranBaruPage() {
               {tahunOptions.map(y=><option key={y} value={y}>{y}{y===currentYear?' (Tahun Ini)':y===currentYear+1?' (Tahun Depan)':''}</option>)}
             </select>
           </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className={labelCls}>Estimasi Pelaksanaan</label>
-            <input type="text" placeholder="Misal: Semester 1, 25 Des..." value={estimasiWaktu} onChange={e=>setEstimasiWaktu(e.target.value)} className={inputCls}/>
+            <label className={labelCls}>Tanggal Pelaksanaan <span className="text-slate-400 font-normal">(Dari — Opsional)</span></label>
+            <input type="date" value={tanggalMulai} onChange={e=>setTanggalMulai(e.target.value)} className={inputCls}/>
+          </div>
+          <div>
+            <label className={labelCls}>Tanggal Pelaksanaan <span className="text-slate-400 font-normal">(Sampai — Opsional)</span></label>
+            <input type="date" value={tanggalSelesai} min={tanggalMulai || undefined} onChange={e=>setTanggalSelesai(e.target.value)} className={inputCls}/>
           </div>
         </div>
       </div>
@@ -423,75 +379,14 @@ export default function InputAnggaranBaruPage() {
               </select>
             </div>
             <div>
-              <label className={labelCls}>Akun Perkiraan (COA) <span className="text-red-500">*</span>
-
-              </label>
-              <div className="relative" ref={coaRef}>
-                <div className="relative">
-                  <span className="material-icons-round absolute left-3 top-2.5 text-slate-400 text-[18px]">search</span>
-                  <input
-                    type="text"
-                    value={coaQuery}
-                    onChange={e => {
-                      const val = e.target.value;
-                      setCoaQuery(val);
-                      setCoaOpen(true);
-                      // Kalau inputan dihapus, bersihin juga pilihannya
-                      if (!val) setForm(p => ({ ...p, coaId: '', coaLabel: '' }));
-                    }}
-                    onFocus={() => setCoaOpen(true)}
-                    placeholder={`Ketik kode atau nama akun ${form.jenis === 'Penerimaan' ? 'pendapatan' : 'beban'}...`}
-                    className={`w-full h-10 pl-10 pr-10 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-indigo-500 ${
-                      form.coaId
-                        ? form.jenis === 'Penerimaan'
-                          ? 'border-emerald-400 bg-emerald-50 text-emerald-900 font-semibold'
-                          : 'border-red-400 bg-red-50 text-red-900 font-semibold'
-                        : 'border-amber-300 bg-white'
-                    }`}
-                  />
-                  {form.coaId && (
-                    <button
-                      type="button"
-                      onClick={() => { setForm(p => ({ ...p, coaId: '', coaLabel: '' })); setCoaQuery(''); setCoaOpen(false); }}
-                      className="absolute right-3 top-2.5 text-slate-400 hover:text-red-500 transition-colors"
-                    >
-                      <span className="material-icons-round text-[18px]">close</span>
-                    </button>
-                  )}
-                </div>
-                {coaOpen && coaResults.length > 0 && (
-                  <div className="absolute z-30 top-full mt-1 w-full bg-white rounded-lg border border-slate-200 shadow-xl max-h-52 overflow-y-auto">
-                    <div className="px-3 py-1.5 bg-slate-50 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider sticky top-0">
-                      {coaResults.length} akun ditemukan · {form.jenis === 'Penerimaan' ? 'Akun Pendapatan' : 'Akun Beban'}
-                    </div>
-                    {coaResults.map(c => (
-                      <button
-                        key={c.id}
-                        type="button"
-                        onClick={() => {
-                          setForm(p => ({ ...p, coaId: c.id.toString(), coaLabel: c.label }));
-                          setCoaQuery(c.label);
-                          setCoaOpen(false);
-                        }}
-                        className={`w-full text-left px-3 py-2 hover:bg-indigo-50 transition-colors border-b border-slate-100 last:border-0 ${
-                          form.coaId === c.id.toString() ? 'bg-indigo-50' : ''
-                        }`}
-                      >
-                        <div className="text-xs font-sans font-bold text-indigo-700">{c.label.split('—')[0].trim()}</div>
-                        <div className="text-sm text-slate-700 truncate">{c.label.split('—').slice(1).join('—').trim()}</div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {coaOpen && coaQuery && coaResults.length === 0 && (
-                  <div className="absolute z-30 top-full mt-1 w-full bg-white rounded-lg border border-slate-200 shadow-xl p-4 text-center text-sm text-slate-400">
-                    <span className="material-icons-round text-[24px] text-slate-300 block mb-1">search_off</span>
-                    Tidak ada akun {form.jenis === 'Penerimaan' ? 'pendapatan' : 'beban'} yang cocok dengan "{coaQuery}"
-                  </div>
-                )}
-              </div>
-              {coaError && <p className="text-[11px] text-red-600 mt-1 font-medium">{coaError}</p>}
-              {!coaError && filteredCoaList.length === 0 && coaList.length > 0 && <p className="text-[10px] text-amber-600 mt-1">Belum ada akun COA jenis {form.jenis === 'Penerimaan' ? 'Pendapatan (Kredit)' : 'Beban (Debit)'} yang aktif.</p>}
+              <label className={labelCls}>Akun Perkiraan / COA <span className="text-slate-400 font-normal">(Opsional)</span></label>
+              <input
+                type="text"
+                value={form.akunCatatan}
+                onChange={e => setForm(p => ({ ...p, akunCatatan: e.target.value }))}
+                placeholder="Opsional (misal: Konsumsi / Perlengkapan)... COA diisi saat LPJ"
+                className={inputCls}
+              />
             </div>
             <div>
               <label className={labelCls}>Sumber Dana</label>
@@ -583,21 +478,10 @@ export default function InputAnggaranBaruPage() {
                             <input type="text" value={editValues.deskripsi} onChange={e => setEditValues(p => ({ ...p, deskripsi: e.target.value }))} placeholder="Deskripsi (opsional)" className="w-full px-2 py-1 border border-slate-200 rounded text-xs outline-none" />
                           </td>
                           <td className="p-3">
-                            {/* COA mini-search in edit mode */}
-                            <div className="relative">
-                              <input type="text" value={editCoaQuery}
-                                onChange={e => { setEditCoaQuery(e.target.value); setEditValues(p => ({ ...p, coaId: '', coaLabel: '' })); setEditCoaOpen(true); }}
-                                onFocus={() => setEditCoaOpen(true)}
-                                placeholder="Cari akun..."
-                                className="w-full px-2 py-1 border border-emerald-300 rounded text-xs outline-none focus:ring-1 focus:ring-emerald-400" />
-                              {editCoaOpen && editCoaQuery && (
-                                <div className="absolute top-full left-0 z-50 bg-white border border-slate-200 rounded shadow-lg max-h-40 overflow-y-auto w-56">
-                                  {coaList.filter(c => c.saldo_normal !== 'Debit' && (c.label.toLowerCase().includes(editCoaQuery.toLowerCase()))).slice(0,10).map(c => (
-                                    <div key={c.id} className="px-3 py-1.5 text-xs cursor-pointer hover:bg-emerald-50" onClick={() => { setEditValues(p => ({ ...p, coaId: String(c.id), coaLabel: c.label })); setEditCoaQuery(c.label); setEditCoaOpen(false); }}>{c.label}</div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
+                            <input type="text" value={editValues.akunCatatan}
+                              onChange={e => setEditValues(p => ({ ...p, akunCatatan: e.target.value }))}
+                              placeholder="Opsional..."
+                              className="w-full px-2 py-1 border border-emerald-300 rounded text-xs outline-none focus:ring-1 focus:ring-emerald-400" />
                           </td>
                           <td className="p-3"><select disabled className="px-2 py-1 border border-slate-200 rounded text-xs bg-slate-50 w-full"><option>{item.sumber_dana}</option></select></td>
                           <td className="p-3 text-center"><input type="number" min={1} step={1} value={editValues.jumlah} onChange={e => setEditValues(p => ({ ...p, jumlah: Math.round(Number(e.target.value)) || 1 }))} className="w-16 px-2 py-1 border border-emerald-300 rounded text-sm text-center outline-none" /></td>
@@ -629,21 +513,10 @@ export default function InputAnggaranBaruPage() {
                             <input type="text" value={editValues.deskripsi} onChange={e => setEditValues(p => ({ ...p, deskripsi: e.target.value }))} placeholder="Deskripsi (opsional)" className="w-full px-2 py-1 border border-slate-200 rounded text-xs outline-none" />
                           </td>
                           <td className="p-3">
-                            {/* COA mini-search in edit mode */}
-                            <div className="relative">
-                              <input type="text" value={editCoaQuery}
-                                onChange={e => { setEditCoaQuery(e.target.value); setEditValues(p => ({ ...p, coaId: '', coaLabel: '' })); setEditCoaOpen(true); }}
-                                onFocus={() => setEditCoaOpen(true)}
-                                placeholder="Cari akun..."
-                                className="w-full px-2 py-1 border border-indigo-300 rounded text-xs outline-none focus:ring-1 focus:ring-indigo-400" />
-                              {editCoaOpen && editCoaQuery && (
-                                <div className="absolute top-full left-0 z-50 bg-white border border-slate-200 rounded shadow-lg max-h-40 overflow-y-auto w-56">
-                                  {coaList.filter(c => c.saldo_normal !== 'Kredit' && (c.label.toLowerCase().includes(editCoaQuery.toLowerCase()))).slice(0,10).map(c => (
-                                    <div key={c.id} className="px-3 py-1.5 text-xs cursor-pointer hover:bg-indigo-50" onClick={() => { setEditValues(p => ({ ...p, coaId: String(c.id), coaLabel: c.label })); setEditCoaQuery(c.label); setEditCoaOpen(false); }}>{c.label}</div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
+                            <input type="text" value={editValues.akunCatatan}
+                              onChange={e => setEditValues(p => ({ ...p, akunCatatan: e.target.value }))}
+                              placeholder="Opsional..."
+                              className="w-full px-2 py-1 border border-indigo-300 rounded text-xs outline-none focus:ring-1 focus:ring-indigo-400" />
                           </td>
                           <td className="p-3"><select disabled className="px-2 py-1 border border-slate-200 rounded text-xs bg-slate-50 w-full"><option>{item.sumber_dana}</option></select></td>
                           <td className="p-3 text-center"><input type="number" min={1} step={1} value={editValues.jumlah} onChange={e => setEditValues(p => ({ ...p, jumlah: Math.round(Number(e.target.value)) || 1 }))} className="w-16 px-2 py-1 border border-indigo-300 rounded text-sm text-center outline-none" /></td>

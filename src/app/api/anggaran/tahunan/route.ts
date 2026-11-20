@@ -60,6 +60,8 @@ export async function GET(request: NextRequest) {
         at.pola_penggunaan,
         at.nama_rancangan,
         at.estimasi_waktu,
+        at.tanggal_mulai,
+        at.tanggal_selesai,
         at.updated_at,
         -- Estimasi awal: Penerimaan - Pengeluaran (sebelum review)
         COALESCE((SELECT SUM(d.jumlah * d.harga_satuan) FROM public.anggaran_tahunan_detail d WHERE d.anggaran_tahunan_id = at.id AND d.jenis_anggaran = 'Penerimaan'), 0)
@@ -95,7 +97,7 @@ export async function POST(request: NextRequest) {
   const client = await pool.connect();
   try {
     const body = await request.json();
-    const { satelit_id, komisi_id, tahun, kategori_ra, pola_penggunaan, jenis_kegiatan_id, nama_rancangan, estimasi_waktu, action, items } = body;
+    const { satelit_id, komisi_id, tahun, kategori_ra, pola_penggunaan, jenis_kegiatan_id, nama_rancangan, estimasi_waktu, tanggal_mulai, tanggal_selesai, action, items } = body;
 
     // Validation
     if (!satelit_id || !tahun) {
@@ -104,13 +106,11 @@ export async function POST(request: NextRequest) {
     if (!nama_rancangan) {
       return NextResponse.json({ success: false, message: 'Nama Rancangan wajib diisi.' }, { status: 400 });
     }
+    if (tanggal_mulai && tanggal_selesai && tanggal_selesai < tanggal_mulai) {
+      return NextResponse.json({ success: false, message: 'Tanggal Selesai tidak boleh lebih awal dari Tanggal Mulai.' }, { status: 400 });
+    }
     if (!items || items.length === 0) {
       return NextResponse.json({ success: false, message: 'Minimal harus ada 1 item rincian anggaran.' }, { status: 400 });
-    }
-    // Ensure every item has a coa_id (harga mati)
-    const missingCoa = items.find((i: any) => !i.coa_id);
-    if (missingCoa) {
-      return NextResponse.json({ success: false, message: `Item "${missingCoa.uraian}" belum memiliki Akun COA. Semua item wajib ditautkan ke COA.` }, { status: 400 });
     }
 
     const status = action === 'ajukan' ? 'Menunggu Persetujuan Ketua' : 'Draft';
@@ -133,10 +133,10 @@ export async function POST(request: NextRequest) {
     // Insert header
     const headerRes = await client.query(
       `INSERT INTO public.anggaran_tahunan 
-         (kode_dokumen, tahun, satelit_id, komisi_id, total_anggaran, status, kategori_ra, pola_penggunaan, jenis_kegiatan_id, nama_rancangan, estimasi_waktu)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+         (kode_dokumen, tahun, satelit_id, komisi_id, total_anggaran, status, kategori_ra, pola_penggunaan, jenis_kegiatan_id, nama_rancangan, estimasi_waktu, tanggal_mulai, tanggal_selesai)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
        RETURNING id`,
-      [kode_dokumen, tahun, satelit_id, komisi_id || null, total_anggaran, status, kategori_ra || 'Kegiatan', pola_penggunaan || 'Sekali Pakai', jenis_kegiatan_id || null, nama_rancangan, estimasi_waktu || null]
+      [kode_dokumen, tahun, satelit_id, komisi_id || null, total_anggaran, status, kategori_ra || 'Kegiatan', pola_penggunaan || 'Sekali Pakai', jenis_kegiatan_id || null, nama_rancangan, estimasi_waktu || null, tanggal_mulai || null, tanggal_selesai || null]
     );
     const anggaranId = headerRes.rows[0].id;
 
@@ -144,12 +144,13 @@ export async function POST(request: NextRequest) {
     for (const item of items) {
       await client.query(
         `INSERT INTO public.anggaran_tahunan_detail
-           (anggaran_tahunan_id, jenis_anggaran, coa_id, sumber_dana, uraian, deskripsi, jumlah, satuan, harga_satuan, total)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+           (anggaran_tahunan_id, jenis_anggaran, coa_id, akun_catatan, sumber_dana, uraian, deskripsi, jumlah, satuan, harga_satuan, total)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
         [
           anggaranId,
           item.jenis_anggaran,
-          item.coa_id,
+          item.coa_id || null,
+          item.akun_catatan?.trim() || null,
           item.sumber_dana,
           item.uraian,
           item.deskripsi || null,

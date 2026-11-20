@@ -47,6 +47,8 @@ export async function GET(request: Request) {
           a.total_disetujui,
           a.status,
           a.estimasi_waktu,
+          a.tanggal_mulai,
+          a.tanggal_selesai,
           s.nama_satelit,
           k.nama_komisi,
           d.nama_departemen,

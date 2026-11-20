@@ -45,9 +45,9 @@ export default function ViewLPJPage() {
         if (lpjRes.data.items?.length > 0) {
           setItems(lpjRes.data.items.map((it: any) => ({
             id: it.id,
-            coaId: it.coa_id,
+            coaId: it.coa_id || null,
             jenis: it.jenis_anggaran,
-            coaLabel: `${it.kode_akun} — ${it.nama_akun}`,
+            coaLabel: it.coa_id ? `${it.kode_akun} — ${it.nama_akun}` : '-',
             sumber_dana: it.sumber_dana,
             uraian: it.uraian,
             deskripsi: it.deskripsi || '',
@@ -68,26 +68,29 @@ export default function ViewLPJPage() {
   const comparisonData = useMemo(() => {
     const raList = raItemsReference;
     const lpjList = items || [];
-    const raMap: Record<number, any> = {};
+    const raMap: Record<string, any> = {};
     raList.forEach((r: any) => {
       const total = r.jumlah * parseFloat(r.harga_satuan);
-      if (raMap[r.coa_id]) raMap[r.coa_id].total_ra += total;
-      else raMap[r.coa_id] = { ...r, total_ra: total };
+      const key = r.coa_id ? `coa:${r.coa_id}` : `uraian:${r.jenis_anggaran}:${(r.uraian || '').trim().toLowerCase()}`;
+      if (raMap[key]) raMap[key].total_ra += total;
+      else raMap[key] = { ...r, total_ra: total };
     });
-    const lpjMap: Record<number, any> = {};
+    const lpjMap: Record<string, any> = {};
     lpjList.forEach((l: any) => {
-      if (lpjMap[l.coaId]) lpjMap[l.coaId].total_lpj += l.total;
-      else lpjMap[l.coaId] = { ...l, total_lpj: l.total };
+      const uraianKey = `uraian:${l.jenis}:${(l.uraian || '').trim().toLowerCase()}`;
+      const key = (l.coaId && raMap[`coa:${l.coaId}`]) ? `coa:${l.coaId}` : raMap[uraianKey] ? uraianKey : (l.coaId ? `coa:${l.coaId}` : `lpj:${l.id}`);
+      if (lpjMap[key]) lpjMap[key].total_lpj += l.total;
+      else lpjMap[key] = { ...l, total_lpj: l.total };
     });
-    const allCoas = new Set([...Object.keys(raMap).map(Number), ...Object.keys(lpjMap).map(Number)]);
-    return Array.from(allCoas).map(coaId => {
-      const ra = raMap[coaId];
-      const lpj = lpjMap[coaId];
+    const allKeys = new Set([...Object.keys(raMap), ...Object.keys(lpjMap)]);
+    return Array.from(allKeys).map(key => {
+      const ra = raMap[key];
+      const lpj = lpjMap[key];
       const total_ra = ra?.total_ra || 0;
       const total_lpj = lpj?.total_lpj || 0;
       return {
-        coaId, kode: ra?.kode_akun || lpj?.coaLabel?.split(' — ')[0],
-        nama: ra?.nama_akun || lpj?.coaLabel?.split(' — ')[1],
+        coaId: key, kode: lpj?.coaLabel && lpj.coaLabel !== '-' ? lpj.coaLabel.split(' — ')[0] : (ra?.kode_akun || '-'),
+        nama: lpj?.coaLabel && lpj.coaLabel !== '-' ? lpj.coaLabel.split(' — ')[1] : (ra?.nama_akun || ra?.akun_catatan || '-'),
         jenis: ra?.jenis_anggaran || lpj?.jenis,
         ra_uraian: ra?.uraian || '-', ra_vol: ra?.jumlah || 0, ra_satuan: ra?.satuan || '-', ra_total: total_ra,
         lpj_uraian: lpj?.uraian || '-', lpj_vol: lpj?.jumlah || 0, lpj_satuan: lpj?.satuan || '-', lpj_total: total_lpj,
@@ -101,21 +104,26 @@ export default function ViewLPJPage() {
     if (raInfo?.pola !== 'Bertahap') return [];
     const raList = raItemsReference;
     const lpjList = items || [];
-    const plafonMap: Record<number, any> = {};
+    const plafonMap: Record<string, any> = {};
     raList.forEach((r: any) => {
       const total = r.jumlah * parseFloat(r.harga_satuan);
-      if (plafonMap[r.coa_id]) plafonMap[r.coa_id].plafon += total;
-      else plafonMap[r.coa_id] = {
-        coa_id: r.coa_id, kode: r.kode_akun, nama: r.nama_akun,
+      const key = r.coa_id ? `coa:${r.coa_id}` : `uraian:${r.jenis_anggaran}:${(r.uraian || '').trim().toLowerCase()}`;
+      if (plafonMap[key]) plafonMap[key].plafon += total;
+      else plafonMap[key] = {
+        coa_id: r.coa_id, kode: r.kode_akun || '-', nama: r.nama_akun || r.akun_catatan || '-',
         jenis: r.jenis_anggaran, uraian: r.uraian,
         plafon: total,
         terpakai_sebelumnya: r.terpakai_sebelumnya ?? 0,
       };
     });
-    const lpjMap: Record<number, number> = {};
-    lpjList.forEach((l: any) => { lpjMap[l.coaId] = (lpjMap[l.coaId] || 0) + l.total; });
-    const allCoas = new Set([...Object.keys(plafonMap).map(Number), ...Object.keys(lpjMap).map(Number)]);
-    return Array.from(allCoas).map(coaId => {
+    const lpjMap: Record<string, number> = {};
+    lpjList.forEach((l: any) => {
+      const uraianKey = `uraian:${l.jenis}:${(l.uraian || '').trim().toLowerCase()}`;
+      const key = (l.coaId && plafonMap[`coa:${l.coaId}`]) ? `coa:${l.coaId}` : plafonMap[uraianKey] ? uraianKey : (l.coaId ? `coa:${l.coaId}` : `lpj:${l.id}`);
+      lpjMap[key] = (lpjMap[key] || 0) + l.total;
+    });
+    const allKeys = new Set([...Object.keys(plafonMap), ...Object.keys(lpjMap)]);
+    return Array.from(allKeys).map(coaId => {
       const p = plafonMap[coaId];
       const lpj_ini = lpjMap[coaId] ?? 0;
       const terpakai_sebelumnya = p?.terpakai_sebelumnya ?? 0;

@@ -151,7 +151,7 @@ export default function ReviewLPJPage() {
                 {penItems.map((it, idx) => (
                   <tr key={it.id} className="border-b border-slate-100 hover:bg-emerald-50/30">
                     <td className="p-3 pl-5 text-slate-400 text-xs">{idx + 1}</td>
-                    <td className="p-3"><span className="text-[10px] text-slate-500 font-sans">{it.kode_akun}</span><br /><span className="text-xs text-slate-700">{it.nama_akun}</span></td>
+                    <td className="p-3"><span className="text-[10px] text-slate-500 font-sans">{it.kode_akun || '-'}</span><br /><span className="text-xs text-slate-700">{it.nama_akun || '-'}</span></td>
                     <td className="p-3 text-xs text-slate-700">{it.uraian}{it.deskripsi && <span className="block text-[10px] text-slate-400 mt-0.5">{it.deskripsi}</span>}</td>
                     <td className="p-3 text-center text-xs">{it.jumlah}</td>
                     <td className="p-3 text-xs text-slate-500">{it.satuan || '-'}</td>
@@ -165,7 +165,7 @@ export default function ReviewLPJPage() {
                 {kelItems.map((it, idx) => (
                   <tr key={it.id} className="border-b border-slate-100 hover:bg-red-50/30">
                     <td className="p-3 pl-5 text-slate-400 text-xs">{idx + 1}</td>
-                    <td className="p-3"><span className="text-[10px] text-slate-500 font-sans">{it.kode_akun}</span><br /><span className="text-xs text-slate-700">{it.nama_akun}</span></td>
+                    <td className="p-3"><span className="text-[10px] text-slate-500 font-sans">{it.kode_akun || '-'}</span><br /><span className="text-xs text-slate-700">{it.nama_akun || '-'}</span></td>
                     <td className="p-3 text-xs text-slate-700">{it.uraian}{it.deskripsi && <span className="block text-[10px] text-slate-400 mt-0.5">{it.deskripsi}</span>}</td>
                     <td className="p-3 text-center text-xs">{it.jumlah}</td>
                     <td className="p-3 text-xs text-slate-500">{it.satuan || '-'}</td>
