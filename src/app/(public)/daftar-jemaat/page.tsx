@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
+import { PhotoCaptureButton } from '@/components/ui/PhotoCaptureButton';
 
 // ── JemaatAutocomplete (public version using /api/public/options) ──────────
 const JemaatAutocomplete = ({
@@ -276,10 +277,12 @@ export default function DaftarJemaatPage() {
                   <span className="material-icons-round text-slate-300 text-[52px]">person</span>
                 )}
               </div>
-              <label className="absolute -bottom-2 -right-2 w-9 h-9 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer shadow-lg border-2 border-white active:scale-95 transition-transform">
-                <span className="material-icons-round text-white text-[18px]">add_a_photo</span>
-                <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
-              </label>
+              <PhotoCaptureButton
+                onChange={handleImageChange}
+                captureMode="user"
+                buttonClassName="absolute -bottom-2 -right-2 w-9 h-9 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer shadow-lg border-2 border-white active:scale-95 transition-transform"
+                iconClassName="material-icons-round text-white text-[18px]"
+              />
             </div>
             <div className="text-center">
               <p className="text-[15px] font-bold text-slate-700">Upload Foto Anda</p>

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { buildGraph } from '@/app/(main)/family-tree/FlowCanvas';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
+import { PhotoCaptureButton } from '@/components/ui/PhotoCaptureButton';
 import heic2any from 'heic2any';
 
 const FlowCanvas = dynamic(() => import('@/app/(main)/family-tree/FlowCanvas'), {
@@ -662,10 +663,7 @@ export default function EditJemaatPage() {
                   )}
                 </div>
                 {!isReadOnly && (
-                <label className="w-8 h-8 absolute right-[-10px] bottom-[-10px] bg-slate-700 rounded-full border-2 border-white cursor-pointer inline-flex justify-center items-center hover:bg-slate-800 transition-colors shadow-lg z-10">
-                  <span className="material-icons-round text-white text-[16px]">add_a_photo</span>
-                  <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
-                </label>
+                <PhotoCaptureButton onChange={handleImageChange} captureMode="environment" />
                 )}
               </div>
               <div className="inline-flex flex-col justify-start items-start w-full">
