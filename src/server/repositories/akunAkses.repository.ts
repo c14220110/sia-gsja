@@ -233,23 +233,26 @@ export class AkunAksesRepository {
     try {
       await client.query('BEGIN');
 
-      const input = data.email.trim();
+      const rawInput = data.email.trim();
       let isEmail = false;
       let isPhone = false;
       let isUsername = false;
+      let normalizedInput = rawInput;
 
-      if (input.includes('@')) {
+      if (rawInput.includes('@')) {
         isEmail = true;
-      } else if (/^\d+$/.test(input)) {
+        normalizedInput = rawInput.toLowerCase();
+      } else if (/^[+\d][\d\s\-().]{5,20}$/.test(rawInput)) {
         isPhone = true;
+        normalizedInput = rawInput.replace(/[\s\-().]/g, '').replace(/^\+?62/, '0');
       } else {
         isUsername = true;
       }
 
       // Cek duplikat identifier — SELALU tolak jika sudah dipakai (oleh siapapun)
       const identifierCheck = await client.query(
-        `SELECT id FROM pengguna WHERE email = $1 OR no_hp = $1 OR username = $1`,
-        [input]
+        `SELECT id FROM pengguna WHERE LOWER(email) = LOWER($1) OR no_hp = $1 OR username = $1`,
+        [normalizedInput]
       );
       if (identifierCheck.rowCount && identifierCheck.rowCount > 0) {
         await client.query('ROLLBACK');
@@ -274,7 +277,7 @@ export class AkunAksesRepository {
         INSERT INTO pengguna (email, no_hp, username, password_hash, jemaat_id, requires_password_change)
         VALUES ($1, $2, $3, $4, $5, false)
         RETURNING id
-      `, [isEmail ? input : null, isPhone ? input : null, isUsername ? input : null, data.password_hash, data.jemaat_id]);
+      `, [isEmail ? normalizedInput : null, isPhone ? normalizedInput : null, isUsername ? normalizedInput : null, data.password_hash, data.jemaat_id]);
       const userId = insUser.rows[0].id;
 
       // Insert all roles
@@ -357,15 +360,18 @@ export class AkunAksesRepository {
         const vals: any[] = [];
         let idx = 1;
         if (data.email) {
-          const input = data.email.trim();
-          if (input.includes('@')) {
+          const raw = data.email.trim();
+          let norm = raw;
+          if (raw.includes('@')) {
+            norm = raw.toLowerCase();
             updates.push(`email = $${idx++}`);
-          } else if (/^\d+$/.test(input)) {
+          } else if (/^[+\d][\d\s\-().]{5,20}$/.test(raw)) {
+            norm = raw.replace(/[\s\-().]/g, '').replace(/^\+?62/, '0');
             updates.push(`no_hp = $${idx++}`);
           } else {
             updates.push(`username = $${idx++}`);
           }
-          vals.push(input);
+          vals.push(norm);
         }
         if (data.password_hash) { updates.push(`password_hash = $${idx++}`); vals.push(data.password_hash); }
         updates.push(`updated_at = NOW()`);
@@ -470,7 +476,7 @@ export class AkunAksesRepository {
         if (currentJemaatId) {
           // User tertaut ke jemaat → pastikan role JEMAAT ada
           const jemaatSatelit = await client.query(`SELECT satelit_id FROM jemaat WHERE id = $1`, [currentJemaatId]);
-          const satelitId = jemaatSatelit.rows[0]?.satelit_id || null;
+          const satelitId = jemaatSatelit.rows[0]?.satelit_id || 1;
           await client.query(`
             INSERT INTO user_role (user_id, role_id, satelit_id)
             VALUES ($1, $2, $3)
@@ -563,11 +569,15 @@ export class AkunAksesRepository {
 
         if (emailToInsert) {
           const emailConflict = await client.query(
-            `SELECT j.nama_lengkap FROM pengguna p JOIN jemaat j ON p.jemaat_id = j.id WHERE p.email IS NOT NULL AND p.email = $1 LIMIT 1`,
+            `SELECT COALESCE(j.nama_lengkap, p.email, p.username, 'akun lain') AS pemilik
+             FROM pengguna p
+             LEFT JOIN jemaat j ON p.jemaat_id = j.id
+             WHERE p.email IS NOT NULL AND LOWER(p.email) = LOWER($1)
+             LIMIT 1`,
             [emailToInsert]
           );
           if (emailConflict.rowCount && emailConflict.rowCount > 0) {
-            const namaKonflik = emailConflict.rows[0].nama_lengkap || 'jemaat lain';
+            const namaKonflik = emailConflict.rows[0].pemilik;
             konflikAlasan.push(`email sudah dipakai oleh ${namaKonflik}`);
             emailToInsert = null;
           }
@@ -575,11 +585,16 @@ export class AkunAksesRepository {
 
         if (noHpToInsert) {
           const noHpConflict = await client.query(
-            `SELECT j.nama_lengkap FROM pengguna p JOIN jemaat j ON p.jemaat_id = j.id WHERE p.no_hp IS NOT NULL AND p.no_hp = $1 LIMIT 1`,
+            `SELECT COALESCE(j.nama_lengkap, p.username, p.no_hp, 'akun lain') AS pemilik
+             FROM pengguna p
+             LEFT JOIN jemaat j ON p.jemaat_id = j.id
+             WHERE p.no_hp IS NOT NULL
+               AND REGEXP_REPLACE(REGEXP_REPLACE(p.no_hp, '[^0-9]', '', 'g'), '^62', '0') = $1
+             LIMIT 1`,
             [noHpToInsert]
           );
           if (noHpConflict.rowCount && noHpConflict.rowCount > 0) {
-            const namaKonflik = noHpConflict.rows[0].nama_lengkap || 'jemaat lain';
+            const namaKonflik = noHpConflict.rows[0].pemilik;
             konflikAlasan.push(`no HP sudah dipakai oleh ${namaKonflik}`);
             noHpToInsert = null;
           }
@@ -611,7 +626,7 @@ export class AkunAksesRepository {
             INSERT INTO user_role (user_id, role_id, satelit_id)
             VALUES ($1, $2, $3)
             ON CONFLICT DO NOTHING
-          `, [userId, roleJemaatId, data.satelit_id]);
+          `, [userId, roleJemaatId, data.satelit_id || 1]);
         }
         
         createdCount++;
