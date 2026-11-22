@@ -62,7 +62,9 @@ export async function POST(req: NextRequest) {
 
     // Tarik sejelas-jelasnya data detail Jemaat mengacu ID dari seberang
     const jemaatQuery = `
-      SELECT id, nama_lengkap, email, no_hp, tanggal_lahir, satelit_id
+      SELECT id, nama_lengkap, email, no_hp,
+             TO_CHAR(tanggal_lahir, 'DD/MM/YYYY') AS dob_password,
+             satelit_id
       FROM jemaat
       WHERE id = ANY($1::int[]) AND is_deleted = false
     `;
@@ -72,37 +74,29 @@ export async function POST(req: NextRequest) {
     const dataToInsert = [];
 
     for (const j of jemaatList) {
-      const hasEmail = j.email && j.email.trim() !== '';
-      const hasNoHp = j.no_hp && j.no_hp.trim() !== '';
+      const cleanEmail = j.email ? j.email.trim().toLowerCase() : '';
+      const cleanNoHp = j.no_hp ? j.no_hp.trim().replace(/[\s\-().]/g, '').replace(/^\+?62/, '0') : '';
+      const hasEmail = cleanEmail !== '';
+      const hasNoHp = cleanNoHp !== '';
 
       if (!hasEmail && !hasNoHp) {
         noIdentifierCount++;
         continue;
       }
 
-      // Format password default dari tanggal_lahir DD/MM/YYYY
-      let defaultPassword = null;
-      if (j.tanggal_lahir) {
-        const d = new Date(j.tanggal_lahir);
-        const day = String(d.getDate()).padStart(2, '0');
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const year = d.getFullYear();
-        defaultPassword = `${day}/${month}/${year}`;
-      } else {
-        // Fallback default password jika tidak ada tanggal lahir
-        defaultPassword = 'gsja' + new Date().getFullYear();
-      }
+      // Format password default dari tanggal_lahir DD/MM/YYYY (langsung dari Postgres agar bebas bug timezone)
+      const defaultPassword = j.dob_password || ('gsja' + new Date().getFullYear());
 
       const password_hash = await bcrypt.hash(defaultPassword, 10);
 
       // Simpan KEDUANYA email + no_hp agar jemaat bisa login dengan salah satu.
       // Login API (findByIdentifier) sudah mendukung: WHERE email = $1 OR no_hp = $1
       dataToInsert.push({
-        email: hasEmail ? j.email.trim() : null,
-        no_hp: hasNoHp ? j.no_hp.trim() : null,
+        email: hasEmail ? cleanEmail : null,
+        no_hp: hasNoHp ? cleanNoHp : null,
         password_hash,
         jemaat_id: j.id,
-        satelit_id: j.satelit_id,
+        satelit_id: j.satelit_id || 1,
         nama_lengkap: j.nama_lengkap
       });
     }

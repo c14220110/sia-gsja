@@ -45,13 +45,18 @@ export class UserRepository {
   }
 
   async findByIdentifier(identifier: string): Promise<Pengguna | null> {
+    const trimmed = identifier.trim();
+    const normPhone = trimmed.replace(/[\s\-().]/g, '').replace(/^\+?62/, '0');
     const query = `
       SELECT id, email, no_hp as pengguna_no_hp, username, password_hash, is_active, last_login_at, created_at, updated_at, jemaat_id, requires_password_change
       FROM pengguna
-      WHERE email = $1 OR no_hp = $1 OR username = $1
+      WHERE LOWER(email) = LOWER($1)
+         OR no_hp = $1
+         OR REGEXP_REPLACE(REGEXP_REPLACE(COALESCE(no_hp, ''), '[^0-9]', '', 'g'), '^62', '0') = $2
+         OR username = $1
       LIMIT 1;
     `;
-    const result = await pool.query(query, [identifier]);
+    const result = await pool.query(query, [trimmed, normPhone]);
     if (result.rows.length === 0) return null;
     return result.rows[0] as Pengguna;
   }
