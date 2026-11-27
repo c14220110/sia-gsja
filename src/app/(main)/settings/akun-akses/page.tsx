@@ -1131,7 +1131,7 @@ export default function AkunAksesPage() {
                       {/* Step 4: Role (opsional) */}
                       <div className="flex flex-col gap-3 p-4 bg-violet-50 border border-violet-100 rounded-xl">
                         <div className="flex items-center justify-between">
-                          <div className="text-violet-800 font-bold text-sm flex items-center gap-1"><span className="material-icons-round text-[16px]">how_to_reg</span> Assign Role Inti <span className="text-[11px] font-normal text-slate-500 ml-2 italic">💡 Opsional. Kosongkan jika hanya untuk Jemaat biasa.</span></div>
+                          <div className="text-violet-800 font-bold text-sm flex items-center gap-1"><span className="material-icons-round text-[16px]">how_to_reg</span> Assign Role Inti <span className="text-[11px] font-normal text-slate-500 ml-2 italic">💡 Opsional. Kosongkan jika sudah ditautkan ke Jemaat / Pegawai.</span></div>
                           <button type="button" onClick={() => addRoleRow(setRoleAssignments)} className="text-xs font-bold text-violet-600 bg-white border border-violet-200 hover:bg-violet-50 px-2 py-1 rounded-lg flex items-center gap-1 transition-colors"><span className="material-icons-round text-[14px]">add</span> Tambah Role</button>
                         </div>
                         <div className="flex flex-col gap-2">

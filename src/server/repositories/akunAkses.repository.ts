@@ -292,6 +292,21 @@ export class AkunAksesRepository {
         `, [userId, role.role_id, role.satelit_id, role.komisi_id ?? null, role.departemen_id ?? null]);
       }
 
+      // Sinkronisasi role JEMAAT otomatis jika ditautkan ke jemaat_id
+      if (data.jemaat_id) {
+        const jemaatRoleRow = await client.query(`SELECT id FROM role WHERE UPPER(nama_role) = 'JEMAAT' LIMIT 1`);
+        const jemaatRoleId = jemaatRoleRow.rows[0]?.id;
+        if (jemaatRoleId) {
+          const jemaatSatRes = await client.query(`SELECT satelit_id FROM jemaat WHERE id = $1`, [data.jemaat_id]);
+          const jemaatSatelitId = jemaatSatRes.rows[0]?.satelit_id || data.roles[0]?.satelit_id || 1;
+          await client.query(`
+            INSERT INTO user_role (user_id, role_id, satelit_id)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (user_id, role_id, satelit_id) DO UPDATE SET is_active = true
+          `, [userId, jemaatRoleId, jemaatSatelitId]);
+        }
+      }
+
       // Sinkronisasi tautan Data Pegawai & role PEGAWAI otomatis
       if (data.pegawai_id) {
         const pgRes = await client.query(`SELECT id, user_id, satelit_id FROM pegawai WHERE id = $1`, [data.pegawai_id]);
