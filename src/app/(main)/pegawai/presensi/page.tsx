@@ -162,6 +162,44 @@ export default function PresensiPegawaiPage() {
   const hasCheckedIn = Boolean(presensi?.check_in_at);
   const hasCheckedOut = Boolean(presensi?.check_out_at);
 
+  const compressImageIfNeeded = async (file: File): Promise<File> => {
+    if (!file.type.startsWith('image/')) return file;
+    return new Promise((resolve) => {
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        const MAX_DIM = 1600;
+        let { width, height } = img;
+        if (width > MAX_DIM || height > MAX_DIM) {
+          const ratio = Math.min(MAX_DIM / width, MAX_DIM / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return resolve(file);
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (!blob || blob.size >= file.size) return resolve(file);
+            const baseName = file.name.replace(/\.[^.]+$/, '');
+            resolve(new File([blob], `${baseName}.jpg`, { type: 'image/jpeg', lastModified: Date.now() }));
+          },
+          'image/jpeg',
+          0.8
+        );
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        resolve(file);
+      };
+      img.src = objectUrl;
+    });
+  };
+
   const handleSaveOverview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!overviewNote.trim() && !overviewFile) {
@@ -174,17 +212,35 @@ export default function PresensiPegawaiPage() {
     setSavingOverview(true);
     setOverlayState({ status: 'loading', message: 'Menyimpan overview harian...' });
     try {
+      let fileToUpload = overviewFile;
+      if (fileToUpload) {
+        fileToUpload = await compressImageIfNeeded(fileToUpload);
+        const MAX_BYTES = 4 * 1024 * 1024; // 4MB agar aman di bawah batas 4.5MB Vercel
+        if (fileToUpload.size > MAX_BYTES) {
+          throw new Error('Ukuran lampiran terlalu besar (maks. 4MB). Kompres file terlebih dahulu.');
+        }
+      }
+
       const fd = new FormData();
       fd.append('overview_note', overviewNote.trim());
-      if (overviewFile) fd.append('attachment', overviewFile);
+      if (fileToUpload) fd.append('attachment', fileToUpload);
 
       const res = await fetch('/api/pegawai/presensi/overview', {
         method: 'PUT',
         body: fd,
       });
-      const json = await res.json();
-      if (!res.ok || !json.success) {
-        throw new Error(json.message || 'Gagal menyimpan overview.');
+      if (res.status === 413) {
+        throw new Error('Ukuran lampiran melebihi batas server (maks. 4MB).');
+      }
+      const rawText = await res.text();
+      let json: any = null;
+      try {
+        json = JSON.parse(rawText);
+      } catch {
+        throw new Error(res.ok ? 'Respons server tidak valid.' : `Gagal menyimpan overview (HTTP ${res.status}).`);
+      }
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.message || 'Gagal menyimpan overview.');
       }
       setOverlayState({
         status: 'success',

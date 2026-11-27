@@ -30,8 +30,14 @@ export async function POST(req: NextRequest) {
 
     // `email` di sini adalah field identifier — bisa berisi email, no_hp, atau username
     const identifier = (email || '').trim();
-    if (!identifier || !password || !roles || !Array.isArray(roles) || roles.length === 0) {
-      return NextResponse.json({ success: false, message: 'Mohon lengkapi semua field yang diwajibkan (Identifier Login, Password, minimal 1 Role)' }, { status: 400 });
+    const roleList = Array.isArray(roles) ? roles : [];
+    const hasAutoLinkedRole = Boolean(jemaat_id || pegawai_id);
+
+    if (!identifier || !password) {
+      return NextResponse.json({ success: false, message: 'Identifier Login dan Password wajib diisi.' }, { status: 400 });
+    }
+    if (!hasAutoLinkedRole && roleList.length === 0) {
+      return NextResponse.json({ success: false, message: 'Pilih minimal 1 Role Inti, atau tautkan akun ke Data Jemaat / Data Pegawai.' }, { status: 400 });
     }
 
     const saltRounds = 10;
@@ -42,7 +48,7 @@ export async function POST(req: NextRequest) {
       password_hash,
       jemaat_id: jemaat_id || null,
       pegawai_id: pegawai_id || null,
-      roles,
+      roles: roleList,
     });
 
     if (result.success) {
