@@ -179,26 +179,26 @@ export default function PelayanPage() {
     <div className="w-full flex flex-col gap-8 pb-10">
 
       {/* Header Section */}
-      <div className="w-full flex justify-between items-start">
+      <div className="w-full flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div className="flex flex-col gap-1">
-          <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Database Pelayan</h1>
-          <div className="text-slate-500 text-base font-medium font-sans leading-6">Sistem Informasi Manajemen Data Pelayan</div>
+          <h1 className="text-slate-900 text-2xl sm:text-3xl font-black font-sans leading-tight sm:leading-9 mb-1">Database Pelayan</h1>
+          <div className="text-slate-500 text-sm sm:text-base font-medium font-sans leading-6">Sistem Informasi Manajemen Data Pelayan</div>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-2.5 sm:gap-3 w-full lg:w-auto">
           {hasPermission('pelayan_view') && (
-            <Link href="/pelayan/roster" className="px-5 py-2.5 bg-white border border-slate-300 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-50 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none">
+            <Link href="/pelayan/roster" className="px-4 sm:px-5 py-2.5 bg-white border border-slate-300 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-50 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none whitespace-nowrap">
               <span className="material-icons-round text-slate-700 text-[20px]">calendar_month</span>
               <span className="text-slate-700 text-sm font-bold font-sans leading-5">Kalender Roster</span>
             </Link>
           )}
           {hasPermission('pelayan_view') && (
-            <Link href="/pelayan/tim" className="px-5 py-2.5 bg-white border border-slate-300 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-50 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none">
+            <Link href="/pelayan/tim" className="px-4 sm:px-5 py-2.5 bg-white border border-slate-300 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-50 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none whitespace-nowrap">
               <span className="material-icons-round text-slate-700 text-[20px]">groups</span>
               <span className="text-slate-700 text-sm font-bold font-sans leading-5">Tim Pelayan</span>
             </Link>
           )}
           {hasPermission('pelayan_manage') && (
-            <Link href="/pelayan/new" className="px-5 py-2.5 bg-slate-700 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none">
+            <Link href="/pelayan/new" className="px-4 sm:px-5 py-2.5 bg-slate-700 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none whitespace-nowrap">
               <span className="material-icons-round text-white text-[20px]">add</span>
               <span className="text-white text-sm font-bold font-sans leading-5">Tambah Pelayan</span>
             </Link>
@@ -261,7 +261,7 @@ export default function PelayanPage() {
       <div className="w-full px-4 py-4 bg-white rounded-xl border border-slate-200 flex flex-wrap items-center gap-4 shadow-sm">
 
         {/* Search Bar */}
-        <div className="flex-1 min-w-[300px] relative flex items-center">
+        <div className="w-full sm:flex-1 sm:min-w-[260px] relative flex items-center">
           <span className="material-icons-round absolute left-4 text-slate-400 text-[20px]">search</span>
           <input
             type="text"
@@ -273,7 +273,7 @@ export default function PelayanPage() {
         </div>
 
         {/* Satelit Dropdown */}
-        <div className="relative min-w-[200px]">
+        <div className="relative w-full sm:w-auto sm:min-w-[200px]">
           <select
             value={filterSatelit}
             onChange={(e) => setFilterSatelit(e.target.value)}
@@ -291,7 +291,7 @@ export default function PelayanPage() {
         </div>
 
         {/* Role Dropdown */}
-        <div className="relative min-w-[200px]">
+        <div className="relative w-full sm:w-auto sm:min-w-[200px]">
           <select
             value={filterRole}
             onChange={(e) => setFilterRole(e.target.value)}

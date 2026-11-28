@@ -468,14 +468,14 @@ export default function COAPage() {
       />
 
       {/* Header Section */}
-      <div className="w-full flex justify-between items-start">
+      <div className="w-full flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex flex-col gap-1">
-          <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Akun Perkiraan (COA)</h1>
-          <div className="text-slate-500 text-base font-medium font-sans leading-6">Kelola bagan akun untuk transaksi buku besar dan laporan keuangan</div>
+          <h1 className="text-slate-900 text-2xl sm:text-3xl font-black font-sans leading-tight sm:leading-9 mb-1">Akun Perkiraan (COA)</h1>
+          <div className="text-slate-500 text-sm sm:text-base font-medium font-sans leading-6">Kelola bagan akun untuk transaksi buku besar dan laporan keuangan</div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
           {canManage && (
-            <button onClick={() => handleOpenDrawer()} className="px-5 py-2.5 bg-slate-700 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none">
+            <button onClick={() => handleOpenDrawer()} className="px-5 py-2.5 bg-slate-700 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none whitespace-nowrap">
               <span className="material-icons-round text-white text-[20px]">add</span>
               <span className="text-white text-sm font-bold font-sans leading-5">Tambah Akun Baru</span>
             </button>
@@ -487,7 +487,7 @@ export default function COAPage() {
       <div className="w-full px-4 py-4 bg-white rounded-xl border border-slate-200 flex flex-wrap items-center gap-4 shadow-sm mb-6">
         
         {/* Search Bar */}
-        <div className="flex-1 min-w-[300px] relative flex items-center">
+        <div className="w-full sm:flex-1 sm:min-w-[260px] relative flex items-center">
           <span className="material-icons-round absolute left-4 text-slate-400 text-[20px]">search</span>
           <input
             type="text"
@@ -504,7 +504,7 @@ export default function COAPage() {
         </div>
 
         {/* Filter Laporan Dropdown */}
-        <div className="relative min-w-[200px]">
+        <div className="relative w-full sm:w-auto sm:min-w-[200px]">
           <select
             value={filterLaporan}
             onChange={(e) => setFilterLaporan(e.target.value)}
@@ -518,7 +518,7 @@ export default function COAPage() {
         </div>
 
         {/* Filter Tipe Dropdown */}
-        <div className="relative min-w-[200px]">
+        <div className="relative w-full sm:w-auto sm:min-w-[200px]">
           <select
             value={filterTipe}
             onChange={(e) => setFilterTipe(e.target.value)}
@@ -690,7 +690,7 @@ export default function COAPage() {
                 </div>
 
                 {/* 5 & 6. Grup & Saldo (Auto-locked if parent selected) */}
-                <div className={`grid grid-cols-2 gap-4 p-4 rounded-xl border ${isParentSelected ? 'bg-slate-100 border-slate-200 border-dashed' : 'border-slate-200'}`}>
+                <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl border ${isParentSelected ? 'bg-slate-100 border-slate-200 border-dashed' : 'border-slate-200'}`}>
                   <div className="flex flex-col gap-3">
                     <label className="text-sm font-semibold text-slate-700">Grup Laporan</label>
                     <div className="flex flex-col gap-3">

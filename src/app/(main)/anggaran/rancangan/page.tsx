@@ -264,19 +264,19 @@ export default function RancanganAnggaranPage() {
           </div>
         </div>
       )}
-      <div className="w-full flex justify-between items-start">
+      <div className="w-full flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div className="flex flex-col gap-1">
-          <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Daftar Rancangan Anggaran</h1>
-          <div className="text-slate-500 text-base font-medium font-sans leading-6">Kelola pengajuan rancangan anggaran tiap komisi dan satelit</div>
+          <h1 className="text-slate-900 text-2xl sm:text-3xl font-black font-sans leading-tight sm:leading-9 mb-1">Daftar Rancangan Anggaran</h1>
+          <div className="text-slate-500 text-sm sm:text-base font-medium font-sans leading-6">Kelola pengajuan rancangan anggaran tiap komisi dan satelit</div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 w-full lg:w-auto">
           {/* Badge: RA pending review */}
           {(() => {
             const pendingCount = data.filter(d => d.status === 'Menunggu Review').length;
             return pendingCount > 0 && isApprover ? (
               <button
                 onClick={() => setFilterStatus('Menunggu Review')}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-sm font-bold hover:bg-amber-100 transition-colors"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-sm font-bold hover:bg-amber-100 transition-colors whitespace-nowrap"
               >
                 <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
                 {pendingCount} Menunggu Review
@@ -288,12 +288,12 @@ export default function RancanganAnggaranPage() {
               <button
                 type="button"
                 onClick={() => setIsImportModalOpen(true)}
-                className="px-4 py-2.5 bg-emerald-600 rounded-lg flex justify-start items-center gap-2 hover:bg-emerald-700 transition-colors shadow-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                className="px-4 py-2.5 bg-emerald-600 rounded-lg flex justify-start items-center gap-2 hover:bg-emerald-700 transition-colors shadow-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none whitespace-nowrap"
               >
                 <span className="material-icons-round text-white text-[20px]">upload_file</span>
                 <span className="text-white text-sm font-bold font-sans leading-5">Import Excel</span>
               </button>
-              <Link href="/anggaran/rancangan/new" className="px-5 py-2.5 bg-slate-700 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none">
+              <Link href="/anggaran/rancangan/new" className="px-4 sm:px-5 py-2.5 bg-slate-700 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none whitespace-nowrap">
                 <span className="material-icons-round text-white text-[20px]">add</span>
                 <span className="text-white text-sm font-bold font-sans leading-5">Buat Rancangan Baru</span>
               </Link>
@@ -306,7 +306,7 @@ export default function RancanganAnggaranPage() {
       <div className="w-full px-4 py-4 bg-white rounded-xl border border-slate-200 flex flex-wrap items-center gap-4 shadow-sm">
         
         {/* Search Bar */}
-        <div className="flex-1 min-w-[300px] relative flex items-center">
+        <div className="w-full sm:flex-1 sm:min-w-[260px] relative flex items-center">
           <span className="material-icons-round absolute left-4 text-slate-400 text-[20px]">search</span>
           <input 
             type="text" 
@@ -318,7 +318,7 @@ export default function RancanganAnggaranPage() {
         </div>
 
         {/* Tahun Dropdown */}
-        <div className="relative min-w-[140px]">
+        <div className="relative w-full sm:w-auto sm:min-w-[140px]">
           <select 
             value={filterTahun} onChange={e => setFilterTahun(e.target.value)}
             className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
@@ -331,7 +331,7 @@ export default function RancanganAnggaranPage() {
 
         {/* Satelit Dropdown - Hanya tampil untuk admin/pusat */}
         {isApprover && (
-          <div className="relative min-w-[150px]">
+          <div className="relative w-full sm:w-auto sm:min-w-[150px]">
             <select 
               value={filterSatelit} onChange={e => { setFilterSatelit(e.target.value); setFilterKomisi(''); }}
               className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
@@ -344,7 +344,7 @@ export default function RancanganAnggaranPage() {
         )}
 
         {/* Komisi Dropdown */}
-        <div className="relative min-w-[150px]">
+        <div className="relative w-full sm:w-auto sm:min-w-[150px]">
           <select 
             value={filterKomisi} onChange={e => setFilterKomisi(e.target.value)}
             className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
@@ -357,7 +357,7 @@ export default function RancanganAnggaranPage() {
         </div>
 
         {/* Status Dropdown */}
-        <div className="relative min-w-[150px]">
+        <div className="relative w-full sm:w-auto sm:min-w-[150px]">
           <select 
             value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
             className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"

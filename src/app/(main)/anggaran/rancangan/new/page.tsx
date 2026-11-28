@@ -234,15 +234,15 @@ export default function InputAnggaranBaruPage() {
           <span className="text-slate-700 font-bold">Input Rancangan Baru</span>
         </div>
         
-        <div className="self-stretch inline-flex justify-between items-end">
-          <div className="inline-flex gap-4 items-center">
-            <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Input Rancangan Anggaran</h1>
+        <div className="self-stretch flex flex-col sm:flex-row justify-between items-start sm:items-end gap-2">
+          <div className="flex flex-wrap gap-3 items-center">
+            <h1 className="text-slate-900 text-2xl sm:text-3xl font-black font-sans leading-tight sm:leading-9 mb-1">Input Rancangan Anggaran</h1>
             <div className="px-3 py-1 bg-amber-100 rounded border border-amber-300 flex items-center gap-1 mt-1">
                <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
                <span className="text-amber-800 text-xs font-bold uppercase tracking-wide">DRAFT</span>
             </div>
           </div>
-          <div className="text-slate-500 text-sm font-medium font-sans flex gap-1 items-center">
+          <div className="text-slate-500 text-xs sm:text-sm font-medium font-sans flex gap-1 items-center shrink-0">
             <span className="material-icons-round text-lg text-slate-400">qr_code</span> ID: <span className="text-slate-700 font-bold">Otomatis Terbuat</span>
           </div>
         </div>

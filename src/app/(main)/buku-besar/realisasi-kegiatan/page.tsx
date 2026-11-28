@@ -80,18 +80,18 @@ export default function RealisasiKegiatanPage() {
       <div className="w-full max-w-[1200px] flex flex-col gap-6">
 
         {/* Header */}
-        <div className="w-full bg-white rounded-xl shadow-sm border border-slate-200 p-8 flex flex-col relative overflow-hidden">
+        <div className="w-full bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-8 flex flex-col relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-rose-50 rounded-bl-full opacity-50 pointer-events-none"/>
-          <div className="flex justify-between items-start mb-8 relative z-10">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8 relative z-10">
             <div className="flex flex-col gap-2">
               <span className="px-3 py-1 bg-rose-100 text-rose-700 rounded text-xs font-bold uppercase tracking-wide border border-rose-200 w-fit">REALISASI REPORT</span>
-              <h1 className="text-slate-900 text-3xl font-black mt-1">Realisasi Kegiatan (LPJ)</h1>
+              <h1 className="text-slate-900 text-2xl sm:text-3xl font-black mt-1">Realisasi Kegiatan (LPJ)</h1>
               <p className="text-slate-500 text-sm font-medium mt-1 max-w-2xl">Rekap realisasi pengeluaran &amp; penerimaan dari LPJ kegiatan yang telah diajukan, difilter per satelit, komisi, dan akun COA.</p>
             </div>
             <button
               onClick={handleExportExcel}
               disabled={!data || isExporting}
-              className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold rounded-lg shadow-sm transition-colors"
+              className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold rounded-lg shadow-sm transition-colors whitespace-nowrap"
             >
               {isExporting ? (
                 <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -102,39 +102,39 @@ export default function RealisasiKegiatanPage() {
             </button>
           </div>
           {/* Filters */}
-          <div className="w-full flex flex-wrap items-end gap-4 px-6 py-5 bg-slate-50 border border-slate-100 rounded-xl">
-            <div className="flex flex-col gap-1.5">
+          <div className="w-full flex flex-wrap items-end gap-3 sm:gap-4 px-4 sm:px-6 py-4 sm:py-5 bg-slate-50 border border-slate-100 rounded-xl">
+            <div className="flex flex-col gap-1.5 w-full sm:w-auto">
               <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Tahun</label>
-              <select value={tahun} onChange={e=>setTahun(e.target.value)} className="px-4 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-400 font-bold text-slate-700">
+              <select value={tahun} onChange={e=>setTahun(e.target.value)} className="w-full sm:w-auto px-4 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-400 font-bold text-slate-700">
                 {years.map(y=><option key={y} value={y}>{y}</option>)}
               </select>
             </div>
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-1.5 w-full sm:w-auto">
               <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Bulan</label>
-              <select value={bulan} onChange={e=>setBulan(e.target.value)} className="px-4 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-400 font-bold text-slate-700">
+              <select value={bulan} onChange={e=>setBulan(e.target.value)} className="w-full sm:w-auto px-4 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-400 font-bold text-slate-700">
                 <option value="">Semua Bulan</option>
                 {MONTHS.slice(1).map((m,i)=><option key={i+1} value={i+1}>{m}</option>)}
               </select>
             </div>
-            <div className="flex flex-col gap-1.5 min-w-[200px]">
+            <div className="flex flex-col gap-1.5 w-full sm:w-auto sm:min-w-[200px]">
               <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Satelit</label>
-              <select value={satelitId} onChange={e=>setSatelitId(e.target.value)} className="px-4 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-400 font-bold text-slate-700">
+              <select value={satelitId} onChange={e=>setSatelitId(e.target.value)} className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-400 font-bold text-slate-700">
                 <option value="">Semua Satelit</option>
                 {satelitList.map((s:any)=><option key={s.id} value={s.id}>{s.nama_satelit}</option>)}
               </select>
             </div>
             {satelitId && (
-              <div className="flex flex-col gap-1.5 min-w-[180px]">
+              <div className="flex flex-col gap-1.5 w-full sm:w-auto sm:min-w-[180px]">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Komisi</label>
-                <select value={komisiId} onChange={e=>setKomisiId(e.target.value)} className="px-4 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-400 font-bold text-slate-700">
+                <select value={komisiId} onChange={e=>setKomisiId(e.target.value)} className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-400 font-bold text-slate-700">
                   <option value="">Semua Komisi</option>
                   {komisiList.map((k:any)=><option key={k.id} value={k.id}>{k.nama_komisi}</option>)}
                 </select>
               </div>
             )}
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-1.5 w-full sm:w-auto">
               <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Jenis</label>
-              <select value={jenis} onChange={e=>setJenis(e.target.value)} className="px-4 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-400 font-bold text-slate-700">
+              <select value={jenis} onChange={e=>setJenis(e.target.value)} className="w-full sm:w-auto px-4 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-400 font-bold text-slate-700">
                 <option value="">Semua Jenis</option>
                 <option value="Penerimaan">Penerimaan</option>
                 <option value="Pengeluaran">Pengeluaran</option>
@@ -186,9 +186,9 @@ export default function RealisasiKegiatanPage() {
                 {data.by_satelit.length===0 && <p className="text-slate-400 text-sm text-center py-8">Tidak ada data.</p>}
                 {data.by_satelit.map((r:any)=>(
                   <div key={r.satelit_id} className="p-4 rounded-xl border border-slate-100 bg-slate-50 hover:bg-slate-100 transition">
-                    <div className="flex justify-between items-center mb-2">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-2">
                       <span className="font-bold text-slate-800 text-sm">{r.nama_satelit}</span>
-                      <div className="flex gap-4 text-right">
+                      <div className="flex flex-wrap gap-3 sm:gap-4 sm:text-right">
                         <div className="flex flex-col"><span className="text-[10px] text-blue-500 font-bold uppercase">Penerimaan</span><span className="font-black text-blue-700 text-sm">{fmt(r.total_penerimaan)}</span></div>
                         <div className="flex flex-col"><span className="text-[10px] text-rose-500 font-bold uppercase">Pengeluaran</span><span className="font-black text-rose-700 text-sm">{fmt(r.total_pengeluaran)}</span></div>
                         <span className="text-xs bg-slate-200 text-slate-600 font-bold px-2 py-1 rounded self-center">{r.jumlah_kegiatan} keg</span>
@@ -213,7 +213,7 @@ export default function RealisasiKegiatanPage() {
               <div className="flex flex-col gap-3">
                 {data.by_komisi.length===0 && <p className="text-slate-400 text-sm text-center py-8">Tidak ada data.</p>}
                 {data.by_komisi.map((r:any,i:number)=>(
-                  <div key={i} className="flex items-center justify-between py-3 px-4 rounded-lg bg-slate-50 border border-slate-100 hover:bg-slate-100 transition">
+                  <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 py-3 px-4 rounded-lg bg-slate-50 border border-slate-100 hover:bg-slate-100 transition">
                     <div>
                       <span className="text-sm font-bold text-slate-800">{r.nama_komisi}</span>
                       <div className="flex gap-2 mt-0.5">
@@ -221,7 +221,7 @@ export default function RealisasiKegiatanPage() {
                         <span className="text-[10px] text-emerald-600 font-bold">{r.jumlah_kegiatan} kegiatan</span>
                       </div>
                     </div>
-                    <div className="flex gap-6 text-right">
+                    <div className="flex flex-wrap gap-4 sm:gap-6 sm:text-right">
                       {r.total_penerimaan>0 && <div className="flex flex-col"><span className="text-[10px] text-blue-500 font-bold">Penerimaan</span><span className="font-black text-blue-700">{fmt(r.total_penerimaan)}</span></div>}
                       <div className="flex flex-col"><span className="text-[10px] text-rose-500 font-bold">Pengeluaran</span><span className="font-black text-slate-800">{fmt(r.total_pengeluaran)}</span></div>
                     </div>

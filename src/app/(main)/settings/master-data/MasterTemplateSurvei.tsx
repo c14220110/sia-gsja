@@ -132,7 +132,7 @@ export function MasterTemplateSurvei() {
       />
 
       {/* Header band */}
-      <div className="bg-rose-600 rounded-xl px-5 py-4 flex items-center justify-between gap-4">
+      <div className="bg-rose-600 rounded-xl px-5 py-4 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
             <span className="material-icons-round text-white text-[22px]">quiz</span>
