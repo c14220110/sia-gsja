@@ -425,8 +425,12 @@ export default function AkunAksesPage() {
         body: JSON.stringify({ jemaat_ids: selectedBulkIds })
       });
       const json = await res.json();
-      setSubmitState({ status: json.success ? 'success' : 'error', message: json.message });
-      if (json.success) {
+      const isPartialOrZero = json.success && json.createdCount === 0;
+      setSubmitState({
+        status: !json.success || isPartialOrZero ? 'error' : 'success',
+        message: json.message,
+      });
+      if (json.success && json.createdCount > 0) {
         setSelectedBulkIds([]);
         fetchBulkData(filterBulkStatus);
         fetchUsersData();
