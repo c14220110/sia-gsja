@@ -122,17 +122,17 @@ export default function KonsolidasiAnggaranPage() {
       <div className="w-full max-w-[1200px] flex flex-col gap-6">
 
         {/* Header Title Card */}
-        <div className="w-full bg-white rounded-xl shadow-sm border border-slate-200 p-8 flex flex-col relative">
+        <div className="w-full bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-8 flex flex-col relative">
           <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-50 rounded-bl-full opacity-50 pointer-events-none"></div>
           
-          <div className="flex justify-between items-start z-50 w-full mb-8 relative">
+          <div className="flex flex-col sm:flex-row justify-between items-start gap-4 z-50 w-full mb-6 sm:mb-8 relative">
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
                  <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded text-xs font-bold uppercase tracking-wide border border-emerald-200">
                    MASTER REPORT
                  </span>
               </div>
-              <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mt-1">
+              <h1 className="text-slate-900 text-2xl sm:text-3xl font-black font-sans leading-tight sm:leading-9 mt-1">
                 Rekapitulasi Anggaran
               </h1>
               <p className="text-slate-500 text-sm font-medium mt-1 max-w-2xl">
@@ -141,7 +141,7 @@ export default function KonsolidasiAnggaranPage() {
               </p>
             </div>
             
-            <div className="relative z-20" ref={exportRef}>
+            <div className="relative z-20 shrink-0" ref={exportRef}>
               <button 
                 onClick={() => setShowExportMenu(!showExportMenu)}
                 disabled={!data || data.list.length === 0}
@@ -173,8 +173,8 @@ export default function KonsolidasiAnggaranPage() {
           </div>
           
           {/* Filter Bar */}
-          <div className="w-full flex items-end gap-4 px-6 py-5 bg-slate-50 border border-slate-100 rounded-xl z-10 shadow-sm">
-             <div className="flex flex-col gap-1.5 flex-1 max-w-[200px]">
+          <div className="w-full flex flex-col sm:flex-row sm:items-end gap-3 sm:gap-4 px-4 sm:px-6 py-4 sm:py-5 bg-slate-50 border border-slate-100 rounded-xl z-10 shadow-sm">
+             <div className="flex flex-col gap-1.5 w-full sm:flex-1 sm:max-w-[200px]">
                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Tahun Anggaran</label>
                <select 
                  value={selectedTahun} 
@@ -185,7 +185,7 @@ export default function KonsolidasiAnggaranPage() {
                </select>
              </div>
              
-             <div className="flex flex-col gap-1.5 flex-1 max-w-[300px]">
+             <div className="flex flex-col gap-1.5 w-full sm:flex-1 sm:max-w-[300px]">
                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Filter Satelit</label>
                <select 
                  value={selectedSatelit} 
@@ -198,7 +198,7 @@ export default function KonsolidasiAnggaranPage() {
              </div>
 
              {selectedSatelit && (
-              <div className="flex flex-col gap-1.5 flex-1 max-w-[250px]">
+              <div className="flex flex-col gap-1.5 w-full sm:flex-1 sm:max-w-[250px]">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Filter Komisi</label>
                 <select 
                   value={selectedKomisi} 
@@ -488,16 +488,16 @@ export default function KonsolidasiAnggaranPage() {
                 
                 <div className="flex-1 overflow-y-auto p-6 bg-white">
                    {/* Summary Grid — now shows Penerimaan and Pengeluaran separately */}
-                   <div className="grid grid-cols-3 gap-4 mb-6">
+                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
                      <div className="flex flex-col">
                        <span className="text-[10px] font-bold text-slate-400 uppercase">Kategori & Pola</span>
                        <span className="text-sm font-bold text-slate-700">{selectedRA.kategori_ra} - {selectedRA.pola_penggunaan === 'Sekali Pakai' ? 'Single Event' : selectedRA.pola_penggunaan === 'Bertahap' ? 'Multi-Event' : selectedRA.pola_penggunaan}</span>
                      </div>
-                     <div className="flex flex-col text-right">
+                     <div className="flex flex-col sm:text-right">
                        <span className="text-[10px] font-bold text-blue-400 uppercase">Penerimaan</span>
                        <span className="text-base font-black text-blue-600">{formatRupiah(selectedRA.ra_penerimaan || 0)}</span>
                      </div>
-                     <div className="flex flex-col text-right">
+                     <div className="flex flex-col sm:text-right">
                        <span className="text-[10px] font-bold text-slate-400 uppercase">Pengeluaran</span>
                        <span className="text-lg font-black text-emerald-600">{formatRupiah(selectedRA.ra_pengeluaran || 0)}</span>
                      </div>

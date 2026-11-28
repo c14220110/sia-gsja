@@ -363,7 +363,7 @@ export default function AkunAksesPage() {
     const needsDept = roleName === 'KETUA_DEPARTEMEN';
     return (
       <div key={idx} className="flex flex-col gap-2 bg-white rounded-lg p-2.5 border border-slate-100">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
           <select
             className={`flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 ${accentClass} text-sm font-semibold text-slate-800`}
             value={assignment.role_id}
@@ -642,7 +642,8 @@ export default function AkunAksesPage() {
           <div className="w-full mt-4 flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-2">
             <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2"><span className="material-icons-round text-violet-500">list_alt</span> Daftar Role Sistem</h2>
             <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
-              <table className="w-full text-left text-sm text-slate-600">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[600px] text-left text-sm text-slate-600">
                 <thead className="bg-slate-50 font-semibold text-slate-800 text-xs uppercase tracking-wider">
                   <tr>
                     <th className="px-6 py-4 border-b border-slate-200">Nama Role</th>
@@ -667,6 +668,7 @@ export default function AkunAksesPage() {
                   {dataRoles.length === 0 && <tr><td colSpan={4} className="p-8 text-center text-slate-400">Tidak ada data Role</td></tr>}
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
         )}
@@ -674,21 +676,21 @@ export default function AkunAksesPage() {
         {/* Tab 2: Daftar Akun Pengguna */}
         {activeTab === 'akun_pengguna' && canManageUserAccess && (
           <div className="w-full mt-4 flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-2">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2"><span className="material-icons-round text-violet-500">people</span> Daftar Akun Pengguna</h2>
-              <button onClick={() => { setRoleAssignments([{ role_id: '', satelit_id: defaultSatelitId }]); setIsAddUserModalOpen(true); }} className="bg-violet-600 hover:bg-violet-700 text-white text-sm font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-all shadow-md">
+              <button onClick={() => { setRoleAssignments([{ role_id: '', satelit_id: defaultSatelitId }]); setIsAddUserModalOpen(true); }} className="bg-violet-600 hover:bg-violet-700 text-white text-sm font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-all shadow-md w-full sm:w-auto">
                 <span className="material-icons-round text-[18px]">person_add</span> Tambah Akun Baru
               </button>
             </div>
 
             <div className="w-full px-4 py-4 bg-white rounded-xl border border-slate-200 flex flex-wrap items-center gap-4 shadow-sm">
-              <div className="flex-1 min-w-[300px] relative flex items-center">
+              <div className="w-full sm:flex-1 sm:min-w-[260px] relative flex items-center">
                 <span className="material-icons-round absolute left-4 text-slate-400 text-[20px]">search</span>
                 <input type="text" placeholder="Cari nama, email, no. HP, atau username..." 
                   className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm font-sans"
                   value={userSearchQuery} onChange={e => setUserSearchQuery(e.target.value)} />
               </div>
-              <div className="relative min-w-[200px]">
+              <div className="relative w-full sm:w-auto sm:min-w-[180px]">
                 <select className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-slate-700 font-sans text-sm cursor-pointer" 
                   value={filterUserRole} onChange={e => setFilterUserRole(e.target.value)}>
                   <option value="">Semua Role</option>
@@ -696,7 +698,7 @@ export default function AkunAksesPage() {
                 </select>
                 <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
               </div>
-              <div className="relative min-w-[200px]">
+              <div className="relative w-full sm:w-auto sm:min-w-[180px]">
                 <select className={`appearance-none w-full pl-4 pr-10 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-slate-700 font-sans text-sm ${isSatelitAdmin ? 'bg-slate-100 cursor-not-allowed opacity-80' : 'bg-slate-50 cursor-pointer'}`}
                   value={isSatelitAdmin ? defaultSatelitId : filterUserSatelit}
                   disabled={isSatelitAdmin}
@@ -708,7 +710,7 @@ export default function AkunAksesPage() {
                 </select>
                 <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
               </div>
-              <div className="relative min-w-[200px]">
+              <div className="relative w-full sm:w-auto sm:min-w-[180px]">
                 <select className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-slate-700 font-sans text-sm cursor-pointer" 
                   value={filterUserStatus} onChange={e => setFilterUserStatus(e.target.value)}>
                   <option value="Semua">Semua Status</option>
@@ -719,8 +721,9 @@ export default function AkunAksesPage() {
               </div>
             </div>
 
-            <div className="border border-slate-200 rounded-xl bg-white shadow-sm [&_thead_th:first-child]:rounded-tl-xl [&_thead_th:last-child]:rounded-tr-xl">
-              <table className="w-full text-left text-sm text-slate-600">
+            <div className="border border-slate-200 rounded-xl bg-white shadow-sm overflow-hidden [&_thead_th:first-child]:rounded-tl-xl [&_thead_th:last-child]:rounded-tr-xl">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[720px] text-left text-sm text-slate-600">
                 <thead className="bg-slate-50 font-semibold text-slate-800 text-xs uppercase tracking-wider">
                   <tr>
                     <th className="px-6 py-4 border-b border-slate-200">Kredensial Login</th>
@@ -800,6 +803,7 @@ export default function AkunAksesPage() {
                   {filteredUsers.length === 0 && <tr><td colSpan={4} className="p-8 text-center text-slate-400">Pencarian tidak menemukan akun pengguna.</td></tr>}
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
         )}
@@ -822,13 +826,13 @@ export default function AkunAksesPage() {
             </div>
 
             <div className="w-full px-4 py-4 bg-white rounded-xl border border-slate-200 flex flex-wrap items-center gap-4 shadow-sm">
-              <div className="flex-1 min-w-[250px] relative flex items-center">
+              <div className="w-full sm:flex-1 sm:min-w-[240px] relative flex items-center">
                 <span className="material-icons-round absolute left-4 text-slate-400 text-[20px]">search</span>
                 <input type="text" placeholder="Cari nama jemaat..." 
                   className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-sans"
                   value={bulkSearchQuery} onChange={e => { setBulkSearchQuery(e.target.value); setBulkPage(1); }} />
               </div>
-              <div className="relative min-w-[200px]">
+              <div className="relative w-full sm:w-auto sm:min-w-[180px]">
                 <select className={`appearance-none w-full pl-4 pr-10 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700 font-sans text-sm ${isSatelitAdmin ? 'bg-slate-100 cursor-not-allowed opacity-80' : 'bg-slate-50 cursor-pointer'}`}
                   value={isSatelitAdmin ? defaultSatelitId : filterBulkSatelit}
                   disabled={isSatelitAdmin}
@@ -840,7 +844,7 @@ export default function AkunAksesPage() {
                 </select>
                 <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
               </div>
-              <div className="relative min-w-[200px]">
+              <div className="relative w-full sm:w-auto sm:min-w-[180px]">
                 <select className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700 font-sans text-sm cursor-pointer" 
                   value={filterBulkStatus} onChange={e => setFilterBulkStatus(e.target.value)}>
                   <option value="no_account">Hanya Belum Punya Akun</option>
@@ -1250,7 +1254,7 @@ export default function AkunAksesPage() {
               <button onClick={() => setIsEditUserModalOpen(false)} className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex justify-center items-center"><span className="material-icons-round text-[20px] text-slate-500">close</span></button>
             </div>
             <div className="p-6 flex flex-col gap-5 bg-slate-50/50 overflow-y-auto">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-3">
                   <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">Identifier Login (Kredensial untuk Login)</label>
                   <div className="flex gap-2">

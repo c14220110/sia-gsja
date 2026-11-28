@@ -554,7 +554,8 @@ function CoaTab() {
   const potongan = data.filter(d => d.tipe === 'Potongan');
 
   const renderTable = (items: any[]) => (
-    <table className="w-full text-left border-collapse">
+    <div className="w-full overflow-x-auto">
+    <table className="w-full min-w-[540px] text-left border-collapse">
       <thead>
         <tr className="bg-slate-50/50 border-b border-slate-100">
           <th className="py-3 px-4 font-bold text-xs text-slate-500 uppercase tracking-wider font-sans">Komponen Gaji</th>
@@ -608,6 +609,7 @@ function CoaTab() {
         ))}
       </tbody>
     </table>
+    </div>
   );
 
   return (
@@ -772,7 +774,7 @@ function RegulasiTab() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* BPJS Ketenagakerjaan */}
         <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
           <div className="bg-slate-50 px-4 py-3 border-b border-slate-200">

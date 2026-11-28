@@ -488,23 +488,23 @@ export default function SurveiListPage() {
       {(submitState.status !== 'idle') && <SubmitOverlay status={submitState.status} message={submitState.message} onClose={() => setSubmitState({ status: 'idle', message: '' })} />}
 
       {/* Header Section */}
-      <div className="w-full flex justify-between items-start">
+      <div className="w-full flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex flex-col gap-1">
-          <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Survei Kepuasan</h1>
-          <div className="text-slate-500 text-base font-medium font-sans leading-6">Kelola survei kepuasan jemaat terhadap kegiatan gereja</div>
+          <h1 className="text-slate-900 text-2xl sm:text-3xl font-black font-sans leading-tight sm:leading-9 mb-1">Survei Kepuasan</h1>
+          <div className="text-slate-500 text-sm sm:text-base font-medium font-sans leading-6">Kelola survei kepuasan jemaat terhadap kegiatan gereja</div>
         </div>
         {hasPermission('survei_manage') && (
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
             <Link
               href="/kegiatan/notifikasi"
-              className="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-lg flex justify-center items-center gap-2 hover:bg-slate-50 transition-colors shadow-sm"
+              className="px-4 sm:px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-lg flex justify-center items-center gap-2 hover:bg-slate-50 transition-colors shadow-sm whitespace-nowrap"
             >
               <span className="material-icons-round text-[18px]">campaign</span>
               <span className="text-sm font-bold font-sans">Broadcast Notifikasi</span>
             </Link>
             <Link
               href="/kegiatan/survei/buat"
-              className="px-5 py-2.5 bg-slate-700 text-white rounded-lg flex justify-center items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm"
+              className="px-4 sm:px-5 py-2.5 bg-slate-700 text-white rounded-lg flex justify-center items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm whitespace-nowrap"
             >
               <span className="material-icons-round text-[18px]">add</span>
               <span className="text-sm font-bold font-sans">Buat Survei Baru</span>
@@ -594,7 +594,7 @@ export default function SurveiListPage() {
           <div className="w-full px-4 py-4 bg-white rounded-xl border border-slate-200 flex flex-wrap items-center gap-4 shadow-sm -mt-8">
             
             {/* Search Bar */}
-            <div className="flex-1 min-w-[200px] relative flex items-center">
+            <div className="w-full sm:flex-1 sm:min-w-[200px] relative flex items-center">
               <span className="material-icons-round absolute left-4 text-slate-400 text-[20px]">search</span>
               <input 
                 type="text" 
@@ -606,7 +606,7 @@ export default function SurveiListPage() {
             </div>
 
             {/* Status Dropdown */}
-            <div className="relative min-w-[150px]">
+            <div className="relative w-full sm:w-auto sm:min-w-[150px]">
               <select 
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
@@ -622,7 +622,7 @@ export default function SurveiListPage() {
             </div>
 
             {/* Tipe Survei Dropdown */}
-            <div className="relative min-w-[150px]">
+            <div className="relative w-full sm:w-auto sm:min-w-[150px]">
               <select 
                 value={filterTipe}
                 onChange={(e) => setFilterTipe(e.target.value)}
@@ -792,7 +792,7 @@ export default function SurveiListPage() {
 
             {/* Pagination Footer */}
             {totalItems > 0 && (
-              <div className="w-full px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center rounded-b-xl">
+              <div className="w-full px-4 sm:px-6 py-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-3 rounded-b-xl">
                 <div className="text-slate-500 text-sm font-sans">
                   Menampilkan {((currentPage - 1) * limit) + 1} - {Math.min(currentPage * limit, totalItems)} dari {totalItems} survei
                 </div>
@@ -855,7 +855,7 @@ export default function SurveiListPage() {
 
           {/* Keluhan Filter */}
           <div className="w-full px-4 py-4 bg-white rounded-xl border border-slate-200 flex flex-wrap items-center gap-4 shadow-sm -mt-4">
-            <div className="flex-1 min-w-[200px] relative flex items-center">
+            <div className="w-full sm:flex-1 sm:min-w-[200px] relative flex items-center">
               <span className="material-icons-round absolute left-4 text-slate-400 text-[20px]">search</span>
               <input 
                 type="text" 
@@ -865,7 +865,7 @@ export default function SurveiListPage() {
                 onChange={(e) => setKeluhanSearch(e.target.value)}
               />
             </div>
-            <div className="relative min-w-[180px]">
+            <div className="relative w-full sm:w-auto sm:min-w-[180px]">
               <select 
                 value={keluhanFilterStatus}
                 onChange={(e) => setKeluhanFilterStatus(e.target.value)}

@@ -572,15 +572,15 @@ export default function NewKegiatanPage() {
           <span className="text-slate-700 font-bold">Tambah Kegiatan Baru</span>
         </div>
         
-        <div className="self-stretch inline-flex justify-between items-end">
-          <div className="inline-flex gap-4 items-center">
-            <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Buat Kegiatan Baru</h1>
+        <div className="self-stretch flex flex-col sm:flex-row justify-between items-start sm:items-end gap-2">
+          <div className="flex flex-wrap gap-3 items-center">
+            <h1 className="text-slate-900 text-2xl sm:text-3xl font-black font-sans leading-tight sm:leading-9 mb-1">Buat Kegiatan Baru</h1>
             <div className="px-3 py-1 bg-amber-100 rounded border border-amber-300 flex items-center gap-1 mt-1">
                <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
                <span className="text-amber-800 text-xs font-bold uppercase tracking-wide">DRAFT</span>
             </div>
           </div>
-          <div className="text-slate-500 text-sm font-medium font-sans flex gap-1 items-center">
+          <div className="text-slate-500 text-xs sm:text-sm font-medium font-sans flex gap-1 items-center shrink-0">
             <span className="material-icons-round text-lg text-slate-400">qr_code</span> ID: <span className="text-slate-700 font-bold">Otomatis Terbuat</span>
           </div>
         </div>
@@ -609,8 +609,8 @@ export default function NewKegiatanPage() {
                 />
               </div>
 
-              <div className="w-full flex gap-5">
-                <div className="flex-[2] flex-col gap-1.5 flex">
+              <div className="w-full flex flex-col sm:flex-row gap-4 sm:gap-5">
+                <div className="w-full sm:flex-[2] min-w-0 flex-col gap-1.5 flex">
                   <label className="text-slate-500 text-xs font-bold font-sans uppercase flex items-center gap-2">
                     Jenis Kegiatan <span className="text-red-500">*</span>
                     {raLockedJenisId && (
@@ -667,7 +667,7 @@ export default function NewKegiatanPage() {
                   )}
                 </div>
 
-                <div className="flex-1 flex-col gap-1.5 flex">
+                <div className="w-full sm:flex-1 min-w-0 flex-col gap-1.5 flex">
                   <label className="text-slate-500 text-xs font-bold font-sans uppercase">Frekuensi <span className="text-red-500">*</span></label>
                   <select name="frekuensi_kegiatan" value={formData.frekuensi_kegiatan} onChange={handleInputChange} className="px-4 py-2.5 bg-slate-50 rounded-lg border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all cursor-pointer">
                     <option value="Mingguan">Mingguan</option>
@@ -1386,16 +1386,16 @@ export default function NewKegiatanPage() {
         </div>
       </div>
 
-       <div className="fixed bottom-0 left-[260px] right-0 py-3 px-6 bg-white/90 backdrop-blur-md border-t border-slate-200 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] flex items-center justify-between z-40 transition-all md:w-[calc(100%-260px)] w-full ml-[-260px] md:ml-0 rounded-t-2xl md:rounded-tr-none">
-         <button onClick={() => router.back()} className="px-6 py-2.5 rounded-lg border border-slate-300 text-slate-700 font-bold hover:bg-slate-50 transition-colors text-sm">
+       <div className="fixed bottom-0 left-0 md:left-[260px] right-0 py-3 px-4 sm:px-6 bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3 z-40 transition-all rounded-t-2xl md:rounded-tr-none">
+         <button onClick={() => router.back()} className="px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg border border-slate-300 text-slate-700 font-bold hover:bg-slate-50 transition-colors text-xs sm:text-sm text-center">
            Batalkan
          </button>
-         <div className="flex gap-3">
-           <button onClick={() => handleCreate('Draft')} className="px-6 py-2.5 rounded-lg bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 transition-colors text-sm border border-slate-200">
+         <div className="flex flex-wrap gap-2 sm:gap-3 justify-end">
+           <button onClick={() => handleCreate('Draft')} className="flex-1 sm:flex-none px-3.5 sm:px-6 py-2 sm:py-2.5 rounded-lg bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 transition-colors text-xs sm:text-sm border border-slate-200 whitespace-nowrap">
              Simpan sebagai Draft
            </button>
-           <button onClick={() => setShowConfirmDialog(true)} className="px-8 py-2.5 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/30 text-sm flex gap-2 items-center">
-             <span className="material-icons-round text-[18px]">send</span> Ajukan Jadwal Acara
+           <button onClick={() => setShowConfirmDialog(true)} className="flex-1 sm:flex-none px-4 sm:px-8 py-2 sm:py-2.5 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/30 text-xs sm:text-sm flex gap-1.5 sm:gap-2 items-center justify-center whitespace-nowrap">
+             <span className="material-icons-round text-[16px] sm:text-[18px]">send</span> Ajukan Jadwal Acara
            </button>
          </div>
       </div>

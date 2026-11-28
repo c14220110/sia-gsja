@@ -102,7 +102,7 @@ export default function AnalisisKehadiranPage() {
   }
 
   return (
-    <div className="p-8 w-full max-w-7xl mx-auto space-y-6">
+    <div className="p-4 sm:p-8 w-full max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3 text-slate-500 text-sm font-medium mb-1">
@@ -110,7 +110,7 @@ export default function AnalisisKehadiranPage() {
             <span className="material-icons-round text-[16px]">chevron_right</span>
             <span className="text-slate-800">Radar Kehadiran</span>
           </div>
-          <h1 className="text-3xl font-black text-slate-800 tracking-tight">Radar Kehadiran Jemaat</h1>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight">Radar Kehadiran Jemaat</h1>
           <p className="text-slate-500 mt-1">Pastoral Care Early Warning System &mdash; Deteksi jemaat yang mulai menjauh.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -203,7 +203,7 @@ export default function AnalisisKehadiranPage() {
               className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-sm font-medium"
             />
           </div>
-          <div className="flex gap-2 w-full md:w-auto">
+          <div className="flex flex-wrap gap-2 w-full md:w-auto">
             {['Semua', 'Setia', 'Mulai Jarang', 'Menghilang', 'Data Baru'].map(status => (
               <button
                 key={status}

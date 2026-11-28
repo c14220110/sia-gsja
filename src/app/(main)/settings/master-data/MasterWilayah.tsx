@@ -262,15 +262,15 @@ export function MasterWilayah() {
       ) : selectedSatelitData ? (
         <div className="bg-white rounded-xl shadow-sm border border-sky-200 overflow-hidden">
           {/* Header */}
-          <div className="bg-gradient-to-r from-sky-700 to-sky-500 px-5 py-4 flex items-center justify-between">
+          <div className="bg-gradient-to-r from-sky-700 to-sky-500 px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <span className="material-icons-round text-white text-[22px]">map</span>
+              <span className="material-icons-round text-white text-[22px] shrink-0">map</span>
               <div>
                 <div className="text-white font-bold font-sans text-base">{selectedSatelitData.nama_satelit}</div>
                 <div className="text-sky-100 text-xs font-sans">{activeCount} wilayah aktif dari {wilayahList.length} total</div>
               </div>
             </div>
-            <div className="flex items-center gap-2 print:hidden">
+            <div className="flex flex-wrap items-center gap-2 print:hidden">
               <button
                 onClick={() => window.print()}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white/80 hover:text-white text-sm font-semibold rounded-lg transition-colors font-sans border border-white/20"

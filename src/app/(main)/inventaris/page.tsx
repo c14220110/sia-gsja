@@ -474,16 +474,16 @@ export default function InventarisPage() {
     <div className="w-full flex flex-col gap-8 pb-10">
       
       {/* Header Section */}
-      <div className="w-full flex justify-between items-start">
+      <div className="w-full flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div className="flex flex-col gap-1">
-            <h1 className="text-slate-900 text-3xl font-black font-sans leading-9 mb-1">Inventaris Barang</h1>
-            <div className="text-slate-500 text-base font-medium font-sans leading-6">Sistem Manajemen Aset & Perlengkapan</div>
+            <h1 className="text-slate-900 text-2xl sm:text-3xl font-black font-sans leading-tight sm:leading-9 mb-1">Inventaris Barang</h1>
+            <div className="text-slate-500 text-sm sm:text-base font-medium font-sans leading-6">Sistem Manajemen Aset & Perlengkapan</div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 w-full lg:w-auto">
             {hasPermission('inventaris_view') && (
               <button
                 onClick={openExportModal}
-                className="px-4 py-2.5 bg-white border border-slate-200 rounded-lg flex justify-start items-center gap-2 hover:bg-emerald-50 hover:border-emerald-300 transition-colors shadow-sm"
+                className="px-4 py-2.5 bg-white border border-slate-200 rounded-lg flex justify-start items-center gap-2 hover:bg-emerald-50 hover:border-emerald-300 transition-colors shadow-sm whitespace-nowrap"
               >
                 <span className="material-icons-round text-emerald-600 text-[20px]">table_view</span>
                 <span className="text-slate-700 text-sm font-bold font-sans leading-5">Export Excel</span>
@@ -492,14 +492,14 @@ export default function InventarisPage() {
             {hasPermission('inventaris_manage') && (
               <button
                 onClick={() => setIsImportOpen(true)}
-                className="px-4 py-2.5 bg-white border border-slate-200 rounded-lg flex justify-start items-center gap-2 hover:bg-blue-50 hover:border-blue-300 transition-colors shadow-sm"
+                className="px-4 py-2.5 bg-white border border-slate-200 rounded-lg flex justify-start items-center gap-2 hover:bg-blue-50 hover:border-blue-300 transition-colors shadow-sm whitespace-nowrap"
               >
                 <span className="material-icons-round text-blue-600 text-[20px]">upload_file</span>
                 <span className="text-slate-700 text-sm font-bold font-sans leading-5">Import Excel</span>
               </button>
             )}
             {hasPermission('inventaris_manage') && (
-              <Link href="/inventaris/tambah" className="px-5 py-2.5 bg-slate-700 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none">
+              <Link href="/inventaris/tambah" className="px-4 sm:px-5 py-2.5 bg-slate-700 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none whitespace-nowrap">
                 <span className="material-icons-round text-white text-[20px]">add</span>
                 <span className="text-white text-sm font-bold font-sans leading-5">Tambah Barang</span>
               </Link>
@@ -684,7 +684,7 @@ export default function InventarisPage() {
         </div>
 
         {/* Search Bar + Scan Button */}
-        <div className="flex-1 min-w-[260px] flex items-center gap-2">
+        <div className="w-full sm:flex-1 sm:min-w-[260px] flex items-center gap-2">
           <div className="flex-1 relative flex items-center">
             <span className="material-icons-round absolute left-4 text-slate-400 text-[20px]">search</span>
             <input 
@@ -706,7 +706,7 @@ export default function InventarisPage() {
         </div>
 
         {/* Kategori Dropdown */}
-        <div className="relative min-w-[200px]">
+        <div className="relative w-full sm:w-auto sm:min-w-[200px]">
           <select 
             value={filterKategori}
             onChange={(e) => { setFilterKategori(e.target.value); setCurrentPage(1); }}
@@ -721,7 +721,7 @@ export default function InventarisPage() {
         </div>
 
         {/* Satelit Dropdown */}
-        <div className="relative min-w-[200px]">
+        <div className="relative w-full sm:w-auto sm:min-w-[200px]">
           {(!userData?.is_super_admin && userData?.satelit_id) && (
             <span className="material-icons-round absolute left-3 top-2.5 text-slate-400 text-[16px] pointer-events-none z-10">lock</span>
           )}
@@ -1341,7 +1341,7 @@ export default function InventarisPage() {
       {/* ── Floating Bulk Action Bar ─────────────────────────────────────────── */}
       {selectedIds.size > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 fade-in duration-200">
-          <div className="bg-slate-900 text-white rounded-2xl shadow-2xl px-5 py-3 flex items-center gap-4 min-w-[360px]">
+          <div className="bg-slate-900 text-white rounded-2xl shadow-2xl px-4 sm:px-5 py-3 flex flex-wrap items-center gap-3 sm:gap-4 w-[calc(100vw-2rem)] sm:w-auto sm:min-w-[360px]">
             {/* Count badge */}
             <div className="flex items-center gap-2 flex-1">
               <div className="w-7 h-7 bg-indigo-500 rounded-lg flex items-center justify-center flex-shrink-0">

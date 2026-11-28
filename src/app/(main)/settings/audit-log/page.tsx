@@ -274,7 +274,7 @@ export default function AuditLogPage() {
           })}
         </div>
       ) : (
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           {entityStatActions.map(aksi => {
             const cfg   = ACTION_CONFIG[aksi];
             const count = data.filter(d => d.aksi === aksi).length;
@@ -308,7 +308,7 @@ export default function AuditLogPage() {
       <div className="w-full px-4 py-4 bg-white rounded-xl border border-slate-200 flex flex-wrap items-center gap-4 shadow-sm">
         
         {/* Search Bar */}
-        <div className="flex-1 min-w-[300px] relative flex items-center">
+        <div className="w-full sm:flex-1 sm:min-w-[260px] relative flex items-center">
           <span className="material-icons-round absolute left-4 text-slate-400 text-[20px]">search</span>
           <input
             type="text"
@@ -330,7 +330,7 @@ export default function AuditLogPage() {
         </div>
 
         {/* Action Dropdown */}
-        <div className="relative min-w-[200px]">
+        <div className="relative w-full sm:w-auto sm:min-w-[200px]">
           <select
             value={filterAksi}
             onChange={e => setFilterAksi(e.target.value)}
@@ -352,12 +352,12 @@ export default function AuditLogPage() {
         </div>
 
         {/* Date Filters */}
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
           <input 
             type="date" 
             value={dateFrom} 
             onChange={e => setDateFrom(e.target.value)}
-            className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
+            className="flex-1 sm:flex-none min-w-0 px-3 sm:px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
             title="Tanggal mulai"
           />
           <span className="text-slate-400 font-bold">-</span>
@@ -365,7 +365,7 @@ export default function AuditLogPage() {
             type="date" 
             value={dateTo} 
             onChange={e => setDateTo(e.target.value)}
-            className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
+            className="flex-1 sm:flex-none min-w-0 px-3 sm:px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 text-slate-700 font-sans text-sm cursor-pointer"
             title="Tanggal akhir"
           />
         </div>

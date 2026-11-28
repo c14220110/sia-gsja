@@ -1085,23 +1085,23 @@ export default function EditKegiatanPage({ params }: { params: Promise<{ id: str
 
       {/* FLOAT ACTION BAR */}
       {!isViewOnly && (
-        <div className="fixed bottom-0 left-[260px] right-0 p-4 bg-white/80 backdrop-blur-md border-t border-slate-200 shadow-[0_-10px_30px_rgba(0,0,0,0.05)] flex items-center justify-between z-40 transition-all md:w-[calc(100%-260px)] w-full ml-[-260px] md:ml-0">
-           <button onClick={() => router.back()} className="px-6 py-2.5 rounded-lg border border-slate-300 text-slate-700 font-bold hover:bg-slate-50 transition-colors text-sm">
+        <div className="fixed bottom-0 left-0 md:left-[260px] right-0 py-3 px-4 sm:px-6 bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3 z-40 transition-all rounded-t-2xl md:rounded-tr-none">
+           <button onClick={() => router.back()} className="px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg border border-slate-300 text-slate-700 font-bold hover:bg-slate-50 transition-colors text-xs sm:text-sm text-center">
              Batalkan
            </button>
-           <div className="flex gap-3">
+           <div className="flex flex-wrap gap-2 sm:gap-3 justify-end">
              {isPendingApproval ? (
                /* Status: Menunggu Persetujuan → only allow recall */
-               <button onClick={handleRecall} className="px-8 py-2.5 rounded-lg bg-orange-500 text-white font-bold hover:bg-orange-600 transition-colors shadow-lg shadow-orange-500/30 text-sm flex gap-2 items-center">
+               <button onClick={handleRecall} className="w-full sm:w-auto px-5 sm:px-8 py-2 sm:py-2.5 rounded-lg bg-orange-500 text-white font-bold hover:bg-orange-600 transition-colors shadow-lg shadow-orange-500/30 text-xs sm:text-sm flex gap-2 items-center justify-center whitespace-nowrap">
                  <span className="material-icons-round text-[18px]">undo</span> Tarik Kembali ke Draft
                </button>
              ) : formData.status_kegiatan === 'Draft' ? (
                <>
-                 <button onClick={() => handleUpdate('Draft')} className="px-6 py-2.5 rounded-lg bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 transition-colors text-sm border border-slate-200">
+                 <button onClick={() => handleUpdate('Draft')} className="flex-1 sm:flex-none px-3.5 sm:px-6 py-2 sm:py-2.5 rounded-lg bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 transition-colors text-xs sm:text-sm border border-slate-200 whitespace-nowrap">
                    Simpan sebagai Draft
                  </button>
-                 <button onClick={() => setShowConfirmDialog(true)} className="px-8 py-2.5 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/30 text-sm flex gap-2 items-center">
-                   <span className="material-icons-round text-[18px]">send</span> Ajukan Jadwal Acara
+                 <button onClick={() => setShowConfirmDialog(true)} className="flex-1 sm:flex-none px-4 sm:px-8 py-2 sm:py-2.5 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/30 text-xs sm:text-sm flex gap-1.5 sm:gap-2 items-center justify-center whitespace-nowrap">
+                   <span className="material-icons-round text-[16px] sm:text-[18px]">send</span> Ajukan Jadwal Acara
                  </button>
                </>
              ) : formData.status_kegiatan === 'Ditolak' ? (

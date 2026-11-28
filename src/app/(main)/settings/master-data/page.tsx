@@ -547,10 +547,10 @@ export default function MasterDataPage() {
       </div>
 
       {/* 2-column layout */}
-      <div className="flex gap-5 items-start">
+      <div className="flex flex-col lg:flex-row gap-5 items-start">
 
         {/* ── Left Nav ── */}
-        <div className="w-52 shrink-0 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden sticky top-4 print:hidden">
+        <div className="w-full lg:w-52 shrink-0 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden lg:sticky lg:top-4 print:hidden">
           {groups.map(g => {
             const gs2 = GS[g.color];
             return (
@@ -559,21 +559,23 @@ export default function MasterDataPage() {
                   <span className={`material-icons-round text-[14px] ${gs2.text}`}>{g.icon}</span>
                   <span className={`text-[10px] font-bold uppercase tracking-widest font-sans ${gs2.text}`}>{g.name}</span>
                 </div>
+                <div className="flex flex-wrap lg:flex-col gap-1 px-2 pb-2 lg:p-0 lg:gap-0">
                 {g.tabs.map(([key, cfg]) => {
                   const active = activeTab === key;
                   return (
                     <button
                       key={key}
                       onClick={() => setActiveTab(key)}
-                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium transition-all text-left font-sans ${
+                      className={`w-auto lg:w-full flex items-center gap-2 lg:gap-2.5 px-3 py-2 lg:py-2.5 text-xs sm:text-sm font-medium transition-all text-left font-sans rounded-lg lg:rounded-none ${
                         active ? `${gs2.activeBg} text-white` : 'text-slate-600 hover:bg-slate-50'
                       }`}
                     >
-                      <span className={`material-icons-round text-[18px] shrink-0 ${active ? 'text-white' : gs2.text}`}>{cfg.icon}</span>
+                      <span className={`material-icons-round text-[16px] lg:text-[18px] shrink-0 ${active ? 'text-white' : gs2.text}`}>{cfg.icon}</span>
                       {cfg.label}
                     </button>
                   );
                 })}
+                </div>
                 <div className="border-b border-slate-100 mx-3" />
               </div>
             );
@@ -581,13 +583,13 @@ export default function MasterDataPage() {
         </div>
 
         {/* ── Right Content ── */}
-        <div className="flex-1 min-w-0 flex flex-col gap-4">
+        <div className="w-full lg:flex-1 min-w-0 flex flex-col gap-4">
 
           {/* Header band */}
           {activeTab !== 'komponen_gaji' && activeTab !== 'template_survei' && activeTab !== 'wilayah' && (
-          <div className={`${gs.activeBg} rounded-xl px-5 py-4 flex items-center justify-between gap-4`}>
+          <div className={`${gs.activeBg} rounded-xl px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4`}>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center shrink-0">
                 <span className="material-icons-round text-white text-[22px]">{tab.icon}</span>
               </div>
               <div>
@@ -597,7 +599,7 @@ export default function MasterDataPage() {
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0 print:hidden">
+            <div className="flex flex-wrap items-center gap-2 shrink-0 print:hidden">
               <button
                 onClick={() => window.print()}
                 className="flex items-center gap-1.5 px-4 py-2 bg-white/10 hover:bg-white/20 text-white/80 hover:text-white text-sm font-semibold rounded-lg transition-colors font-sans border border-white/20"
