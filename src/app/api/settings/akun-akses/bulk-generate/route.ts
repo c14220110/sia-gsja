@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
         j.nama_lengkap, 
         j.email,
         j.no_hp,
+        j.satelit_id,
         s.nama_satelit,
         j.tanggal_lahir,
         CASE WHEN p.id IS NOT NULL THEN true ELSE false END as has_account

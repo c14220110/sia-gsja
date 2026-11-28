@@ -127,6 +127,7 @@ export default function AkunAksesPage() {
   // State untuk buat akun massal nih
   const [dataBulk, setDataBulk] = useState<any[]>([]);
   const [filterBulkStatus, setFilterBulkStatus] = useState<string>('no_account'); // 'all' | 'no_account'
+  const [filterBulkSatelit, setFilterBulkSatelit] = useState<string>('');
   const [bulkSearchQuery, setBulkSearchQuery] = useState('');
   const [selectedBulkIds, setSelectedBulkIds] = useState<number[]>([]);
   const [isBulkLoading, setIsBulkLoading] = useState(false);
@@ -390,6 +391,7 @@ export default function AkunAksesPage() {
 
   const filteredBulk = dataBulk.filter(j => {
     if (bulkSearchQuery && !j.nama_lengkap?.toLowerCase().includes(bulkSearchQuery.toLowerCase())) return false;
+    if (filterBulkSatelit && String(j.satelit_id || '') !== filterBulkSatelit) return false;
     return true;
   });
   const bulkItemsPerPage = 50;
@@ -760,6 +762,14 @@ export default function AkunAksesPage() {
                 <input type="text" placeholder="Cari nama jemaat..." 
                   className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-sans"
                   value={bulkSearchQuery} onChange={e => { setBulkSearchQuery(e.target.value); setBulkPage(1); }} />
+              </div>
+              <div className="relative min-w-[200px]">
+                <select className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700 font-sans text-sm cursor-pointer"
+                  value={filterBulkSatelit} onChange={e => { setFilterBulkSatelit(e.target.value); setBulkPage(1); setSelectedBulkIds([]); }}>
+                  <option value="">Semua Satelit</option>
+                  {satelitOptions.map((s: any) => <option key={s.id} value={s.id}>{s.nama_satelit}</option>)}
+                </select>
+                <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
               </div>
               <div className="relative min-w-[200px]">
                 <select className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700 font-sans text-sm cursor-pointer" 
