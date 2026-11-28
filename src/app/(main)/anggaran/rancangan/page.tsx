@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { AlertModal } from '@/components/ui/AlertModal';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
 import AnggaranTimeline from '@/components/anggaran/AnggaranTimeline';
+import ImportAnggaranModal from '@/components/ui/ImportAnggaranModal';
 
 type AnggaranItem = {
   id: string;
@@ -49,6 +50,15 @@ export default function RancanganAnggaranPage() {
 
   // State linimasa perjalanan
   const [timelineId, setTimelineId] = useState<string | null>(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
+  const reloadAnggaranList = async () => {
+    try {
+      const res = await fetch('/api/anggaran/tahunan');
+      const json = await res.json();
+      if (json.success) setData(json.data);
+    } catch {}
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -211,6 +221,12 @@ export default function RancanganAnggaranPage() {
       <SubmitOverlay status={deleteState.status} message={deleteState.message} onClose={() => setDeleteState({ status: 'idle', message: '' })} />
       {/* ✅❌ SubmitOverlay feedback batalkan */}
       <SubmitOverlay status={batalState.status} message={batalState.message} onClose={() => setBatalState({ status: 'idle', message: '' })} />
+      <ImportAnggaranModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        userData={userData}
+        onImportSuccess={reloadAnggaranList}
+      />
 
       {/* Modal Batalkan RA */}
       {batalTarget && (
@@ -268,10 +284,20 @@ export default function RancanganAnggaranPage() {
             ) : null;
           })()}
           {isAuthorizedToCreate && (
-            <Link href="/anggaran/rancangan/new" className="px-5 py-2.5 bg-slate-700 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none">
-              <span className="material-icons-round text-white text-[20px]">add</span>
-              <span className="text-white text-sm font-bold font-sans leading-5">Buat Rancangan Baru</span>
-            </Link>
+            <>
+              <button
+                type="button"
+                onClick={() => setIsImportModalOpen(true)}
+                className="px-4 py-2.5 bg-emerald-600 rounded-lg flex justify-start items-center gap-2 hover:bg-emerald-700 transition-colors shadow-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+              >
+                <span className="material-icons-round text-white text-[20px]">upload_file</span>
+                <span className="text-white text-sm font-bold font-sans leading-5">Import Excel</span>
+              </button>
+              <Link href="/anggaran/rancangan/new" className="px-5 py-2.5 bg-slate-700 rounded-lg flex justify-start items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm focus:ring-2 focus:ring-slate-500 focus:outline-none">
+                <span className="material-icons-round text-white text-[20px]">add</span>
+                <span className="text-white text-sm font-bold font-sans leading-5">Buat Rancangan Baru</span>
+              </Link>
+            </>
           )}
         </div>
       </div>
