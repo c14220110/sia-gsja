@@ -70,7 +70,8 @@ export async function POST(req: NextRequest) {
     `;
     const { rows: jemaatList } = await pool.query(jemaatQuery, [jemaat_ids]);
 
-    let noIdentifierCount = 0;
+    let preSkippedCount = 0;
+    const preSkippedList: { nama: string; alasan: string }[] = [];
     const dataToInsert = [];
 
     for (const j of jemaatList) {
@@ -80,7 +81,8 @@ export async function POST(req: NextRequest) {
       const hasNoHp = cleanNoHp !== '';
 
       if (!hasEmail && !hasNoHp) {
-        noIdentifierCount++;
+        preSkippedCount++;
+        preSkippedList.push({ nama: j.nama_lengkap || `jemaat_id: ${j.id}`, alasan: 'tidak memiliki email/no. handphone' });
         continue;
       }
 
@@ -111,11 +113,14 @@ export async function POST(req: NextRequest) {
     const result = await akunAksesRepository.bulkCreatePengguna(dataToInsert);
 
     if (result.success) {
-      const skipped = result.noIdentifierCount ?? 0;
-      const skippedList = result.skippedList ?? [];
+      const skippedList = [...preSkippedList, ...(result.skippedList ?? [])];
+      const skipped = preSkippedCount + (result.noIdentifierCount ?? 0);
+      const detailAlasan = skippedList.length > 0
+        ? '\n' + skippedList.slice(0, 10).map(s => `• ${s.nama}: ${s.alasan}`).join('\n') + (skippedList.length > 10 ? `\n...dan ${skippedList.length - 10} lainnya.` : '')
+        : '';
       return NextResponse.json({ 
         success: true, 
-        message: 'Berhasil membuat ' + result.createdCount + ' akun.' + (skipped > 0 ? ' ' + skipped + ' jemaat dilewati.' : ''),
+        message: 'Berhasil membuat ' + result.createdCount + ' akun.' + (skipped > 0 ? ' ' + skipped + ' jemaat dilewati:' + detailAlasan : ''),
         createdCount: result.createdCount,
         noIdentifierCount: skipped,
         skippedList

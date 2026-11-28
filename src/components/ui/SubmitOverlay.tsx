@@ -43,7 +43,7 @@ export function SubmitOverlay({ status, message, errors, onClose, successButtonT
             <div className="w-40 h-40">
               <DotLottieReact id="lottie-success" src="/assets/success-check-fill-FPiuzFU9Hy.lottie" autoplay loop={false} />
             </div>
-            <p className="mt-2 text-slate-800 font-bold text-center text-lg">{message}</p>
+            <p className="mt-2 text-slate-800 font-bold text-center text-base whitespace-pre-line max-h-60 overflow-y-auto">{message}</p>
             <button onClick={onClose} className="mt-8 w-full py-2.5 bg-slate-800 text-white font-medium rounded-xl hover:bg-slate-700 transition-colors focus:ring-4 focus:ring-slate-200">
               {successButtonText || 'Lanjutkan'}
             </button>
@@ -55,7 +55,7 @@ export function SubmitOverlay({ status, message, errors, onClose, successButtonT
             <div className="w-32 h-32">
               <DotLottieReact id="lottie-error" src="/assets/error-animation.lottie" autoplay loop={false} />
             </div>
-            <p className="mt-4 text-rose-600 font-bold text-center text-lg">{message}</p>
+            <p className="mt-4 text-rose-600 font-bold text-center text-base whitespace-pre-line max-h-60 overflow-y-auto">{message}</p>
             {errors && Object.keys(errors).length > 0 && (
                <div className="mt-5 w-full bg-rose-50/80 p-4 rounded-xl border border-rose-100 max-h-48 overflow-y-auto text-sm text-rose-700">
                  <ul className="list-disc pl-4 space-y-1">
