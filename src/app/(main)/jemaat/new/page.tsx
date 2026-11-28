@@ -194,7 +194,7 @@ export default function NewJemaatPage() {
         if (pekrData.success) setPekerjaanOptions(pekrData.data);
         if (authData) {
           setUserData(authData);
-          if (authData.role_name === 'GEMBALA SATELIT') {
+          if (!authData.is_super_admin && !authData.permissions?.includes('multi_satelit_view') && authData.satelit_id) {
             setFormData(prev => ({ ...prev, satelit_id: authData.satelit_id?.toString() || '' }));
           }
           
@@ -877,9 +877,9 @@ export default function NewJemaatPage() {
                         name="satelit_id" 
                         value={formData.satelit_id} 
                         onChange={handleInputChange} 
-                        disabled={userData?.role_name === 'GEMBALA SATELIT'}
+                        disabled={Boolean(userData && !userData.is_super_admin && !userData.permissions?.includes('multi_satelit_view') && userData.satelit_id)}
                         className={`px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-900 text-sm font-sans w-full transition-all ${
-                          userData?.role_name === 'GEMBALA SATELIT' ? 'bg-slate-200 cursor-not-allowed opacity-70' : 'bg-white focus:border-blue-500 scrollbar-hide'
+                          userData && !userData.is_super_admin && !userData.permissions?.includes('multi_satelit_view') && userData.satelit_id ? 'bg-slate-200 cursor-not-allowed opacity-70' : 'bg-white focus:border-blue-500 scrollbar-hide'
                         }`}
                       >
                         {userData?.role_name !== 'GEMBALA SATELIT' && <option value="">-- Pilih Satelit Utama --</option>}

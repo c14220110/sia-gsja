@@ -110,6 +110,15 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
+    if (!caller.is_super_admin && !caller.permissions.includes('multi_satelit_view')) {
+      if (Number(body.satelit_id) !== Number(caller.satelit_id)) {
+        return NextResponse.json({
+          success: false,
+          message: 'Akses Ditolak: Anda hanya dapat mendaftarkan jemaat pada satelit Anda sendiri.',
+        }, { status: 403 });
+      }
+    }
+
     // Validasi username unik SEBELUM membuat data jemaat (hindari orphan data)
     if (body.tidak_punya_kontak && body.username) {
       const username = body.username.trim();

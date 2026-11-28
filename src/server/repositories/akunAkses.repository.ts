@@ -73,7 +73,14 @@ export class AkunAksesRepository {
   /**
    * Mengambil daftar akun pengguna beserta role
    */
-  async getPenggunaList(): Promise<any[]> {
+  async getPenggunaList(satelitScopeId?: number): Promise<any[]> {
+    const params: any[] = [];
+    let havingClause = '';
+    if (typeof satelitScopeId === 'number' && !Number.isNaN(satelitScopeId)) {
+      params.push(satelitScopeId);
+      havingClause = `HAVING j.satelit_id = $1 OR pg.satelit_id = $1 OR BOOL_OR(urc.satelit_id = $1)`;
+    }
+
     const res = await pool.query(`
       WITH user_roles_combined AS (
         -- Role dari tabel user_role
@@ -137,8 +144,8 @@ export class AkunAksesRepository {
       )
       SELECT 
         p.id, p.email, p.no_hp, p.username, p.is_active, p.last_login_at, p.jemaat_id,
-        j.nama_lengkap, j.jemaat_id AS jemaat_id_str, j.foto_url,
-        pg.id AS pegawai_id, pg.id_pegawai AS pegawai_kode, pg.nama_lengkap AS pegawai_nama,
+        j.nama_lengkap, j.jemaat_id AS jemaat_id_str, j.foto_url, j.satelit_id AS jemaat_satelit_id,
+        pg.id AS pegawai_id, pg.id_pegawai AS pegawai_kode, pg.nama_lengkap AS pegawai_nama, pg.satelit_id AS pegawai_satelit_id,
         COALESCE(
           json_agg(
             json_build_object(
@@ -156,9 +163,10 @@ export class AkunAksesRepository {
       LEFT JOIN jemaat j ON p.jemaat_id = j.id
       LEFT JOIN pegawai pg ON pg.user_id = p.id
       LEFT JOIN user_roles_combined urc ON p.id = urc.user_id
-      GROUP BY p.id, j.id, pg.id
+      GROUP BY p.id, j.id, j.satelit_id, pg.id, pg.satelit_id
+      ${havingClause}
       ORDER BY p.created_at DESC
-    `);
+    `, params);
     return res.rows;
   }
 

@@ -43,7 +43,11 @@ export async function GET(request: Request) {
     } else if (type === 'jemaat_search') {
       const q = searchParams.get('q') || '';
       const onlyActive = searchParams.get('only_active') === 'true';
-      data = await masterRepository.searchJemaat(q, onlyActive);
+      const mustScopeSatelit =
+        !caller.is_super_admin &&
+        !caller.permissions?.includes('multi_satelit_view') &&
+        (caller.permissions?.includes('akun_satelit_manage') || searchParams.get('satelit_scope') === 'self');
+      data = await masterRepository.searchJemaat(q, onlyActive, mustScopeSatelit ? caller.satelit_id : undefined);
     } else if (type === 'pelayan_search') {
       const q = searchParams.get('q') || '';
       const roleId = searchParams.get('role_id') || undefined;
@@ -80,16 +84,22 @@ export async function GET(request: Request) {
         : null;
       data = await masterRepository.getApprovedAnggaranOptions(satelitFilter);
     } else if (type === 'pegawai_simple') {
-      if (!caller.is_super_admin && !caller.permissions?.includes('user_access_manage')) {
+      if (
+        !caller.is_super_admin &&
+        !caller.permissions?.includes('user_access_manage') &&
+        !caller.permissions?.includes('akun_satelit_manage')
+      ) {
         return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
       }
+      const isSatelitRestricted = !caller.is_super_admin && !caller.permissions?.includes('multi_satelit_view');
       const res = await pool.query(`
         SELECT p.id, p.id_pegawai, p.nama_lengkap, p.user_id, p.satelit_id, s.nama_satelit
         FROM public.pegawai p
         LEFT JOIN public.satelit s ON s.id = p.satelit_id
         WHERE UPPER(COALESCE(p.status_pegawai, 'AKTIF')) = 'AKTIF'
+          ${isSatelitRestricted ? 'AND p.satelit_id = $1' : ''}
         ORDER BY p.nama_lengkap ASC
-      `);
+      `, isSatelitRestricted ? [caller.satelit_id] : []);
       data = res.rows;
     } else if (type === 'pengguna') {
       if (

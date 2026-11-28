@@ -20,7 +20,7 @@ export async function GET(request: Request) {
 
     // Sekretaris Satelit: only see their own satelit
     // Sekretaris Pusat (satelit_id=1) and SuperAdmin: see all
-    if (!caller.is_super_admin && caller.satelit_id && caller.satelit_id !== 1) {
+    if (!caller.is_super_admin && !caller.permissions?.includes('multi_satelit_view') && caller.satelit_id) {
       queryParams.push(caller.satelit_id);
       whereConditions.push(`p.satelit_id = $${queryParams.length}`);
     }

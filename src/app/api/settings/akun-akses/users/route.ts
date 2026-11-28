@@ -1,16 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { akunAksesRepository } from '@/server/repositories/akunAkses.repository';
 import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
+import {
+  PROTECTED_USER_MANAGEMENT_ROLES,
+  canManageAkunAksesUsers,
+  isSatelitScopedUserManager,
+  checkTargetUserForSatelitAdmin,
+  validateSatelitAdminPayload,
+} from '@/server/utils/akunSatelitGuard';
 import bcrypt from 'bcryptjs';
 
 export async function GET(req: NextRequest) {
   try {
     const caller = await getCallerFromRequest(req);
-    if (!caller || !caller.is_super_admin) {
+    if (!caller || !canManageAkunAksesUsers(caller)) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
 
-    const data = await akunAksesRepository.getPenggunaList();
+    const scopedSatelit = isSatelitScopedUserManager(caller) ? caller.satelit_id : undefined;
+    const rawData = await akunAksesRepository.getPenggunaList(scopedSatelit);
+
+    const data = isSatelitScopedUserManager(caller)
+      ? rawData.map((u: any) => {
+          const roles = Array.isArray(u.roles) ? u.roles : [];
+          const hasProtectedRole = roles.some((r: any) =>
+            (PROTECTED_USER_MANAGEMENT_ROLES as readonly string[]).includes(String(r.role_name || '').toUpperCase())
+          );
+          const hasCrossSatelitRole = roles.some(
+            (r: any) => Number(r.satelit_id) !== Number(caller.satelit_id)
+          );
+          const crossJemaat = u.jemaat_id && Number(u.jemaat_satelit_id) !== Number(caller.satelit_id);
+          const crossPegawai = u.pegawai_id && Number(u.pegawai_satelit_id) !== Number(caller.satelit_id);
+          return {
+            ...u,
+            is_locked_for_satelit_admin:
+              hasProtectedRole || hasCrossSatelitRole || Boolean(crossJemaat) || Boolean(crossPegawai),
+          };
+        })
+      : rawData;
+
     return NextResponse.json({ success: true, data });
   } catch (error: any) {
     console.error('Error in /api/settings/akun-akses/users GET:', error);
@@ -21,7 +49,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const caller = await getCallerFromRequest(req);
-    if (!caller || !caller.is_super_admin) {
+    if (!caller || !canManageAkunAksesUsers(caller)) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
 
@@ -38,6 +66,17 @@ export async function POST(req: NextRequest) {
     }
     if (!hasAutoLinkedRole && roleList.length === 0) {
       return NextResponse.json({ success: false, message: 'Pilih minimal 1 Role Inti, atau tautkan akun ke Data Jemaat / Data Pegawai.' }, { status: 400 });
+    }
+
+    if (isSatelitScopedUserManager(caller)) {
+      const check = await validateSatelitAdminPayload(caller.satelit_id, {
+        jemaat_id: jemaat_id || null,
+        pegawai_id: pegawai_id || null,
+        roles: roleList,
+      });
+      if (!check.allowed) {
+        return NextResponse.json({ success: false, message: check.message }, { status: 403 });
+      }
     }
 
     const saltRounds = 10;
@@ -65,7 +104,7 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     const caller = await getCallerFromRequest(req);
-    if (!caller || !caller.is_super_admin) {
+    if (!caller || !canManageAkunAksesUsers(caller)) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
 
@@ -74,6 +113,13 @@ export async function PATCH(req: NextRequest) {
 
     if (typeof user_id !== 'number' || typeof is_active !== 'boolean') {
       return NextResponse.json({ success: false, message: 'Parameter user_id dan is_active diperlukan' }, { status: 400 });
+    }
+
+    if (isSatelitScopedUserManager(caller)) {
+      const targetCheck = await checkTargetUserForSatelitAdmin(user_id, caller.satelit_id);
+      if (!targetCheck.allowed) {
+        return NextResponse.json({ success: false, message: targetCheck.message }, { status: 403 });
+      }
     }
 
     const result = await akunAksesRepository.toggleUserStatus(user_id, is_active);
@@ -92,7 +138,7 @@ export async function PATCH(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     const caller = await getCallerFromRequest(req);
-    if (!caller || !caller.is_super_admin) {
+    if (!caller || !canManageAkunAksesUsers(caller)) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
 
@@ -101,6 +147,21 @@ export async function PUT(req: NextRequest) {
 
     if (!user_id) {
       return NextResponse.json({ success: false, message: 'user_id diperlukan' }, { status: 400 });
+    }
+
+    if (isSatelitScopedUserManager(caller)) {
+      const targetCheck = await checkTargetUserForSatelitAdmin(Number(user_id), caller.satelit_id);
+      if (!targetCheck.allowed) {
+        return NextResponse.json({ success: false, message: targetCheck.message }, { status: 403 });
+      }
+      const payloadCheck = await validateSatelitAdminPayload(caller.satelit_id, {
+        jemaat_id: typeof jemaat_id === 'number' ? jemaat_id : null,
+        pegawai_id: typeof pegawai_id === 'number' ? pegawai_id : null,
+        roles: Array.isArray(roles) ? roles : undefined,
+      });
+      if (!payloadCheck.allowed) {
+        return NextResponse.json({ success: false, message: payloadCheck.message }, { status: 403 });
+      }
     }
 
     const updateData: any = {};

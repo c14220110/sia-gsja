@@ -1202,7 +1202,13 @@ export default function EditJemaatPage() {
                   <div className="w-full flex-col gap-4 flex">
                     <div className="w-full flex-col gap-1 flex">
                       <label className="text-slate-400 text-xs font-bold font-sans uppercase leading-4">Nama Satelit {!isReadOnly && <span className="text-red-500">*</span>}</label>
-                      <select name="satelit_id" value={formData.satelit_id} onChange={handleInputChange} className="px-3 py-2 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all">
+                      <select
+                        name="satelit_id"
+                        value={formData.satelit_id}
+                        onChange={handleInputChange}
+                        disabled={Boolean(userData && !userData.is_super_admin && !userData.permissions?.includes('multi_satelit_view') && userData.satelit_id)}
+                        className={`px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 text-sm font-sans w-full transition-all ${userData && !userData.is_super_admin && !userData.permissions?.includes('multi_satelit_view') && userData.satelit_id ? 'bg-slate-200 cursor-not-allowed opacity-70' : 'bg-white'}`}
+                      >
                         <option value="">-- Pilih Satelit Utama --</option>
                         {satelitOptions.map((s) => (
                           <option key={s.id} value={s.id}>{s.nama_satelit}</option>
