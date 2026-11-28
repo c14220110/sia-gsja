@@ -162,9 +162,16 @@ export default function AkunAksesPage() {
   const fetchBulkData = async (filter: string = 'no_account') => {
     try {
       setIsBulkLoading(true);
-      const res = await fetch(`/api/settings/akun-akses/bulk-generate?filter=${filter}`);
+      const [res, resSat] = await Promise.all([
+        fetch(`/api/settings/akun-akses/bulk-generate?filter=${filter}`),
+        satelitOptions.length === 0 ? fetch('/api/options?type=satelit') : Promise.resolve(null),
+      ]);
       const json = await res.json();
       if (json.success) { setDataBulk(json.data); setSelectedBulkIds([]); setBulkPage(1); }
+      if (resSat) {
+        const jsonSat = await resSat.json();
+        if (jsonSat.success) setSatelitOptions(jsonSat.data);
+      }
     } catch(e) { console.error(e); } finally { setIsBulkLoading(false); }
   };
 
