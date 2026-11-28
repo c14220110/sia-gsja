@@ -36,21 +36,6 @@ function readCellText(cell: ExcelJS.Cell): string {
   return '';
 }
 
-function readCellNumber(cell: ExcelJS.Cell): number {
-  const master = cell.master || cell;
-  const v = master.value;
-  if (v === null || v === undefined) return 0;
-  if (typeof v === 'number') return Number.isFinite(v) ? Math.round(v) : 0;
-  if (typeof v === 'object' && 'result' in v) {
-    const res = v.result;
-    if (typeof res === 'number' && Number.isFinite(res)) return Math.round(res);
-    if (typeof res === 'string') return parseNumericString(res);
-    return 0;
-  }
-  if (typeof v === 'string') return parseNumericString(v);
-  return 0;
-}
-
 function parseNumericString(raw: string): number {
   const cleaned = raw.replace(/rp\.?/gi, '').replace(/\s+/g, '').trim();
   if (!cleaned || cleaned === '-') return 0;
@@ -61,6 +46,93 @@ function parseNumericString(raw: string): number {
   return Number.isFinite(num) && num > 0 ? Math.round(num) : 0;
 }
 
+function evalSimpleFormula(ws: ExcelJS.Worksheet, formula: string, visited: Set<string>): number {
+  let expr = formula.trim().replace(/^=/, '');
+  if (!expr) return 0;
+
+  // Replace SUM(A1:B2) with computed totals
+  expr = expr.replace(/SUM\(\s*([A-Z]+\d+)\s*:\s*([A-Z]+\d+)\s*\)/gi, (_m, startRef, endRef) => {
+    try {
+      const sCell = ws.getCell(startRef.toUpperCase());
+      const eCell = ws.getCell(endRef.toUpperCase());
+      const r1 = Math.min(Number(sCell.row), Number(eCell.row));
+      const r2 = Math.max(Number(sCell.row), Number(eCell.row));
+      const c1 = Math.min(Number(sCell.col), Number(eCell.col));
+      const c2 = Math.max(Number(sCell.col), Number(eCell.col));
+      let sum = 0;
+      const seenAddr = new Set<string>();
+      for (let r = r1; r <= r2; r++) {
+        for (let c = c1; c <= c2; c++) {
+          const cell = ws.getRow(r).getCell(c);
+          const master = cell.master || cell;
+          if (seenAddr.has(master.address)) continue;
+          seenAddr.add(master.address);
+          sum += readCellNumber(ws, master, visited);
+        }
+      }
+      return String(sum);
+    } catch {
+      return '0';
+    }
+  });
+
+  // Replace percentages like 10% -> (10/100)
+  expr = expr.replace(/(\d+(?:\.\d+)?)%/g, '($1/100)');
+
+  // Replace individual cell references like K28 or $K$28
+  expr = expr.replace(/\$?([A-Z]{1,3})\$?(\d+)/gi, (_m, colStr, rowStr) => {
+    const addr = `${colStr.toUpperCase()}${rowStr}`;
+    try {
+      return String(readCellNumber(ws, ws.getCell(addr), visited));
+    } catch {
+      return '0';
+    }
+  });
+
+  // Safe arithmetic evaluation only if expression contains digits/operators/spaces/parens
+  if (!/^[\d.+\-*/()\s]+$/.test(expr)) return 0;
+  try {
+    const val = Function(`"use strict"; return (${expr});`)();
+    return typeof val === 'number' && Number.isFinite(val) && val > 0 ? Math.round(val) : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function readCellNumber(ws: ExcelJS.Worksheet, cell: ExcelJS.Cell, visited = new Set<string>()): number {
+  const master = cell.master || cell;
+  if (visited.has(master.address)) return 0;
+  const v = master.value;
+  if (v === null || v === undefined) return 0;
+  if (typeof v === 'number') return Number.isFinite(v) && v > 0 ? Math.round(v) : 0;
+  if (typeof v === 'object') {
+    if ('result' in v && v.result !== undefined && v.result !== null) {
+      const res = v.result;
+      if (typeof res === 'number') return Number.isFinite(res) && res > 0 ? Math.round(res) : 0;
+      if (typeof res === 'string') return parseNumericString(res);
+      return 0;
+    }
+    if ('formula' in v && typeof v.formula === 'string') {
+      const nextVisited = new Set(visited);
+      nextVisited.add(master.address);
+      return evalSimpleFormula(ws, v.formula, nextVisited);
+    }
+    return 0;
+  }
+  if (typeof v === 'string') return parseNumericString(v);
+  return 0;
+}
+
+function readSpanNumber(ws: ExcelJS.Worksheet, row: ExcelJS.Row, startCol: number, endCol: number): number {
+  const from = Math.max(1, startCol);
+  const to = Math.max(from, endCol);
+  for (let c = from; c <= to; c++) {
+    const n = readCellNumber(ws, row.getCell(c));
+    if (n > 0) return n;
+  }
+  return 0;
+}
+
 function detectColumns(ws: ExcelJS.Worksheet) {
   let headerRow = -1;
   let colUraianStart = 1;
@@ -69,10 +141,15 @@ function detectColumns(ws: ExcelJS.Worksheet) {
   let colSwadaya = 0;
   let colTotal = 0;
 
-  for (let r = 1; r <= Math.min(10, ws.rowCount); r++) {
+  const maxCol = Math.min(35, ws.columnCount || 26);
+
+  // Scan ALL rows so real Proker workbooks (where 4. ANGGARAN starts at row 25+) are detected accurately
+  for (let r = 1; r <= ws.rowCount; r++) {
     const row = ws.getRow(r);
     let foundUraian = false;
-    for (let c = 1; c <= Math.min(30, ws.columnCount || 24); c++) {
+    let foundPenerimaanInRow = 0;
+
+    for (let c = 1; c <= maxCol; c++) {
       const cell = row.getCell(c);
       const masterCol = Number((cell.master || cell).col) || c;
       const txt = readCellText(cell).toUpperCase();
@@ -80,8 +157,8 @@ function detectColumns(ws: ExcelJS.Worksheet) {
         foundUraian = true;
         colUraianStart = masterCol;
       }
-      if (txt === 'PENERIMAAN' && masterCol > colUraianStart && !colPenerimaan) {
-        colPenerimaan = masterCol;
+      if (txt === 'PENERIMAAN' && masterCol > colUraianStart && !foundPenerimaanInRow) {
+        foundPenerimaanInRow = masterCol;
       }
       if ((txt.includes('KAS GEREJA') || txt === 'KAS PUSAT' || txt === 'PUSAT') && !colKasGereja) {
         colKasGereja = masterCol;
@@ -89,27 +166,55 @@ function detectColumns(ws: ExcelJS.Worksheet) {
       if (txt === 'SWADAYA' && !colSwadaya) {
         colSwadaya = masterCol;
       }
-      if (txt === 'TOTAL' && masterCol > (colPenerimaan || colUraianStart) && !colTotal) {
+      if (txt === 'TOTAL' && masterCol > (foundPenerimaanInRow || colPenerimaan || colUraianStart) && !colTotal) {
         colTotal = masterCol;
       }
     }
-    if (foundUraian) {
+
+    if (foundUraian && foundPenerimaanInRow) {
       headerRow = r;
+      colPenerimaan = foundPenerimaanInRow;
+      // Reset sub-headers in case an earlier table had "TOTAL" before the Anggaran header
+      if (colKasGereja < colPenerimaan) colKasGereja = 0;
+      if (colSwadaya < colPenerimaan) colSwadaya = 0;
+      if (colTotal < colPenerimaan) colTotal = 0;
+    } else if (headerRow > 0 && r <= headerRow + 2 && (colKasGereja || colSwadaya || colTotal)) {
+      headerRow = r;
+    }
+
+    if (headerRow > 0 && colPenerimaan && colKasGereja && colSwadaya && colTotal) {
+      break;
     }
   }
 
+  const pCol = colPenerimaan || 10;
+  const kCol = colKasGereja || (pCol + 4);
+  const sCol = colSwadaya || (kCol + 4);
+  const tCol = colTotal || (sCol + 4);
+
   return {
+    foundHeader: headerRow > 0 && colPenerimaan > 0,
     startRow: headerRow > 0 ? headerRow + 1 : 4,
     colUraianStart,
-    colPenerimaan: colPenerimaan || 10,
-    colKasGereja: colKasGereja || 14,
-    colSwadaya: colSwadaya || 18,
-    colTotal: colTotal || 22,
+    penerimaanSpan: [pCol, Math.max(pCol, kCol - 1)] as [number, number],
+    kasGerejaSpan: [kCol, Math.max(kCol, sCol - 1)] as [number, number],
+    swadayaSpan: [sCol, Math.max(sCol, tCol - 1)] as [number, number],
+    totalSpan: [tCol, Math.min(tCol + 4, maxCol)] as [number, number],
   };
 }
 
 function parseWorksheet(ws: ExcelJS.Worksheet): { items: ParsedAnggaranItem[]; skippedRows: number } {
-  const { startRow, colUraianStart, colPenerimaan, colKasGereja, colSwadaya, colTotal } = detectColumns(ws);
+  const {
+    foundHeader,
+    startRow,
+    colUraianStart,
+    penerimaanSpan,
+    kasGerejaSpan,
+    swadayaSpan,
+    totalSpan,
+  } = detectColumns(ws);
+  if (!foundHeader) return { items: [], skippedRows: 0 };
+
   const items: ParsedAnggaranItem[] = [];
   let skippedRows = 0;
 
@@ -134,18 +239,24 @@ function parseWorksheet(ws: ExcelJS.Worksheet): { items: ParsedAnggaranItem[]; s
     }
     uraian = uraian.replace(/\s+/g, ' ').trim();
 
-    const penerimaanAmt = readCellNumber(row.getCell(colPenerimaan));
-    const kasGerejaAmt = readCellNumber(row.getCell(colKasGereja));
-    const swadayaAmt = readCellNumber(row.getCell(colSwadaya));
-    const totalAmt = readCellNumber(row.getCell(colTotal));
+    const penerimaanAmt = readSpanNumber(ws, row, penerimaanSpan[0], penerimaanSpan[1]);
+    const kasGerejaAmt = readSpanNumber(ws, row, kasGerejaSpan[0], kasGerejaSpan[1]);
+    const swadayaAmt = readSpanNumber(ws, row, swadayaSpan[0], swadayaSpan[1]);
+    const totalAmt = readSpanNumber(ws, row, totalSpan[0], totalSpan[1]);
     const hasAnyAmount = penerimaanAmt > 0 || kasGerejaAmt > 0 || swadayaAmt > 0 || totalAmt > 0;
 
     if (!uraian && !hasAnyAmount) continue;
 
     const upper = uraian.toUpperCase();
 
-    // Skip summary / total rows
-    if (/^(JUMLAH|TOTAL|SUBTOTAL|SALDO|SURPLUS|DEFISIT)\b/.test(upper)) {
+    // Stop at JUMLAH TOTAL so signatures/other tables below Anggaran are never imported
+    if (/^JUMLAH\s+TOTAL\b/.test(upper)) {
+      skippedRows++;
+      break;
+    }
+
+    // Skip other summary / subtotal rows
+    if (/^(JUMLAH|TOTAL|SUB\s*TOTAL|SALDO|SURPLUS|DEFISIT)\b/.test(upper)) {
       skippedRows++;
       continue;
     }
@@ -261,6 +372,7 @@ export async function POST(request: NextRequest) {
     const rawKomisiId = formData.get('komisi_id');
     const rawNama = String(formData.get('nama_rancangan') || '').trim();
     const rawKategori = String(formData.get('kategori_ra') || 'Operasional').trim();
+    const rawSheetName = String(formData.get('sheet_name') || '').trim();
 
     if (!file || file.size === 0) {
       return NextResponse.json({ success: false, message: 'File Excel (.xlsx) wajib diunggah.' }, { status: 400 });
@@ -287,27 +399,56 @@ export async function POST(request: NextRequest) {
     const wb = new ExcelJS.Workbook();
     await wb.xlsx.load(arrayBuffer);
 
-    // Prefer "Template" sheet if it has parsed items, else try all other sheets (including "Contoh" / custom sheet name)
     let chosenSheetName = '';
     let parsed: { items: ParsedAnggaranItem[]; skippedRows: number } = { items: [], skippedRows: 0 };
 
-    const templateSheet = wb.getWorksheet('Template');
-    if (templateSheet) {
-      const attempt = parseWorksheet(templateSheet);
-      if (attempt.items.length > 0) {
-        chosenSheetName = templateSheet.name;
-        parsed = attempt;
+    if (rawSheetName) {
+      const targetWs = wb.getWorksheet(rawSheetName);
+      if (!targetWs) {
+        return NextResponse.json({ success: false, message: `Sheet "${rawSheetName}" tidak ditemukan di file Excel.` }, { status: 400 });
       }
-    }
-    if (parsed.items.length === 0) {
+      chosenSheetName = targetWs.name;
+      parsed = parseWorksheet(targetWs);
+    } else {
+      const candidateSheets: Array<{
+        name: string;
+        parsed: { items: ParsedAnggaranItem[]; skippedRows: number };
+        totalPenerimaan: number;
+        totalPengeluaran: number;
+      }> = [];
+
       for (const ws of wb.worksheets) {
-        if (ws.name === 'Template') continue;
         const attempt = parseWorksheet(ws);
         if (attempt.items.length > 0) {
-          chosenSheetName = ws.name;
-          parsed = attempt;
-          break;
+          candidateSheets.push({
+            name: ws.name,
+            parsed: attempt,
+            totalPenerimaan: attempt.items.filter((i) => i.jenis_anggaran === 'Penerimaan').reduce((s, i) => s + i.harga_satuan, 0),
+            totalPengeluaran: attempt.items.filter((i) => i.jenis_anggaran === 'Pengeluaran').reduce((s, i) => s + i.harga_satuan, 0),
+          });
         }
+      }
+
+      const templateCandidate = candidateSheets.find((s) => s.name === 'Template');
+      if (templateCandidate) {
+        // Official GSJA template filled in the "Template" sheet -> auto-import immediately
+        chosenSheetName = templateCandidate.name;
+        parsed = templateCandidate.parsed;
+      } else if (candidateSheets.length > 1) {
+        // Multi-sheet Proker workbook (e.g. WILAYAH TENGAH 2, TIMUR 1 & SATELIT BETLEHEM) -> let user pick sheet
+        return NextResponse.json({
+          success: true,
+          needsSheetSelection: true,
+          sheets: candidateSheets.map((s) => ({
+            name: s.name,
+            item_count: s.parsed.items.length,
+            total_penerimaan: s.totalPenerimaan,
+            total_pengeluaran: s.totalPengeluaran,
+          })),
+        });
+      } else if (candidateSheets.length === 1) {
+        chosenSheetName = candidateSheets[0].name;
+        parsed = candidateSheets[0].parsed;
       }
     }
 

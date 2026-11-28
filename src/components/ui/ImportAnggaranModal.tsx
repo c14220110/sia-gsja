@@ -17,6 +17,13 @@ interface ImportAnggaranModalProps {
 
 type ImportStep = 'setup' | 'upload' | 'result';
 
+interface SheetChoice {
+  name: string;
+  item_count: number;
+  total_penerimaan: number;
+  total_pengeluaran: number;
+}
+
 interface ImportSummary {
   id: string;
   kode_dokumen: string;
@@ -50,6 +57,8 @@ export default function ImportAnggaranModal({
   const [downloadLoading, setDownloadLoading] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadLoading, setUploadLoading] = useState(false);
+  const [sheetChoices, setSheetChoices] = useState<SheetChoice[]>([]);
+  const [selectedSheetName, setSelectedSheetName] = useState('');
   const [result, setResult] = useState<ImportSummary | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -109,7 +118,7 @@ export default function ImportAnggaranModal({
     }
   };
 
-  const handleImport = async () => {
+  const handleImport = async (overrideSheetName?: string) => {
     if (!uploadFile || !selectedSatelitId) return;
     setUploadLoading(true);
     setErrorMsg('');
@@ -120,6 +129,8 @@ export default function ImportAnggaranModal({
       fd.append('tahun', tahun);
       fd.append('kategori_ra', kategoriRa);
       if (namaRancangan.trim()) fd.append('nama_rancangan', namaRancangan.trim());
+      const sheetToUse = overrideSheetName || selectedSheetName;
+      if (sheetToUse) fd.append('sheet_name', sheetToUse);
 
       const res = await fetch('/api/anggaran/import-excel', {
         method: 'POST',
@@ -135,6 +146,11 @@ export default function ImportAnggaranModal({
       if (!res.ok || !json?.success) {
         throw new Error(json?.message || 'Import Excel gagal.');
       }
+      if (json.needsSheetSelection && Array.isArray(json.sheets)) {
+        setSheetChoices(json.sheets);
+        setSelectedSheetName(json.sheets[0]?.name || '');
+        return;
+      }
       setResult(json.data);
       setStep('result');
     } catch (err: any) {
@@ -147,6 +163,8 @@ export default function ImportAnggaranModal({
   const handleClose = () => {
     setStep('setup');
     setUploadFile(null);
+    setSheetChoices([]);
+    setSelectedSheetName('');
     setResult(null);
     setErrorMsg('');
     setNamaRancangan('');
@@ -318,10 +336,51 @@ export default function ImportAnggaranModal({
                   className="hidden"
                   onChange={(e) => {
                     setUploadFile(e.target.files?.[0] || null);
+                    setSheetChoices([]);
+                    setSelectedSheetName('');
                     setErrorMsg('');
                   }}
                 />
               </div>
+
+              {sheetChoices.length > 0 && (
+                <div className="flex flex-col gap-2 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                  <div className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                    <span className="material-icons-round text-[16px] text-amber-600">layers</span>
+                    File berisi beberapa sheet satelit/wilayah — pilih sheet yang ingin diimpor:
+                  </div>
+                  <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto">
+                    {sheetChoices.map((sh) => (
+                      <label
+                        key={sh.name}
+                        className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer text-xs transition-colors ${
+                          selectedSheetName === sh.name
+                            ? 'border-emerald-500 bg-white shadow-sm'
+                            : 'border-amber-200 bg-white/70 hover:bg-white'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name="excel_sheet"
+                            checked={selectedSheetName === sh.name}
+                            onChange={() => setSelectedSheetName(sh.name)}
+                            className="accent-emerald-600"
+                          />
+                          <div>
+                            <div className="font-bold text-slate-800">{sh.name}</div>
+                            <div className="text-[11px] text-slate-500">{sh.item_count} item ditemukan</div>
+                          </div>
+                        </div>
+                        <div className="text-right font-mono text-[11px]">
+                          <div className="text-emerald-700 font-bold">+{fmt(sh.total_penerimaan)}</div>
+                          <div className="text-rose-600 font-bold">-{fmt(sh.total_pengeluaran)}</div>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
             </>
           )}
 
@@ -402,8 +461,8 @@ export default function ImportAnggaranModal({
               </button>
               <button
                 type="button"
-                onClick={handleImport}
-                disabled={!uploadFile || uploadLoading}
+                onClick={() => handleImport()}
+                disabled={!uploadFile || uploadLoading || (sheetChoices.length > 0 && !selectedSheetName)}
                 className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-bold flex items-center gap-2 shadow-sm"
               >
                 <span className="material-icons-round text-[18px]">cloud_upload</span>
