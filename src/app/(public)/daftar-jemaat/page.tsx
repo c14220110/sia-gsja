@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 import { SubmitOverlay } from '@/components/ui/SubmitOverlay';
 import { PhotoCaptureButton } from '@/components/ui/PhotoCaptureButton';
 
@@ -77,7 +76,6 @@ const JemaatAutocomplete = ({
 
 // ── Main Page ──────────────────────────────────────────────────────────────
 export default function DaftarJemaatPage() {
-  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitState, setSubmitState] = useState<{ status: 'idle' | 'loading' | 'success' | 'error'; message: string; errors?: any }>({
     status: 'idle', message: '',
@@ -639,7 +637,7 @@ export default function DaftarJemaatPage() {
         status={submitState.status}
         message={submitState.message}
         errors={submitState.errors}
-        successButtonText="Login Sekarang"
+        successButtonText="Oke, Mengerti"
         onClose={() => {
           if (submitState.status === 'success') {
             setFormData({
@@ -672,8 +670,6 @@ export default function DaftarJemaatPage() {
             setUsernameInput('');
             setTidakPunyaKontak(false);
             setSubmitState({ status: 'idle', message: '' });
-            // Arahkan ke halaman login — akun sudah otomatis dibuat
-            router.push('/login');
             return;
           }
           setSubmitState({ status: 'idle', message: '' });

@@ -269,18 +269,25 @@ export async function PUT(
         const defaultPassword = formatDobPassword(p.tanggal_lahir);
         const password_hash = await bcrypt.hash(defaultPassword, 10);
 
-        let finalEmail = hasEmail ? p.email.trim() : null;
-        let finalNoHp = hasNoHp ? p.no_hp.trim() : null;
-        const finalUsername = hasUsername ? p.username.trim() : null;
+        let finalEmail = hasEmail ? p.email.trim().toLowerCase() : null;
+        let finalNoHp = hasNoHp ? p.no_hp.trim().replace(/[\s\-().]/g, '').replace(/^\+?62/, '0') : null;
+        let finalUsername = hasUsername ? p.username.trim() : null;
 
         // Null-kan identifier yang sudah dipakai pengguna lain (jangan gagalkan approve)
         if (finalEmail) {
-          const ec = await client.query(`SELECT id FROM pengguna WHERE email = $1`, [finalEmail]);
+          const ec = await client.query(`SELECT id FROM pengguna WHERE LOWER(email) = LOWER($1)`, [finalEmail]);
           if (ec.rowCount && ec.rowCount > 0) finalEmail = null;
         }
         if (finalNoHp) {
-          const nc = await client.query(`SELECT id FROM pengguna WHERE no_hp = $1`, [finalNoHp]);
+          const nc = await client.query(
+            `SELECT id FROM pengguna WHERE REGEXP_REPLACE(REGEXP_REPLACE(COALESCE(no_hp, ''), '[^0-9]', '', 'g'), '^62', '0') = $1`,
+            [finalNoHp]
+          );
           if (nc.rowCount && nc.rowCount > 0) finalNoHp = null;
+        }
+        if (finalUsername) {
+          const uc = await client.query(`SELECT id FROM pengguna WHERE username = $1`, [finalUsername]);
+          if (uc.rowCount && uc.rowCount > 0) finalUsername = null;
         }
 
         if (finalEmail || finalNoHp || finalUsername) {
