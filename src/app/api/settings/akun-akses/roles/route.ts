@@ -5,7 +5,13 @@ import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
 export async function GET(req: NextRequest) {
   try {
     const caller = await getCallerFromRequest(req);
-    if (!caller || (!caller.is_super_admin && !caller.permissions?.includes('user_access_manage') && !caller.permissions?.includes('akses_sementara_manage'))) {
+    if (
+      !caller ||
+      (!caller.is_super_admin &&
+        !caller.permissions?.includes('user_access_manage') &&
+        !caller.permissions?.includes('akun_satelit_manage') &&
+        !caller.permissions?.includes('akses_sementara_manage'))
+    ) {
       return NextResponse.json({ success: false, message: 'Akses Ditolak: Anda tidak memiliki otoritas untuk melihat daftar role.' }, { status: 403 });
     }
 
@@ -33,8 +39,8 @@ export async function GET(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     const caller = await getCallerFromRequest(req);
-    if (!caller || (!caller.is_super_admin && !caller.permissions?.includes('user_access_manage'))) {
-      return NextResponse.json({ success: false, message: 'Akses Ditolak: Anda tidak memiliki otoritas untuk memodifikasi hak akses role.' }, { status: 403 });
+    if (!caller || !caller.is_super_admin) {
+      return NextResponse.json({ success: false, message: 'Akses Ditolak: Hanya Super Admin yang dapat memodifikasi matrix hak akses role.' }, { status: 403 });
     }
 
     const body = await req.json();

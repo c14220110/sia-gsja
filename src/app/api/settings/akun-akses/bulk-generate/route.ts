@@ -1,20 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { akunAksesRepository } from '@/server/repositories/akunAkses.repository';
 import { getCallerFromRequest } from '@/server/utils/getCallerFromRequest';
+import { canManageAkunAksesUsers, isSatelitScopedUserManager } from '@/server/utils/akunSatelitGuard';
 import bcrypt from 'bcryptjs';
 import pool from '@/lib/db';
 
 export async function GET(req: NextRequest) {
   try {
     const caller = await getCallerFromRequest(req);
-    if (!caller || !caller.is_super_admin) {
+    if (!caller || !canManageAkunAksesUsers(caller)) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
 
     const { searchParams } = new URL(req.url);
     const filter = searchParams.get('filter') || 'all'; // 'all' | 'no_account'
 
-    let query = `
+    const conditions: string[] = ['j.is_deleted = false'];
+    const values: any[] = [];
+    let idx = 1;
+
+    if (filter === 'no_account') {
+      conditions.push('p.id IS NULL');
+    }
+
+    if (isSatelitScopedUserManager(caller)) {
+      conditions.push(`j.satelit_id = $${idx++}`);
+      values.push(caller.satelit_id);
+    }
+
+    const query = `
       SELECT 
         j.id, 
         j.jemaat_id, 
@@ -28,16 +42,11 @@ export async function GET(req: NextRequest) {
       FROM jemaat j
       LEFT JOIN satelit s ON j.satelit_id = s.id
       LEFT JOIN pengguna p ON j.id = p.jemaat_id
-      WHERE j.is_deleted = false
+      WHERE ${conditions.join(' AND ')}
+      ORDER BY j.nama_lengkap ASC
     `;
 
-    if (filter === 'no_account') {
-      query += ` AND p.id IS NULL`;
-    }
-
-    query += ` ORDER BY j.nama_lengkap ASC`;
-
-    const { rows } = await pool.query(query);
+    const { rows } = await pool.query(query, values);
 
     return NextResponse.json({ success: true, data: rows });
   } catch (error: any) {
@@ -49,8 +58,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const caller = await getCallerFromRequest(req);
-    // Hanya Super Admin yang bisa melakukan bulk generate
-    if (!caller || !caller.is_super_admin) {
+    if (!caller || !canManageAkunAksesUsers(caller)) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
 
@@ -70,6 +78,18 @@ export async function POST(req: NextRequest) {
       WHERE id = ANY($1::int[]) AND is_deleted = false
     `;
     const { rows: jemaatList } = await pool.query(jemaatQuery, [jemaat_ids]);
+
+    if (isSatelitScopedUserManager(caller)) {
+      const hasForeignOrMissing =
+        jemaatList.length !== jemaat_ids.length ||
+        jemaatList.some((j: any) => Number(j.satelit_id) !== Number(caller.satelit_id));
+      if (hasForeignOrMissing) {
+        return NextResponse.json(
+          { success: false, message: 'Akses Ditolak: Admin Satelit hanya dapat men-generate akun jemaat pada satelitnya sendiri.' },
+          { status: 403 }
+        );
+      }
+    }
 
     let preSkippedCount = 0;
     const preSkippedList: { nama: string; alasan: string }[] = [];

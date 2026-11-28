@@ -71,6 +71,19 @@ const JemaatAutocomplete = ({
 type TabKey = 'role_permission' | 'akun_pengguna' | 'bulk_generate';
 interface RoleAssignment { role_id: string; satelit_id: string; komisi_id?: string; departemen_id?: string; }
 
+const SATELIT_ADMIN_ASSIGNABLE_ROLES = [
+  'JEMAAT',
+  'PEGAWAI',
+  'KETUA_SATELIT',
+  'WAKIL_KETUA_SATELIT',
+  'BENDAHARA_SATELIT',
+  'SEKRETARIS_SATELIT',
+  'KETUA_KOMISI',
+  'KETUA_DEPARTEMEN',
+  'PIC_KEGIATAN',
+  'BENDAHARA_PANITIA',
+];
+
 export default function AkunAksesPage() {
   const { showLoader, hideLoader } = useLoader();
   const [activeTab, setActiveTab] = useState<TabKey>('role_permission');
@@ -80,6 +93,9 @@ export default function AkunAksesPage() {
   // State autentikasi dan izin akses dong
   const [userData, setUserData] = useState<any>(null);
   const [canManageUserAccess, setCanManageUserAccess] = useState(false);
+  const isSuperAdmin = Boolean(userData?.is_super_admin);
+  const isSatelitAdmin = Boolean(userData && !userData.is_super_admin && userData.permissions?.includes('akun_satelit_manage'));
+  const defaultSatelitId = isSatelitAdmin && userData?.satelit_id ? String(userData.satelit_id) : '';
 
   // State kirim form sama peringatan UI-nya
   const [submitState, setSubmitState] = useState<{ status: 'idle'|'loading'|'success'|'error', message: string }>({ status: 'idle', message: '' });
@@ -182,8 +198,18 @@ export default function AkunAksesPage() {
         if (res.ok) {
           const u = await res.json();
           setUserData(u);
-          const hasUserAcc = u.is_super_admin || u.permissions?.includes('user_access_manage');
-          setCanManageUserAccess(hasUserAcc);
+          const isSuper = Boolean(u.is_super_admin);
+          const isSatAdmin = !isSuper && Boolean(u.permissions?.includes('akun_satelit_manage'));
+          setCanManageUserAccess(isSuper || isSatAdmin);
+          if (isSatAdmin) {
+            setActiveTab('akun_pengguna');
+            if (u.satelit_id) {
+              const sid = String(u.satelit_id);
+              setFilterUserSatelit(sid);
+              setFilterBulkSatelit(sid);
+              setRoleAssignments([{ role_id: '', satelit_id: sid }]);
+            }
+          }
         }
       } catch (err) {
         console.error('Failed fetching auth data', err);
@@ -193,10 +219,10 @@ export default function AkunAksesPage() {
   }, []);
 
   useEffect(() => {
-    if (activeTab === 'role_permission' && canManageUserAccess) fetchRolesData();
+    if (activeTab === 'role_permission' && isSuperAdmin) fetchRolesData();
     else if (activeTab === 'akun_pengguna' && canManageUserAccess) { fetchUsersData(); fetchRolesData(true); }
     else if (activeTab === 'bulk_generate' && canManageUserAccess) { fetchBulkData(filterBulkStatus); }
-  }, [activeTab, canManageUserAccess]);
+  }, [activeTab, canManageUserAccess, isSuperAdmin]);
 
   useEffect(() => {
     if (activeTab === 'bulk_generate') {
@@ -292,12 +318,12 @@ export default function AkunAksesPage() {
     {
       title: 'Sistem & Keamanan', icon: 'admin_panel_settings', color: 'text-slate-700', bg: 'bg-slate-100', border: 'border-slate-200', ring: 'focus:ring-slate-500', 
       checkedBg: 'checked:bg-slate-700', checkBorder: 'peer-checked:border-slate-700', activeBg: 'bg-slate-200',
-      keys: ['master_data_manage', 'user_access_manage', 'akses_sementara_manage', 'audit_log_view', 'multi_satelit_view']
+      keys: ['master_data_manage', 'user_access_manage', 'akun_satelit_manage', 'akses_sementara_manage', 'audit_log_view', 'multi_satelit_view']
     }
   ];
 
   // Multi-role helpers
-  const addRoleRow = (setter: React.Dispatch<React.SetStateAction<RoleAssignment[]>>) => setter(prev => [...prev, { role_id: '', satelit_id: '', komisi_id: '', departemen_id: '' }]);
+  const addRoleRow = (setter: React.Dispatch<React.SetStateAction<RoleAssignment[]>>) => setter(prev => [...prev, { role_id: '', satelit_id: defaultSatelitId, komisi_id: '', departemen_id: '' }]);
   const removeRoleRow = (setter: React.Dispatch<React.SetStateAction<RoleAssignment[]>>, idx: number) => setter(prev => prev.filter((_, i) => i !== idx));
   const updateRoleRow = (setter: React.Dispatch<React.SetStateAction<RoleAssignment[]>>, idx: number, field: keyof RoleAssignment, value: string) => setter(prev => prev.map((r, i) => i === idx ? { ...r, [field]: value } : r));
 
@@ -350,18 +376,29 @@ export default function AkunAksesPage() {
             }}
           >
             <option value="">-- Role --</option>
-            {dataRoles.filter((r: any) => r.is_active && r.nama_role !== 'JEMAAT' && r.nama_role !== 'PEGAWAI').map((r: any) => <option key={r.id} value={r.id}>{r.nama_role}</option>)}
+            {dataRoles
+              .filter((r: any) => {
+                if (!r.is_active || r.nama_role === 'JEMAAT' || r.nama_role === 'PEGAWAI') return false;
+                if (isSatelitAdmin) {
+                  return SATELIT_ADMIN_ASSIGNABLE_ROLES.includes(String(r.nama_role || '').toUpperCase());
+                }
+                return true;
+              })
+              .map((r: any) => <option key={r.id} value={r.id}>{r.nama_role}</option>)}
           </select>
           <select
-            className={`flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 ${accentClass} text-sm font-semibold text-slate-800`}
-            value={assignment.satelit_id}
+            className={`flex-1 px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 ${accentClass} text-sm font-semibold text-slate-800 ${isSatelitAdmin ? 'bg-slate-100 cursor-not-allowed opacity-80' : 'bg-white'}`}
+            value={isSatelitAdmin ? defaultSatelitId : assignment.satelit_id}
+            disabled={isSatelitAdmin}
             onChange={e => {
               updateRoleRow(setter, idx, 'satelit_id', e.target.value);
               if (needsKomisi) fetchKomisiForRow(rowKey, e.target.value);
             }}
           >
-            <option value="">-- Satelit --</option>
-            {satelitOptions.map((s: any) => <option key={s.id} value={s.id}>{s.nama_satelit}</option>)}
+            {!isSatelitAdmin && <option value="">-- Satelit --</option>}
+            {satelitOptions
+              .filter((s: any) => !isSatelitAdmin || String(s.id) === defaultSatelitId)
+              .map((s: any) => <option key={s.id} value={s.id}>{s.nama_satelit}</option>)}
           </select>
           {assignments.length > 1 && <button type="button" onClick={() => removeRoleRow(setter, idx)} className="w-7 h-7 rounded-full bg-rose-50 hover:bg-rose-100 flex items-center justify-center text-rose-500 flex-shrink-0"><span className="material-icons-round text-[16px]">close</span></button>}
         </div>
@@ -450,7 +487,7 @@ export default function AkunAksesPage() {
 
   const handleCreateUser = async () => {
     if (!newUserForm.email || !newUserForm.password) { setSubmitState({ status: 'error', message: 'Identifier Login dan Password wajib diisi!' }); return; }
-    const hasIncomplete = roleAssignments.some(r => (r.role_id && !r.satelit_id) || (!r.role_id && r.satelit_id));
+    const hasIncomplete = roleAssignments.some(r => (r.role_id && !r.satelit_id) || (!isSatelitAdmin && !r.role_id && r.satelit_id));
     if (hasIncomplete) { setSubmitState({ status: 'error', message: 'Pilihan Role dan Satelit harus berpasangan (tidak boleh ada yang kosong)!' }); return; }
     const missingKomisi = roleAssignments.some(r => getRoleName(r.role_id) === 'KETUA_KOMISI' && !r.komisi_id);
     if (missingKomisi) { setSubmitState({ status: 'error', message: 'Pilih Komisi untuk setiap role KETUA_KOMISI!' }); return; }
@@ -465,7 +502,7 @@ export default function AkunAksesPage() {
       const json = await res.json();
       if (json.success) {
         setSubmitState({ status: 'success', message: 'Akun berhasil dibuat dan role berhasil di-assign!' });
-        setNewUserForm({ email: '', password: '' }); setNewUserSelectedJemaat(null); setNewUserPegawaiId(''); setNewUserSearchQuery(''); setNewUserLoginType('email'); setRoleAssignments([{ role_id: '', satelit_id: '' }]);
+        setNewUserForm({ email: '', password: '' }); setNewUserSelectedJemaat(null); setNewUserPegawaiId(''); setNewUserSearchQuery(''); setNewUserLoginType('email'); setRoleAssignments([{ role_id: '', satelit_id: defaultSatelitId }]);
         fetchUsersData();
       } else setSubmitState({ status: 'error', message: json.message || 'Gagal membuat akun.' });
     } catch(e) { setSubmitState({ status: 'error', message: 'Terjadi kesalahan server.' }); }
@@ -485,7 +522,7 @@ export default function AkunAksesPage() {
         role_id: r.role_id ? String(r.role_id) : '',
         satelit_id: r.satelit_id ? String(r.satelit_id) : ''
       }));
-    setEditRoleAssignments(existingRoles.length > 0 ? existingRoles : [{ role_id: '', satelit_id: '' }]);
+    setEditRoleAssignments(existingRoles.length > 0 ? existingRoles : [{ role_id: '', satelit_id: defaultSatelitId }]);
     // Set jemaat yang sudah terhubung (jika ada)
     if (user.jemaat_id && user.nama_lengkap) {
       setEditSelectedJemaat({ id: user.jemaat_id, jemaat_id: user.jemaat_id_str || '', nama_lengkap: user.nama_lengkap, foto_url: user.foto_url });
@@ -501,7 +538,7 @@ export default function AkunAksesPage() {
   const handleUpdateUser = async () => {
     if (!editingUser) return;
     if (!editForm.email) { setSubmitState({ status: 'error', message: 'Email tidak boleh kosong!' }); return; }
-    const hasIncomplete = editRoleAssignments.some(r => (r.role_id && !r.satelit_id) || (!r.role_id && r.satelit_id));
+    const hasIncomplete = editRoleAssignments.some(r => (r.role_id && !r.satelit_id) || (!isSatelitAdmin && !r.role_id && r.satelit_id));
     if (hasIncomplete) { setSubmitState({ status: 'error', message: 'Pilihan Role dan Satelit harus berpasangan (tidak boleh ada yang kosong)!' }); return; }
     const missingKomisi = editRoleAssignments.some(r => getRoleName(r.role_id) === 'KETUA_KOMISI' && !r.komisi_id);
     if (missingKomisi) { setSubmitState({ status: 'error', message: 'Pilih Komisi untuk setiap role KETUA_KOMISI!' }); return; }
@@ -577,7 +614,7 @@ export default function AkunAksesPage() {
         {/* Tab Navigation */}
         <div className="w-full bg-slate-100 rounded-xl p-1 inline-flex justify-start items-center gap-1 overflow-x-auto">
           {[
-            { key: 'role_permission', label: 'Manajemen Role & Permission', icon: 'admin_panel_settings', show: canManageUserAccess },
+            { key: 'role_permission', label: 'Manajemen Role & Permission', icon: 'admin_panel_settings', show: isSuperAdmin },
             { key: 'akun_pengguna', label: 'Daftar Akun Pengguna', icon: 'vpn_key', show: canManageUserAccess },
             { key: 'bulk_generate', label: 'Generate Akun Massal', icon: 'group_add', show: canManageUserAccess },
           ]
@@ -591,8 +628,17 @@ export default function AkunAksesPage() {
           ))}
         </div>
 
+        {isSatelitAdmin && (
+          <div className="w-full px-4 py-3 bg-indigo-50 border border-indigo-200 rounded-xl flex items-start gap-3 text-xs text-indigo-800">
+            <span className="material-icons-round text-indigo-600 text-[18px] mt-0.5">verified_user</span>
+            <div>
+              <strong>Mode Admin Satelit ({userData?.satelit_name || `Satelit #${userData?.satelit_id}`})</strong>: Anda hanya dapat melihat dan mengelola akun jemaat/staf di satelit Anda sendiri. Akun dengan role pusat (mis. Super Admin, Majelis, Sekretaris/Bendahara Pusat) atau lintas satelit otomatis terkunci demi keamanan.
+            </div>
+          </div>
+        )}
+
         {/* Tab 1: Manajemen Role & Permission */}
-        {activeTab === 'role_permission' && canManageUserAccess && (
+        {activeTab === 'role_permission' && isSuperAdmin && (
           <div className="w-full mt-4 flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-2">
             <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2"><span className="material-icons-round text-violet-500">list_alt</span> Daftar Role Sistem</h2>
             <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
@@ -630,7 +676,7 @@ export default function AkunAksesPage() {
           <div className="w-full mt-4 flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-2">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2"><span className="material-icons-round text-violet-500">people</span> Daftar Akun Pengguna</h2>
-              <button onClick={() => setIsAddUserModalOpen(true)} className="bg-violet-600 hover:bg-violet-700 text-white text-sm font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-all shadow-md">
+              <button onClick={() => { setRoleAssignments([{ role_id: '', satelit_id: defaultSatelitId }]); setIsAddUserModalOpen(true); }} className="bg-violet-600 hover:bg-violet-700 text-white text-sm font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-all shadow-md">
                 <span className="material-icons-round text-[18px]">person_add</span> Tambah Akun Baru
               </button>
             </div>
@@ -651,10 +697,14 @@ export default function AkunAksesPage() {
                 <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
               </div>
               <div className="relative min-w-[200px]">
-                <select className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-slate-700 font-sans text-sm cursor-pointer" 
-                  value={filterUserSatelit} onChange={e => setFilterUserSatelit(e.target.value)}>
-                  <option value="">Semua Satelit</option>
-                  {satelitOptions.map(s => <option key={s.id} value={s.id}>{s.nama_satelit}</option>)}
+                <select className={`appearance-none w-full pl-4 pr-10 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-slate-700 font-sans text-sm ${isSatelitAdmin ? 'bg-slate-100 cursor-not-allowed opacity-80' : 'bg-slate-50 cursor-pointer'}`}
+                  value={isSatelitAdmin ? defaultSatelitId : filterUserSatelit}
+                  disabled={isSatelitAdmin}
+                  onChange={e => setFilterUserSatelit(e.target.value)}>
+                  {!isSatelitAdmin && <option value="">Semua Satelit</option>}
+                  {satelitOptions
+                    .filter((s: any) => !isSatelitAdmin || String(s.id) === defaultSatelitId)
+                    .map(s => <option key={s.id} value={s.id}>{s.nama_satelit}</option>)}
                 </select>
                 <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
               </div>
@@ -710,6 +760,13 @@ export default function AkunAksesPage() {
                         </td>
                         {/* Action Column - pola "..." persis seperti Data Jemaat */}
                         <td className="px-6 py-4 align-top">
+                          {isSatelitAdmin && user.is_locked_for_satelit_admin ? (
+                            <div className="flex justify-end">
+                              <span title="Akun dengan role pusat atau lintas satelit terkunci bagi Admin Satelit" className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 text-slate-500 border border-slate-200 text-[11px] font-bold whitespace-nowrap">
+                                <span className="material-icons-round text-[14px]">lock</span> Terkunci
+                              </span>
+                            </div>
+                          ) : (
                           <div className="flex justify-end text-slate-400 relative">
                             <button onClick={() => setOpenMenuId(openMenuId === user.id ? null : user.id)} className="hover:text-slate-700 hover:bg-slate-100 p-1.5 rounded transition-colors">
                               <span className="material-icons-round text-[24px]">more_horiz</span>
@@ -735,6 +792,7 @@ export default function AkunAksesPage() {
                               </>
                             )}
                           </div>
+                          )}
                         </td>
                       </tr>
                     );
@@ -771,10 +829,14 @@ export default function AkunAksesPage() {
                   value={bulkSearchQuery} onChange={e => { setBulkSearchQuery(e.target.value); setBulkPage(1); }} />
               </div>
               <div className="relative min-w-[200px]">
-                <select className="appearance-none w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700 font-sans text-sm cursor-pointer"
-                  value={filterBulkSatelit} onChange={e => { setFilterBulkSatelit(e.target.value); setBulkPage(1); setSelectedBulkIds([]); }}>
-                  <option value="">Semua Satelit</option>
-                  {satelitOptions.map((s: any) => <option key={s.id} value={s.id}>{s.nama_satelit}</option>)}
+                <select className={`appearance-none w-full pl-4 pr-10 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700 font-sans text-sm ${isSatelitAdmin ? 'bg-slate-100 cursor-not-allowed opacity-80' : 'bg-slate-50 cursor-pointer'}`}
+                  value={isSatelitAdmin ? defaultSatelitId : filterBulkSatelit}
+                  disabled={isSatelitAdmin}
+                  onChange={e => { setFilterBulkSatelit(e.target.value); setBulkPage(1); setSelectedBulkIds([]); }}>
+                  {!isSatelitAdmin && <option value="">Semua Satelit</option>}
+                  {satelitOptions
+                    .filter((s: any) => !isSatelitAdmin || String(s.id) === defaultSatelitId)
+                    .map((s: any) => <option key={s.id} value={s.id}>{s.nama_satelit}</option>)}
                 </select>
                 <span className="material-icons-round absolute right-3 top-2.5 text-slate-400 pointer-events-none">expand_more</span>
               </div>
@@ -968,7 +1030,7 @@ export default function AkunAksesPage() {
                       setNewUserForm(p => ({ ...p, email: '' }));
                     }
                     setNewUserLoginType('email');
-                    setRoleAssignments([{ role_id: '', satelit_id: '' }]);
+                    setRoleAssignments([{ role_id: '', satelit_id: defaultSatelitId }]);
                   }} />
                 {newUserSelectedJemaat && <div className="mt-2 p-2 bg-emerald-50 text-emerald-700 text-xs font-bold font-sans border border-emerald-100 rounded flex gap-2 w-fit"><span className="material-icons-round text-[16px]">check_circle</span> {newUserSelectedJemaat.jemaat_id} - Terverifikasi</div>}
               </div>

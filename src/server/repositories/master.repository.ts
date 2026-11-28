@@ -34,17 +34,28 @@ export class MasterRepository {
     return result.rows;
   }
 
-  async searchJemaat(searchQuery: string, onlyActive?: boolean): Promise<any[]> {
-    const statusFilter = onlyActive ? " AND j.status_jemaat = 'Aktif'" : "";
+  async searchJemaat(searchQuery: string, onlyActive?: boolean, satelitId?: number): Promise<any[]> {
+    const conditions = ['j.is_deleted = false', 'j.nama_lengkap ILIKE $1'];
+    const values: any[] = [`%${searchQuery}%`];
+    let idx = 2;
+
+    if (onlyActive) {
+      conditions.push(`j.status_jemaat = 'Aktif'`);
+    }
+    if (typeof satelitId === 'number' && !Number.isNaN(satelitId)) {
+      conditions.push(`j.satelit_id = $${idx++}`);
+      values.push(satelitId);
+    }
+
     const query = `
       SELECT j.id, j.jemaat_id, j.nama_lengkap, j.jenis_kelamin, j.foto_url, j.satelit_id, s.nama_satelit, j.tanggal_lahir, j.status_pernikahan, j.no_hp, j.email, j.alamat, j.kota, j.kode_pos
       FROM jemaat j
       JOIN satelit s ON j.satelit_id = s.id
-      WHERE j.is_deleted = false AND j.nama_lengkap ILIKE $1${statusFilter}
+      WHERE ${conditions.join(' AND ')}
       ORDER BY j.nama_lengkap ASC
       LIMIT 10;
     `;
-    const result = await pool.query(query, [`%${searchQuery}%`]);
+    const result = await pool.query(query, values);
     return result.rows;
   }
 

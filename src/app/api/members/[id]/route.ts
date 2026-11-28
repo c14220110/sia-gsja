@@ -65,9 +65,20 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     // Baseline perbandingan harus dari jemaat, bukan dari pengguna, agar tidak
     // false-positive saat admin tidak mengubah email/no_hp sama sekali.
     const currentJemaatRes = await pool.query(
-      'SELECT email, no_hp FROM jemaat WHERE id = $1 LIMIT 1',
+      'SELECT email, no_hp, satelit_id FROM jemaat WHERE id = $1 LIMIT 1',
       [parseInt(id)]
     );
+    if (!currentJemaatRes.rowCount || currentJemaatRes.rowCount === 0) {
+      return NextResponse.json({ success: false, message: 'Jemaat tidak ditemukan' }, { status: 404 });
+    }
+    if (!caller.is_super_admin && !caller.permissions.includes('multi_satelit_view')) {
+      if (Number(currentJemaatRes.rows[0].satelit_id) !== Number(caller.satelit_id)) {
+        return NextResponse.json({ success: false, message: 'Akses Ditolak: Jemaat berasal dari satelit lain.' }, { status: 403 });
+      }
+      if (body.satelit_id !== undefined && body.satelit_id !== '' && Number(body.satelit_id) !== Number(caller.satelit_id)) {
+        return NextResponse.json({ success: false, message: 'Akses Ditolak: Tidak dapat memindahkan jemaat ke satelit lain.' }, { status: 403 });
+      }
+    }
     const currentJemaatEmail = currentJemaatRes.rows[0]?.email?.trim() || null;
     const currentJemaatNoHp  = currentJemaatRes.rows[0]?.no_hp?.trim()  || null;
 
@@ -215,6 +226,16 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     if (!status_jemaat) {
       return NextResponse.json({ success: false, message: 'Status must be provided' }, { status: 400 });
+    }
+
+    if (!caller.is_super_admin && !caller.permissions.includes('multi_satelit_view')) {
+      const targetSat = await pool.query('SELECT satelit_id FROM jemaat WHERE id = $1 LIMIT 1', [parseInt(id)]);
+      if (!targetSat.rowCount || targetSat.rowCount === 0) {
+        return NextResponse.json({ success: false, message: 'Jemaat tidak ditemukan' }, { status: 404 });
+      }
+      if (Number(targetSat.rows[0].satelit_id) !== Number(caller.satelit_id)) {
+        return NextResponse.json({ success: false, message: 'Akses Ditolak: Jemaat berasal dari satelit lain.' }, { status: 403 });
+      }
     }
 
     const updated = await jemaatRepository.updateJemaatStatus(id, status_jemaat);

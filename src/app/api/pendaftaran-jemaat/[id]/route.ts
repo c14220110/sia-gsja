@@ -45,7 +45,7 @@ export async function GET(
     }
 
     const row = res.rows[0];
-    if (!caller.is_super_admin && caller.satelit_id && caller.satelit_id !== 1) {
+    if (!caller.is_super_admin && !caller.permissions?.includes('multi_satelit_view') && caller.satelit_id) {
       if (row.satelit_id !== caller.satelit_id) {
         return NextResponse.json({ success: false, message: 'Akses ditolak: Pendaftaran ini milik satelit lain' }, { status: 403 });
       }
@@ -91,7 +91,7 @@ export async function PUT(
     const p = pending.rows[0];
 
     // Satelit scope check
-    if (!caller.is_super_admin && caller.satelit_id && caller.satelit_id !== 1) {
+    if (!caller.is_super_admin && !caller.permissions?.includes('multi_satelit_view') && caller.satelit_id) {
       if (p.satelit_id !== caller.satelit_id) {
         return NextResponse.json({ success: false, message: 'Akses ditolak: Pendaftaran ini milik satelit lain' }, { status: 403 });
       }

@@ -224,7 +224,7 @@ export default function DashboardLayout({
                 </div>
               </Link>
               
-              {[1, 2, 3, 4].includes(userData?.role_id) && (
+              {([1, 2, 3, 4].includes(userData?.role_id) || hasPermission('akun_satelit_manage')) && (
                 <div className="w-full">
                   <div
                     className="w-full px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/5 cursor-pointer"
@@ -247,7 +247,7 @@ export default function DashboardLayout({
                   {/* Mobile Accordion */}
                   <div className={`md:hidden overflow-hidden transition-all duration-300 ${mobileExpandedMenus['pengaturan_software'] ? 'max-h-96 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
                     <div className="pl-14 pr-4 py-2 flex flex-col gap-4">
-                      {(hasPermission('user_access_manage') || hasPermission('akses_sementara_manage')) && <Link href="/settings/akun-akses" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Akun &amp; Hak Akses</Link>}
+                      {(hasPermission('user_access_manage') || hasPermission('akun_satelit_manage') || hasPermission('akses_sementara_manage')) && <Link href="/settings/akun-akses" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Akun &amp; Hak Akses</Link>}
                       {hasPermission('master_data_manage') && <Link href="/settings/master-data" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Master Data</Link>}
                       {hasPermission('audit_log_view') && <Link href="/settings/audit-log" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Audit Log</Link>}
                       {hasPermission('pengurus_view') && <Link href="/settings/organisasi" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 text-sm font-medium hover:text-white transition-colors block">Bagan Organisasi</Link>}
@@ -670,7 +670,7 @@ export default function DashboardLayout({
                     <div className="justify-center text-slate-800 text-lg font-bold font-sans leading-7">Pengaturan Software</div>
                   </div>
                   <div className="self-stretch flex flex-wrap justify-start items-start gap-4">
-                    {(hasPermission('user_access_manage') || hasPermission('akses_sementara_manage')) && (
+                    {(hasPermission('user_access_manage') || hasPermission('akun_satelit_manage') || hasPermission('akses_sementara_manage')) && (
                       <Link href="/settings/akun-akses" onClick={() => setActiveSubmenu(null)} className="flex-1 h-32 p-4 bg-purple-50 rounded-lg outline outline-1 outline-offset-[-1px] outline-purple-200 flex flex-col justify-center items-center cursor-pointer hover:bg-purple-100 transition-colors block text-inherit no-underline">
                         <div className="pb-2 flex flex-col justify-start items-start">
                           <div className="flex flex-col justify-start items-center">
